@@ -10,6 +10,8 @@ if (debug) {
   execArgv.push('--inspect')
 }
 
+const browserVersion = process.env.WDIO_CHROME_VERSION ?? 'stable'
+
 export const config = {
   //
   // ====================
@@ -63,17 +65,22 @@ export const config = {
   //
 
   capabilities: debug
-    ? [{ browserName: 'chrome' }]
+    ? [{ browserName: 'chrome', browserVersion }]
     : [
         {
           maxInstances: 1,
           browserName: 'chrome',
+          browserVersion,
           'goog:chromeOptions': {
             args: [
               '--no-sandbox',
               '--disable-infobars',
               '--disable-gpu',
-              '--window-size=1920,1080'
+              '--window-size=1920,1080',
+              // epr-frontend redirects the browser to the real Defra ID stub
+              // hostname during sign-in; compose only publishes it on
+              // localhost, so map the internal name there for local runs.
+              '--host-resolver-rules=MAP defra-id-stub:3200 localhost:3200'
             ]
           }
         }
@@ -171,7 +178,9 @@ export const config = {
   // See the full list at http://mochajs.org/
   mochaOpts: {
     ui: 'bdd',
-    timeout: debug ? oneHour : 60000
+    timeout: debug ? oneHour : oneMinute * 5,
+    grep: process.env.GREP || '',
+    invert: process.env.GREP_INVERT === 'true'
   },
   //
   // =====

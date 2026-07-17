@@ -32,6 +32,7 @@
     "report:publish": "npm run report; ./bin/publish-tests.sh"
   },
   "dependencies": {
+    "@faker-js/faker": "10.5.0",
     "@wdio/browserstack-service": "9.9.1",
     "@wdio/cli": "9.9.1",
     "@wdio/globals": "9.9.1",
@@ -43,6 +44,7 @@
     "allure-commandline": "2.32.0",
     "esm-module-alias": "2.2.1",
     "global-agent": "3.0.0",
+    "pino": "9.6.0",
     "undici": "7.3.0"
   },
   "devDependencies": {

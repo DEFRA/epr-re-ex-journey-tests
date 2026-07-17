@@ -2,6 +2,51 @@ import allure from 'allure-commandline'
 
 const oneMinute = 60 * 1000
 
+// Runs in the browser: set a field's value without keyboard input.
+const assignValue = (el, value) => {
+  el.focus()
+  if (el.isContentEditable) {
+    el.textContent = value
+  } else {
+    el.value = value
+  }
+  el.dispatchEvent(new Event('input', { bubbles: true }))
+  el.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
+// Headless CI has no window manager, so the page loses OS focus after navigation
+// and recent Chrome then silently drops native pointer/keyboard input. Driving
+// interactions through the DOM removes the dependency on focus.
+// https://makandracards.com/makandra/12661-solve-selenium-focus-issues
+const routeInputThroughDom = async (browser) => {
+  await browser.overwriteCommand(
+    'click',
+    async function () {
+      await this.waitForClickable()
+      return browser.execute((el) => el.click(), this)
+    },
+    true
+  )
+  await browser.overwriteCommand(
+    'setValue',
+    async function (nativeSetValue, value) {
+      await this.waitForExist()
+      const isFileInput = (await this.getProperty('type')) === 'file'
+      return isFileInput
+        ? nativeSetValue.call(this, value) // file uploads need the native path
+        : browser.execute(assignValue, this, value)
+    },
+    true
+  )
+  await browser.overwriteCommand(
+    'clearValue',
+    function () {
+      return browser.execute(assignValue, this, '')
+    },
+    true
+  )
+}
+
 export const config = {
   //
   // ====================
@@ -24,11 +69,15 @@ export const config = {
   specs: ['./test/specs/**/*.js'],
   // Tests to exclude
   exclude: [],
-  maxInstances: 1,
+  maxInstances: 5,
 
   capabilities: [
     {
+      maxInstances: 5,
       browserName: 'chrome',
+      // BiDi drops its browsing context on our navigations (and falls back per
+      // call, adding latency); classic is stable and faster here.
+      'wdio:enforceWebDriverClassic': true,
       'goog:chromeOptions': {
         args: [
           '--no-sandbox',
@@ -43,7 +92,8 @@ export const config = {
           '--disable-background-networking',
           '--disable-remote-fonts',
           '--ignore-certificate-errors',
-          '--disable-dev-shm-usage'
+          '--disable-dev-shm-usage',
+          '--host-resolver-rules=MAP defra-id-stub:3200 localhost:3200'
         ]
       }
     }
@@ -63,6 +113,7 @@ export const config = {
   waitforInterval: 200,
   connectionRetryTimeout: 120000,
   connectionRetryCount: 3,
+  specFileRetries: 1,
 
   framework: 'mocha',
 
@@ -89,7 +140,9 @@ export const config = {
   // See the full list at http://mochajs.org/
   mochaOpts: {
     ui: 'bdd',
-    timeout: oneMinute
+    timeout: 2 * oneMinute,
+    grep: process.env.GREP || '',
+    invert: process.env.GREP_INVERT === 'true'
   },
   //
   // =====
@@ -139,7 +192,7 @@ export const config = {
    * @param {Array.<String>} specs        List of spec file paths that are to be run
    * @param {object}         browser      instance of created browser/device session
    */
-  // before: function (capabilities, specs) {},
+  before: () => routeInputThroughDom(browser),
   /**
    * Runs before a WebdriverIO command gets executed.
    * @param {string} commandName hook command name

@@ -1,4 +1,6 @@
 import fs from 'node:fs'
+import { resetTracker } from './test/support/cleanup-tracker.js'
+import { defraIdStub } from './test/support/defra-id-stub.js'
 
 const oneMinute = 60 * 1000
 
@@ -145,7 +147,9 @@ export const config = {
    * @param {Array.<String>} specs        List of spec file paths that are to be run
    * @param {object}         browser      instance of created browser/device session
    */
-  // before: function (capabilities, specs) {},
+  before: function (capabilities, specs) {
+    resetTracker()
+  },
   /**
    * Runs before a WebdriverIO command gets executed.
    * @param {string} commandName hook command name
@@ -215,7 +219,9 @@ export const config = {
    * @param {Array.<Object>} capabilities list of capabilities details
    * @param {Array.<String>} specs List of spec file paths that ran
    */
-  // after: function (result, capabilities, specs) {},
+  after: async function (result, capabilities, specs) {
+    await defraIdStub.expireAllUsers()
+  },
   /**
    * Gets executed right after terminating the webdriver session.
    * @param {object} config wdio configuration object
