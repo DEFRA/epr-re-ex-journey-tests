@@ -15,17 +15,24 @@ import { AuthClient } from './auth.js'
 import { trackCreatedOrgId } from './cleanup-tracker.js'
 import { defraIdStub } from './defra-id-stub.js'
 import { MATERIALS } from './materials.js'
+import Users from './users.js'
 
 // Entra tokens go through the shared AuthClient above (createSubmittedReport,
-// getOrganisation). Defra ID user tokens below still use a private
-// getDefraUserToken rather than the shared defraIdStub: unlike AuthClient,
-// defraIdStub connects via config.defraIdUri's hostname directly (relying on
-// that hostname resolving, e.g. via a docker-compose-provided /etc/hosts
-// entry) rather than localhost + an explicit Host header override, and its
-// register/authorise/generateToken methods don't send that override either -
-// so a straight migration would swap a proven-working local flow for one
-// that's never actually been exercised by a passing test. Worth fixing
-// defraIdStub itself in a follow-up rather than duplicating the workaround.
+// getOrganisation). Defra ID user tokens use two different flows depending
+// on caller, both proven by passing tests rather than one being a dead
+// duplicate of the other:
+// - createAndRegisterDefraIdUser/linkDefraIdUser (frontend-derived) use the
+//   shared defraIdStub, connecting via config.defraIdUri's hostname
+//   directly - correct when the test runner itself joins the compose
+//   network (e.g. real CI), where that hostname resolves via Docker's own
+//   DNS with no extra setup.
+// - The private getDefraUserToken below (admin-derived) hits localhost and
+//   spoofs the Host header explicitly - correct for a bare-host run (e.g.
+//   wdio.local.conf.js on a laptop) where the compose hostname isn't
+//   resolvable at all without an explicit override.
+// Both need the right issuer header one way or another; which one applies
+// depends on where the test process itself is running, not on which spec
+// is calling it.
 
 // Registers a throwaway user with the Defra ID stub and returns a Bearer token
 // with standardUser scope for the given defraOrgId.
@@ -304,7 +311,13 @@ export async function createLinkedOrganisation(dataRows) {
   response = await baseAPI.post(`/v1/dev/form-submissions/${refNo}/migrate`, '')
   expect(response.statusCode).toBe(200)
 
-  return { orgId, refNo, organisation, registrations }
+  return {
+    orgId,
+    refNo,
+    organisation,
+    registrations,
+    regAddresses: registrations.map((registration) => registration.address)
+  }
 }
 
 // Examples for updateDataRows:
@@ -518,6 +531,39 @@ export async function updateStatus(orgId, newStatus) {
     response,
     `PUT /v1/organisations/${orgId}`
   )
+}
+
+export async function createAndRegisterDefraIdUser(email) {
+  const users = new Users()
+  const user = await users.userPayload(email)
+  await defraIdStub.register(JSON.stringify(user))
+
+  return user
+}
+
+export async function linkDefraIdUser(organisationId, userId, email) {
+  const baseAPI = new BaseAPI()
+  const users = new Users()
+
+  const payload = await users.authorisationPayload(email)
+  const response = await defraIdStub.authorise(payload)
+  if (!response) {
+    throw new Error(
+      `DefraID stub authorise returned no location header for ${email}`
+    )
+  }
+  const sessionId = response.split('sessionId=')[1]
+
+  const tokenPayload = await users.tokenPayload(sessionId)
+  await defraIdStub.generateToken(JSON.stringify(tokenPayload), userId)
+
+  const linkResponse = await baseAPI.post(
+    `/v1/organisations/${organisationId}/link`,
+    '',
+    defraIdStub.authHeader(userId)
+  )
+
+  expect(linkResponse.statusCode).toBe(200)
 }
 
 /**

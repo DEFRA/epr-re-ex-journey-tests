@@ -10,4 +10,5 @@ coverage
 .png
 allure-report/
 allure-results/
+test-artifacts/
 FAILED
