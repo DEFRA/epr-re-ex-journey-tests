@@ -165,7 +165,7 @@ export async function createLinkedOrganisation(dataRows) {
   response = await baseAPI.post(`/v1/dev/form-submissions/${refNo}/migrate`, '')
   expect(response.statusCode).toBe(200)
 
-  return { refNo, organisation, regAddresses }
+  return { orgId, refNo, organisation, regAddresses }
 }
 
 // Examples for updateDataRows:
