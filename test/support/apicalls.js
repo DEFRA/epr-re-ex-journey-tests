@@ -15,33 +15,17 @@ import { AuthClient } from './auth.js'
 import { trackCreatedOrgId } from './cleanup-tracker.js'
 import { defraIdStub } from './defra-id-stub.js'
 import { MATERIALS } from './materials.js'
-import Users from './users.js'
 
-// createSubmittedReport/getOrganisation/linkOrganisationToDefraId below use
-// their own throwaway-token helpers rather than AuthClient/defraIdStub above,
-// since they were ported from a separate source repo's apicalls.js that
-// implemented its own Entra/Defra ID token flow independently. Reconciling
-// the two into one is a follow-up, not done here to avoid an unverified
-// behavioural rewrite of proven-working code.
-async function getEntraToken() {
-  const entraUrl = 'http://localhost:3010/sign'
-  const payload = JSON.stringify({
-    clientId: 'clientId',
-    username: 'ea@test.gov.uk'
-  })
-  const response = await request(entraUrl, {
-    method: 'POST',
-    body: payload
-  })
-  /**
-   * @typedef {Object} AuthResponse
-   * @property {string} access_token
-   * @property {string} token_type
-   * @property {number} expires_in
-   */
-  const data = /** @type {AuthResponse} */ (await response.body.json())
-  return data.access_token
-}
+// Entra tokens go through the shared AuthClient above (createSubmittedReport,
+// getOrganisation). Defra ID user tokens below still use a private
+// getDefraUserToken rather than the shared defraIdStub: unlike AuthClient,
+// defraIdStub connects via config.defraIdUri's hostname directly (relying on
+// that hostname resolving, e.g. via a docker-compose-provided /etc/hosts
+// entry) rather than localhost + an explicit Host header override, and its
+// register/authorise/generateToken methods don't send that override either -
+// so a straight migration would swap a proven-working local flow for one
+// that's never actually been exercised by a passing test. Worth fixing
+// defraIdStub itself in a follow-up rather than duplicating the workaround.
 
 // Registers a throwaway user with the Defra ID stub and returns a Bearer token
 // with standardUser scope for the given defraOrgId.
@@ -531,39 +515,6 @@ export async function updateStatus(orgId, newStatus) {
   )
 }
 
-export async function createAndRegisterDefraIdUser(email) {
-  const users = new Users()
-  const user = await users.userPayload(email)
-  await defraIdStub.register(JSON.stringify(user))
-
-  return user
-}
-
-export async function linkDefraIdUser(organisationId, userId, email) {
-  const baseAPI = new BaseAPI()
-  const users = new Users()
-
-  const payload = await users.authorisationPayload(email)
-  const response = await defraIdStub.authorise(payload)
-  if (!response) {
-    throw new Error(
-      `DefraID stub authorise returned no location header for ${email}`
-    )
-  }
-  const sessionId = response.split('sessionId=')[1]
-
-  const tokenPayload = await users.tokenPayload(sessionId)
-  await defraIdStub.generateToken(JSON.stringify(tokenPayload), userId)
-
-  const linkResponse = await baseAPI.post(
-    `/v1/organisations/${organisationId}/link`,
-    '',
-    defraIdStub.authHeader(userId)
-  )
-
-  expect(linkResponse.statusCode).toBe(200)
-}
-
 /**
  * Seeds overseas site records and links them to an exporter registration.
  * Creates a single approved overseas site, then maps a 3-digit ORS key
@@ -670,8 +621,9 @@ export async function unsubmitReport(
  * gates submit) — e.g. { tonnageRecycled, tonnageNotRecycled } for registered-only.
  *
  * Auth: report endpoints need the linked Defra ID user's bearer token
- * (defraIdStub.authHeader), NOT the service AuthClient (which 403s) — so
- * linkDefraIdUser must run first.
+ * (defraIdStub.authHeader), NOT the service AuthClient (which 403s) — so a
+ * prior Defra ID sign-in flow must have called defraIdStub.generateToken for
+ * this userId first.
  */
 export async function seedSubmittedReport(
   organisationId,
@@ -765,8 +717,9 @@ export async function externalAPIAcceptPrn(prnDetails) {
 // this registration regardless of when the test runs.
 export async function createSubmittedReport(refNo, registrationIndex = 0) {
   const baseAPI = new BaseAPI()
-  const entraToken = await getEntraToken()
-  const entraAuthHeader = { Authorization: `Bearer ${entraToken}` }
+  const authClient = new AuthClient()
+  await authClient.authenticate()
+  const entraAuthHeader = authClient.authHeader()
 
   const orgResponse = await baseAPI.get(
     `/v1/organisations/${refNo}`,
@@ -883,10 +836,12 @@ export async function createSubmittedReport(refNo, registrationIndex = 0) {
 
 export async function getOrganisation(refNo) {
   const baseAPI = new BaseAPI()
-  const entraToken = await getEntraToken()
-  const orgResponse = await baseAPI.get(`/v1/organisations/${refNo}`, {
-    Authorization: `Bearer ${entraToken}`
-  })
+  const authClient = new AuthClient()
+  await authClient.authenticate()
+  const orgResponse = await baseAPI.get(
+    `/v1/organisations/${refNo}`,
+    authClient.authHeader()
+  )
   return await assertSuccessResponse(orgResponse, `/v1/organisations/${refNo}`)
 }
 
