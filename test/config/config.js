@@ -54,6 +54,14 @@ const defraId = {
   env: `https://cdp-defra-id-stub.${environment}.cdp-int.defra.cloud`
 }
 
+// epr-re-ex-admin-frontend runs on its own port/host, separate from the
+// epr-frontend app the global wdio baseUrl points at - admin page objects
+// build absolute URLs from this rather than relying on baseUrl.
+const admin = {
+  local: 'http://localhost:3002',
+  env: `https://epr-re-ex-admin-frontend.${environment}.cdp-int.defra.cloud`
+}
+
 // Cognito auth for the external/regulator-facing API (e.g. PRN accept/reject),
 // which sits behind AWS Cognito rather than Defra ID or Entra.
 const cognitoAuthParams = {
@@ -99,17 +107,20 @@ const globalUndiciAgent = environment ? proxy : agent
 let apiUri
 let authUri
 let defraIdUri
+let adminUri
 let cognitoAuth
 
 if (!environment) {
   apiUri = api.local
   authUri = auth.local
   defraIdUri = defraId.local
+  adminUri = admin.local
   cognitoAuth = cognito.local
 } else {
   apiUri = api.env
   authUri = auth.env
   defraIdUri = defraId.env
+  adminUri = admin.env
   cognitoAuth = cognito.env
 }
 
@@ -122,6 +133,7 @@ export default {
   apiUri,
   auth,
   authUri,
+  adminUri,
   cognitoAuth,
   defraIdUri,
   undiciAgent: globalUndiciAgent

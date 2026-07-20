@@ -1,7 +1,7 @@
-import { Page } from 'page-objects/page'
+import { AdminPage } from 'page-objects/admin/page'
 import { $ } from '@wdio/globals'
 
-class AdminLoginPage extends Page {
+class AdminLoginPage extends AdminPage {
   open() {
     return super.open('/auth/sign-in')
   }
