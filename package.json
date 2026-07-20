@@ -26,6 +26,7 @@
     "git:pre-commit-hook": "npm run format:check && npm run lint",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "lint:types": "tsc -p jsconfig.typecheck.json",
     "postinstall": "npm run setup:husky",
     "setup:husky": "node -e \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module",
     "report": "allure generate allure-results --single-file --clean",
@@ -50,12 +51,14 @@
     "undici": "7.3.0"
   },
   "devDependencies": {
+    "@types/express": "5.0.6",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-config-standard": "17.1.0",
     "eslint-plugin-prettier": "5.1.3",
     "eslint-plugin-wdio": "8.24.12",
     "husky": "9.1.7",
-    "prettier": "3.4.2"
+    "prettier": "3.4.2",
+    "typescript": "7.0.2"
   }
 }
