@@ -8,6 +8,7 @@ import { fakerEN_GB } from '@faker-js/faker'
 import { expect } from '@wdio/globals'
 import { request } from 'undici'
 import { randomUUID } from 'crypto'
+import { readFile } from 'node:fs/promises'
 import { BaseAPI } from '../apis/base-api.js'
 import config from '../config/config.js'
 import { AuthClient } from './auth.js'
@@ -401,7 +402,10 @@ export async function updateMigratedOrganisation(
 
     registrationIds.push(data.registrations[i].id)
 
-    if (!orgUpdateData.withoutAccreditation) {
+    if (
+      !orgUpdateData.withoutAccreditation &&
+      data.accreditations[accreditationIndex]
+    ) {
       const j = accreditationIndex
       data.registrations[i].accreditationId = data.accreditations[j].id
       data.accreditations[j].status = orgUpdateData.status
@@ -884,6 +888,345 @@ export async function getOrganisation(refNo) {
     Authorization: `Bearer ${entraToken}`
   })
   return await assertSuccessResponse(orgResponse, `/v1/organisations/${refNo}`)
+}
+
+// Registers a Defra ID user for the organisation's submitter contact email
+// and links it, returning the bearer header the operator-facing report and
+// summary-log endpoints require (the service maintainer token 403s on them).
+export async function linkDefraUser(refNo) {
+  const baseAPI = new BaseAPI()
+  const orgData = await getOrganisation(refNo)
+  const email = orgData.submitterContactDetails.email
+
+  const defraToken = await getDefraUserToken(email)
+  const defraAuthHeader = { Authorization: `Bearer ${defraToken}` }
+
+  const linkResponse = await baseAPI.post(
+    `/v1/organisations/${refNo}/link`,
+    '',
+    defraAuthHeader
+  )
+  await assertSuccessResponse(
+    linkResponse,
+    `POST /v1/organisations/${refNo}/link`
+  )
+
+  return { defraAuthHeader, email }
+}
+
+// Creates and submits a specific report submission for a period, driving the
+// create → patch → ready_to_submit → submitted state machine. Unlike
+// createSubmittedReport this targets an explicit year/cadence/period, so it
+// can seed a period matching a summary log fixture, and an explicit
+// submissionNumber. Submission numbers above 1 are resubmissions: the backend
+// only permits them once the period's latest submitted report is marked as
+// requiring resubmission (see uploadAndSubmitSummaryLog).
+// Must match the REGISTRATION_NUMBER meta cell inside the fixture spreadsheet.
+const RESTATED_REGISTRATION_NUMBER = 'R25SR500040912PA'
+const RESTATED_CMA_FIXTURE = 'test/fixtures/reprocessor-output-regonly-cma.xlsx'
+// The period the CMA fixture restates. Consumers render it differently
+// ('Q1 2026' in the CSV, 'Quarter 1' in the admin table), so labels live with
+// the spec that reads them.
+export const RESTATED_PERIOD = { year: 2026, cadence: 'quarterly', period: 1 }
+
+/**
+ * Seeds a registered-only reprocessor whose Q1 2026 is submitted, then restated
+ * by a summary log so the period is flagged requires_resubmission.
+ *
+ * That flag is the precondition for creating submission 2 at all, and there is
+ * no endpoint for it: the backend sets it as a side effect of submitting the
+ * summary log, which is why a real fixture is uploaded here.
+ *
+ * @param {{ tonnageRecycled?: number }} [options]
+ * @returns {Promise<{ refNo: string, companyName: string, registrationId: string, defraAuthHeader: Record<string, string> }>}
+ */
+export async function seedRestatedClosedPeriod({ tonnageRecycled = 100 } = {}) {
+  const linkedOrganisation = await createLinkedOrganisation([
+    {
+      material: 'Paper or board (R3)',
+      wasteProcessingType: 'Reprocessor',
+      withoutAccreditation: true
+    }
+  ])
+  const refNo = linkedOrganisation.refNo
+  const companyName = linkedOrganisation.organisation.companyName
+
+  const migrated = await updateMigratedOrganisation(refNo, [
+    {
+      regNumber: RESTATED_REGISTRATION_NUMBER,
+      status: 'approved',
+      reprocessingType: 'output'
+    }
+  ])
+  // updateMigratedOrganisation here returns { email, registrationIds,
+  // accreditationIds } (this repo's merged version), not the raw org record
+  // upstream's simpler version returns - use the id array it actually gives.
+  const registrationId = migrated.registrationIds[0]
+  const { defraAuthHeader } = await linkDefraUser(refNo)
+
+  await seedReportSubmission(
+    refNo,
+    registrationId,
+    defraAuthHeader,
+    { ...RESTATED_PERIOD, submissionNumber: 1 },
+    { tonnageRecycled, tonnageNotRecycled: 0 }
+  )
+  await uploadAndSubmitSummaryLog(
+    refNo,
+    registrationId,
+    defraAuthHeader,
+    RESTATED_CMA_FIXTURE
+  )
+  await waitForReportingPeriodStatus(
+    refNo,
+    registrationId,
+    defraAuthHeader,
+    'requires_resubmission'
+  )
+
+  return { refNo, companyName, registrationId, defraAuthHeader }
+}
+
+const submissionPath = (
+  refNo,
+  registrationId,
+  { year, cadence, period, submissionNumber }
+) =>
+  `/v1/organisations/${refNo}/registrations/${registrationId}/reports/${year}/${cadence}/${period}/submissions/${submissionNumber}`
+
+// Creates a submission and leaves it in_progress, returning the version the
+// next transition needs. An in-flight draft is a state under test in its own
+// right: it must not disturb what the period has already submitted.
+export async function seedDraftSubmission(
+  refNo,
+  registrationId,
+  defraAuthHeader,
+  periodSubmission,
+  // Deliberately narrower than createSubmittedReport's patch: prnRevenue and
+  // freeTonnage are optional PRN fields that only apply to accredited
+  // registrations, and this helper seeds registered-only ones.
+  patchFields = { tonnageRecycled: 100, tonnageNotRecycled: 0 }
+) {
+  const baseAPI = new BaseAPI()
+  const jsonHeaders = { ...defraAuthHeader, 'content-type': 'application/json' }
+  const basePath = submissionPath(refNo, registrationId, periodSubmission)
+
+  const createResponse = await baseAPI.post(basePath, '', defraAuthHeader)
+  await assertSuccessResponse(createResponse, `POST ${basePath}`)
+
+  const patchResponse = await assertSuccessResponse(
+    await baseAPI.patch(basePath, JSON.stringify(patchFields), jsonHeaders),
+    `PATCH ${basePath}`
+  )
+
+  return patchResponse.version
+}
+
+// Drives an in_progress submission through ready_to_submit → submitted.
+export async function submitSeededDraft(
+  refNo,
+  registrationId,
+  defraAuthHeader,
+  periodSubmission,
+  version
+) {
+  const baseAPI = new BaseAPI()
+  const jsonHeaders = { ...defraAuthHeader, 'content-type': 'application/json' }
+  const basePath = submissionPath(refNo, registrationId, periodSubmission)
+
+  const readyResponse = await baseAPI.post(
+    `${basePath}/status`,
+    JSON.stringify({ status: 'ready_to_submit', version }),
+    jsonHeaders
+  )
+  await assertSuccessResponse(readyResponse, `POST ${basePath}/status`)
+
+  const submitResponse = await baseAPI.post(
+    `${basePath}/status`,
+    JSON.stringify({
+      status: 'submitted',
+      version: version + 1,
+      submissionDeclaredBy: 'Test User'
+    }),
+    jsonHeaders
+  )
+  await assertSuccessResponse(submitResponse, `POST ${basePath}/status`)
+}
+
+export async function seedReportSubmission(
+  refNo,
+  registrationId,
+  defraAuthHeader,
+  periodSubmission,
+  patchFields = { tonnageRecycled: 100, tonnageNotRecycled: 0 }
+) {
+  const version = await seedDraftSubmission(
+    refNo,
+    registrationId,
+    defraAuthHeader,
+    periodSubmission,
+    patchFields
+  )
+  await submitSeededDraft(
+    refNo,
+    registrationId,
+    defraAuthHeader,
+    periodSubmission,
+    version
+  )
+}
+
+const SUMMARY_LOG_FAILURE_STATUSES = [
+  'invalid',
+  'rejected',
+  'validation_failed',
+  'submission_failed'
+]
+
+async function waitForSummaryLogStatus(
+  baseAPI,
+  summaryLogPath,
+  defraAuthHeader,
+  targetStatus
+) {
+  const timeoutMs = 90000
+  const startTime = Date.now()
+  let status
+
+  while (Date.now() - startTime < timeoutMs) {
+    const response = await baseAPI.get(summaryLogPath, defraAuthHeader)
+    ;({ status } = await assertSuccessResponse(
+      response,
+      `GET ${summaryLogPath}`
+    ))
+    if (status === targetStatus) {
+      return
+    }
+    if (SUMMARY_LOG_FAILURE_STATUSES.includes(status)) {
+      throw new Error(
+        `Summary log reached '${status}' while waiting for '${targetStatus}'`
+      )
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+  }
+
+  throw new Error(
+    `Timed out waiting for summary log status '${targetStatus}' (last seen: '${status}')`
+  )
+}
+
+// Drives the full summary-log pipeline over HTTP without the operator
+// frontend: initiate (backend) → multipart file POST (cdp-uploader) → poll
+// until validated → submit → poll until submitted. On submit the backend
+// flags any restated closed periods as requiring resubmission, which is what
+// unlocks creating submission 2 for those periods.
+export async function uploadAndSubmitSummaryLog(
+  refNo,
+  registrationId,
+  defraAuthHeader,
+  filePath
+) {
+  const baseAPI = new BaseAPI()
+  const jsonHeaders = { ...defraAuthHeader, 'content-type': 'application/json' }
+  const summaryLogsPath = `/v1/organisations/${refNo}/registrations/${registrationId}/summary-logs`
+
+  const initiateResponse = await baseAPI.post(
+    summaryLogsPath,
+    JSON.stringify({ redirectUrl: '/' }),
+    jsonHeaders
+  )
+  const { summaryLogId, uploadUrl } = await assertSuccessResponse(
+    initiateResponse,
+    `POST ${summaryLogsPath}`
+  )
+
+  // The backend addresses cdp-uploader by its container hostname; from the
+  // test host the same service is published on localhost:7337.
+  const hostUploadUrl = new URL(
+    new URL(uploadUrl).pathname,
+    'http://localhost:7337'
+  )
+
+  // The field name must be summaryLogUpload: cdp-uploader echoes the form
+  // shape back to the backend callback, whose schema requires that key.
+  const form = new FormData()
+  form.append(
+    'summaryLogUpload',
+    new Blob([await readFile(filePath)], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    }),
+    'summary-log.xlsx'
+  )
+  const uploadResponse = await fetch(hostUploadUrl, {
+    method: 'POST',
+    body: form,
+    redirect: 'manual'
+  })
+  if (uploadResponse.status >= 400) {
+    throw new Error(
+      `POST ${hostUploadUrl}: expected redirect but got ${uploadResponse.status}`
+    )
+  }
+
+  const summaryLogPath = `${summaryLogsPath}/${summaryLogId}`
+  await waitForSummaryLogStatus(
+    baseAPI,
+    summaryLogPath,
+    defraAuthHeader,
+    'validated'
+  )
+
+  const submitResponse = await baseAPI.post(
+    `${summaryLogPath}/submit`,
+    '',
+    defraAuthHeader
+  )
+  await assertSuccessResponse(submitResponse, `POST ${summaryLogPath}/submit`)
+
+  await waitForSummaryLogStatus(
+    baseAPI,
+    summaryLogPath,
+    defraAuthHeader,
+    'submitted'
+  )
+
+  return summaryLogId
+}
+
+// Polls the reports calendar until some reporting period carries the given
+// periodStatus. The resubmission flag is written by the backend's summary-log
+// submit worker, so it can land shortly after the log reaches 'submitted'.
+export async function waitForReportingPeriodStatus(
+  refNo,
+  registrationId,
+  defraAuthHeader,
+  periodStatus
+) {
+  const baseAPI = new BaseAPI()
+  const calendarPath = `/v1/organisations/${refNo}/registrations/${registrationId}/reports/calendar`
+  const timeoutMs = 30000
+  const startTime = Date.now()
+  let lastSeen = []
+
+  while (Date.now() - startTime < timeoutMs) {
+    const response = await baseAPI.get(calendarPath, defraAuthHeader)
+    const { reportingPeriods } = await assertSuccessResponse(
+      response,
+      `GET ${calendarPath}`
+    )
+    if (reportingPeriods.some((rp) => rp.periodStatus === periodStatus)) {
+      return
+    }
+    lastSeen = reportingPeriods.map(
+      (rp) =>
+        `${rp.year}/${rp.period}#${rp.submissionNumber}:${rp.periodStatus}`
+    )
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
+
+  throw new Error(
+    `Timed out waiting for a reporting period with status '${periodStatus}' (last seen: ${lastSeen.join(', ')})`
+  )
 }
 
 export async function linkOrganisationToDefraId(refNo, email) {
