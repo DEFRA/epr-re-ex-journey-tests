@@ -9,6 +9,10 @@ class HomePage extends AdminPage {
   async signOut() {
     await $('a*=Sign out').click()
   }
+
+  async getWelcomeText() {
+    return $('main h1').getText()
+  }
 }
 
 export default new HomePage()

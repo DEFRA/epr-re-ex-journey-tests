@@ -12,6 +12,9 @@ describe('Public Register page', () => {
     await LoginPage.submitCredentials()
 
     await Navigation.clickOnLink('Public register')
+    expect(
+      await PublicRegisterPage.downloadPublicRegisterButtonExistence()
+    ).toBe(true)
     await PublicRegisterPage.downloadPublicRegister()
   })
 })

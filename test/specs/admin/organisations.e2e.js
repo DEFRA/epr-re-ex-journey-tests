@@ -9,6 +9,8 @@ import JsonEditor from 'page-objects/admin/jsoneditor.page'
 import {
   createLinkedOrganisation,
   createSubmittedReport,
+  FAKE_ACCREDITATION_NUMBER,
+  FAKE_REGISTRATION_NUMBER,
   updateMigratedOrganisation
 } from '../../support/apicalls.js'
 import SystemLogsPage from 'page-objects/admin/system.logs.page'
@@ -185,13 +187,10 @@ describe('Organisations page', () => {
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
 
-    const registrationNumber = `FAKE/REG123/TEST`
-    const accreditationNumber = `FAKE/ACC123/TEST`
-
     await updateMigratedOrganisation(linkedOrganisation.refNo, [
       {
-        regNumber: registrationNumber,
-        accNumber: accreditationNumber,
+        regNumber: FAKE_REGISTRATION_NUMBER,
+        accNumber: FAKE_ACCREDITATION_NUMBER,
         status: 'approved',
         reprocessingType: 'input'
       }

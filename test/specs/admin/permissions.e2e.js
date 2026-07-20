@@ -1,6 +1,8 @@
 import {
   createLinkedOrganisation,
   createSubmittedReport,
+  FAKE_ACCREDITATION_NUMBER,
+  FAKE_REGISTRATION_NUMBER,
   updateMigratedOrganisation
 } from '~/test/support/apicalls.js'
 import OrganisationsPage from 'page-objects/admin/organisations.page'
@@ -77,13 +79,10 @@ users.forEach(({ username, scopes }) => {
 
       const { organisation } = linkedOrganisation
 
-      const registrationNumber = `FAKE/REG123/TEST`
-      const accreditationNumber = `FAKE/ACC123/TEST`
-
       await updateMigratedOrganisation(linkedOrganisation.refNo, [
         {
-          regNumber: registrationNumber,
-          accNumber: accreditationNumber,
+          regNumber: FAKE_REGISTRATION_NUMBER,
+          accNumber: FAKE_ACCREDITATION_NUMBER,
           status: 'approved',
           reprocessingType: 'input'
         }

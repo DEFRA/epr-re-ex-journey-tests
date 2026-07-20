@@ -1,5 +1,6 @@
 import { $, $$, expect } from '@wdio/globals'
 
+import HomePage from 'page-objects/admin/home.page'
 import JsonEditor from 'page-objects/admin/jsoneditor.page'
 import LoginPage from 'page-objects/admin/login.page'
 import Navigation from 'page-objects/admin/navigation.page'
@@ -17,7 +18,7 @@ describe('System logs search @searchsystemlogs', () => {
 
     await LoginPage.loginAsServiceMaintainer()
 
-    const headerText = await $('main h1').getText()
+    const headerText = await HomePage.getWelcomeText()
     expect(headerText).toEqual('Welcome EA Regulator!')
 
     await Navigation.clickOnLink('Organisations')

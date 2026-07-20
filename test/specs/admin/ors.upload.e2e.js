@@ -154,7 +154,7 @@ describe('ORS upload flow @orsupload', () => {
     const pageOneStatus = await OrsUploadPage.getPaginationStatusText()
     expect(pageOneStatus).toContain('Showing page 1 of')
 
-    await OrsUploadPage.clickPageNumber(2)
+    await OrsUploadPage.clickNextPage()
     await expect(browser).toHaveUrl(
       expect.stringContaining('page=2&pageSize=2')
     )

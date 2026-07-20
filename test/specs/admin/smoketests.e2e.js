@@ -23,7 +23,7 @@ describe('Smoke tests @smoketest', () => {
       config.auth.password
     )
 
-    const headerText = await browser.$('main h1').getText()
+    const headerText = await HomePage.getWelcomeText()
     expect(headerText).toEqual('Welcome ServiceMaintainer TestUser (Defra)!')
 
     await Navigation.clickOnLink('Organisations')

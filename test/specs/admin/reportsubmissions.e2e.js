@@ -7,47 +7,10 @@ import {
   updateMigratedOrganisation,
   createSubmittedReport
 } from '../../support/apicalls.js'
+import { parseCsvRows } from '../../support/csv.js'
 import LoginPage from 'page-objects/admin/login.page'
 import Navigation from 'page-objects/admin/navigation.page'
 import ReportSubmissionsPage from 'page-objects/admin/report.submissions.page'
-
-/**
- * Splits a single CSV row into fields, honouring fast-csv's default selective
- * quoting so a quoted value containing a comma (e.g. an organisation name)
- * stays one field.
- * @param {string} row
- * @returns {string[]}
- */
-function parseCsvRow(row) {
-  const fields = []
-  let field = ''
-  let inQuotes = false
-
-  for (let i = 0; i < row.length; i++) {
-    const character = row[i]
-
-    if (inQuotes) {
-      if (character === '"' && row[i + 1] === '"') {
-        field += '"'
-        i++
-      } else if (character === '"') {
-        inQuotes = false
-      } else {
-        field += character
-      }
-    } else if (character === '"') {
-      inQuotes = true
-    } else if (character === ',') {
-      fields.push(field)
-      field = ''
-    } else {
-      field += character
-    }
-  }
-
-  fields.push(field)
-  return fields
-}
 
 describe('Report Submissions page', () => {
   let orgName
@@ -88,22 +51,16 @@ describe('Report Submissions page', () => {
     await expect(csv.body).toContain('Tonnage received for recycling')
     await expect(csv.body).toContain(orgName)
 
-    const rows = csv.body
-      .split(/\r?\n/)
-      .filter((line) => line.trim().length > 0)
-    const headerIndex = rows.findIndex((row) => row.startsWith('Regulator,'))
-    await expect(headerIndex).toBeGreaterThanOrEqual(0)
-    const dataRows = rows.slice(headerIndex + 1)
-
-    const orgRow = dataRows.findLast((row) => row.includes(orgName))
+    const orgRow = parseCsvRows(csv.body).findLast(
+      (row) => row['Organisation name'] === orgName
+    )
     await expect(orgRow).toBeDefined()
     if (!orgRow) {
       throw new Error('Organisation row not found')
     }
-    const cols = parseCsvRow(/** @type {string} */ (orgRow))
-    await expect(cols[12]).toBeTruthy()
-    await expect(cols[13]).toBeTruthy()
-    await expect(cols[15]).toBeTruthy()
+    await expect(orgRow['Submitted Date']).toBeTruthy()
+    await expect(orgRow['Submitted By']).toBeTruthy()
+    await expect(orgRow['Tonnage recycled']).toBeTruthy()
   })
 
   it('should include all expected column headers in the CSV download @reportsubmissions', async () => {

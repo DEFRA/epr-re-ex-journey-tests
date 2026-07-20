@@ -7,6 +7,8 @@ import UnlinkOrganisationConfirmationPage from 'page-objects/admin/unlink.organi
 import SystemLogsPage from 'page-objects/admin/system.logs.page'
 import {
   createLinkedOrganisation,
+  FAKE_ACCREDITATION_NUMBER,
+  FAKE_REGISTRATION_NUMBER,
   getOrganisation,
   linkOrganisationToDefraId,
   updateMigratedOrganisation
@@ -22,13 +24,11 @@ describe('Unlink organisation from Defra ID', () => {
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
     const { organisation, refNo } = linkedOrganisation
-    const registrationNumber = `FAKE/REG123/TEST`
-    const accreditationNumber = `FAKE/ACC123/TEST`
 
     await updateMigratedOrganisation(refNo, [
       {
-        regNumber: registrationNumber,
-        accNumber: accreditationNumber,
+        regNumber: FAKE_REGISTRATION_NUMBER,
+        accNumber: FAKE_ACCREDITATION_NUMBER,
         status: 'approved',
         reprocessingType: 'input'
       }
@@ -93,5 +93,33 @@ describe('Unlink organisation from Defra ID', () => {
 
     const userEmail = await SystemLogsPage.logCardField(card, 'User email')
     expect(userEmail).toBeTruthy()
+  })
+
+  it('leaves the organisation linked when the confirm page is cancelled @organisations @unlink', async () => {
+    const linkedOrganisation = await createLinkedOrganisation([
+      { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
+    ])
+    const { organisation, refNo } = linkedOrganisation
+
+    await updateMigratedOrganisation(refNo, [
+      {
+        regNumber: FAKE_REGISTRATION_NUMBER,
+        accNumber: FAKE_ACCREDITATION_NUMBER,
+        status: 'approved',
+        reprocessingType: 'input'
+      }
+    ])
+    await linkOrganisationToDefraId(refNo, organisation.email)
+
+    await OrganisationsPage.open()
+    await OrganisationsPage.searchFor(organisation.companyName)
+    await OrganisationsPage.viewLink(1)
+    await OrganisationOverviewPage.clickUnlink()
+
+    await UnlinkOrganisationConfirmationPage.cancel()
+
+    expect(await OrganisationOverviewPage.isUnlinkButtonDisplayed()).toBe(true)
+    const orgAfterCancel = await getOrganisation(refNo)
+    expect(orgAfterCancel.linkedDefraOrganisation).toBeTruthy()
   })
 })
