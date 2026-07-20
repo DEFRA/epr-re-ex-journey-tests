@@ -6,6 +6,10 @@ class UnsubmitConfirmationPage extends AdminPage {
     return await $('.govuk-warning-text__text').getText()
   }
 
+  async getDetailsText() {
+    return await $('#main-content').getText()
+  }
+
   async confirmUnsubmit() {
     await $('button=Yes, unsubmit this report').click()
   }
