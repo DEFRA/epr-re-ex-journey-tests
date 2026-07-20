@@ -1,6 +1,5 @@
 import { browser, expect } from '@wdio/globals'
 import CreatePRNPage from 'page-objects/create.prn.page.js'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import PrnCreatedPage from 'page-objects/prn.created.page.js'
 import PrnDashboardPage from 'page-objects/prn.dashboard.page.js'
@@ -10,16 +9,15 @@ import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
 import {
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
   externalAPIAcceptPrn,
-  linkDefraIdUser,
   updateMigratedOrganisation
 } from '../support/apicalls.js'
 import { checkBodyText } from '../support/checks.js'
 import { createPrnDetails } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
 
 describe('Issuing Packing Recycling Notes', () => {
   it('Should be able to create, issue and accept PRNs for Plastic (Reprocessor Output) @issueprnoutput @smoketest', async function () {
@@ -43,17 +41,7 @@ describe('Issuing Packing Recycling Notes', () => {
       'nrw'
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     // Tonnage value expected from Summary Log files upload
     // Plastic 56,455.67

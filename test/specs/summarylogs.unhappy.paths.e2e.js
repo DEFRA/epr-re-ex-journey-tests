@@ -1,5 +1,4 @@
 import { $, browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import UploadSummaryLogPage from '../page-objects/upload.summary.log.page.js'
 import EnhancedCheckSummaryLogPage from '../page-objects/enhanced.check.summary.log.page.js'
@@ -11,12 +10,11 @@ import {
   checkUploadErrorText
 } from '../support/checks.js'
 import {
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
   updateMigratedOrganisation,
-  linkDefraIdUser,
   seedOverseasSites
 } from '../support/apicalls.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
 
 describe('Summary Logs - Unhappy paths @unhappyPaths', () => {
   // Resets the shared browser session between tests so leftover auth state does
@@ -42,17 +40,7 @@ describe('Summary Logs - Unhappy paths @unhappyPaths', () => {
       ]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     await DashboardPage.selectLink(1)
     await WasteRecordsPage.submitSummaryLogLink()
@@ -102,17 +90,7 @@ describe('Summary Logs - Unhappy paths @unhappyPaths', () => {
       ]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.open()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     await DashboardPage.selectLink(1)
     await WasteRecordsPage.submitSummaryLogLink()
@@ -161,17 +139,7 @@ describe('Summary Logs - Unhappy paths @unhappyPaths', () => {
       ]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.open()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     await DashboardPage.selectLink(1)
     await WasteRecordsPage.submitSummaryLogLink()
@@ -405,17 +373,7 @@ describe('Summary Logs - Unhappy paths @unhappyPaths', () => {
       ]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.open()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     await DashboardPage.selectLink(1)
 
@@ -485,17 +443,7 @@ describe('Summary Logs - Unhappy paths @unhappyPaths', () => {
     // so each unmatched row is excluded as ORS_NOT_FOUND (not silently dropped).
     await seedOverseasSites(organisationDetails.refNo, [0], [999])
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     await DashboardPage.selectLink(1)
     await WasteRecordsPage.submitSummaryLogLink()

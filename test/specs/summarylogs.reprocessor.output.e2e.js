@@ -1,5 +1,4 @@
 import { browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import UploadSummaryLogPage from '../page-objects/upload.summary.log.page.js'
 import EnhancedCheckSummaryLogPage from '../page-objects/enhanced.check.summary.log.page.js'
@@ -7,11 +6,10 @@ import WasteRecordsPage from '../page-objects/waste.records.page.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
 import { checkBodyText } from '../support/checks.js'
 import {
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation
 } from '../support/apicalls.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
 
 describe('Summary Logs Reprocessor Output', () => {
   it('Should be able to submit a (Steel) Reprocessor Output Summary Log spreadsheet (6 rows total, but only 1 added for waste balance) @reproOutput', async () => {
@@ -32,17 +30,7 @@ describe('Summary Logs Reprocessor Output', () => {
       ]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.open()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     const dashboardHeaderText = await DashboardPage.dashboardHeaderText()
 

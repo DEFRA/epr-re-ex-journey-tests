@@ -1,5 +1,4 @@
 import { $, browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import ConfirmationPage from 'page-objects/reports/confirmation.page.js'
 import MonthlyReportDraftDeclarationPage from 'page-objects/reports/monthly.report.draft.declaration.page.js'
@@ -8,15 +7,10 @@ import ReportDetailPage from 'page-objects/reports/report.detail.page.js'
 import ReportSubmittedPage from 'page-objects/reports/report.submitted.page.js'
 import ReportSupportingInformationPage from 'page-objects/reports/report.supporting.information.page.js'
 import ReportsPage from 'page-objects/reports/reports.page.js'
-import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
 import ConfirmDeleteReportPage from '../page-objects/confirm.delete.report.page.js'
-import DashboardPage from '../page-objects/dashboard.page.js'
 import TonnesNotExportedPage from '../page-objects/reports/tonnes.not.exported.page.js'
-import WasteRecordsPage from '../page-objects/waste.records.page.js'
 import seedOverseasSites, {
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
-  linkDefraIdUser,
   unsubmitReport,
   updateMigratedOrganisation
 } from '../support/apicalls.js'
@@ -28,17 +22,13 @@ import {
   closeCurrentTabAndReturn,
   switchToNewTab
 } from '../support/windowtabs.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
+import { uploadSummaryLogAndNavigateToReports } from '../support/report-navigation.js'
 
 const REG_NUMBER = 'E25SR500030913PA'
 
 async function uploadAndNavigateToReports() {
-  await DashboardPage.selectTableLink(1, 1)
-  await WasteRecordsPage.submitSummaryLogLink()
-  await UploadSummaryLogPage.performUploadAndReturnToHomepage(
-    'resources/exporter-regonly.xlsx'
-  )
-  await DashboardPage.selectTableLink(1, 1)
-  await WasteRecordsPage.manageReportsLink()
+  await uploadSummaryLogAndNavigateToReports('resources/exporter-regonly.xlsx')
 }
 
 async function setupRegisteredOnlyExporter() {
@@ -61,16 +51,7 @@ async function setupRegisteredOnlyExporter() {
     ]
   )
 
-  const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-  await linkDefraIdUser(
-    organisationDetails.refNo,
-    user.userId,
-    migrationResponse.email
-  )
-
-  await HomePage.openStart()
-  await HomePage.clickStartNow()
-  await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+  await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
   return { organisationDetails, migrationResponse }
 }

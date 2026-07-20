@@ -1,16 +1,14 @@
 import { $, browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
 import {
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation
 } from '../support/apicalls.js'
 import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
 import { checkBodyText } from '../support/checks.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
 
 describe('Summary Logs (Glass Material) @smoketest', () => {
   it('Should be able to distinguish between Glass Re-Melt and Glass Other @glassMaterial', async () => {
@@ -55,18 +53,7 @@ describe('Summary Logs (Glass Material) @smoketest', () => {
         }
       ]
     )
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     const firstGlassMaterial = await DashboardPage.getMaterial(1, 1)
     expect(firstGlassMaterial).toBe('Glass remelt')

@@ -1,13 +1,8 @@
 import { $, browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
-import {
-  createAndRegisterDefraIdUser,
-  createOrgWithAllWasteProcessingTypeAllMaterials,
-  linkDefraIdUser
-} from '../support/apicalls.js'
+import { createOrgWithAllWasteProcessingTypeAllMaterials } from '../support/apicalls.js'
 import PrnCreatedPage from 'page-objects/prn.created.page.js'
 import { MATERIALS } from '../support/materials.js'
 import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
@@ -16,18 +11,13 @@ import {
   thirdTradingName as tradingName
 } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
 
 describe('Packing Recycling Notes (Sanity)', () => {
   it('Should be able to create and manage PRNs for all materials for Reprocessor Output @sanitycheck', async () => {
     const { organisationDetails, userEmail } =
       await createOrgWithAllWasteProcessingTypeAllMaterials()
-    const user = await createAndRegisterDefraIdUser(userEmail)
-    await linkDefraIdUser(organisationDetails.refNo, user.userId, userEmail)
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(userEmail)
+    await createLinkAndLogin(organisationDetails.refNo, userEmail)
 
     let orgAddressIndex = 8
 

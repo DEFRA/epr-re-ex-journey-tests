@@ -1,19 +1,17 @@
 import { $, browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
 import {
   seedOverseasSites,
-  createAndRegisterDefraIdUser,
-  createOrgWithAllWasteProcessingTypeAllMaterials,
-  linkDefraIdUser
+  createOrgWithAllWasteProcessingTypeAllMaterials
 } from '../support/apicalls.js'
 import PrnCreatedPage from 'page-objects/prn.created.page.js'
 import { MATERIALS } from '../support/materials.js'
 import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
 import { createPrnDetails } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
 
 describe('Packing Recycling Notes (Sanity)', () => {
   it('Should be able to create and manage PRNs for all materials for Exporter @sanitycheck @sanityexporter', async () => {
@@ -25,13 +23,7 @@ describe('Packing Recycling Notes (Sanity)', () => {
       [16, 17, 18, 19, 20, 21, 22, 23]
     )
 
-    const user = await createAndRegisterDefraIdUser(userEmail)
-    await linkDefraIdUser(organisationDetails.refNo, user.userId, userEmail)
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(userEmail)
+    await createLinkAndLogin(organisationDetails.refNo, userEmail)
 
     const tonnageWordingsExporter = [
       { integer: 1456, word: 'One thousand four hundred and fifty six' },

@@ -1,15 +1,13 @@
 import { browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
 import {
   seedOverseasSites,
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation
 } from '../support/apicalls.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
 import CreatePRNPage from 'page-objects/create.prn.page.js'
 import CheckBeforeCreatingPrnPage from 'page-objects/check.before.creating.prn.page.js'
 import PrnCreatedPage from 'page-objects/prn.created.page.js'
@@ -44,17 +42,7 @@ describe('Deleting Packing Recycling Notes (Exporter)', () => {
 
     await seedOverseasSites(organisationDetails.refNo)
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     await DashboardPage.selectTableLink(1, 1)
 

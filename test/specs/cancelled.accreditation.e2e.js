@@ -1,15 +1,12 @@
 import {
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation,
   updateStatus
 } from '~/test/support/apicalls.js'
-import HomePage from 'page-objects/homepage.js'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import DashboardPage from 'page-objects/dashboard.page.js'
 import { $, browser, expect } from '@wdio/globals'
 import { checkBodyText } from '~/test/support/checks.js'
+import { createLinkAndLogin } from '~/test/support/login-helper.js'
 
 describe('Cancelled accreditation @cancelledaccreditation', () => {
   it('Should not be able to access PERNs when an accreditation is cancelled @cancelledprn', async () => {
@@ -34,13 +31,7 @@ describe('Cancelled accreditation @cancelledaccreditation', () => {
 
     await updateStatus(orgId, 'suspended')
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(orgId, user.userId, migrationResponse.email)
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(orgId, migrationResponse.email)
 
     // We can still create PERN when accreditation is suspended and links should be available
     let accStatus = await DashboardPage.getAccreditationStatus(1, 1)

@@ -1,16 +1,14 @@
 import { browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
 import {
   seedOverseasSites,
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation
 } from '../support/apicalls.js'
 import ReportsPage from 'page-objects/reports/reports.page.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
 
 describe('Report only shows from accreditation validFrom date — exporter @validFromReport', () => {
   const regNumber = 'E25SR500020912PA'
@@ -18,7 +16,6 @@ describe('Report only shows from accreditation validFrom date — exporter @vali
 
   let organisationDetails
   let migrationResponse
-  let user
 
   it('displays active report as of this month only @validFromReport', async () => {
     organisationDetails = await createLinkedOrganisation([
@@ -41,16 +38,7 @@ describe('Report only shows from accreditation validFrom date — exporter @vali
 
     await seedOverseasSites(organisationDetails.refNo)
 
-    user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     await DashboardPage.selectTableLink(1, 1)
     await WasteRecordsPage.manageReportsLink()

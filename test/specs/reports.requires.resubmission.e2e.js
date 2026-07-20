@@ -1,5 +1,4 @@
 import { browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import UploadSummaryLogPage from '../page-objects/upload.summary.log.page.js'
 import EnhancedCheckSummaryLogPage from '../page-objects/enhanced.check.summary.log.page.js'
@@ -20,12 +19,14 @@ import {
   checkBodyTextDoesNotInclude
 } from '../support/checks.js'
 import {
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation,
   seedSubmittedReport
 } from '../support/apicalls.js'
+import {
+  registerAndLinkDefraIdUser,
+  loginViaHomePage
+} from '../support/login-helper.js'
 
 describe('Reports - requires resubmission @requiresResubmission', () => {
   // Reset the shared browser session between tests so leftover auth state does
@@ -55,10 +56,8 @@ describe('Reports - requires resubmission @requiresResubmission', () => {
       ]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
+    const user = await registerAndLinkDefraIdUser(
       organisationDetails.refNo,
-      user.userId,
       migrationResponse.email
     )
 
@@ -76,9 +75,7 @@ describe('Reports - requires resubmission @requiresResubmission', () => {
       { tonnageRecycled: 100, tonnageNotRecycled: 0 }
     )
 
-    await HomePage.open()
-    await HomePage.clickStartNow()
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await loginViaHomePage(migrationResponse.email)
 
     await DashboardPage.selectLink(1)
     await WasteRecordsPage.submitSummaryLogLink()

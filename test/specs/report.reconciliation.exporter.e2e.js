@@ -1,5 +1,4 @@
 import { browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
@@ -7,12 +6,11 @@ import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
 import ReportDetailPage from 'page-objects/reports/report.detail.page.js'
 import {
   seedOverseasSites,
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation
 } from '../support/apicalls.js'
 import { parseTonnage } from '../support/tonnage.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
 
 // PAE-1668 UI regression guard. The fixture keeps four clean February 2026
 // exporter loads whose exported tonnages carry more than two decimal places, so
@@ -42,7 +40,6 @@ describe('Report tonnage reconciles with the waste balance — exporter @reconci
 
   let organisationDetails
   let migrationResponse
-  let user
 
   before(async () => {
     organisationDetails = await createLinkedOrganisation([
@@ -59,16 +56,7 @@ describe('Report tonnage reconciles with the waste balance — exporter @reconci
 
     await seedOverseasSites(organisationDetails.refNo)
 
-    user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     await DashboardPage.selectTableLink(1, 1)
     await WasteRecordsPage.submitSummaryLogLink()

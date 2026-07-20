@@ -1,5 +1,4 @@
 import { browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
@@ -13,13 +12,12 @@ import ReportCheckAnswersPage from 'page-objects/reports/report.check.answers.pa
 import ConfirmDeleteReportPage from '../page-objects/confirm.delete.report.page.js'
 import {
   seedOverseasSites,
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
-  linkDefraIdUser,
   unsubmitReport,
   updateMigratedOrganisation
 } from '../support/apicalls.js'
 import { checkBodyText } from '../support/checks.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
 import ConfirmationPage from '../page-objects/reports/confirmation.page.js'
 import {
   switchToNewTab,
@@ -57,16 +55,10 @@ describe('Accredited exporter report flow @accreditedExporter', () => {
 
       await seedOverseasSites(organisationDetails.refNo)
 
-      const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-      await linkDefraIdUser(
+      await createLinkAndLogin(
         organisationDetails.refNo,
-        user.userId,
         migrationResponse.email
       )
-
-      await HomePage.openStart()
-      await HomePage.clickStartNow()
-      await DefraIdStubPage.loginViaEmail(migrationResponse.email)
 
       // Upload summary log so report data exists
       await DashboardPage.selectTableLink(1, 1)
@@ -355,19 +347,10 @@ describe('Accredited exporter report flow @accreditedExporter', () => {
         ]
       )
 
-      const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-      await linkDefraIdUser(
-        organisationDetails.refNo,
-        user.userId,
-        migrationResponse.email
-      )
-
       orgRefNo = organisationDetails.refNo
       registrationId = migrationResponse.registrationIds[0]
 
-      await HomePage.openStart()
-      await HomePage.clickStartNow()
-      await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+      await createLinkAndLogin(orgRefNo, migrationResponse.email)
     })
 
     after(async () => {

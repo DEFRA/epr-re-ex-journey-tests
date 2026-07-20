@@ -1,5 +1,4 @@
 import { $, browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
@@ -16,12 +15,11 @@ import MonthlyReportDraftDeclarationPage from '../page-objects/reports/monthly.r
 import ConfirmDeleteReportPage from '../page-objects/confirm.delete.report.page.js'
 import { checkBodyText } from '../support/checks.js'
 import {
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation
 } from '../support/apicalls.js'
 import { expectActionRequiredStatus } from '../support/report-status.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
 
 async function navigateReprocessorToSupportingInfo() {
   await TonnesRecycledPage.enterTonnage('10')
@@ -58,16 +56,7 @@ describe('Deleting a ready to submit report', () => {
       ]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     // Upload summary log so report data exists
     await DashboardPage.selectTableLink(1, 1)

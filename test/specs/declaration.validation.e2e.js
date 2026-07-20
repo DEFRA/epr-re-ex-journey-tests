@@ -1,5 +1,4 @@
 import { $, browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import MonthlyReportDraftDeclarationPage from 'page-objects/reports/monthly.report.draft.declaration.page.js'
 import ReportCheckAnswersPage from 'page-objects/reports/report.check.answers.page.js'
@@ -14,12 +13,11 @@ import TonnesNotRecycledPage from 'page-objects/reports/tonnes.not.recycled.page
 import TonnesRecycledPage from 'page-objects/reports/tonnes.recycled.page.js'
 import WasteRecordsPage from 'page-objects/waste.records.page.js'
 import {
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation
 } from '../support/apicalls.js'
 import { checkBodyText } from '../support/checks.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
 
 const REG_NUMBER = 'R25SR5111050912PA'
 
@@ -45,16 +43,7 @@ describe('Declaration name validation @declarationValidation', () => {
       ]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     await DashboardPage.selectTableLink(1, 1)
     await WasteRecordsPage.submitSummaryLogLink()

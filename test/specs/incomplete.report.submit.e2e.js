@@ -1,22 +1,18 @@
 import { browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
-import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
-import DashboardPage from '../page-objects/dashboard.page.js'
 import ReportCheckAnswersPage from 'page-objects/reports/report.check.answers.page.js'
 import ReportDetailPage from 'page-objects/reports/report.detail.page.js'
 import ReportsPage from 'page-objects/reports/reports.page.js'
-import WasteRecordsPage from '../page-objects/waste.records.page.js'
 import {
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation
 } from '../support/apicalls.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude
 } from '../support/checks.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
+import { uploadSummaryLogAndNavigateToReports } from '../support/report-navigation.js'
 
 const REG_NUMBER = 'R25SR500010912PA'
 const ACC_NUMBER = 'R-ACC12145PA'
@@ -38,33 +34,15 @@ const setupAccreditedReprocessor = async () => {
     ]
   )
 
-  const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-  await linkDefraIdUser(
-    organisationDetails.refNo,
-    user.userId,
-    migrationResponse.email
-  )
-
-  await HomePage.openStart()
-  await HomePage.clickStartNow()
-  await DefraIdStubPage.loginViaEmail(migrationResponse.email)
-}
-
-const uploadAndNavigateToReports = async () => {
-  await DashboardPage.selectTableLink(1, 1)
-  await WasteRecordsPage.submitSummaryLogLink()
-
-  const filePath = `resources/sanity/reprocessorOutput_${ACC_NUMBER}_${REG_NUMBER}.xlsx`
-  await UploadSummaryLogPage.performUploadAndReturnToHomepage(filePath)
-
-  await DashboardPage.selectTableLink(1, 1)
-  await WasteRecordsPage.manageReportsLink()
+  await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 }
 
 describe('Incomplete report submit @incompleteReportBlock', () => {
   before(async () => {
     await setupAccreditedReprocessor()
-    await uploadAndNavigateToReports()
+    await uploadSummaryLogAndNavigateToReports(
+      `resources/sanity/reprocessorOutput_${ACC_NUMBER}_${REG_NUMBER}.xlsx`
+    )
   })
 
   after(async () => {

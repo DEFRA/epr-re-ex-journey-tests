@@ -1,5 +1,4 @@
 import { browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import UploadSummaryLogPage from '../page-objects/upload.summary.log.page.js'
 import EnhancedCheckSummaryLogPage from '../page-objects/enhanced.check.summary.log.page.js'
@@ -11,12 +10,15 @@ import {
 } from '../support/checks.js'
 import {
   seedOverseasSites,
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation,
   seedSubmittedReport
 } from '../support/apicalls.js'
+import {
+  createLinkAndLogin,
+  registerAndLinkDefraIdUser,
+  loginViaHomePage
+} from '../support/login-helper.js'
 
 // The adjusted-loads accordion splits each balance-affecting load by the
 // direction it moved the waste balance: added loads carry one heading, reduced
@@ -77,17 +79,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       [124, 183, 512, 876]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     await DashboardPage.selectExportingTab()
     await DashboardPage.selectLink(1)
@@ -141,17 +133,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       ]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.open()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     const dashboardHeaderText = await DashboardPage.dashboardHeaderText()
 
@@ -214,10 +196,8 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       ]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
+    const user = await registerAndLinkDefraIdUser(
       organisationDetails.refNo,
-      user.userId,
       migrationResponse.email
     )
 
@@ -234,10 +214,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       { tonnageRecycled: 100, tonnageNotRecycled: 0 }
     )
 
-    await HomePage.open()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await loginViaHomePage(migrationResponse.email)
 
     await DashboardPage.selectLink(1)
 
@@ -295,17 +272,10 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       [124, 183, 512, 876]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
+    const user = await createLinkAndLogin(
       organisationDetails.refNo,
-      user.userId,
       migrationResponse.email
     )
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
 
     await DashboardPage.selectExportingTab()
     await DashboardPage.selectLink(1)
@@ -431,17 +401,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       [124, 183, 512, 876]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     await DashboardPage.selectExportingTab()
     await DashboardPage.selectLink(1)
@@ -537,17 +497,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       ]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.open()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     await DashboardPage.selectLink(1)
 
@@ -599,10 +549,8 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       ]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
+    const user = await registerAndLinkDefraIdUser(
       organisationDetails.refNo,
-      user.userId,
       migrationResponse.email
     )
 
@@ -619,10 +567,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       { tonnageRecycled: 100, tonnageNotRecycled: 0 }
     )
 
-    await HomePage.open()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await loginViaHomePage(migrationResponse.email)
 
     await DashboardPage.selectLink(1)
 
@@ -679,17 +624,10 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       [124, 183, 512, 876]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
+    const user = await createLinkAndLogin(
       organisationDetails.refNo,
-      user.userId,
       migrationResponse.email
     )
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
 
     await DashboardPage.selectExportingTab()
     await DashboardPage.selectLink(1)
@@ -783,16 +721,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       ]
     )
 
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     // Baseline: row 1001 is included and contributes 339.99t to the balance.
     await DashboardPage.selectLink(1)
@@ -864,10 +793,8 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
         ]
       )
 
-      const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-      await linkDefraIdUser(
+      const user = await registerAndLinkDefraIdUser(
         organisationDetails.refNo,
-        user.userId,
         migrationResponse.email
       )
 
@@ -884,10 +811,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
         { tonnageRecycled: 100, tonnageNotRecycled: 0 }
       )
 
-      await HomePage.open()
-      await HomePage.clickStartNow()
-
-      await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+      await loginViaHomePage(migrationResponse.email)
 
       await DashboardPage.selectLink(1)
 
@@ -963,17 +887,10 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
         [124, 183, 512, 876]
       )
 
-      const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-      await linkDefraIdUser(
+      await createLinkAndLogin(
         organisationDetails.refNo,
-        user.userId,
         migrationResponse.email
       )
-
-      await HomePage.openStart()
-      await HomePage.clickStartNow()
-
-      await DefraIdStubPage.loginViaEmail(migrationResponse.email)
 
       await DashboardPage.selectExportingTab()
       await DashboardPage.selectLink(1)

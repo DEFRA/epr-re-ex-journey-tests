@@ -1,9 +1,5 @@
 import { browser, expect } from '@wdio/globals'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
-import DashboardPage from '../page-objects/dashboard.page.js'
-import WasteRecordsPage from '../page-objects/waste.records.page.js'
-import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
 import ReportsPage from 'page-objects/reports/reports.page.js'
 import ReportDetailPage from 'page-objects/reports/report.detail.page.js'
 import TonnesRecycledPage from '../page-objects/reports/tonnes.recycled.page.js'
@@ -14,13 +10,13 @@ import ReportSupportingInformationPage from 'page-objects/reports/report.support
 import ReportCheckAnswersPage from 'page-objects/reports/report.check.answers.page.js'
 import ConfirmDeleteReportPage from '../page-objects/confirm.delete.report.page.js'
 import {
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
-  linkDefraIdUser,
   unsubmitReport,
   updateMigratedOrganisation
 } from '../support/apicalls.js'
 import { checkBodyText } from '../support/checks.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
+import { uploadSummaryLogAndNavigateToReports } from '../support/report-navigation.js'
 import ConfirmationPage from '../page-objects/reports/confirmation.page.js'
 import {
   switchToNewTab,
@@ -53,29 +49,15 @@ async function setupAccreditedReprocessor() {
     ]
   )
 
-  const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-  await linkDefraIdUser(
-    organisationDetails.refNo,
-    user.userId,
-    migrationResponse.email
-  )
-
-  await HomePage.openStart()
-  await HomePage.clickStartNow()
-  await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+  await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
   return { organisationDetails, migrationResponse }
 }
 
 async function uploadAndNavigateToReports() {
-  await DashboardPage.selectTableLink(1, 1)
-  await WasteRecordsPage.submitSummaryLogLink()
-
-  const filePath = `resources/sanity/reprocessorOutput_${ACC_NUMBER}_${REG_NUMBER}.xlsx`
-  await UploadSummaryLogPage.performUploadAndReturnToHomepage(filePath)
-
-  await DashboardPage.selectTableLink(1, 1)
-  await WasteRecordsPage.manageReportsLink()
+  await uploadSummaryLogAndNavigateToReports(
+    `resources/sanity/reprocessorOutput_${ACC_NUMBER}_${REG_NUMBER}.xlsx`
+  )
 }
 
 describe('Accredited reprocessor report flow @accreditedReprocessor', () => {
@@ -417,16 +399,10 @@ describe('Accredited reprocessor report flow @accreditedReprocessor', () => {
         ]
       )
 
-      const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-      await linkDefraIdUser(
+      await createLinkAndLogin(
         organisationDetails.refNo,
-        user.userId,
         migrationResponse.email
       )
-
-      await HomePage.openStart()
-      await HomePage.clickStartNow()
-      await DefraIdStubPage.loginViaEmail(migrationResponse.email)
 
       // Try to access prn-summary directly — should get 404
       await browser.url(

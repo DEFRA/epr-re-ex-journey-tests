@@ -1,6 +1,5 @@
 import { browser, expect } from '@wdio/globals'
 import DashboardPage from 'page-objects/dashboard.page.js'
-import DefraIdStubPage from 'page-objects/defra.id.stub.page.js'
 import HomePage from 'page-objects/homepage.js'
 import WasteRecordsPage from 'page-objects/waste.records.page.js'
 import seedOverseasSites, {
@@ -15,6 +14,10 @@ import {
 } from '../support/checks.js'
 import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
 import EnhancedCheckSummaryLogPage from 'page-objects/enhanced.check.summary.log.page.js'
+import {
+  createLinkAndLogin,
+  loginViaHomePage
+} from '../support/login-helper.js'
 
 describe('@registered-only', () => {
   it('should be able to upload Registered Only Reprocessor Summary Logs for registered-only operators and display unaccredited registrations alongside accredited ones @regOnlyReprocessor', async () => {
@@ -67,18 +70,7 @@ describe('@registered-only', () => {
         }
       ]
     )
-    const user = await createAndRegisterDefraIdUser(migrationResponse.email)
-
-    await linkDefraIdUser(
-      organisationDetails.refNo,
-      user.userId,
-      migrationResponse.email
-    )
-
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
 
     const row = await DashboardPage.getTableRow(1, 1)
     expect(row.get('Accreditation')).toBe('Not accredited')
@@ -163,10 +155,7 @@ describe('@registered-only', () => {
       migrationResponse.email
     )
 
-    await HomePage.openStart()
-    await HomePage.clickStartNow()
-
-    await DefraIdStubPage.loginViaEmail(migrationResponse.email)
+    await loginViaHomePage(migrationResponse.email)
 
     await DashboardPage.selectTableLink(1, 1)
     await checkBodyText('E25SR500030913PA', 10)
