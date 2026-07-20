@@ -1,4 +1,4 @@
-import { browser, expect } from '@wdio/globals'
+import { expect } from '@wdio/globals'
 
 import LoginPage from 'page-objects/admin/login.page'
 import Navigation from 'page-objects/admin/navigation.page'
@@ -16,11 +16,7 @@ import UnsubmitConfirmationPage from 'page-objects/admin/unsubmit.confirmation.p
 
 describe('Organisations page', () => {
   before(async () => {
-    // login as service maintainer
-    await browser.deleteCookies()
-    await LoginPage.open()
-    await LoginPage.enterCredentials('ea@test.gov.uk', 'pass')
-    await LoginPage.submitCredentials()
+    await LoginPage.loginAsServiceMaintainer()
   })
 
   it('Should be able to update an organisation and view system logs @organisations', async () => {

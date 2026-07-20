@@ -14,10 +14,7 @@ import {
 
 describe('Unlink organisation from Defra ID', () => {
   before(async () => {
-    await browser.deleteCookies()
-    await LoginPage.open()
-    await LoginPage.enterCredentials('ea@test.gov.uk', 'pass')
-    await LoginPage.submitCredentials()
+    await LoginPage.loginAsServiceMaintainer()
   })
 
   it('shows the linked Defra ID org, unlinks via the confirm page, and records a system log @organisations @unlink', async () => {

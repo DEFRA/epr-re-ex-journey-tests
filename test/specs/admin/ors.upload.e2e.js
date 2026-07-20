@@ -18,13 +18,6 @@ import OrganisationOverviewPage from 'page-objects/admin/organisation.overview.p
 import RegistrationOverviewPage from 'page-objects/admin/registration.overview.page'
 import ORSOverviewPage from 'page-objects/admin/ors.overview.page'
 
-async function loginAsServiceMaintainer() {
-  await browser.deleteCookies()
-  await LoginPage.open()
-  await LoginPage.enterCredentials('ea@test.gov.uk', 'pass')
-  await LoginPage.submitCredentials()
-}
-
 async function uploadWorkbookAndWaitForCompletion(workbookPath) {
   await OrsUploadPage.open()
   await expect(browser).toHaveTitle(
@@ -68,7 +61,7 @@ describe('ORS upload flow @orsupload', () => {
       sites: validOrsSites
     })
 
-    await loginAsServiceMaintainer()
+    await LoginPage.loginAsServiceMaintainer()
 
     const finalStatus = await uploadWorkbookAndWaitForCompletion(workbookPath)
 
@@ -233,7 +226,7 @@ describe('ORS upload flow @orsupload', () => {
         sites: validOrsSites
       })
 
-      await loginAsServiceMaintainer()
+      await LoginPage.loginAsServiceMaintainer()
 
       expect(
         await uploadWorkbookAndWaitForCompletion(alphaWorkbookPath)

@@ -1,4 +1,4 @@
-import { browser, expect } from '@wdio/globals'
+import { expect } from '@wdio/globals'
 
 import LoginPage from 'page-objects/admin/login.page'
 import ReportSubmissionsPage from 'page-objects/admin/report.submissions.page'
@@ -52,10 +52,7 @@ describe('Report submissions CSV - multiple submissions per period', function ()
   this.timeout(3 * 60 * 1000)
 
   before(async () => {
-    await browser.deleteCookies()
-    await LoginPage.open()
-    await LoginPage.enterCredentials('ea@test.gov.uk', 'pass')
-    await LoginPage.submitCredentials()
+    await LoginPage.loginAsServiceMaintainer()
   })
 
   it('exports one row per submitted report, and an in-flight correction neither adds a row nor blanks the submitted figures @reportsubmissions @multipleSubmissions', async () => {

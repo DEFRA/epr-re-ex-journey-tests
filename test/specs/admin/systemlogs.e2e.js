@@ -15,9 +15,7 @@ describe('System logs search @searchsystemlogs', () => {
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
 
-    await LoginPage.open()
-    await LoginPage.enterCredentials('ea@test.gov.uk', 'pass')
-    await LoginPage.submitCredentials()
+    await LoginPage.loginAsServiceMaintainer()
 
     const headerText = await $('main h1').getText()
     expect(headerText).toEqual('Welcome EA Regulator!')

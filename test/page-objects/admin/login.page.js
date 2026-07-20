@@ -1,5 +1,5 @@
 import { AdminPage } from 'page-objects/admin/page'
-import { $ } from '@wdio/globals'
+import { $, browser } from '@wdio/globals'
 
 class AdminLoginPage extends AdminPage {
   open() {
@@ -9,6 +9,18 @@ class AdminLoginPage extends AdminPage {
   async enterCredentials(username, password) {
     await $('#username').setValue(username)
     await $('#password').setValue(password)
+  }
+
+  // Deletes cookies first so a stale session from an earlier spec/it block
+  // can't skip the login form entirely.
+  async loginAsServiceMaintainer(
+    username = 'ea@test.gov.uk',
+    password = 'pass'
+  ) {
+    await browser.deleteCookies()
+    await this.open()
+    await this.enterCredentials(username, password)
+    await this.submitCredentials()
   }
 
   async enterCredentialsMSLogin(username, password) {

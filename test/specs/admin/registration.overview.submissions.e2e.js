@@ -31,11 +31,7 @@ describe('Registration overview - multiple submissions per period', function () 
   this.timeout(3 * 60 * 1000)
 
   before(async () => {
-    // login as service maintainer
-    await browser.deleteCookies()
-    await LoginPage.open()
-    await LoginPage.enterCredentials('ea@test.gov.uk', 'pass')
-    await LoginPage.submitCredentials()
+    await LoginPage.loginAsServiceMaintainer()
   })
 
   it('lists every submission for a period as its own reachable row, with submission numbers on view and unsubmit pages @organisations @multipleSubmissions', async () => {

@@ -26,9 +26,7 @@ const users = [
 users.forEach(({ username, scopes }) => {
   describe(`Permissions flow for a user with the following scopes ${scopes}`, () => {
     beforeEach(async () => {
-      await LoginPage.open()
-      await LoginPage.enterCredentials(username, 'pass')
-      await LoginPage.submitCredentials()
+      await LoginPage.loginAsServiceMaintainer(username)
     })
 
     afterEach(async () => {
@@ -108,10 +106,7 @@ users.forEach(({ username, scopes }) => {
 
 describe('Permissions flow for a support user only', () => {
   beforeEach(async () => {
-    // login as support only service maintainer
-    await LoginPage.open()
-    await LoginPage.enterCredentials('nrw@test.gov.uk', 'pass')
-    await LoginPage.submitCredentials()
+    await LoginPage.loginAsServiceMaintainer('nrw@test.gov.uk')
   })
 
   afterEach(async () => {
