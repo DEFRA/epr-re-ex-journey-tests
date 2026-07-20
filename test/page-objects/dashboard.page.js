@@ -79,13 +79,6 @@ class DashboardPage {
     return await accreditationElement.getText()
   }
 
-  async getNumberOfRows(tableIndex) {
-    const rows = await $$(
-      '#main-content table.govuk-table:nth-of-type(' + tableIndex + ') tbody tr'
-    )
-    return rows.length
-  }
-
   async getTableRow(tableIndex, rowIndex) {
     const tableRow = new Map()
     const selector = `#main-content table.govuk-table:nth-of-type(${tableIndex})`

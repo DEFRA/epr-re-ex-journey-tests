@@ -1,4 +1,4 @@
-import { browser, $, $$ } from '@wdio/globals'
+import { browser, $ } from '@wdio/globals'
 
 // Triggers a navigation via `click` and waits for the browser URL to
 // actually change before returning. Needed for the OAuth login flow: the
@@ -17,42 +17,6 @@ async function clickAndWaitForNavigation(click, timeoutMsg) {
 }
 
 class DefraIdStubPage {
-  constructor() {
-    this.baseUrl = 'http://localhost:3200'
-  }
-
-  async open() {
-    return browser.url(this.baseUrl)
-  }
-
-  async register() {
-    browser.url(`${this.baseUrl}/cdp-defra-id-stub/register`)
-  }
-
-  async registerUser(user) {
-    await $('#email').setValue(user.email)
-    await $('#firstName').setValue(user.firstName)
-    await $('#lastName').setValue(user.lastName)
-    await $('#enrolmentCount').setValue('1')
-    await $('#enrolmentRequestCount').setValue('1')
-    await $('button[type=submit]').click()
-  }
-
-  async newUserRelationship(relationship) {
-    await $('#relationshipId').setValue(relationship.id)
-    await $('#organisationId').setValue(relationship.orgId)
-    await $('#organisationName').setValue(relationship.orgName)
-    await $('button[type=submit]').click()
-  }
-
-  async finish() {
-    await $('a*=Finish').click()
-  }
-
-  async login(index = 0) {
-    await $$('a*=Log in')[index].click()
-  }
-
   async loginViaEmail(email) {
     const selector = `//tr[th[translate(text(), "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz")="${email.toLowerCase()}"]]//a`
     await browser.waitUntil(
@@ -69,15 +33,6 @@ class DefraIdStubPage {
     await clickAndWaitForNavigation(
       () => $(selector).click(),
       'Login click did not trigger navigation'
-    )
-  }
-
-  async selectOrganisation(index) {
-    const suffix = index === 1 ? '' : `-${index}`
-    await $(`#relationshipId${suffix}`).click()
-    await clickAndWaitForNavigation(
-      () => $('button[type=submit]').click(),
-      'Organisation submit did not trigger navigation'
     )
   }
 }

@@ -24,19 +24,6 @@ class UploadSummaryLogPage extends SummaryLogUploadActions {
     await this.clickOnReturnToHomePage()
   }
 
-  async fileValidatedHeadline() {
-    await browser.waitUntil(
-      async function () {
-        return (await $('#main-content h1').getText()) !== ''
-      },
-      {
-        timeout: 5000,
-        timeoutMsg: 'expected file validated headline to be visible after 5s'
-      }
-    )
-    return await $('#main-content h1').getText()
-  }
-
   async getValidationErrors() {
     return await $$(
       '[data-testid="app-page-body"] table.govuk-table tbody tr'

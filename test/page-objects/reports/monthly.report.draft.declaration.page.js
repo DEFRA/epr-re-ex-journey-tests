@@ -2,10 +2,6 @@ import { $ } from '@wdio/globals'
 import { checkDoubleClickPrevented } from '../../support/double-click.js'
 
 class MonthlyReportDraftDeclarationPage {
-  async reportsPageLink() {
-    await $('a*=Reports').click()
-  }
-
   async headingText() {
     const element = await $('h1.govuk-heading-xl')
     await element.waitForExist({ timeout: 5000 })
