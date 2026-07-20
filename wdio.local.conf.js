@@ -12,6 +12,52 @@ if (debug) {
 
 const browserVersion = process.env.WDIO_CHROME_VERSION ?? 'stable'
 
+// Runs in the browser: set a field's value without keyboard input.
+const assignValue = (el, value) => {
+  el.focus()
+  if (el.isContentEditable) {
+    el.textContent = value
+  } else {
+    el.value = value
+  }
+  el.dispatchEvent(new Event('input', { bubbles: true }))
+  el.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
+// Environments without a window manager (headless CI, sandboxed dev
+// containers) lose OS focus after navigation, and recent Chrome then
+// silently drops native pointer/keyboard input. Driving interactions
+// through the DOM removes the dependency on focus.
+// https://makandracards.com/makandra/12661-solve-selenium-focus-issues
+const routeInputThroughDom = async (browser) => {
+  await browser.overwriteCommand(
+    'click',
+    async function () {
+      await this.waitForClickable()
+      return browser.execute((el) => el.click(), this)
+    },
+    true
+  )
+  await browser.overwriteCommand(
+    'setValue',
+    async function (nativeSetValue, value) {
+      await this.waitForExist()
+      const isFileInput = (await this.getProperty('type')) === 'file'
+      return isFileInput
+        ? nativeSetValue.call(this, value) // file uploads need the native path
+        : browser.execute(assignValue, this, value)
+    },
+    true
+  )
+  await browser.overwriteCommand(
+    'clearValue',
+    function () {
+      return browser.execute(assignValue, this, '')
+    },
+    true
+  )
+}
+
 export const config = {
   //
   // ====================
@@ -230,7 +276,7 @@ export const config = {
    * @param {Array.<String>} specs        List of spec file paths that are to be run
    * @param {object}         browser      instance of created browser/device session
    */
-  // before: function (capabilities, specs) {},
+  before: () => routeInputThroughDom(browser),
   /**
    * Runs before a WebdriverIO command gets executed.
    * @param {string} commandName hook command name
