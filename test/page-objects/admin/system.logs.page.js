@@ -30,7 +30,7 @@ class SystemLogsPage extends AdminPage {
   }
 
   async searchResults() {
-    return $('#main-content > div.govuk-summary-card')
+    return $('#main-content div.govuk-summary-card')
   }
 
   async submitSearch() {

@@ -6,6 +6,8 @@ import {
 
 import { fakerEN_GB } from '@faker-js/faker'
 import { expect } from '@wdio/globals'
+import { request } from 'undici'
+import { randomUUID } from 'crypto'
 import { BaseAPI } from '../apis/base-api.js'
 import config from '../config/config.js'
 import { AuthClient } from './auth.js'
@@ -13,6 +15,153 @@ import { trackCreatedOrgId } from './cleanup-tracker.js'
 import { defraIdStub } from './defra-id-stub.js'
 import { MATERIALS } from './materials.js'
 import Users from './users.js'
+
+// createSubmittedReport/getOrganisation/linkOrganisationToDefraId below use
+// their own throwaway-token helpers rather than AuthClient/defraIdStub above,
+// since they were ported from a separate source repo's apicalls.js that
+// implemented its own Entra/Defra ID token flow independently. Reconciling
+// the two into one is a follow-up, not done here to avoid an unverified
+// behavioural rewrite of proven-working code.
+async function getEntraToken() {
+  const entraUrl = 'http://localhost:3010/sign'
+  const payload = JSON.stringify({
+    clientId: 'clientId',
+    username: 'ea@test.gov.uk'
+  })
+  const response = await request(entraUrl, {
+    method: 'POST',
+    body: payload
+  })
+  /**
+   * @typedef {Object} AuthResponse
+   * @property {string} access_token
+   * @property {string} token_type
+   * @property {number} expires_in
+   */
+  const data = /** @type {AuthResponse} */ (await response.body.json())
+  return data.access_token
+}
+
+// Registers a throwaway user with the Defra ID stub and returns a Bearer token
+// with standardUser scope for the given defraOrgId.
+// The Host header is spoofed on every request so the stub embeds
+// http://defra-id-stub:3200/cdp-defra-id-stub as the JWT issuer — which is
+// what the backend is configured to trust.
+async function getDefraUserToken(email, orgId = randomUUID()) {
+  const stubUrl = 'http://localhost:3200'
+  const stubHost = 'defra-id-stub:3200'
+  const userId = randomUUID()
+  const clientId = '63983fc2-cfff-45bb-8ec2-959e21062b9a'
+
+  await request(`${stubUrl}/cdp-defra-id-stub/API/register`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', host: stubHost },
+    body: JSON.stringify({
+      userId,
+      email,
+      firstName: 'Test',
+      lastName: 'User',
+      loa: '1',
+      aal: '1',
+      enrolmentCount: 1,
+      enrolmentRequestCount: 1
+    })
+  })
+
+  const relParams = new URLSearchParams({
+    csrfToken: randomUUID(),
+    userId,
+    relationshipId: 'relId1',
+    organisationId: orgId,
+    organisationName: 'Test Organisation',
+    relationshipRole: 'role',
+    roleName: 'User',
+    roleStatus: 'Status',
+    // eslint-disable-next-line camelcase
+    redirect_uri: 'http://localhost:3000/'
+  })
+  await request(
+    `${stubUrl}/cdp-defra-id-stub/register/${userId}/relationship`,
+    {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        host: stubHost
+      },
+      body: relParams.toString()
+    }
+  )
+
+  const authParams = new URLSearchParams({
+    user: email,
+    // eslint-disable-next-line camelcase
+    client_id: clientId,
+    // eslint-disable-next-line camelcase
+    response_type: 'code',
+    // eslint-disable-next-line camelcase
+    redirect_uri: 'http://0.0.0.0:3001/health',
+    state: 'state',
+    scope: 'email'
+  })
+  const authResponse = await request(
+    `${stubUrl}/cdp-defra-id-stub/authorize?${authParams.toString()}`,
+    { method: 'GET', headers: { host: stubHost } }
+  )
+  if (authResponse.statusCode !== 302) {
+    const body = await authResponse.body.text()
+    throw new Error(
+      `Defra ID authorize returned ${authResponse.statusCode}: ${body}`
+    )
+  }
+
+  const headers = await authResponse.headers
+  const headersLocation = String(headers.location)
+  const sessionId = headersLocation.split('sessionId=')[1]
+
+  const tokenResponse = await request(`${stubUrl}/cdp-defra-id-stub/token`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', host: stubHost },
+    body: JSON.stringify({
+      // eslint-disable-next-line camelcase
+      client_id: clientId,
+      // eslint-disable-next-line camelcase
+      client_secret: 'test_value',
+      // eslint-disable-next-line camelcase
+      grant_type: 'authorization_code',
+      code: sessionId
+    })
+  })
+
+  /**
+   * @typedef {Object} AuthResponse
+   * @property {string} access_token
+   * @property {string} token_type
+   * @property {number} expires_in
+   */
+  const tokenData = /** @type {AuthResponse} */ (
+    await tokenResponse.body.json()
+  )
+  return tokenData.access_token
+}
+
+// Returns the most recently completed reporting period for the given cadence.
+// Quarterly: periods 1–4 map to Q1–Q4. Monthly: periods 1–12 map to Jan–Dec.
+function lastCompletedPeriod(cadence) {
+  const now = new Date()
+  const month = now.getUTCMonth() + 1
+  const year = now.getUTCFullYear()
+
+  if (cadence === 'monthly') {
+    return month === 1
+      ? { year: year - 1, period: 12 }
+      : { year, period: month - 1 }
+  }
+
+  const currentQuarter = Math.ceil(month / 3)
+  return currentQuarter === 1
+    ? { year: year - 1, period: 4 }
+    : { year, period: currentQuarter - 1 }
+}
 
 async function assertSuccessResponse(response, context) {
   const body = await response.body.json()
@@ -123,7 +272,7 @@ export async function createLinkedOrganisation(dataRows) {
   trackCreatedOrgId(orgId)
   const refNo = orgResponseData?.referenceNumber
 
-  const regAddresses = []
+  const registrations = []
 
   for (const dataRow of dataRows) {
     let material = 'Paper or board (R3)'
@@ -144,7 +293,7 @@ export async function createLinkedOrganisation(dataRows) {
       JSON.stringify(payload)
     )
     expect(response.statusCode).toBe(201)
-    regAddresses.push(registration.address)
+    registrations.push(registration)
 
     if (!dataRow.withoutAccreditation) {
       const accreditation = new Accreditation(orgId, refNo)
@@ -165,7 +314,7 @@ export async function createLinkedOrganisation(dataRows) {
   response = await baseAPI.post(`/v1/dev/form-submissions/${refNo}/migrate`, '')
   expect(response.statusCode).toBe(200)
 
-  return { orgId, refNo, organisation, regAddresses }
+  return { orgId, refNo, organisation, registrations }
 }
 
 // Examples for updateDataRows:
@@ -602,4 +751,157 @@ export async function externalAPIAcceptPrn(prnDetails) {
     `POST /v1/packaging-recycling-notes/${prnDetails.prnNumber}/accept`
   )
   prnDetails.status = 'Accepted'
+}
+
+// Creates and submits a report for a registration, transitioning it through
+// in_progress → ready_to_submit → submitted.
+// Cadence is determined by matching the CSV generator's logic: monthly only
+// when the linked accreditation is approved/suspended with an accreditationNumber.
+// validFrom is set to the period start so the CSV generates exactly one row for
+// this registration regardless of when the test runs.
+export async function createSubmittedReport(refNo, registrationIndex = 0) {
+  const baseAPI = new BaseAPI()
+  const entraToken = await getEntraToken()
+  const entraAuthHeader = { Authorization: `Bearer ${entraToken}` }
+
+  const orgResponse = await baseAPI.get(
+    `/v1/organisations/${refNo}`,
+    entraAuthHeader
+  )
+  const orgData = await assertSuccessResponse(
+    orgResponse,
+    `/v1/organisations/${refNo}`
+  )
+
+  const registration = orgData.registrations[registrationIndex]
+  const registrationId = registration.id
+
+  const linkedAccreditation = registration.accreditationId
+    ? orgData.accreditations.find(
+        (a) =>
+          a.id === registration.accreditationId &&
+          (a.status === 'approved' || a.status === 'suspended') &&
+          a.accreditationNumber
+      )
+    : null
+  const cadence = linkedAccreditation ? 'monthly' : 'quarterly'
+  const { year, period } = lastCompletedPeriod(cadence)
+
+  const periodStartMonth = cadence === 'monthly' ? period : (period - 1) * 3 + 1
+  orgData.registrations[registrationIndex].validFrom =
+    `${year}-${String(periodStartMonth).padStart(2, '0')}-01`
+
+  // When the accreditation isn't approved the CSV generator treats this as quarterly,
+  // but the backend uses accreditationId presence to enforce monthly cadence.
+  // Delete the key (not null) so JSON omits it — schema only allows absent, not explicit null.
+  if (!linkedAccreditation) {
+    delete orgData.registrations[registrationIndex].accreditationId
+  }
+
+  const email = orgData.submitterContactDetails.email
+
+  const payload = {
+    version: Number(orgData.version),
+    updateFragment: orgData
+  }
+  const updateResponse = await baseAPI.put(
+    `/v1/organisations/${refNo}`,
+    JSON.stringify(payload),
+    entraAuthHeader
+  )
+
+  await assertSuccessResponse(updateResponse, `PUT /v1/organisations/${refNo}`)
+
+  const defraToken = await getDefraUserToken(email)
+  const defraAuthHeader = { Authorization: `Bearer ${defraToken}` }
+  const jsonHeaders = { ...defraAuthHeader, 'content-type': 'application/json' }
+
+  const linkResponse = await baseAPI.post(
+    `/v1/organisations/${refNo}/link`,
+    '',
+    defraAuthHeader
+  )
+
+  await assertSuccessResponse(
+    linkResponse,
+    `POST /v1/organisations/${refNo}/link`
+  )
+
+  const basePath = `/v1/organisations/${refNo}/registrations/${registrationId}/reports/${year}/${cadence}/${period}/submissions/1`
+
+  const createResponse = await baseAPI.post(basePath, '', defraAuthHeader)
+
+  await assertSuccessResponse(createResponse, `POST ${basePath}`)
+
+  let version
+
+  let patchResponse = await baseAPI.patch(
+    basePath,
+    JSON.stringify({
+      tonnageRecycled: 10,
+      tonnageNotRecycled: 0,
+      prnRevenue: 0,
+      freeTonnage: 0
+    }),
+    jsonHeaders
+  )
+
+  patchResponse = await assertSuccessResponse(
+    patchResponse,
+    `PATCH ${basePath}`
+  )
+
+  version = patchResponse.version
+
+  const readyResponse = await baseAPI.post(
+    `${basePath}/status`,
+    JSON.stringify({ status: 'ready_to_submit', version }),
+    jsonHeaders
+  )
+
+  await assertSuccessResponse(readyResponse, `POST ${basePath}/status`)
+  version += 1
+
+  const submitResponse = await baseAPI.post(
+    `${basePath}/status`,
+    JSON.stringify({
+      status: 'submitted',
+      version,
+      submissionDeclaredBy: 'Test User'
+    }),
+    jsonHeaders
+  )
+
+  await assertSuccessResponse(submitResponse, `POST ${basePath}/status`)
+
+  return { organisationId: refNo, registrationId, year, cadence, period }
+}
+
+export async function getOrganisation(refNo) {
+  const baseAPI = new BaseAPI()
+  const entraToken = await getEntraToken()
+  const orgResponse = await baseAPI.get(`/v1/organisations/${refNo}`, {
+    Authorization: `Bearer ${entraToken}`
+  })
+  return await assertSuccessResponse(orgResponse, `/v1/organisations/${refNo}`)
+}
+
+export async function linkOrganisationToDefraId(refNo, email) {
+  const baseAPI = new BaseAPI()
+
+  const orgId = randomUUID()
+  const defraToken = await getDefraUserToken(email, orgId)
+  const defraAuthHeader = { Authorization: `Bearer ${defraToken}` }
+
+  const linkResponse = await baseAPI.post(
+    `/v1/organisations/${refNo}/link`,
+    '',
+    defraAuthHeader
+  )
+
+  await assertSuccessResponse(
+    linkResponse,
+    `POST /v1/organisations/${refNo}/link`
+  )
+  return { defraOrgId: orgId, defraOrgName: 'Test Organisation' }
 }
