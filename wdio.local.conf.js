@@ -117,6 +117,9 @@ export const config = {
           maxInstances: 1,
           browserName: 'chrome',
           browserVersion,
+          // BiDi drops its browsing context on our navigations (and falls back per
+          // call, adding latency); classic is stable and faster here.
+          'wdio:enforceWebDriverClassic': true,
           'goog:chromeOptions': {
             args: [
               '--no-sandbox',
