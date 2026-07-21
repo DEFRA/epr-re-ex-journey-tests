@@ -9,7 +9,12 @@ import SystemLogsPage from 'page-objects/admin/system.logs.page'
 import config from '../../config/config.js'
 import TonnageMonitoringPage from 'page-objects/admin/tonnage.monitoring.page'
 
-describe('Smoke tests @smoketest', () => {
+// @envonly: signs in via the real Microsoft/Entra login form
+// (AdminLoginPage.enterCredentialsMSLogin), which only exists when the admin
+// app is wired to the real Entra IdP (CDP test environment). Locally/GHA the
+// stack uses epr-re-ex-entra-stub instead, which never renders that form -
+// so this spec must be excluded from local/GHA runs regardless of @smoketest.
+describe('Smoke tests @smoketest @envonly', () => {
   it('Should be to login and view Home Page and Organisations Page', async () => {
     // Increase timeout for Smoke tests for slow loading pages like Organisation page
     await browser.setTimeout({ pageLoad: 60000 })

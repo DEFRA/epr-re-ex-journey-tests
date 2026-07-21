@@ -17,7 +17,7 @@ import ConfirmDeletePRNPage from 'page-objects/confirm.delete.prn.page.js'
 import { tonnageWordings, tradingName } from '../support/fixtures.js'
 
 describe('Deleting Packing Recycling Notes (Reprocessor Output)', () => {
-  it('Should be able to create and delete PRN for Plastic (Reprocessor Output) @delprnoutput @smoketest', async () => {
+  it('Should be able to create and delete PRN for Plastic (Reprocessor Output) @delprnoutput', async () => {
     const regNumber = 'R25SR500010912PL'
     const accNumber = 'R-ACC12145PL'
 
