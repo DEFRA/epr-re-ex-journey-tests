@@ -1,0 +1,6 @@
+{
+  "spec": "test/api-specs/**/*.api.e2e.js",
+  "timeout": 60000,
+  "reporter": "spec",
+  "exit": true
+}

@@ -5,7 +5,7 @@ import {
 } from '../support/generator.js'
 
 import { fakerEN_GB } from '@faker-js/faker'
-import { expect } from '@wdio/globals'
+import { expect } from 'chai'
 import { request } from 'undici'
 import { randomUUID } from 'crypto'
 import { readFile } from 'node:fs/promises'
@@ -253,7 +253,7 @@ export async function createLinkedOrganisation(dataRows) {
     '/v1/apply/organisation',
     JSON.stringify(payload)
   )
-  expect(response.statusCode).toBe(200)
+  expect(response.statusCode).to.equal(200)
 
   /**
    * @typedef {Object} OrgCreatedResponse
@@ -289,7 +289,7 @@ export async function createLinkedOrganisation(dataRows) {
       '/v1/apply/registration',
       JSON.stringify(payload)
     )
-    expect(response.statusCode).toBe(201)
+    expect(response.statusCode).to.equal(201)
     registrations.push(registration)
 
     if (!dataRow.withoutAccreditation) {
@@ -304,12 +304,12 @@ export async function createLinkedOrganisation(dataRows) {
         '/v1/apply/accreditation',
         JSON.stringify(payload)
       )
-      expect(response.statusCode).toBe(201)
+      expect(response.statusCode).to.equal(201)
     }
   }
 
   response = await baseAPI.post(`/v1/dev/form-submissions/${refNo}/migrate`, '')
-  expect(response.statusCode).toBe(200)
+  expect(response.statusCode).to.equal(200)
 
   return {
     orgId,
@@ -563,7 +563,7 @@ export async function linkDefraIdUser(organisationId, userId, email) {
     defraIdStub.authHeader(userId)
   )
 
-  expect(linkResponse.statusCode).toBe(200)
+  expect(linkResponse.statusCode).to.equal(200)
 }
 
 /**
@@ -1089,7 +1089,7 @@ const SUMMARY_LOG_FAILURE_STATUSES = [
   'submission_failed'
 ]
 
-async function waitForSummaryLogStatus(
+export async function waitForSummaryLogStatus(
   baseAPI,
   summaryLogPath,
   defraAuthHeader,

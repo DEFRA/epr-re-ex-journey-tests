@@ -421,3 +421,55 @@ export class Registration {
     return payload
   }
 }
+
+export class SummaryLog {
+  constructor(
+    orgId = `${fakerEN_GB.number.int({ min: 500000, max: 999999 })}`,
+    regId = fakerEN_GB.database.mongodbObjectId()
+  ) {
+    this.summaryLogId = fakerEN_GB.string.uuid()
+    this.orgId = orgId
+    this.regId = regId
+  }
+
+  setUploadData(uploadData) {
+    this.setFileData(
+      uploadData.s3Bucket,
+      uploadData.s3Key,
+      uploadData.fileId,
+      uploadData.filename,
+      uploadData.fileStatus
+    )
+  }
+
+  setFileData(s3Bucket, s3Key, fileId, filename, fileStatus) {
+    this.s3Bucket = s3Bucket
+    this.s3Key = s3Key
+    this.fileId = fileId
+    this.filename = filename
+    this.fileStatus = fileStatus
+  }
+
+  toPayload() {
+    return {
+      s3Bucket: this.s3Bucket,
+      s3Key: this.s3Key,
+      fileId: this.fileId,
+      filename: this.filename
+    }
+  }
+
+  toUploadCompletedPayload() {
+    return {
+      form: {
+        summaryLogUpload: {
+          fileId: this.fileId,
+          filename: this.filename,
+          fileStatus: this.fileStatus,
+          s3Bucket: this.s3Bucket,
+          s3Key: this.s3Key
+        }
+      }
+    }
+  }
+}
