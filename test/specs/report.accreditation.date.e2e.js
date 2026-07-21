@@ -52,10 +52,8 @@ describe('Report only shows from accreditation validFrom date — exporter @vali
       expect(activeReports).toBe(0)
     } else {
       expect(activeReports).toBe(1)
-      const monthYear = lastMonth.toLocaleDateString('en-US', {
-        month: 'long',
-        year: 'numeric'
-      })
+      const month = lastMonth.toLocaleDateString('en-US', { month: 'long' })
+      const monthYear = `${month}, ${lastMonth.getFullYear()}`
       expect(await ReportsPage.getActivePeriodLabel(1)).toBe(monthYear)
     }
 
