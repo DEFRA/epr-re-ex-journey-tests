@@ -14,6 +14,9 @@ inputs:
   journey-test-pr:
     description: is this action being called from a pr in this repo?
     default: 'false'
+  test-scope:
+    description: which specs to run - 'admin' (test/specs/admin only), 'frontend' (everything except test/specs/admin), or 'all'
+    default: 'all'
 
 runs:
   using: 'composite'
@@ -179,7 +182,11 @@ runs:
     - name: Run the tests
       shell: bash
       run: |
-        npm run test:github
+        case "${{ inputs.test-scope }}" in
+          admin) npm run test:github:admin ;;
+          frontend) npm run test:github:frontend ;;
+          *) npm run test:github ;;
+        esac
         npm run report
 
     - name: debug
