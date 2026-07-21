@@ -92,6 +92,10 @@ class ReportsPage extends Page {
     await selectActionLink(rowIndex, activeTableXPath)
   }
 
+  async selectSubmittedActionLink(rowIndex) {
+    await selectActionLink(rowIndex, submittedTableXPath)
+  }
+
   async selectActiveActionLinkByText(rowIndex, label) {
     await selectActionLinkByText(rowIndex, activeTableXPath, label)
   }
