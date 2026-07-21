@@ -10,6 +10,54 @@ if (debug) {
   execArgv.push('--inspect')
 }
 
+const browserVersion = process.env.WDIO_CHROME_VERSION ?? 'stable'
+
+// Runs in the browser: set a field's value without keyboard input.
+const assignValue = (el, value) => {
+  el.focus()
+  if (el.isContentEditable) {
+    el.textContent = value
+  } else {
+    el.value = value
+  }
+  el.dispatchEvent(new Event('input', { bubbles: true }))
+  el.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
+// Environments without a window manager (headless CI, sandboxed dev
+// containers) lose OS focus after navigation, and recent Chrome then
+// silently drops native pointer/keyboard input. Driving interactions
+// through the DOM removes the dependency on focus.
+// https://makandracards.com/makandra/12661-solve-selenium-focus-issues
+const routeInputThroughDom = async (browser) => {
+  await browser.overwriteCommand(
+    'click',
+    async function () {
+      await this.waitForClickable()
+      return browser.execute((el) => el.click(), this)
+    },
+    true
+  )
+  await browser.overwriteCommand(
+    'setValue',
+    async function (nativeSetValue, value) {
+      await this.waitForExist()
+      const isFileInput = (await this.getProperty('type')) === 'file'
+      return isFileInput
+        ? nativeSetValue.call(this, value) // file uploads need the native path
+        : browser.execute(assignValue, this, value)
+    },
+    true
+  )
+  await browser.overwriteCommand(
+    'clearValue',
+    function () {
+      return browser.execute(assignValue, this, '')
+    },
+    true
+  )
+}
+
 export const config = {
   //
   // ====================
@@ -63,17 +111,25 @@ export const config = {
   //
 
   capabilities: debug
-    ? [{ browserName: 'chrome' }]
+    ? [{ browserName: 'chrome', browserVersion }]
     : [
         {
           maxInstances: 1,
           browserName: 'chrome',
+          browserVersion,
+          // BiDi drops its browsing context on our navigations (and falls back per
+          // call, adding latency); classic is stable and faster here.
+          'wdio:enforceWebDriverClassic': true,
           'goog:chromeOptions': {
             args: [
               '--no-sandbox',
               '--disable-infobars',
               '--disable-gpu',
-              '--window-size=1920,1080'
+              '--window-size=1920,1080',
+              // epr-frontend redirects the browser to the real Defra ID stub
+              // hostname during sign-in; compose only publishes it on
+              // localhost, so map the internal name there for local runs.
+              '--host-resolver-rules=MAP defra-id-stub:3200 localhost:3200'
             ]
           }
         }
@@ -171,7 +227,9 @@ export const config = {
   // See the full list at http://mochajs.org/
   mochaOpts: {
     ui: 'bdd',
-    timeout: debug ? oneHour : 60000
+    timeout: debug ? oneHour : oneMinute * 5,
+    grep: process.env.GREP || '',
+    invert: process.env.GREP_INVERT === 'true'
   },
   //
   // =====
@@ -221,7 +279,7 @@ export const config = {
    * @param {Array.<String>} specs        List of spec file paths that are to be run
    * @param {object}         browser      instance of created browser/device session
    */
-  // before: function (capabilities, specs) {},
+  before: () => routeInputThroughDom(browser),
   /**
    * Runs before a WebdriverIO command gets executed.
    * @param {string} commandName hook command name

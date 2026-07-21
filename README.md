@@ -1,15 +1,25 @@
 epr-re-ex-journey-tests
 
-The template to create a service that runs WDIO tests against an environment.
+The consolidated WDIO journey-test suite for the Re/Ex service line, exercising
+`epr-frontend`, `epr-backend`, and `epr-re-ex-admin-frontend` together against
+one shared backing-services stack (mongodb, redis, floci, cognito-stub,
+defra-id-stub, epr-re-ex-entra-stub). This repo replaces three previously
+separate journey-test repos, one per app.
 
 - [Local](#local)
   - [Requirements](#requirements)
     - [Node.js](#nodejs)
+    - [Gitleaks](#gitleaks)
+    - [Mise](#mise)
   - [Setup](#setup)
   - [Running local tests](#running-local-tests)
+  - [Feature flags in journey tests](#feature-flags-in-journey-tests)
   - [Debugging local tests](#debugging-local-tests)
 - [Production](#production)
-  - [Debugging tests](#debugging-tests)
+  - [Running tests with Profile](#running-tests-with-profile)
+- [Requirements of CDP Environment Tests](#requirements-of-cdp-environment-tests)
+- [Running on GitHub](#running-on-github)
+- [BrowserStack](#browserstack)
 - [Licence](#licence)
   - [About the licence](#about-the-licence)
 
@@ -28,6 +38,28 @@ To use the correct version of Node.js for this application, via nvm:
 nvm use
 ```
 
+#### Gitleaks
+
+[Gitleaks](https://github.com/gitleaks/gitleaks) is required for pre-commit secret scanning and must be available on your PATH.
+
+The simplest install on macOS/Linux is via [mise](#mise)
+
+```bash
+mise trust && mise install
+```
+
+Alternatively, install directly:
+
+- macOS: `brew install gitleaks`
+- Linux/Windows: see the [gitleaks releases page](https://github.com/gitleaks/gitleaks/releases)
+
+#### Mise
+
+[mise](https://mise.jdx.dev/) - a polyglot version manager that reads `mise.toml` in this repo to install the correct pinned versions
+
+1. [Install](https://mise.jdx.dev/getting-started.html#installing-mise-cli)
+2. [Activate](https://mise.jdx.dev/getting-started.html#activate-mise) in your shell
+
 ### Setup
 
 Install application dependencies:
@@ -36,13 +68,81 @@ Install application dependencies:
 npm install
 ```
 
+### Additional configuration in Linux
+
+For Linux based machines, you will need to add this entry into your `etc/hosts` file for the tests to run locally:
+
+```
+127.0.0.1 defra-id-stub
+```
+
 ### Running local tests
 
-Start application you are testing on the url specified in `baseUrl` [wdio.local.conf.js](wdio.local.conf.js)
+Bring up the three apps under test and their backing services with `docker compose up -d --build` (see [Running on GitHub](#running-on-github) below for what `compose.yml` provides), then:
 
 ```bash
 npm run test:local
 ```
+
+Running tests with a specific tag locally - for example, a frontend PRN spec or an admin spec:
+
+```bash
+GREP='@delprnexp' npm run test:local:grep
+GREP='@tonnagemonitoring' npm run test:local:grep
+```
+
+If for whatever reason [the stable version of Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/#stable)
+is not working for you, then you can specify the Chrome version when running locally
+
+```sh
+WDIO_CHROME_VERSION=146.0.7680.154 npm run test:local:grep
+```
+
+### Feature flags in journey tests
+
+**`compose.yml` is the single source of flag state.** Each `FEATURE_FLAG_*` env
+var defaults in `compose.yml` (for example `${FEATURE_FLAG_X:-true}`), and the
+suite runs and asserts that one configured state unconditionally. Nothing else
+sets flags in CI: the `run-journey-tests` action takes no flag inputs, so every
+caller (this repo's PR checks and the `epr-frontend`/`epr-backend`/
+`epr-re-ex-admin-frontend` PR checks alike) exercises the same state and
+cannot drift. Note the interpolation default only fires while the env var is
+unset, so do not export `FEATURE_FLAG_*` vars in workflow env blocks.
+
+Most flags stop there. An in-flight feature is typically tested flag-on in CI
+(ahead of the production flip) while the flag-off gating is covered by the
+service's own unit and integration tests. When the flag flips on in production
+and is later retired, the journey suite needs no changes beyond eventually
+dropping the env var from `compose.yml`.
+
+**Named matrix passes are the escalation, not the default.**
+`check-pull-request.yml` runs the suite once per named entry in
+`matrix.include`. A permanent `baseline` entry runs the `compose.yml` defaults.
+If a flag's two states both genuinely warrant journey coverage (a risky or
+long-lived divergence, not just new messaging), give it a matrix entry that pins
+the non-default state, plumb the value through to the relevant app container(s)
+and the runner, and branch the affected specs on it. Cost is linear (`N + 1`
+passes for `N` overridden flags). Reach for this deliberately: most flags do
+not earn it.
+
+The plumbing, when a flag earns it: add an action input for the flag, have the
+action's first step write it once to `$GITHUB_ENV`
+(`echo "FEATURE_FLAG_X=${{ inputs.feature-flag-x }}" >> "$GITHUB_ENV"`) so the
+same value reaches both the relevant app container (via `compose.yml`
+interpolation) and the wdio runner (via `process.env`), then pass
+`${{ matrix.x || '<default>' }}` from the matrix step. Read the env var in one
+shared `test/support/flags.js` and branch specs on `flags.x`, for example
+letting the flag pick the assertion verb:
+`const assert = flags.x ? checkBodyText : checkBodyTextDoesNotInclude`. Once
+the flag is retired, delete the matrix entry and this plumbing - `baseline`
+stays put.
+
+**The required check is a gate job.** Branch protection requires the exact name
+`Run Journey Tests`, which a matrix leg (`Run Journey Tests (<name>)`) can never
+match. So an aggregate job named `Run Journey Tests` `needs` the legs and passes
+only if all of them did (`if: always()`, so a failed leg fails the gate rather
+than skipping it). Its fixed name keeps branch protection decoupled from the
+matrix contents: adding or retiring an entry edits only `matrix.include`.
 
 ### Debugging local tests
 
@@ -59,6 +159,10 @@ You can check the progress of the build under the actions section of this reposi
 
 The results of the test run are made available in the portal.
 
+### Running tests with Profile
+
+By default in the CDP-Portal only tests tagged with @smoketest are run. If you wish to run all the tests, pass in `all` in the profile section of the CDP Portal UI.
+
 ## Requirements of CDP Environment Tests
 
 1. Your service builds as a docker container using the `.github/workflows/publish.yml`
@@ -72,19 +176,18 @@ The results of the test run are made available in the portal.
 ## Running on GitHub
 
 Alternatively you can run the test suite as a GitHub workflow.
-Test runs on GitHub are not able to connect to the CDP Test environments. Instead, they run the tests agains a version of the services running in docker.
-A docker compose `compose.yml` is included as a starting point, which includes the databases (mongodb, redis) and infrastructure (localstack) pre-setup.
+Test runs on GitHub are not able to connect to the CDP Test environments. Instead, they run the tests against the three apps under test (`epr-frontend`, `epr-backend`, `epr-re-ex-admin-frontend`) running in docker, alongside their backing services (mongodb, redis, floci as an AWS emulator, cognito-stub, defra-id-stub, epr-re-ex-entra-stub) and a `selenium-chrome` container for headless runs. `docker/scripts/` pre-populates mongo and creates the floci (S3/SQS/SNS) resources each app needs on startup.
+
+Each app service's `build:` block builds from a sibling checkout (`../epr-backend`, etc.) by default when one exists; override `EPR_BACKEND`/`EPR_FRONTEND`/`EPR_RE_EX_ADMIN_FRONTEND` to pin a specific published image tag instead. `run-journey-tests/action.yml` uses this same mechanism to test a matching in-flight branch from any of the three app repos against this suite - see [Feature flags in journey tests](#feature-flags-in-journey-tests) above for how flag state stays consistent across that boundary.
 
 Steps:
 
-1. Edit the compose.yml to include your services.
-2. Modify the scripts in docker/scripts to pre-populate the database, if required and create any localstack resources.
-3. Test the setup locally with `docker compose up` and `npm run test:github`
-4. Set up the workflow trigger in `.github/workflows/journey-tests`.
+1. Test the setup locally with `docker compose up -d --build` and `npm run test:github`.
+2. `.github/workflows/journey-tests.yml` is already wired up to run on manual dispatch or when called from another workflow.
 
 By default, the provided workflow will run when triggered manually from GitHub or when triggered by another workflow.
 
-If you want to use the repository exclusively for running docker composed based test suites consider displaying the publish.yml workflow.
+If you want to use the repository exclusively for running docker composed based test suites consider disabling the publish.yml workflow.
 
 ## BrowserStack
 

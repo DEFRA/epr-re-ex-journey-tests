@@ -1,0 +1,7 @@
+# Snyk (https://snyk.io) policy file
+version: v1.25.0
+ignore:
+  'SNYK-JS-INFLIGHT-6095116':
+    - '*':
+        reason: 'Transitively pulled in by @wdio/mocha-framework > mocha > glob, and by ExcelJS. Test-only tooling that runs briefly and exits on controlled, local/test inputs; memory-leak impact is not exploitable in this context and there is no upstream fix.'
+        expires: '2028-01-01T00:00:00.000Z'

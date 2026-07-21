@@ -1,108 +1,332 @@
 ################################################################################
-# Docker Compose file for starting up the service for testing in GitHub workflow
-# This template provides comparable infrastructure to the real environment.
+# Docker Compose file for starting up the services for testing in GitHub workflow.
+# Merged from epr-frontend-journey-tests, epr-backend-journey-tests and
+# epr-re-ex-admin-frontend-tests, since this repo exercises all three
+# applications (epr-frontend, epr-backend, epr-re-ex-admin-frontend) against
+# one shared backing-services stack:
 #   - mongodb
 #   - redis
-#   - localstack (s3, sqs, sns)
+#   - floci (s3, sqs, sns) — AWS emulator
+#   - cognito-stub — external/regulator-facing PRN API auth
+#   - defra-id-stub — operator sign-in
+#   - epr-re-ex-entra-stub — service-to-service + admin-frontend sign-in
 #
-# Both mongo and localstack have init scripts included for setting up resources
-# on startup. These scripts are in docker/scripts.
+# Mongo has init scripts included for setting up resources on startup. Floci's
+# resources (buckets, queues) are created by the one-shot floci-init container,
+# which other services wait on via service_completed_successfully.
 #
 # It also includes a selenium-chrome container for running the browser headless.
 #
-# The services being tested can either be started up here using the latest
-# builds from dockerhub.
+# The services being tested are started up here using the latest builds from
+# Docker Hub by default, or built from a sibling checkout (../epr-backend) when
+# EPR_BACKEND etc. aren't overridden — see each service's `build:` block.
 # In the example each service has a .env config file in docker/config/
 # Services can reference each other by their container names.
-# e.g. http://cdp-example-node-backend:3001/
 #
 ################################################################################
-services:
+name: epr-re-ex-journey-tests
 
-################################################################################
-# Headless browser, used by the test suite to actually run the tests against the
-# containers.
+services:
+  ################################################################################
+  # Headless browser, used by the test suite to actually run the tests against the
+  # containers.
   selenium-chrome:
-    image: selenium/standalone-chrome:123.0
+    image: selenium/standalone-chrome:149.0@sha256:90fbfd0cec921daba37e87f92e0edbd2c1b6e03b14d3972dba6338dec3884b70
+    platform: linux/amd64
     ports:
       - 4444:4444
+    environment:
+      SE_NODE_MAX_SESSIONS: 5
+    network_mode: host
 
-################################################################################
+  ################################################################################
+
   mongodb:
-    image: mongo:6
+    image: mongo:8.3.4@sha256:0f887198e29c093fd2b36c3e2eb43c7b98e47c081d89fbd5bc212da0cd43ec58
+    restart: always
+    ports:
+      - '27017:27017'
     volumes:
       - ./docker/scripts/mongodb:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.hello().ok"]
-      interval: 5s
-      start_period: 5s
-      retries: 3
-################################################################################
-  localstack:
-    image: localstack/localstack:3.2.0
-    environment:
-      - LOCALSTACK_HOST=127.0.0.1
-      - SERVICES=s3,sqs,sns,dynamodb
-      - LS_LOG=WARN
-    env_file:
-      - ./docker/config/defaults.env
-    volumes:
-      - ./docker/scripts/localstack:/etc/localstack/init/ready.d
-    healthcheck:
-      test: ["CMD", "curl", "localhost:4566"]
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
       interval: 5s
       start_period: 5s
       retries: 3
 
-################################################################################
+  floci:
+    image: hectorvent/floci:1.5.5@sha256:c969cb48fcfae0eff3f4a4647b7772cd975e633cae7468e45abaf2d2eae18558
+    environment:
+      FLOCI_HOSTNAME: floci
+      FLOCI_DEFAULT_REGION: eu-west-2
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    ports:
+      - '4566:4566'
+
+  floci-init:
+    image: amazon/aws-cli:2.35.21@sha256:238583846e731f31c9848dae26c5a560769ff35c4c5368a4cb6be5816683e485
+    entrypoint: /bin/sh
+    command: /setup/init.sh
+    depends_on:
+      floci:
+        condition: service_started
+    environment:
+      AWS_ENDPOINT_URL: http://floci:4566
+      AWS_REGION: eu-west-2
+      AWS_DEFAULT_REGION: eu-west-2
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    volumes:
+      - ./docker/scripts/floci:/setup:ro
+
   redis:
-    image: redis:7
+    image: redis:8.0.6-alpine3.21@sha256:5f61955be8ab2ccee9372b84ae4d4da2e2b156f87281e3f218544055e7ee04d4
+    ports:
+      - '6379:6379'
     restart: always
     healthcheck:
-      test: [ "CMD", "redis-cli", "PING" ]
+      test: ['CMD', 'redis-cli', 'PING']
       interval: 5s
       start_period: 2s
       retries: 5
 
+  cdp-uploader:
+    image: defradigital/cdp-uploader:1.16.0@sha256:eb1627b60690ec24d41a17ed82e80c28d009aaaeb19dc179c6a3887da7e6a5bd
+    ports:
+      - '7337:7337'
+    depends_on:
+      floci-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    env_file:
+      - './docker/config/aws.env'
+    environment:
+      VIRTUAL_HOST: ~^uploader\..*\.sslip\.io
+      VIRTUAL_PATH: /
+      VIRTUAL_PORT: 7337
+      PORT: 7337
+      NODE_ENV: development
+      REDIS_HOST: redis
+      USE_SINGLE_INSTANCE_CACHE: true
+      MOCK_VIRUS_SCAN_ENABLED: true
+      MOCK_VIRUS_RESULT_DELAY: 3
+      SQS_ENDPOINT: http://floci:4566
+      S3_ENDPOINT: http://floci:4566
+      # Floci requires path-form queue URLs (/<account>/<name>) for ReceiveMessage;
+      # cdp-uploader's baked defaults are bare names — override them here.
+      SQS_SCAN_RESULTS: http://floci:4566/000000000000/cdp-clamav-results
+      SQS_SCAN_RESULTS_CALLBACK: http://floci:4566/000000000000/cdp-uploader-scan-results-callback.fifo
+      SQS_DOWNLOAD_REQUESTS: http://floci:4566/000000000000/cdp-uploader-download-requests
+      SQS_MOCK_CLAMAV: http://floci:4566/000000000000/mock-clamav
+      CONSUMER_BUCKETS: re-ex-summary-logs,re-ex-overseas-sites
 
-################################################################################
-#
-# Add the services you want to test below.
-#
-################################################################################
-#  cdp-example-node-frontend:
-#    image: defradigital/cdp-example-node-frontend:${CDP_EXAMPLE_NODE_FRONTEND:-latest}
-#    env_file:
-#      - ./docker/config/defaults.env
-#      - ./docker/config/example-frontend.env
-#    environment:
-#      - PORT=3000
-#    depends_on:
-#      cdp-example-node-backend:
-#        condition: service_started
-#      redis:
-#        condition: service_healthy
-#    ports:
-#      - 3000:3000
-#    healthcheck:
-#      test: ["CMD", "curl", "http://localhost:3000/health"]
-#      interval: 3s
-#      start_period: 2s
-#      retries: 3
+  # Copies cognito seed files into a volume so cognito-stub has its own copies
+  cognito-stub-init:
+    image: alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+    volumes:
+      - ./compose/cognito-local/clients.json:/seed/clients.json:ro
+      - ./compose/cognito-local/local_4D8shcYm.json:/seed/local_4D8shcYm.json:ro
+      - cognito-db:/target
+    command: sh -c "cp /seed/clients.json /seed/local_4D8shcYm.json /target/"
 
-################################################################################
-# cdp-example-node-backend:
-#   image: defradigital/cdp-example-node-backend:${CDP_EXAMPLE_NODE_BACKEND:-latest}
-#   env_file:
-#     - ./docker/config/defaults.env
-#     - ./docker/config/example-backend.env
-#   environment:
-#     - PORT=3001
-#   depends_on:
-#     mongodb:
-#       condition: service_healthy
-#   healthcheck:
-#     test: ["CMD", "curl", "http://localhost:3001/health"]
-#     interval: 3s
-#     start_period: 2s
-#     retries: 3
+  # Backs the external/regulator-facing PRN accept/reject API (Cognito-secured),
+  # exercised by apicalls.js's externalAPICancelPrn/externalAPIAcceptPrn.
+  cognito-stub:
+    image: jagregory/cognito-local:5.3.0@sha256:a5ad30d01da5016a38535a717f6e1642d1b37f886a7b17e90b67f6e5ad134831
+    ports:
+      - '9229:9229'
+    volumes:
+      - cognito-db:/app/.cognito/db
+    depends_on:
+      cognito-stub-init:
+        condition: service_completed_successfully
+
+  # Simulates Defra ID sign-in for waste-operator users (epr-frontend journeys).
+  defra-id-stub:
+    image: defradigital/cdp-defra-id-stub:0.36.0@sha256:ad65e553ffd03f1f9ef6bc6a82d665a1643f7efa2daeb00775d6c20b0132dfa3
+    ports:
+      - '3200:3200'
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      APP_BASE_URL: http://defra-id-stub:3200
+      NODE_ENV: development
+      OIDC_BASE_PATH: /cdp-defra-id-stub
+      OIDC_CLIENT_ID: 63983fc2-cfff-45bb-8ec2-959e21062b9a
+      OIDC_CLIENT_SECRET: test_value
+      OIDC_SHOW_LOGIN: true
+      PORT: 3200
+      REDIS_HOST: redis
+      SESSION_CACHE_ENGINE: redis
+      USE_SINGLE_INSTANCE_CACHE: true
+
+  # Simulates Entra ID (Microsoft) sign-in: used for epr-backend's
+  # service-to-service auth and for epr-re-ex-admin-frontend's browser login.
+  epr-re-ex-entra-stub:
+    image: defradigital/epr-re-ex-entra-stub:0.80.0@sha256:72a4eda643e43ebd3fbc5e014ea60ec48745adea7a10f3a455bf6056e3926e60
+    ports:
+      - 3010:3010
+    environment:
+      STUB_INTERNAL_URL: http://epr-re-ex-entra-stub:3010
+    healthcheck:
+      test: ['CMD', 'curl', 'http://localhost:3010/health']
+      interval: 3s
+      start_period: 2s
+      retries: 3
+
+  # Mocks the external waste-organisations lookup API that epr-frontend calls.
+  waste-organisations-mock-api:
+    build:
+      context: .
+      dockerfile: docker/mock/Dockerfile
+    ports:
+      - '3020:3020'
+    environment:
+      NODE_ENV: development
+
+  ################################################################################
+  # Applications under test
+  ################################################################################
+
+  epr-backend:
+    image: defradigital/epr-backend:${EPR_BACKEND:-latest}
+    build:
+      context: ../epr-backend
+      target: development
+    ports:
+      - '3001:3001'
+    depends_on:
+      cognito-stub:
+        condition: service_started
+      defra-id-stub:
+        condition: service_started
+      epr-re-ex-entra-stub:
+        condition: service_healthy
+      floci-init:
+        condition: service_completed_successfully
+      mongodb:
+        condition: service_healthy
+      cdp-uploader:
+        condition: service_started
+    env_file:
+      - ./docker/config/defaults.env
+    environment:
+      ADMIN_UI_ENTRA_CLIENT_ID: clientId
+      APP_BASE_URL: http://epr-backend:3001
+      AUDIT_ENABLED: true
+      BASIC_AUTH_USERNAME: basicAuthUsername
+      BASIC_AUTH_PASSWORD: basicAuthPassword
+      CDP_UPLOADER_URL: http://cdp-uploader:7337
+      COMMAND_QUEUE_SQS_ENDPOINT: http://floci:4566
+      DEFRA_ID_CLIENT_ID: 63983fc2-cfff-45bb-8ec2-959e21062b9a
+      DEFRA_ID_OIDC_WELL_KNOWN_URL: http://defra-id-stub:3200/cdp-defra-id-stub/.well-known/openid-configuration
+      ENTRA_OIDC_WELL_KNOWN_CONFIGURATION_URL: http://epr-re-ex-entra-stub:3010/.well-known/openid-configuration
+      # Same flag and default as the epr-frontend service below: the backend
+      # gates submit-time resubmission marking on it, so the two must agree.
+      FEATURE_FLAG_CLOSED_PERIOD_ADJUSTMENTS: ${FEATURE_FLAG_CLOSED_PERIOD_ADJUSTMENTS:-true}
+      FEATURE_FLAG_DEV_ENDPOINTS: true
+      # On in every deployed environment: the report-detail read derives from
+      # summary-log row states, whose repository is only registered when this
+      # flag is on. Without it, GET report detail 500s.
+      FEATURE_FLAG_SUMMARY_LOG_ROW_STATES: ${FEATURE_FLAG_SUMMARY_LOG_ROW_STATES:-true}
+      FEATURE_FLAG_SUMMARY_LOG_ROW_STATES_BACKFILL: ${FEATURE_FLAG_SUMMARY_LOG_ROW_STATES_BACKFILL:-true}
+      GOVUK_NOTIFY_API_KEY: fake-key-for-testing
+      LOG_FORMAT: ecs
+      MONGO_URI: mongodb://mongodb:27017/
+      NODE_ENV: development
+      PACKAGING_RECYCLING_NOTES_EXTERNAL_API_CLIENT_ID: 5357lgchj0h0fuomqyas5r87u
+      PACKAGING_RECYCLING_NOTES_EXTERNAL_API_JWKS_URL: http://cognito-stub:9229/local_4D8shcYm/.well-known/jwks.json
+      PORT: 3001
+      SERVICE_MAINTAINER_EMAILS: '["ea@test.gov.uk","niea@test.gov.uk"]'
+      # ADR 0033: journey-test users are placed in the write tier so mutating
+      # journeys (edit organisation, generate public register, unsubmit report,
+      # clear DLQ) keep passing. The maintainer list above is retained so
+      # first-match-wins still resolves the same email; the write list wins.
+      SERVICE_MAINTAINER_WRITE_EMAILS: '["ea@test.gov.uk"]'
+      SUPPORT_EMAILS: '["nrw@test.gov.uk"]'
+      SQS_ENDPOINT: http://floci:4566
+    healthcheck:
+      # curl isn't installed in the `development` Dockerfile target (only the
+      # `production` target adds it) — this healthcheck runs against whichever
+      # target is in play, so use wget (present in both), not curl.
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1:3001/health']
+      interval: 5s
+      start_period: 10s
+      retries: 5
+
+  epr-frontend:
+    image: defradigital/epr-frontend:${EPR_FRONTEND:-latest}
+    ports:
+      - '3000:3000'
+    env_file:
+      - ./docker/config/defaults.env
+    environment:
+      CDP_UPLOADER_URL: http://cdp-uploader:7337
+      DEFRA_ID_CLIENT_ID: 63983fc2-cfff-45bb-8ec2-959e21062b9a
+      DEFRA_ID_CLIENT_SECRET: test_value
+      DEFRA_ID_OIDC_CONFIGURATION_URL: http://defra-id-stub:3200/cdp-defra-id-stub/.well-known/openid-configuration
+      DEFRA_ID_SERVICE_ID: d7d72b79-9c62-ee11-8df0-000d3adf7047
+      EPR_BACKEND_URL: http://epr-backend:3001
+      FEATURE_FLAG_CLOSED_PERIOD_ADJUSTMENTS: ${FEATURE_FLAG_CLOSED_PERIOD_ADJUSTMENTS:-true}
+      FEATURE_FLAG_ENHANCED_SUMMARY_LOG_CHECK_PAGES: true
+      FEATURE_FLAG_OPERATOR_INITIATED_RESUBMISSION: ${FEATURE_FLAG_OPERATOR_INITIATED_RESUBMISSION:-true}
+      NODE_ENV: development
+      PORT: 3000
+      REDIS_HOST: redis
+      USE_SINGLE_INSTANCE_CACHE: true
+      WASTE_ORGANISATIONS_API_URL: http://waste-organisations-mock-api:3020/waste-organisations/organisations
+      WASTE_ORGANISATIONS_API_USERNAME: testuser
+      WASTE_ORGANISATIONS_API_PASSWORD: testpassword
+    depends_on:
+      defra-id-stub:
+        condition: service_started
+      floci-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+      epr-backend:
+        condition: service_healthy
+      cdp-uploader:
+        condition: service_started
+
+  epr-re-ex-admin-frontend:
+    image: defradigital/epr-re-ex-admin-frontend:${EPR_RE_EX_ADMIN_FRONTEND:-latest}
+    ports:
+      - '3002:3002'
+    env_file:
+      - ./docker/config/defaults.env
+      - ./docker/config/example-frontend.env
+    environment:
+      PORT: 3002
+      NODE_ENV: development
+      REDIS_HOST: redis
+      EPR_BACKEND_URL: http://epr-backend:3001
+      ENTRA_TENANT_ID: tenantId
+      ENTRA_CLIENT_ID: clientId
+      ENTRA_CLIENT_SECRET: test
+      OIDC_WELL_KNOWN_CONFIGURATION_URL: http://epr-re-ex-entra-stub:3010/.well-known/openid-configuration
+      USE_SINGLE_INSTANCE_CACHE: true
+      # Unlike epr-frontend above, the admin UI redirects the browser straight
+      # to cdp-uploader rather than proxying uploads server-side, so this must
+      # be the host-visible URL (selenium-chrome runs with network_mode: host).
+      CDP_UPLOADER_URL: http://localhost:7337
+    depends_on:
+      redis:
+        condition: service_healthy
+      epr-re-ex-entra-stub:
+        condition: service_healthy
+      epr-backend:
+        condition: service_healthy
+    healthcheck:
+      # curl isn't installed in this image (only wget is) — see the epr-backend
+      # healthcheck comment above.
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1:3002/health']
+      interval: 3s
+      start_period: 2s
+      retries: 3
+
+volumes:
+  cognito-db:

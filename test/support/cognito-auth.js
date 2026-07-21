@@ -1,0 +1,45 @@
+import { request } from 'undici'
+import config from '../config/config.js'
+
+class CognitoAuth {
+  constructor(config = {}) {
+    this.url = config.envUrl
+    this.clientId = config.clientId
+    this.clientSecret = config.password
+    this.accessToken = null
+  }
+
+  async generateToken() {
+    const payload = new URLSearchParams({
+      // eslint-disable-next-line camelcase
+      grant_type: 'client_credentials',
+      // eslint-disable-next-line camelcase
+      client_id: this.clientId,
+      // eslint-disable-next-line camelcase
+      client_secret: this.clientSecret
+    })
+
+    const { statusCode, body } = await request(this.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: payload.toString(),
+      dispatcher: config.undiciAgent
+    })
+
+    const data = /** @type {{ access_token: string }} */ (await body.json())
+
+    if (statusCode !== 200) {
+      throw new Error(
+        `Cognito Auth failed (${statusCode}): ${JSON.stringify(data)}`
+      )
+    }
+
+    this.accessToken = data.access_token
+  }
+
+  authHeader() {
+    return { Authorization: `Bearer ${this.accessToken}` }
+  }
+}
+
+export { CognitoAuth }

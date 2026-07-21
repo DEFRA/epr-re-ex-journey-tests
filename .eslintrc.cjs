@@ -21,6 +21,12 @@ module.exports = {
   plugins: ['prettier', 'wdio'],
   rules: {
     'prettier/prettier': 'error',
-    'no-console': 'error'
+    'no-console': 'error',
+    camelcase: [
+      'error',
+      {
+        allow: ['^faker[A-Z]{2}_[A-Z]{2}$']
+      }
+    ]
   }
 }

@@ -1,56 +1,212 @@
 name: Run Journey Tests on GitHub
+description: Run epr-re-ex-journey-tests journey tests
 
 inputs:
-  example-node-backend:
-    required: false
-    type: string
-  example-node-frontend:
-    required: false
-    type: string
+  epr-frontend:
+    description: commit hash of epr-frontend
+  epr-backend:
+    description: commit hash of epr-backend
+  epr-re-ex-admin-frontend:
+    description: commit hash of epr-re-ex-admin-frontend
+  branch:
+    description: branch in this repo
+    default: main
+  journey-test-pr:
+    description: is this action being called from a pr in this repo?
+    default: 'false'
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository if not called by Journey Test PR
+      if: inputs.journey-test-pr == 'false'
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
-        repository: DEFRA/cdp-node-journey-test-suite-template
+        repository: DEFRA/epr-re-ex-journey-tests
+        ref: ${{inputs.branch}}
 
-    - name: Docker Login
-      uses: DEFRA/cdp-build-action/docker-login@main
+    # Each service below is branch-matched independently, gated only on its own
+    # commit input being empty — not on journey-test-pr. This way whichever one
+    # service a caller already knows the exact commit for (because it's calling
+    # from ITS OWN PR, e.g. epr-frontend's CI passing epr-frontend: github.sha)
+    # skips matching entirely, while the other two still get branch-matched
+    # against github.head_ref, same as when journey-test-pr is true and none of
+    # the three are supplied.
 
-    - uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        cache: npm
-    - name: Setup the tests
-      run: npm i
+    - name: Check for matching epr-frontend branch
+      if: inputs.epr-frontend == ''
+      id: frontend-branch
       shell: bash
+      run: |
+        BRANCH="${{ github.head_ref }}"
+        if git ls-remote --heads https://github.com/DEFRA/epr-frontend.git "$BRANCH" | grep -q .; then
+          echo "ref=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::Found matching epr-frontend branch: $BRANCH — will build from source"
+        else
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::No matching epr-frontend branch '$BRANCH' — using latest published image"
+        fi
+
+    - name: Checkout epr-frontend repository if matching branch exists
+      if: inputs.epr-frontend == '' && steps.frontend-branch.outputs.exists == 'true'
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        repository: DEFRA/epr-frontend
+        ref: ${{ steps.frontend-branch.outputs.ref }}
+        path: epr-frontend
+
+    - name: Build Docker image from epr-frontend matching branch
+      if: inputs.epr-frontend == '' && steps.frontend-branch.outputs.exists == 'true'
+      id: docker-frontend-branch
+      shell: bash
+      run: |
+        cd epr-frontend
+        EPR_FRONTEND_SHA=$(git rev-parse --short HEAD)
+        IMAGE_TAG="defradigital/epr-frontend:${EPR_FRONTEND_SHA}"
+        docker build -t $IMAGE_TAG .
+        echo "image=$EPR_FRONTEND_SHA" >> "$GITHUB_OUTPUT"
+
+    - name: Check for matching epr-backend branch
+      if: inputs.epr-backend == ''
+      id: backend-branch
+      shell: bash
+      run: |
+        BRANCH="${{ github.head_ref }}"
+        if git ls-remote --heads https://github.com/DEFRA/epr-backend.git "$BRANCH" | grep -q .; then
+          echo "ref=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::Found matching epr-backend branch: $BRANCH — will build from source"
+        else
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::No matching epr-backend branch '$BRANCH' — using latest published image"
+        fi
+
+    - name: Checkout epr-backend repository if matching branch exists
+      if: inputs.epr-backend == '' && steps.backend-branch.outputs.exists == 'true'
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        repository: DEFRA/epr-backend
+        ref: ${{ steps.backend-branch.outputs.ref }}
+        path: epr-backend
+
+    - name: Build Docker image from epr-backend matching branch
+      if: inputs.epr-backend == '' && steps.backend-branch.outputs.exists == 'true'
+      id: docker-backend-branch
+      shell: bash
+      run: |
+        cd epr-backend
+        EPR_BACKEND_SHA=$(git rev-parse --short HEAD)
+        IMAGE_TAG="defradigital/epr-backend:${EPR_BACKEND_SHA}"
+        docker build -t $IMAGE_TAG .
+        echo "image=$EPR_BACKEND_SHA" >> "$GITHUB_OUTPUT"
+
+    - name: Check for matching epr-re-ex-admin-frontend branch
+      if: inputs.epr-re-ex-admin-frontend == ''
+      id: admin-frontend-branch
+      shell: bash
+      run: |
+        BRANCH="${{ github.head_ref }}"
+        if git ls-remote --heads https://github.com/DEFRA/epr-re-ex-admin-frontend.git "$BRANCH" | grep -q .; then
+          echo "ref=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::Found matching epr-re-ex-admin-frontend branch: $BRANCH — will build from source"
+        else
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+          echo "::notice::No matching epr-re-ex-admin-frontend branch '$BRANCH' — using latest published image"
+        fi
+
+    - name: Checkout epr-re-ex-admin-frontend repository if matching branch exists
+      if: inputs.epr-re-ex-admin-frontend == '' && steps.admin-frontend-branch.outputs.exists == 'true'
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        repository: DEFRA/epr-re-ex-admin-frontend
+        ref: ${{ steps.admin-frontend-branch.outputs.ref }}
+        path: epr-re-ex-admin-frontend
+
+    - name: Build Docker image from epr-re-ex-admin-frontend matching branch
+      if: inputs.epr-re-ex-admin-frontend == '' && steps.admin-frontend-branch.outputs.exists == 'true'
+      id: docker-admin-frontend-branch
+      shell: bash
+      run: |
+        cd epr-re-ex-admin-frontend
+        EPR_RE_EX_ADMIN_FRONTEND_SHA=$(git rev-parse --short HEAD)
+        IMAGE_TAG="defradigital/epr-re-ex-admin-frontend:${EPR_RE_EX_ADMIN_FRONTEND_SHA}"
+        docker build -t $IMAGE_TAG .
+        echo "image=$EPR_RE_EX_ADMIN_FRONTEND_SHA" >> "$GITHUB_OUTPUT"
+
+    - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+
+    - name: Upgrade npm
+      run: npm install -g npm@11.12.1
+      shell: bash
+
+    - name: Install
+      run: npm ci
+      shell: bash
+
+    - name: Add hosts entry
+      run: |
+        sudo echo "127.0.0.1 defra-id-stub" | sudo tee -a /etc/hosts
+        # Verify it worked
+        cat /etc/hosts
+      shell: bash
+
+    # Each EPR_* value below prefers the caller-supplied commit, falls back to
+    # the branch-matched build's short SHA, and falls back again (empty
+    # string) to compose.yml's own :latest default when neither applies.
     - name: Start docker compose
       shell: bash
       run: |
-          CDP_EXAMPLE_NODE_FRONTEND=${{inputs.example-node-frontend}} \
-          CDP_EXAMPLE_NODE_BACKEND=${{inputs.example-node-backend}} \
-          docker compose up --wait-timeout 300 -d --quiet-pull
+        EPR_FRONTEND=${{ inputs.epr-frontend || steps.docker-frontend-branch.outputs.image }} \
+        EPR_BACKEND=${{ inputs.epr-backend || steps.docker-backend-branch.outputs.image }} \
+        EPR_RE_EX_ADMIN_FRONTEND=${{ inputs.epr-re-ex-admin-frontend || steps.docker-admin-frontend-branch.outputs.image }} \
+        docker compose up --wait-timeout 300 -d --quiet-pull
+
+    - name: Wait for services to be ready
+      shell: bash
+      run: |
+        echo "Waiting for backend to be ready..."
+        timeout 180 bash -c 'until curl -f http://localhost:3001/health; do sleep 5; done'
+        echo "Waiting for frontend to be ready..."
+        timeout 180 bash -c 'until curl -f http://localhost:3000/health; do sleep 5; done'
+        echo "Waiting for admin frontend to be ready..."
+        timeout 180 bash -c 'until curl -f http://localhost:3002/health; do sleep 5; done'
+
     - name: Run the tests
       shell: bash
       run: |
         npm run test:github
         npm run report
+
     - name: debug
       if: always()
       run: |
         docker compose logs > logs.txt
         docker ps
       shell: bash
+
     - name: Upload allure report
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: allure-report
         path: ./allure-report
+
     - name: Upload docker compose logs
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: docker-compose-logs
         path: ./logs.txt
+
+    - name: Fail this step if FAILED file exists
+      if: always()
+      run: |
+        if [ -f "FAILED" ]; then
+          exit 1
+        fi
+      shell: bash
