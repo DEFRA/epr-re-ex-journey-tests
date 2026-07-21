@@ -66,7 +66,7 @@ describe('Organisation/accreditation cross-linking integrity @organisationAccred
     const response = await putOrganisation(baseAPI, authClient, org.refNo, data)
 
     expect(response.statusCode).to.equal(422)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.contain(
       'Each accreditation must be linked to at most one registration:'
     )
@@ -106,7 +106,7 @@ describe('Organisation/accreditation cross-linking integrity @organisationAccred
     const response = await putOrganisation(baseAPI, authClient, org.refNo, data)
 
     expect(response.statusCode).to.equal(422)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.equal(
       'Invalid organisation data: registrations.0.accreditationId: id must be a valid MongoDB ObjectId'
     )
@@ -146,7 +146,7 @@ describe('Organisation/accreditation cross-linking integrity @organisationAccred
     const response = await putOrganisation(baseAPI, authClient, org.refNo, data)
 
     expect(response.statusCode).to.equal(422)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.contain(
       'Registrations are linked to accreditations that do not exist'
     )
@@ -189,7 +189,7 @@ describe('Organisation/accreditation cross-linking integrity @organisationAccred
     const response = await putOrganisation(baseAPI, authClient, org.refNo, data)
 
     expect(response.statusCode).to.equal(422)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.contain(
       'Registrations are linked to accreditations that do not match their type, material, or site:'
     )
@@ -223,7 +223,7 @@ describe('Organisation/accreditation cross-linking integrity @organisationAccred
     const response = await putOrganisation(baseAPI, authClient, org.refNo, data)
 
     expect(response.statusCode).to.equal(422)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.contain(
       'Registrations are linked to accreditations that do not match their type, material, or site:'
     )

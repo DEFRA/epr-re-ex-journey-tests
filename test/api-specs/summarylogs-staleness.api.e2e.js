@@ -23,7 +23,9 @@ async function uploadAndValidate(baseAPI, refNo, registrationId, authHeader) {
     { ...authHeader, 'content-type': 'application/json' }
   )
   expect(initiateResponse.statusCode).to.equal(201)
-  const { summaryLogId, uploadUrl } = await initiateResponse.body.json()
+  const { summaryLogId, uploadUrl } = /** @type {any} */ (
+    await initiateResponse.body.json()
+  )
 
   const hostUploadUrl = new URL(
     new URL(uploadUrl).pathname,
@@ -107,7 +109,7 @@ describe('Summary log staleness detection @summaryLogStaleness', () => {
       authHeader
     )
     expect(secondSubmitResponse.statusCode).to.equal(409)
-    const body = await secondSubmitResponse.body.json()
+    const body = /** @type {any} */ (await secondSubmitResponse.body.json())
     expect(body.message).to.equal(
       'Waste records have changed since preview was generated. Please re-upload.'
     )

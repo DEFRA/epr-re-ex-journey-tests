@@ -22,7 +22,7 @@ describe('Basic auth @basicAuth', () => {
     )
 
     expect(response.statusCode).to.equal(200)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.id).to.equal(refNo)
   })
 
@@ -36,7 +36,7 @@ describe('Basic auth @basicAuth', () => {
     )
 
     expect(response.statusCode).to.equal(422)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.equal(
       '"organisationId" with value "unknownOrgId" fails to match the required pattern: /^[a-f0-9]{24}$/. "registrationId" with value "someRegId" fails to match the required pattern: /^[a-f0-9]{24}$/. "accreditationId" with value "someAccId" fails to match the required pattern: /^[a-f0-9]{24}$/'
     )
@@ -55,7 +55,7 @@ describe('Basic auth @basicAuth', () => {
     )
 
     expect(response.statusCode).to.equal(401)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.equal('Missing authentication')
   })
 
@@ -69,7 +69,7 @@ describe('Basic auth @basicAuth', () => {
     )
 
     expect(response.statusCode).to.equal(401)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.equal('Missing authentication')
   })
 })

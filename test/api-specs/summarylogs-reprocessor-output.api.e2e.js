@@ -114,7 +114,7 @@ describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput', ()
       authHeader
     )
     expect(submitResponse.statusCode).to.equal(409)
-    const body = await submitResponse.body.json()
+    const body = /** @type {any} */ (await submitResponse.body.json())
     expect(body.message).to.equal(
       'Summary log must be validated before submission. Current status: invalid'
     )
@@ -260,7 +260,7 @@ describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput', ()
     const reportPath = `/v1/organisations/${orgId}/registrations/${registrationId}/reports/2026/monthly/1/submissions/1`
     const reportResponse = await baseAPI.get(reportPath, authHeader)
     expect(reportResponse.statusCode).to.equal(200)
-    const report = await reportResponse.body.json()
+    const report = /** @type {any} */ (await reportResponse.body.json())
 
     expect(report.operatorCategory).to.equal('REPROCESSOR')
     expect(report.cadence).to.equal('monthly')

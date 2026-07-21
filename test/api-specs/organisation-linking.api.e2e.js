@@ -68,7 +68,7 @@ describe('Organisation linking/unlinking negative paths @organisationLinking', (
     )
 
     expect(response.statusCode).to.equal(409)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.equal('Organisation is not in a linkable state')
   })
 
@@ -107,7 +107,7 @@ describe('Organisation linking/unlinking negative paths @organisationLinking', (
       authClient.authHeader()
     )
     expect(secondUnlink.statusCode).to.equal(409)
-    const body = await secondUnlink.body.json()
+    const body = /** @type {any} */ (await secondUnlink.body.json())
     expect(body.message).to.equal(
       'Organisation is not linked so cannot be unlinked'
     )
@@ -126,7 +126,7 @@ describe('Organisation linking/unlinking negative paths @organisationLinking', (
     )
 
     expect(response.statusCode).to.equal(409)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.equal('Organisation is not in a linkable state')
   })
 
@@ -142,7 +142,7 @@ describe('Organisation linking/unlinking negative paths @organisationLinking', (
     )
 
     expect(response.statusCode).to.equal(409)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.equal('Organisation is not in a linkable state')
   })
 
@@ -159,7 +159,7 @@ describe('Organisation linking/unlinking negative paths @organisationLinking', (
     )
 
     expect(response.statusCode).to.equal(403)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.equal('Insufficient scope')
   })
 
@@ -178,7 +178,7 @@ describe('Organisation linking/unlinking negative paths @organisationLinking', (
     )
 
     expect(response.statusCode).to.equal(403)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.equal('Insufficient scope')
   })
 })

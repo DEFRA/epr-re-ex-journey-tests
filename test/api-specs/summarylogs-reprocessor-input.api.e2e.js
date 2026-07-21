@@ -176,7 +176,9 @@ describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput', () =
       authHeader
     )
     expect(secondSubmitResponse.statusCode).to.equal(409)
-    const secondSubmitBody = await secondSubmitResponse.body.json()
+    const secondSubmitBody = /** @type {any} */ (
+      await secondSubmitResponse.body.json()
+    )
     expect(secondSubmitBody.message).to.equal(
       'Summary log must be validated before submission. Current status: invalid'
     )
@@ -424,7 +426,7 @@ describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput', () =
       authHeader
     )
     expect(submitResponse.statusCode).to.equal(409)
-    const body = await submitResponse.body.json()
+    const body = /** @type {any} */ (await submitResponse.body.json())
     expect(body.message).to.equal(
       'Summary log must be validated before submission. Current status: invalid'
     )
@@ -472,7 +474,7 @@ describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput', () =
       authHeader
     )
     expect(submitResponse.statusCode).to.equal(409)
-    const body = await submitResponse.body.json()
+    const body = /** @type {any} */ (await submitResponse.body.json())
     expect(body.message).to.equal(
       'Summary log must be validated before submission. Current status: invalid'
     )

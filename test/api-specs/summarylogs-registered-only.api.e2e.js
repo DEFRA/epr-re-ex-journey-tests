@@ -95,7 +95,7 @@ describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnly', (
 
     const reportResponse = await baseAPI.get(reportPath, authHeader)
     expect(reportResponse.statusCode).to.equal(200)
-    const report = await reportResponse.body.json()
+    const report = /** @type {any} */ (await reportResponse.body.json())
     expect(report.wasteProcessingType).to.equal('exporter')
   })
 
@@ -183,7 +183,7 @@ describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnly', (
       authHeader
     )
     expect(submitResponse.statusCode).to.equal(409)
-    const body = await submitResponse.body.json()
+    const body = /** @type {any} */ (await submitResponse.body.json())
     expect(body.message).to.equal(
       'Summary log must be validated before submission. Current status: invalid'
     )
@@ -266,7 +266,7 @@ describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessorRegOn
     const reportPath = `/v1/organisations/${org.refNo}/registrations/${registrationId}/reports/2026/quarterly/1/submissions/1`
     const reportResponse = await baseAPI.get(reportPath, authHeader)
     expect(reportResponse.statusCode).to.equal(200)
-    const report = await reportResponse.body.json()
+    const report = /** @type {any} */ (await reportResponse.body.json())
 
     expect(report.operatorCategory).to.equal('REPROCESSOR_REGISTERED_ONLY')
     expect(report.cadence).to.equal('quarterly')
@@ -360,7 +360,7 @@ describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessorRegOn
       authHeader
     )
     expect(submitResponse.statusCode).to.equal(409)
-    const body = await submitResponse.body.json()
+    const body = /** @type {any} */ (await submitResponse.body.json())
     expect(body.message).to.equal(
       'Summary log must be validated before submission. Current status: invalid'
     )

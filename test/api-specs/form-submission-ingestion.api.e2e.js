@@ -50,7 +50,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       const response = await submit(baseAPI, path, payload)
 
       expect(response.statusCode).to.equal(200)
-      const body = await response.body.json()
+      const body = /** @type {any} */ (await response.body.json())
       expect(body.orgId).to.match(/^\d{6}$/)
       expect(body.referenceNumber).to.match(/^[0-9a-f]{24}$/i)
       expect(body.orgName).to.equal(organisation.companyName)

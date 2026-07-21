@@ -87,7 +87,7 @@ describe('Summary log upload-completed state transitions @summaryLogTransitions'
         summaryLog,
         to
       )
-      const body = await secondResponse.body.json()
+      const body = /** @type {any} */ (await secondResponse.body.json())
 
       if (
         secondResponse.statusCode === 409 &&
@@ -102,7 +102,9 @@ describe('Summary log upload-completed state transitions @summaryLogTransitions'
         return { response: secondResponse, body }
       }
     }
-    return undefined
+    throw new Error(
+      `attemptFromComplete: exhausted ${attempts} attempts without a result`
+    )
   }
 
   const validTransitions = ['pending', 'complete', 'rejected']
@@ -192,7 +194,7 @@ describe('Summary log upload-completed state transitions @summaryLogTransitions'
         to
       )
       expect(secondResponse.statusCode).to.equal(409)
-      const body = await secondResponse.body.json()
+      const body = /** @type {any} */ (await secondResponse.body.json())
       expect(body.message).to.equal(
         `Cannot transition summary log from ${fromLog} to ${toLog}`
       )

@@ -85,7 +85,7 @@ async function createPrn(
     authHeader
   )
   expect(response.statusCode).to.equal(201)
-  const body = await response.body.json()
+  const body = /** @type {any} */ (await response.body.json())
   return { prnId: body.id, prnPath: `${path}/${body.id}` }
 }
 
@@ -105,7 +105,7 @@ async function updateAccreditationStatus(baseAPI, authClient, refNo, status) {
     `/v1/organisations/${refNo}`,
     authClient.authHeader()
   )
-  const data = await getResponse.body.json()
+  const data = /** @type {any} */ (await getResponse.body.json())
 
   data.accreditations[0].status = status
   const statusChangeDate = new Date(data.accreditations[0].validFrom)
@@ -147,7 +147,7 @@ describe('PRN state machine @prnStateMachine', () => {
     )
 
     expect(response.statusCode).to.equal(400)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.equal('No transition exists from draft to draft')
   })
 
@@ -176,7 +176,7 @@ describe('PRN state machine @prnStateMachine', () => {
       'awaiting_authorisation'
     )
     expect(toAuthResponse.statusCode).to.equal(400)
-    const toAuthBody = await toAuthResponse.body.json()
+    const toAuthBody = /** @type {any} */ (await toAuthResponse.body.json())
     expect(toAuthBody.message).to.equal(
       'No transition exists from discarded to awaiting_authorisation'
     )
@@ -188,7 +188,7 @@ describe('PRN state machine @prnStateMachine', () => {
       'draft'
     )
     expect(toDraftResponse.statusCode).to.equal(400)
-    const toDraftBody = await toDraftResponse.body.json()
+    const toDraftBody = /** @type {any} */ (await toDraftResponse.body.json())
     expect(toDraftBody.message).to.equal(
       'No transition exists from discarded to draft'
     )
@@ -212,7 +212,7 @@ describe('PRN state machine @prnStateMachine', () => {
     )
 
     expect(response.statusCode).to.equal(409)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.equal('Insufficient available waste balance')
   })
 
@@ -249,7 +249,7 @@ describe('PRN state machine @prnStateMachine', () => {
       'awaiting_acceptance'
     )
     expect(toAcceptanceResponse.statusCode).to.equal(400)
-    const body = await toAcceptanceResponse.body.json()
+    const body = /** @type {any} */ (await toAcceptanceResponse.body.json())
     expect(body.message).to.equal(
       'No transition exists from deleted to awaiting_acceptance'
     )
@@ -280,7 +280,7 @@ describe('PRN state machine @prnStateMachine', () => {
       'awaiting_acceptance'
     )
     expect(issueResponse.statusCode).to.equal(200)
-    const issued = await issueResponse.body.json()
+    const issued = /** @type {any} */ (await issueResponse.body.json())
     expect(issued.prnNumber).to.match(/^SR\d{5,9}$/)
 
     const prnDetails = { prnNumber: issued.prnNumber, status: 'Issued' }
@@ -297,7 +297,7 @@ describe('PRN state machine @prnStateMachine', () => {
       config.cognitoAuth.authHeader()
     )
     expect(secondAcceptResponse.statusCode).to.equal(409)
-    const body = await secondAcceptResponse.body.json()
+    const body = /** @type {any} */ (await secondAcceptResponse.body.json())
     expect(body.message).to.equal(
       'No transition exists from accepted to accepted'
     )
@@ -325,7 +325,7 @@ describe('PRN state machine @prnStateMachine', () => {
       ctx.authHeader,
       'awaiting_acceptance'
     )
-    const issued = await issueResponse.body.json()
+    const issued = /** @type {any} */ (await issueResponse.body.json())
 
     const prnDetails = { prnNumber: issued.prnNumber, status: 'Issued' }
     await externalAPICancelPrn(prnDetails)
@@ -356,7 +356,7 @@ describe('PRN state machine @prnStateMachine', () => {
     )
 
     expect(response.statusCode).to.equal(200)
-    const prns = await response.body.json()
+    const prns = /** @type {any} */ (await response.body.json())
     expect(prns.length).to.be.greaterThan(0)
     expect(
       prns.every((prn) => prn.issuedToOrganisation.id === 'testId')
@@ -401,7 +401,7 @@ describe('PRN state machine @prnStateMachine', () => {
       'awaiting_acceptance'
     )
     expect(issueResponse.statusCode).to.equal(403)
-    const body = await issueResponse.body.json()
+    const body = /** @type {any} */ (await issueResponse.body.json())
     expect(body.message).to.equal(
       'Cannot issue a PRN on a suspended accreditation'
     )
@@ -429,7 +429,7 @@ describe('PRN state machine @prnStateMachine', () => {
       ctx.authHeader
     )
     expect(createResponse.statusCode).to.equal(403)
-    const createBody = await createResponse.body.json()
+    const createBody = /** @type {any} */ (await createResponse.body.json())
     expect(createBody.message).to.equal(
       'Cannot create a PRN on a cancelled accreditation'
     )

@@ -239,7 +239,7 @@ describe('Summary Logs - Exporter @summaryLogExporter', () => {
       authHeader
     )
     expect(submitResponse.statusCode).to.equal(409)
-    const body = await submitResponse.body.json()
+    const body = /** @type {any} */ (await submitResponse.body.json())
     expect(body.message).to.equal(
       'Summary log must be validated before submission. Current status: invalid'
     )

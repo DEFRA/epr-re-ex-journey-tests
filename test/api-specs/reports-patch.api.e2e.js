@@ -50,7 +50,7 @@ describe('Reports PATCH endpoint @reportsPatch', () => {
     )
 
     expect(response.statusCode).to.equal(200)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.prn.totalRevenue).to.equal(1576.12)
   })
 
@@ -64,7 +64,7 @@ describe('Reports PATCH endpoint @reportsPatch', () => {
     )
 
     expect(response.statusCode).to.equal(200)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.prn.freeTonnage).to.equal(0)
   })
 
@@ -78,7 +78,7 @@ describe('Reports PATCH endpoint @reportsPatch', () => {
     )
 
     expect(response.statusCode).to.equal(200)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.prn.totalRevenue).to.equal(1576.12)
     expect(body.prn.freeTonnage).to.equal(0)
   })
@@ -93,7 +93,7 @@ describe('Reports PATCH endpoint @reportsPatch', () => {
     )
 
     expect(response.statusCode).to.equal(422)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.equal(
       '"prnRevenue" must be greater than or equal to 0'
     )
@@ -109,7 +109,7 @@ describe('Reports PATCH endpoint @reportsPatch', () => {
     )
 
     expect(response.statusCode).to.equal(422)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.equal('"value" must have at least 1 key')
   })
 
@@ -125,7 +125,7 @@ describe('Reports PATCH endpoint @reportsPatch', () => {
     )
 
     expect(response.statusCode).to.equal(404)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.equal(
       `No report found for ${CADENCE} period ${nonExistentPeriod} of ${YEAR}`
     )
@@ -143,7 +143,7 @@ describe('Reports PATCH endpoint @reportsPatch', () => {
     )
 
     expect(response.statusCode).to.equal(200)
-    const body = await response.body.json()
+    const body = /** @type {any} */ (await response.body.json())
     expect(body.supportingInformation).to.equal('Test supporting information')
   })
 
@@ -164,7 +164,7 @@ describe('Reports PATCH endpoint @reportsPatch', () => {
     )
 
     expect(getResponse.statusCode).to.equal(200)
-    const body = await getResponse.body.json()
+    const body = /** @type {any} */ (await getResponse.body.json())
     expect(body.prn.totalRevenue).to.equal(3000)
     expect(body.prn.freeTonnage).to.equal(0)
   })

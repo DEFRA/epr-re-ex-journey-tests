@@ -56,7 +56,9 @@ describe('Summary log submit blocked by period-closed-during-submit guard @summa
       { ...authHeader, 'content-type': 'application/json' }
     )
     expect(initiateResponse.statusCode).to.equal(201)
-    const { summaryLogId, uploadUrl } = await initiateResponse.body.json()
+    const { summaryLogId, uploadUrl } = /** @type {any} */ (
+      await initiateResponse.body.json()
+    )
 
     const hostUploadUrl = new URL(
       new URL(uploadUrl).pathname,
