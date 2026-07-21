@@ -21,8 +21,10 @@ if (environment === 'prod') {
   )
 }
 
-// TODO: point these at whichever service(s) this repo ends up exercising.
-// `epr-backend` is the current live Re/Ex API - update if/when it's replaced.
+// `epr-backend` is the one Re/Ex API all three apps under test (epr-frontend,
+// epr-re-ex-admin-frontend, and epr-backend itself) share - confirmed by
+// compose.yml, every wdio baseUrl, and the CI wiring all pointing at it
+// consistently. Update if it's ever replaced.
 const api = {
   local: withProxy ? 'http://epr-backend:3001' : 'http://localhost:3001',
   env: `https://epr-backend.${environment}.cdp-int.defra.cloud`,
