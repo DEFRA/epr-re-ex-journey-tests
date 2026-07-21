@@ -1,6 +1,7 @@
 import { browser, $, $$ } from '@wdio/globals'
+import { Page } from 'page-objects/page'
 
-class HomePage {
+class HomePage extends Page {
   open(lang = '') {
     return browser.url(lang + '/')
   }
@@ -80,10 +81,6 @@ class HomePage {
 
   async homeLink() {
     await $('a*=Home').click()
-  }
-
-  async signOut() {
-    await $('a*=Sign out').click()
   }
 }
 

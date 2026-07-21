@@ -4,12 +4,6 @@ import { SummaryLogUploadActions } from './summary-log-upload-actions.js'
 import EnhancedCheckSummaryLogPage from './enhanced.check.summary.log.page.js'
 
 class UploadSummaryLogPage extends SummaryLogUploadActions {
-  async headingText() {
-    const element = await $('h1.govuk-heading-xl')
-    await element.waitForExist({ timeout: 5000 })
-    return await element.getText()
-  }
-
   async performUploadAndReturnToHomepage(filePath) {
     await this.uploadFile(filePath)
     await this.continue()

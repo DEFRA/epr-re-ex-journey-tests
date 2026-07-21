@@ -1,12 +1,7 @@
 import { $ } from '@wdio/globals'
+import { Page } from 'page-objects/page'
 
-class ReportStaleErrorPage {
-  async headingText() {
-    const element = await $('h1.govuk-heading-xl')
-    await element.waitForExist({ timeout: 5000 })
-    return await element.getText()
-  }
-
+class ReportStaleErrorPage extends Page {
   async returnToReports() {
     await $('a*=Return to reports').click()
   }

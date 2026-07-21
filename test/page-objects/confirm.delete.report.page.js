@@ -1,13 +1,8 @@
 import { $ } from '@wdio/globals'
+import { Page } from 'page-objects/page'
 import { checkDoubleClickPrevented } from '../support/double-click.js'
 
-class ConfirmDeleteReportPage {
-  async headingText() {
-    const element = await $('h1.govuk-heading-xl')
-    await element.waitForExist({ timeout: 5000 })
-    return await element.getText()
-  }
-
+class ConfirmDeleteReportPage extends Page {
   async warningText() {
     const element = await $('p*=cannot be undone')
     await element.waitForExist({ timeout: 5000 })
@@ -20,10 +15,6 @@ class ConfirmDeleteReportPage {
 
   async confirmDeletionAndCheckDoubleClickPrevented() {
     await checkDoubleClickPrevented('button[type=submit]')
-  }
-
-  async selectBackLink() {
-    await $('a*=Back').click()
   }
 }
 

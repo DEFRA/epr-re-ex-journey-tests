@@ -1,10 +1,7 @@
 import { $, $$ } from '@wdio/globals'
+import { Page } from 'page-objects/page'
 
-class PRNDashboardPage {
-  async dashboardHeaderText() {
-    return $('#main-content > div > div > div > h1').getText()
-  }
-
+class PRNDashboardPage extends Page {
   async selectAwaitingLink(index, tableIndex = 1) {
     const linkElement = await $(
       `#awaiting-action table.govuk-table:nth-of-type(${tableIndex}) tr:nth-child(` +
@@ -125,16 +122,6 @@ class PRNDashboardPage {
 
   async getNoCreatedPrnMessage() {
     return await $('#main-content > div > div > p').getText()
-  }
-
-  async wasteBalanceAmount() {
-    const element = await $('[data-testid="waste-balance-amount"]')
-    await element.waitForExist({ timeout: 5000 })
-    return await element.getText()
-  }
-
-  async selectBackLink() {
-    await $('a*=Back').click()
   }
 
   async createAPrnButton() {

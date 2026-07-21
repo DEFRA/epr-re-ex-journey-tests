@@ -1,19 +1,14 @@
 import { $, browser, expect } from '@wdio/globals'
+import { Page } from 'page-objects/page'
 import { checkDoubleClickPrevented } from '../../support/double-click.js'
 import UploadSummaryLogPage from '../upload.summary.log.page.js'
 import ReportsPage from './reports.page.js'
 
-class ReportDetailPage {
+class ReportDetailPage extends Page {
   open(orgId, regId, year, cadence, period, submissionNumber = 1) {
     return browser.url(
       `/organisations/${orgId}/registrations/${regId}/reports/${year}/${cadence}/${period}/submissions/${submissionNumber}`
     )
-  }
-
-  async headingText() {
-    const element = await $('h1.govuk-heading-xl')
-    await element.waitForExist({ timeout: 5000 })
-    return await element.getText()
   }
 
   async useThisData() {

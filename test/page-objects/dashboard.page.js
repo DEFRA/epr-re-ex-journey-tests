@@ -1,12 +1,9 @@
 import { browser, $, $$ } from '@wdio/globals'
+import { Page } from 'page-objects/page'
 
-class DashboardPage {
+class DashboardPage extends Page {
   open(orgId) {
     return browser.url(`/organisations/${orgId}`)
-  }
-
-  async dashboardHeaderText() {
-    return $('#main-content > div > div > div > h1').getText()
   }
 
   async selectLink(index) {
@@ -92,10 +89,6 @@ class DashboardPage {
       tableRow.set(headerText[i], rowText[i])
     }
     return tableRow
-  }
-
-  async selectBackLink() {
-    await $('a*=Back').click()
   }
 }
 

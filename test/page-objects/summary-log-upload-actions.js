@@ -1,10 +1,11 @@
 import { browser, $ } from '@wdio/globals'
+import { Page } from 'page-objects/page'
 import { checkDoubleClickPrevented } from '../support/double-click.js'
 
 // Flag-independent upload-page primitives for UploadSummaryLogPage: the upload
 // page itself is unchanged by the flag (only the check page after it differs).
 // A base class (not Object.assign) so the type-checker sees the inherited methods.
-export class SummaryLogUploadActions {
+export class SummaryLogUploadActions extends Page {
   open(orgId, regId) {
     return browser.url(
       `/organisations/${orgId}/registrations/${regId}/summary-logs/upload`

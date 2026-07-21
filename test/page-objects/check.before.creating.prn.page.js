@@ -1,7 +1,8 @@
 /// <reference types="@wdio/globals/types" />
-import { browser, $, $$ } from '@wdio/globals'
+import { browser, $ } from '@wdio/globals'
+import { Page } from 'page-objects/page'
 
-class CheckBeforeCreatingPRNPage {
+class CheckBeforeCreatingPRNPage extends Page {
   async headingText() {
     const element = await $('h1.govuk-heading-xl')
     await browser.waitUntil(
@@ -9,31 +10,6 @@ class CheckBeforeCreatingPRNPage {
       { timeout: 10000 }
     )
     return await element.getText()
-  }
-
-  async prnDetails() {
-    const summaryRows = await $$(
-      'dl.govuk-summary-list:nth-of-type(1) > div.govuk-summary-list__row'
-    )
-    return await this.toDataMap(summaryRows)
-  }
-
-  async accreditationDetails() {
-    const summaryRows = await $$(
-      'dl.govuk-summary-list:nth-of-type(2) > div.govuk-summary-list__row'
-    )
-    return await this.toDataMap(summaryRows)
-  }
-
-  async toDataMap(summaryRows) {
-    const dataMap = {}
-
-    for (const row of summaryRows) {
-      const key = await row.$('.govuk-summary-list__key').getText()
-      const value = await row.$('.govuk-summary-list__value').getText()
-      dataMap[key] = value
-    }
-    return dataMap
   }
 
   async createPRN() {

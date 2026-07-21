@@ -6,10 +6,6 @@ class HomePage extends AdminPage {
     return super.open('/')
   }
 
-  async signOut() {
-    await $('a*=Sign out').click()
-  }
-
   async getWelcomeText() {
     return $('main h1').getText()
   }

@@ -2,12 +2,6 @@ import { AdminPage } from 'page-objects/admin/page'
 import { $, $$ } from '@wdio/globals'
 
 class ORSOverviewPage extends AdminPage {
-  async getHeaderText() {
-    const heading = $('#main-content h1.govuk-heading-xl')
-    await heading.waitForExist()
-    return heading.getText()
-  }
-
   async getORSTableData() {
     return await $$('table.govuk-table tbody tr').map(async (row) => {
       const orsId = await row.$('td:nth-child(1)')

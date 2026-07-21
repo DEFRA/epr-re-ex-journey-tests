@@ -1,12 +1,9 @@
 import { browser, $ } from '@wdio/globals'
+import { Page } from 'page-objects/page'
 
-class WasteRecordsPage {
+class WasteRecordsPage extends Page {
   open(orgId, regId) {
     return browser.url(`/organisations/${orgId}/registrations/${regId}`)
-  }
-
-  async dashboardHeaderText() {
-    return $('#main-content > div > div > div > h1').getText()
   }
 
   async submitSummaryLogLink() {
@@ -31,16 +28,6 @@ class WasteRecordsPage {
 
   async manageReportsLink() {
     await $('a*=Manage reports').click()
-  }
-
-  async selectBackLink() {
-    await $('a*=Back').click()
-  }
-
-  async wasteBalanceAmount() {
-    const element = await $('[data-testid="waste-balance-amount"]')
-    await element.waitForExist({ timeout: 5000 })
-    return await element.getText()
   }
 }
 

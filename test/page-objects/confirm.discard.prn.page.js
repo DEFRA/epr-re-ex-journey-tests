@@ -1,7 +1,8 @@
 import { $ } from '@wdio/globals'
+import { Page } from 'page-objects/page'
 import { checkDoubleClickPrevented } from '../support/double-click.js'
 
-class ConfirmDiscardPRNPage {
+class ConfirmDiscardPRNPage extends Page {
   async headingText() {
     const element = await $('h1.govuk-heading-xl')
     await element.waitForExist({ timeout: 10000 })
@@ -14,10 +15,6 @@ class ConfirmDiscardPRNPage {
 
   async discardAndStartAgain() {
     await $('button[type=submit]').click()
-  }
-
-  async selectBackLink() {
-    await $('a*=Back').click()
   }
 }
 

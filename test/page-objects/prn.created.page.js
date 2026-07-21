@@ -1,13 +1,7 @@
 import { $ } from '@wdio/globals'
+import { Page } from 'page-objects/page'
 
-class PRNCreatedPage {
-  async messageText() {
-    const bodyElement = await $('#main-content > div > div > div')
-
-    await bodyElement.waitForExist({ timeout: 5000 })
-    return await bodyElement.getText()
-  }
-
+class PRNCreatedPage extends Page {
   async pernsPageLink() {
     await $('a*=PERNs page').click()
   }

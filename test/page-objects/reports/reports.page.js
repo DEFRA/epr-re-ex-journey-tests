@@ -1,4 +1,5 @@
 import { $, $$ } from '@wdio/globals'
+import { Page } from 'page-objects/page'
 
 const ACTIVE_HEADING = 'Action required'
 const SUBMITTED_HEADING = 'Submitted'
@@ -80,7 +81,7 @@ const getStatusColour = async (rowIndex, tableXPath) => {
 const activeTableXPath = tableAfterHeadingXPath(ACTIVE_HEADING)
 const submittedTableXPath = tableAfterHeadingXPath(SUBMITTED_HEADING)
 
-class ReportsPage {
+class ReportsPage extends Page {
   async headingText() {
     const element = await $('h1.govuk-heading-l')
     await element.waitForExist({ timeout: 5000 })

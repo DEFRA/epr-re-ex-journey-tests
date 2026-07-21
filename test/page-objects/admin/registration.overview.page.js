@@ -2,12 +2,6 @@ import { AdminPage } from 'page-objects/admin/page'
 import { $, $$ } from '@wdio/globals'
 
 class RegistrationOverviewPage extends AdminPage {
-  async getHeaderText() {
-    const heading = $('#main-content h1.govuk-heading-xl')
-    await heading.waitForExist()
-    return heading.getText()
-  }
-
   async getReportsTableData() {
     return await $$('#reports table tbody tr').map(async (row) => {
       const period = await row.$('td:nth-child(1)')

@@ -1,12 +1,7 @@
 import { $ } from '@wdio/globals'
+import { Page } from 'page-objects/page'
 
-export class ReportDataBasePage {
-  async headingText() {
-    const element = await $('h1.govuk-heading-xl')
-    await element.waitForExist({ timeout: 5000 })
-    return await element.getText()
-  }
-
+export class ReportDataBasePage extends Page {
   async continue() {
     await $('button[value="continue"]').click()
   }
@@ -19,7 +14,7 @@ export class ReportDataBasePage {
     await $('a*=Delete report').click()
   }
 
-  async selectBackLink() {
-    await $('a*=Back').click()
+  async enterRevenue(value) {
+    await $('#prnRevenue').setValue(value)
   }
 }

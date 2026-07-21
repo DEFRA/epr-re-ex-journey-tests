@@ -1,13 +1,7 @@
 import { $ } from '@wdio/globals'
+import { Page } from 'page-objects/page'
 
-class PRNCancelledPage {
-  async messageText() {
-    const bodyElement = await $('#main-content > div > div > div')
-
-    await bodyElement.waitForExist({ timeout: 5000 })
-    return await bodyElement.getText()
-  }
-
+class PRNCancelledPage extends Page {
   async statusText() {
     const prnNoElement = await $(
       '#main-content > div > div > div > div > strong'
