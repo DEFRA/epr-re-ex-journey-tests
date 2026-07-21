@@ -30,6 +30,8 @@
     "test:local:grep": "npm run clean && wdio run wdio.local.conf.js",
     "test:local:sanity": "npm run clean && GREP='@sanitycheck' wdio run wdio.local.conf.js",
     "test:github": "npm run clean && GREP='@smoketest|@sanitycheck' GREP_INVERT=true wdio run wdio.github.conf.js",
+    "test:github:admin": "npm run clean && GREP='@smoketest|@sanitycheck' GREP_INVERT=true wdio run wdio.github.conf.js --spec './test/specs/admin/**/*.e2e.js'",
+    "test:github:frontend": "npm run clean && GREP='@smoketest|@sanitycheck' GREP_INVERT=true wdio run wdio.github.conf.js --exclude './test/specs/admin/**/*.e2e.js'",
     "test:github:browserstack": "npm run clean && wdio run wdio.github.browserstack.conf.js",
     "format": "prettier --write 'test/**/*.js' '**/*.{js,md,json,config.js}'",
     "format:check": "prettier --check 'test/**/*.js' '**/*.{js,md,json,config.js}'",
