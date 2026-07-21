@@ -8,6 +8,13 @@
   },
   "author": "Defra DDTS",
   "license": "OGL-UK-3.0",
+  "overrides": {
+    "form-data": "4.0.6",
+    "@grpc/grpc-js": "1.13.5",
+    "serialize-javascript": "7.0.5",
+    "undici": "$undici",
+    "uuid": "14.0.0"
+  },
   "aliases": {
     "~": ".",
     "page-objects": "test/page-objects",
