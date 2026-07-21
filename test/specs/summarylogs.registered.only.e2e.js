@@ -13,7 +13,7 @@ import {
   checkBodyTextDoesNotInclude
 } from '../support/checks.js'
 import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
-import EnhancedCheckSummaryLogPage from 'page-objects/enhanced.check.summary.log.page.js'
+import CheckSummaryLogPage from 'page-objects/check.summary.log.page.js'
 import {
   createLinkAndLogin,
   loginViaHomePage
@@ -105,7 +105,7 @@ describe('@registered-only', () => {
     await checkBodyText('Open periods: new loads', 30)
     await checkBodyText('new loads will be recorded', 30)
     await checkBodyText('These have been added to your summary log.', 30)
-    await EnhancedCheckSummaryLogPage.upload()
+    await CheckSummaryLogPage.upload()
 
     await checkBodyText('Summary log uploaded', 30)
     await checkBodyTextDoesNotInclude('Your updated waste balance', 10)
@@ -174,7 +174,7 @@ describe('@registered-only', () => {
     await checkBodyText('Open periods: new loads', 30)
     await checkBodyText('new loads will be recorded', 30)
     await checkBodyText('These have been added to your summary log.', 30)
-    await EnhancedCheckSummaryLogPage.upload()
+    await CheckSummaryLogPage.upload()
 
     await checkBodyText('Summary log uploaded', 30)
     await checkBodyTextDoesNotInclude('Your updated waste balance', 10)

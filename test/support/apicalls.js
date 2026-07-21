@@ -662,7 +662,7 @@ export async function unsubmitReport(
 
 /**
  * Submits a report for a period so that period counts as "closed" — the
- * precondition for closed-month-adjustment detection in the enhanced check page.
+ * precondition for closed-month-adjustment detection in the check page.
  *
  * Drives the same create -> patch -> ready_to_submit -> submitted state machine
  * as the backend tests. Optimistic-concurrency version increments on every write,

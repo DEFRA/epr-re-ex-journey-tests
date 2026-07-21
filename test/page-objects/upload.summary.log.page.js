@@ -1,7 +1,7 @@
 import { browser, $, $$ } from '@wdio/globals'
 import { checkBodyText } from '../support/checks.js'
 import { SummaryLogUploadActions } from './summary-log-upload-actions.js'
-import EnhancedCheckSummaryLogPage from './enhanced.check.summary.log.page.js'
+import CheckSummaryLogPage from './check.summary.log.page.js'
 
 class UploadSummaryLogPage extends SummaryLogUploadActions {
   async performUploadAndReturnToHomepage(filePath) {
@@ -11,7 +11,7 @@ class UploadSummaryLogPage extends SummaryLogUploadActions {
     await checkBodyText('Your summary log is being checked', 30)
     await checkBodyText('Upload your summary log', 60)
 
-    await EnhancedCheckSummaryLogPage.upload()
+    await CheckSummaryLogPage.upload()
 
     await checkBodyText('Your waste records are being updated', 30)
     await checkBodyText('Summary log uploaded', 60)

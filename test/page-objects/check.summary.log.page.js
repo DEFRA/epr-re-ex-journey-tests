@@ -1,6 +1,6 @@
 import { $, $$ } from '@wdio/globals'
 
-class EnhancedCheckSummaryLogPage {
+class CheckSummaryLogPage {
   async allSectionHeadings() {
     return $$('h2.govuk-heading-l').map((el) => el.getText())
   }
@@ -37,4 +37,4 @@ class EnhancedCheckSummaryLogPage {
   }
 }
 
-export default new EnhancedCheckSummaryLogPage()
+export default new CheckSummaryLogPage()

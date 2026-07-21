@@ -1,7 +1,7 @@
 import { browser, expect } from '@wdio/globals'
 import HomePage from 'page-objects/homepage.js'
 import UploadSummaryLogPage from '../page-objects/upload.summary.log.page.js'
-import EnhancedCheckSummaryLogPage from '../page-objects/enhanced.check.summary.log.page.js'
+import CheckSummaryLogPage from '../page-objects/check.summary.log.page.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
 import {
@@ -41,7 +41,7 @@ const FURTHER_ACTION_PARA_2 =
 const FURTHER_ACTION_PARA_3 =
   "Reports that need to be resubmitted to your regulator show the status 'Requires resubmission' on the reports page."
 
-describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
+describe('Summary Logs - Check Page with CMA Detection', () => {
   // Resets the shared browser session between tests. Without it, leftover auth
   // state makes a later "start now" auto-log-in and skip the stub's user-selection
   // page, so loginViaEmail times out (passes solo, fails in suite). deleteCookies
@@ -50,7 +50,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
     await browser.reloadSession()
   })
 
-  it('should not display closed period sections when uploading loads only to open periods @noClosedSection @enhancedCheck @cma', async () => {
+  it('should not display closed period sections when uploading loads only to open periods @noClosedSection @cma', async () => {
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
@@ -93,9 +93,9 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
     await checkBodyText('Upload your summary log', 60)
 
     await checkBodyText('Open periods: new loads', 30)
-    const subStates = (
-      await EnhancedCheckSummaryLogPage.allSubStateHeadings()
-    ).join(' | ')
+    const subStates = (await CheckSummaryLogPage.allSubStateHeadings()).join(
+      ' | '
+    )
     expect(subStates).toContain(
       '2 new loads will be recorded (and will add to your waste balance)'
     )
@@ -115,7 +115,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
     await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
   })
 
-  it('should display empty state for file with no changes @enhancedEmptyState @enhancedCheck @cma', async () => {
+  it('should display empty state for file with no changes @enhancedEmptyState @cma', async () => {
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Steel (R4)', wasteProcessingType: 'Reprocessor' }
     ])
@@ -175,7 +175,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
     await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
   })
 
-  it('should display the closed period section when CMAs are detected @cmaDetected @enhancedCheck @cma', async () => {
+  it('should display the closed period section when CMAs are detected @cmaDetected @cma', async () => {
     const organisationDetails = await createLinkedOrganisation([
       {
         material: 'Paper or board (R3)',
@@ -229,9 +229,9 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
     await checkBodyText('Upload your summary log', 60)
 
     await checkBodyText('Closed periods: new loads', 30)
-    const subStates = (
-      await EnhancedCheckSummaryLogPage.allSubStateHeadings()
-    ).join(' | ')
+    const subStates = (await CheckSummaryLogPage.allSubStateHeadings()).join(
+      ' | '
+    )
     expect(subStates).toContain('8 new loads will be recorded')
     await checkBodyText('These have been added to your summary log.', 30)
 
@@ -243,7 +243,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
     await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
   })
 
-  it('should display closed period adjusted loads when a reported load is amended @cmaAdjusted @enhancedCheck @cma', async () => {
+  it('should display closed period adjusted loads when a reported load is amended @cmaAdjusted @cma', async () => {
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
@@ -308,7 +308,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
 
     await checkBodyText('Closed periods: adjusted loads', 30)
 
-    const sections = await EnhancedCheckSummaryLogPage.allSectionHeadings()
+    const sections = await CheckSummaryLogPage.allSectionHeadings()
     expect(sections).toEqual(
       expect.arrayContaining([
         'Open periods: new loads',
@@ -317,9 +317,9 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       ])
     )
 
-    const subStates = (
-      await EnhancedCheckSummaryLogPage.allSubStateHeadings()
-    ).join(' | ')
+    const subStates = (await CheckSummaryLogPage.allSubStateHeadings()).join(
+      ' | '
+    )
     expect(subStates).toContain(
       '1 new load will be recorded (and will add to your waste balance)'
     )
@@ -362,17 +362,17 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       'If you upload this summary log to create a new report, your waste balance will be 139.00 (from 30.00)'
     )
 
-    await EnhancedCheckSummaryLogPage.expandAllLoadDetails()
-    const rows = await EnhancedCheckSummaryLogPage.loadRowItems()
+    await CheckSummaryLogPage.expandAllLoadDetails()
+    const rows = await CheckSummaryLogPage.loadRowItems()
     expect(rows.some((r) => r.includes('Row ID'))).toBe(true)
-    const detailsText = await EnhancedCheckSummaryLogPage.loadDetailsText()
+    const detailsText = await CheckSummaryLogPage.loadDetailsText()
     expect(detailsText).toContain(ADJUSTED_ADDED_HEADING)
 
     await HomePage.signOut()
     await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
   })
 
-  it('should display open period adjusted loads and sub-states with accordions @openAdjusted @enhancedCheck @cma', async () => {
+  it('should display open period adjusted loads and sub-states with accordions @openAdjusted @cma', async () => {
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
@@ -421,7 +421,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
     await checkBodyText('Upload your summary log', 60)
     await checkBodyText('Open periods: adjusted loads', 30)
 
-    const sections = await EnhancedCheckSummaryLogPage.allSectionHeadings()
+    const sections = await CheckSummaryLogPage.allSectionHeadings()
     expect(sections).toEqual(
       expect.arrayContaining([
         'Open periods: new loads',
@@ -429,9 +429,9 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       ])
     )
 
-    const subStates = (
-      await EnhancedCheckSummaryLogPage.allSubStateHeadings()
-    ).join(' | ')
+    const subStates = (await CheckSummaryLogPage.allSubStateHeadings()).join(
+      ' | '
+    )
     expect(subStates).toContain(
       '3 new loads will be recorded (and will add to your waste balance)'
     )
@@ -466,17 +466,17 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       'If you upload this summary log to create a new report, your waste balance will be 139.00 (from 30.00)'
     )
 
-    await EnhancedCheckSummaryLogPage.expandAllLoadDetails()
-    const rows = await EnhancedCheckSummaryLogPage.loadRowItems()
+    await CheckSummaryLogPage.expandAllLoadDetails()
+    const rows = await CheckSummaryLogPage.loadRowItems()
     expect(rows.some((r) => r.includes('Row ID'))).toBe(true)
-    const detailsText = await EnhancedCheckSummaryLogPage.loadDetailsText()
+    const detailsText = await CheckSummaryLogPage.loadDetailsText()
     expect(detailsText).toContain(ADJUSTED_ADDED_HEADING)
 
     await HomePage.signOut()
     await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
   })
 
-  it('should display the registered-only adjusted-loads copy @regOnlyAdjusted @enhancedCheck @cma', async () => {
+  it('should display the registered-only adjusted-loads copy @regOnlyAdjusted @cma', async () => {
     const organisationDetails = await createLinkedOrganisation([
       {
         material: 'Paper or board (R3)',
@@ -517,9 +517,9 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
     await checkBodyText('Upload your summary log', 60)
     await checkBodyText('Open periods: adjusted loads', 30)
 
-    const subStates = (
-      await EnhancedCheckSummaryLogPage.allSubStateHeadings()
-    ).join(' | ')
+    const subStates = (await CheckSummaryLogPage.allSubStateHeadings()).join(
+      ' | '
+    )
     expect(subStates).toContain('1 adjusted load will be recorded')
     await checkBodyText('These have been added to your summary log.', 30)
 
@@ -527,7 +527,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
     await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
   })
 
-  it('should not display open period sections when all loads are in closed periods @noOpenSection @enhancedCheck @cma', async () => {
+  it('should not display open period sections when all loads are in closed periods @noOpenSection @cma', async () => {
     const organisationDetails = await createLinkedOrganisation([
       {
         material: 'Paper or board (R3)',
@@ -582,9 +582,9 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
     await checkBodyText('Upload your summary log', 60)
 
     await checkBodyText('Closed periods:', 30)
-    const subStates = (
-      await EnhancedCheckSummaryLogPage.allSubStateHeadings()
-    ).join(' | ')
+    const subStates = (await CheckSummaryLogPage.allSubStateHeadings()).join(
+      ' | '
+    )
     expect(subStates).toContain('8 new loads will be recorded')
     await checkBodyText('These have been added to your summary log.', 30)
 
@@ -595,7 +595,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
     await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
   })
 
-  it('should not display open period sections for an accredited operator with only closed loads @noOpenSectionAccredited @enhancedCheck @cma', async () => {
+  it('should not display open period sections for an accredited operator with only closed loads @noOpenSectionAccredited @cma', async () => {
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
@@ -661,9 +661,9 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
     await checkBodyText('Upload your summary log', 60)
 
     await checkBodyText('Closed periods:', 30)
-    const subStates = (
-      await EnhancedCheckSummaryLogPage.allSubStateHeadings()
-    ).join(' | ')
+    const subStates = (await CheckSummaryLogPage.allSubStateHeadings()).join(
+      ' | '
+    )
     expect(subStates).toContain(
       '3 new loads will be recorded (and will add to your waste balance)'
     )
@@ -704,7 +704,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
   // covers the REDUCED sub-group. The per-code reason strings and the PRN->PERN
   // wording swap are unit-tested (controller.test.js), so one journey through the
   // canonical PRN case is enough here.
-  it('should show the reason under the reduced heading for an adjusted PRN-excluded load @adjustedReducedReason @enhancedCheck @cma', async () => {
+  it('should show the reason under the reduced heading for an adjusted PRN-excluded load @adjustedReducedReason @cma', async () => {
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
@@ -743,10 +743,10 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
     await checkBodyText('Upload your summary log', 60)
     await checkBodyText('Open periods: adjusted loads', 30)
 
-    await EnhancedCheckSummaryLogPage.expandAllLoadDetails()
+    await CheckSummaryLogPage.expandAllLoadDetails()
 
-    const detailsText = await EnhancedCheckSummaryLogPage.loadDetailsText()
-    const rows = await EnhancedCheckSummaryLogPage.loadRowItems()
+    const detailsText = await CheckSummaryLogPage.loadDetailsText()
+    const rows = await CheckSummaryLogPage.loadRowItems()
     const bodyText = await browser.execute(() => document.body.innerText)
 
     // The balance still moves by the excluded load's 339.99t — the ticket is
@@ -772,7 +772,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
   // success page - renders when closed-period changes are present. The "no
   // changes" case below is data-driven, so it stays shared.
   describe('closed-period adjustment messaging', () => {
-    it('should show the Important banner and Further action needed messaging when closed-period adjustments are detected @closedPeriodMessaging @enhancedCheck @cma', async () => {
+    it('should show the Important banner and Further action needed messaging when closed-period adjustments are detected @closedPeriodMessaging @cma', async () => {
       const organisationDetails = await createLinkedOrganisation([
         {
           material: 'Paper or board (R3)',
@@ -826,7 +826,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       await checkBodyText('Upload your summary log', 60)
 
       // The "Important" banner is shown on the check before you submit page.
-      const banner = await EnhancedCheckSummaryLogPage.importantBanner()
+      const banner = await CheckSummaryLogPage.importantBanner()
       expect(await banner.isExisting()).toBe(true)
       const bannerText = await banner.getText()
       expect(bannerText).toContain('Important')
@@ -834,7 +834,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
 
       // Submit inline (not performUploadAndReturnToHomepage, which would click
       // "Return to home" and skip the success-page assertions below).
-      await EnhancedCheckSummaryLogPage.upload()
+      await CheckSummaryLogPage.upload()
 
       await checkBodyText('Your waste records are being updated', 30)
       await checkBodyText('Summary log uploaded', 60)
@@ -858,7 +858,7 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
     })
 
-    it('should not show the Important banner or Further action needed messaging when no closed-period adjustments are detected @closedPeriodMessaging @enhancedCheck @cma', async () => {
+    it('should not show the Important banner or Further action needed messaging when no closed-period adjustments are detected @closedPeriodMessaging @cma', async () => {
       const organisationDetails = await createLinkedOrganisation([
         { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
         { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
@@ -905,12 +905,12 @@ describe('Summary Logs - Enhanced Check Page with CMA Detection', () => {
       await checkBodyText('Your summary log is being checked', 30)
       await checkBodyText('Upload your summary log', 60)
 
-      expect(
-        await EnhancedCheckSummaryLogPage.importantBanner().isExisting()
-      ).toBe(false)
+      expect(await CheckSummaryLogPage.importantBanner().isExisting()).toBe(
+        false
+      )
       await checkBodyTextDoesNotInclude(IMPORTANT_BODY, 5)
 
-      await EnhancedCheckSummaryLogPage.upload()
+      await CheckSummaryLogPage.upload()
 
       await checkBodyText('Your waste records are being updated', 30)
       await checkBodyText('Summary log uploaded', 60)
