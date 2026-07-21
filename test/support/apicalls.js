@@ -1252,6 +1252,31 @@ export async function uploadAndSubmitSummaryLog(
   return summaryLogId
 }
 
+// Polls the waste-balances endpoint until it returns a non-empty body - the
+// balance is computed asynchronously by the same worker that validates/
+// submits the summary log, so it can lag slightly behind 'submitted'.
+export async function waitForWasteBalance(
+  orgId,
+  accreditationId,
+  defraAuthHeader,
+  timeoutMs = 30000
+) {
+  const baseAPI = new BaseAPI()
+  const path = `/v1/organisations/${orgId}/waste-balances?accreditationIds=${accreditationId}`
+  const startTime = Date.now()
+
+  while (Date.now() - startTime < timeoutMs) {
+    const response = await baseAPI.get(path, defraAuthHeader)
+    const body = await assertSuccessResponse(response, `GET ${path}`)
+    if (Object.keys(body).length > 0) {
+      return body
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
+
+  throw new Error(`Timed out waiting for a waste balance at ${path}`)
+}
+
 // Polls the reports calendar until some reporting period carries the given
 // periodStatus. The resubmission flag is written by the backend's summary-log
 // submit worker, so it can land shortly after the log reaches 'submitted'.
