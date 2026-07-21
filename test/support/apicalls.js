@@ -1158,7 +1158,7 @@ export async function uploadAndSubmitSummaryLog(
   const form = new FormData()
   form.append(
     'summaryLogUpload',
-    new Blob([await readFile(filePath)], {
+    new Blob([new Uint8Array(await readFile(filePath))], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     }),
     'summary-log.xlsx'
