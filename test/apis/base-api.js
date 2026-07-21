@@ -33,6 +33,10 @@ export class BaseAPI {
     return await this.#call('PATCH', endpoint, data, headers)
   }
 
+  async delete(endpoint, headers = {}) {
+    return await this.#call('DELETE', endpoint, undefined, headers)
+  }
+
   async #call(method, endpoint, data, headers) {
     const instanceHeaders = { ...this.defaultHeaders, ...headers }
     const {

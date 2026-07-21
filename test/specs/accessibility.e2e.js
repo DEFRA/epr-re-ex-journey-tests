@@ -15,7 +15,7 @@ function failOnViolationLevel(results) {
 }
 
 describe('WCAG Accessibility', () => {
-  it('Should have no critical accessibility violations for Home Page', async () => {
+  it('Should have no critical accessibility violations for Home Page @smoketest', async () => {
     await HomePage.open()
 
     const builder = new AxeBuilder({ client: browser })

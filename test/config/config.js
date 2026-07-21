@@ -56,6 +56,20 @@ const defraId = {
   env: `https://cdp-defra-id-stub.${environment}.cdp-int.defra.cloud`
 }
 
+// Basic-auth credentials for the external/basic-auth-secured endpoints
+// (org-by-ID, overseas-sites-by-ID) - matches compose.yml's
+// BASIC_AUTH_USERNAME/PASSWORD on epr-backend.
+const basicAuth = {
+  username:
+    environment === 'test'
+      ? process.env.BASIC_AUTH_USERNAME
+      : 'basicAuthUsername',
+  password:
+    environment === 'test'
+      ? process.env.BASIC_AUTH_PASSWORD
+      : 'basicAuthPassword'
+}
+
 // epr-re-ex-admin-frontend runs on its own port/host, separate from the
 // epr-frontend app the global wdio baseUrl points at - admin page objects
 // build absolute URLs from this rather than relying on baseUrl.
@@ -136,6 +150,7 @@ export default {
   auth,
   authUri,
   adminUri,
+  basicAuth,
   cognitoAuth,
   defraIdUri,
   undiciAgent: globalUndiciAgent

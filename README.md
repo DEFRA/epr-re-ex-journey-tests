@@ -91,6 +91,12 @@ GREP='@delprnexp' npm run test:local:grep
 GREP='@tonnagemonitoring' npm run test:local:grep
 ```
 
+**Tag conventions:**
+
+- `@smoketest` - broad, high-value specs (real S3/CDP Uploader exercise, wide page traversal across an app variant) worth running everywhere: locally, in GHA, and as the CDP Portal's default profile against a real environment. Reserve it for breadth/infra-relevance, not for re-proving business logic already covered by an ordinary spec - that just slows down every run without adding signal.
+- `@envonly` - specs that can only run against a real deployed environment (e.g. signing in through the real Microsoft/Entra login form, which only exists when the admin app is wired to the real Entra IdP - locally/GHA use `epr-re-ex-entra-stub` instead, which never renders that form). `test:local`/`test:github` exclude `@envonly` alongside `@sanitycheck`; the CDP Portal-only scripts (`test`, `test:smoketest`) don't, since that's exactly where these specs are meant to run.
+- `@sanitycheck` - the exhaustive, slow, all-materials variant of a flow; excluded from the default local/GHA/smoketest runs, opted into via `test:local:sanity`.
+
 If for whatever reason [the stable version of Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/#stable)
 is not working for you, then you can specify the Chrome version when running locally
 

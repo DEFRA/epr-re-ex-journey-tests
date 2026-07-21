@@ -1,4 +1,4 @@
-import { $, browser, expect } from '@wdio/globals'
+import { browser, expect } from '@wdio/globals'
 import HomePage from 'page-objects/homepage.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
@@ -67,11 +67,10 @@ describe('Summary Logs (Glass Material) @smoketest', () => {
 
     await DashboardPage.selectLink(1)
 
-    const regNo = await $('//a[normalize-space()="E25SR500030913GO"]')
-    await expect(regNo).toExist()
-
-    const accNo = await $('//a[normalize-space()="234567GO"]')
-    await expect(accNo).toExist()
+    // Single-registration orgs skip the selection list, so the reg/acc
+    // numbers render as plain text on the task page, not as links.
+    await checkBodyText('E25SR500030913GO', 10)
+    await checkBodyText('234567GO', 10)
 
     let dashboardHeaderText = await WasteRecordsPage.dashboardHeaderText()
     expect(dashboardHeaderText).toContain('Glass other')
