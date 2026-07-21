@@ -1098,15 +1098,17 @@ export async function waitForSummaryLogStatus(
   const timeoutMs = 90000
   const startTime = Date.now()
   let status
+  let responseData
 
   while (Date.now() - startTime < timeoutMs) {
     const response = await baseAPI.get(summaryLogPath, defraAuthHeader)
-    ;({ status } = await assertSuccessResponse(
+    responseData = await assertSuccessResponse(
       response,
       `GET ${summaryLogPath}`
-    ))
+    )
+    ;({ status } = responseData)
     if (status === targetStatus) {
-      return
+      return responseData
     }
     if (SUMMARY_LOG_FAILURE_STATUSES.includes(status)) {
       throw new Error(
@@ -1119,6 +1121,57 @@ export async function waitForSummaryLogStatus(
   throw new Error(
     `Timed out waiting for summary log status '${targetStatus}' (last seen: '${status}')`
   )
+}
+
+// Initiates a summary log against a real registration, then feeds the
+// upload-completed callback a pre-seeded floci S3 object directly (matching
+// docker/scripts/floci/init.sh's summary-log fixture keys) rather than
+// driving a real cdp-uploader multipart upload. The async validation worker
+// reads the real object from S3 at that key, so this reaches genuine
+// 'validated'/'invalid' outcomes (with real validation.failures/loads data)
+// without needing the CDP uploader network path.
+export async function ingestSummaryLogFixture(
+  orgId,
+  registrationId,
+  defraAuthHeader,
+  { s3Key, filename, fileId = randomUUID(), fileStatus = 'complete' }
+) {
+  const baseAPI = new BaseAPI()
+  const summaryLogsPath = `/v1/organisations/${orgId}/registrations/${registrationId}/summary-logs`
+
+  const initiateResponse = await baseAPI.post(
+    summaryLogsPath,
+    JSON.stringify({ redirectUrl: '/' }),
+    { ...defraAuthHeader, 'content-type': 'application/json' }
+  )
+  const { summaryLogId } = await assertSuccessResponse(
+    initiateResponse,
+    `POST ${summaryLogsPath}`
+  )
+
+  const summaryLogPath = `${summaryLogsPath}/${summaryLogId}`
+  const uploadCompletedResponse = await baseAPI.post(
+    `${summaryLogPath}/upload-completed`,
+    JSON.stringify({
+      form: {
+        summaryLogUpload: {
+          fileId,
+          filename,
+          fileStatus,
+          s3Bucket: 're-ex-summary-logs',
+          s3Key
+        }
+      }
+    })
+  )
+  if (uploadCompletedResponse.statusCode !== 202) {
+    const body = await uploadCompletedResponse.body.json()
+    throw new Error(
+      `POST ${summaryLogPath}/upload-completed: expected 202 but got ${uploadCompletedResponse.statusCode}\n${JSON.stringify(body)}`
+    )
+  }
+
+  return { summaryLogId, summaryLogPath, baseAPI }
 }
 
 // Drives the full summary-log pipeline over HTTP without the operator
