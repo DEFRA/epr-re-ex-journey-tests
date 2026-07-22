@@ -45,11 +45,14 @@ export function parseCsvRow(row) {
  * by its first column rather than assumed to be line one.
  *
  * @param {string} body
+ * @param {string} [headerPrefix] - First column of the header row, used to
+ *   locate it amongst the preamble (e.g. 'Regulator,' for report submissions,
+ *   'Type,' for the public register).
  * @returns {Record<string, string>[]}
  */
-export function parseCsvRows(body) {
+export function parseCsvRows(body, headerPrefix = 'Regulator,') {
   const lines = body.split(/\r?\n/).filter((line) => line.trim().length > 0)
-  const headerIndex = lines.findIndex((line) => line.startsWith('Regulator,'))
+  const headerIndex = lines.findIndex((line) => line.startsWith(headerPrefix))
 
   if (headerIndex === -1) {
     throw new Error('CSV header row not found')

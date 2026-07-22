@@ -15,6 +15,10 @@ class PublicRegisterPage extends AdminPage {
       '#main-content > div > div > div > form > button'
     ).isExisting()
   }
+
+  async fetchCsv() {
+    return super.fetchCsv('/public-register')
+  }
 }
 
 export default new PublicRegisterPage()
