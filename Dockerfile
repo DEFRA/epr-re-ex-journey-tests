@@ -1,23 +1,22 @@
-FROM node:22.13.1-slim
+FROM node:lts-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd
 
 ENV TZ="Europe/London"
 
 USER root
 
-RUN apt-get update -qq \
-    && apt-get install -qqy \
+RUN apk update\
+    && apk add \
     curl \
     zip \
-    openjdk-17-jre-headless
+    bash \
+    openjdk17-jdk
 
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
-    && unzip awscliv2.zip \
-    && ./aws/install
+RUN apk add --no-cache aws-cli
 
 WORKDIR /app
 
 COPY . .
-RUN npm install
+RUN npm install --ignore-scripts
 
 ENTRYPOINT [ "./entrypoint.sh" ]
 
