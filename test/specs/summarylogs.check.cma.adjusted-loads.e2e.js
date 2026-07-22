@@ -166,109 +166,12 @@ describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => 
     await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
   })
 
-  it('should display open period adjusted loads and sub-states with accordions @openAdjusted @cma', async () => {
-    const organisationDetails = await createLinkedOrganisation([
-      { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
-      { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
-    ])
-
-    const migrationResponse = await updateMigratedOrganisation(
-      organisationDetails.refNo,
-      [
-        {
-          reprocessingType: 'output',
-          regNumber: 'R25SR5111050912PA',
-          accNumber: 'ACC123456',
-          status: 'approved'
-        },
-        {
-          regNumber: 'E25SR500030913PA',
-          accNumber: 'ACC234567',
-          status: 'approved',
-          validFrom: '2025-02-02'
-        }
-      ]
-    )
-    await seedOverseasSites(
-      organisationDetails.refNo,
-      [1],
-      [124, 183, 512, 876]
-    )
-
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
-
-    await DashboardPage.selectExportingTab()
-    await DashboardPage.selectLink(1)
-
-    await WasteRecordsPage.submitSummaryLogLink()
-    await UploadSummaryLogPage.performUploadAndReturnToHomepage(
-      'resources/exporter.xlsx'
-    )
-
-    await DashboardPage.selectExportingTab()
-    await DashboardPage.selectLink(1)
-    await WasteRecordsPage.submitSummaryLogLink()
-    await UploadSummaryLogPage.uploadFile('resources/exporter-adjustments.xlsx')
-    await UploadSummaryLogPage.continue()
-
-    await checkBodyText('Your summary log is being checked', 30)
-    await checkBodyText('Upload your summary log', 60)
-    await checkBodyText('Open periods: adjusted loads', 30)
-
-    const sections = await CheckSummaryLogPage.allSectionHeadings()
-    expect(sections).toEqual(
-      expect.arrayContaining([
-        'Open periods: new loads',
-        'Open periods: adjusted loads'
-      ])
-    )
-
-    const subStates = (await CheckSummaryLogPage.allSubStateHeadings()).join(
-      ' | '
-    )
-    expect(subStates).toContain(
-      '3 new loads will be recorded (and will add to your waste balance)'
-    )
-    expect(subStates).toContain(
-      '1 new load will be recorded (but will NOT add to your waste balance)'
-    )
-    expect(subStates).toContain(
-      '1 adjusted load will be recorded (and will reflect in your waste balance)'
-    )
-    expect(subStates).toContain(
-      '1 change is NOT relevant to your waste balance'
-    )
-
-    // Guard on the projection (renders last, at page bottom) so the raw read
-    // below isn't taken mid-parse; the expect()s keep the value diagnostics.
-    await checkBodyText(
-      'If you upload this summary log to create a new report, your waste balance will be 139.00 (from 30.00)',
-      10
-    )
-    const bodyText = await browser.execute(() => document.body.innerText)
-    expect(bodyText).toContain(
-      'The new loads will add 99.00 tonnes to your waste balance.'
-    )
-    expect(bodyText).toContain(
-      'The adjusted loads will add 10.00 tonnes to your waste balance.'
-    )
-    expect(bodyText).toContain(
-      'The loads include all the required summary log data.'
-    )
-    expect(bodyText).toContain('depending on the adjustment.')
-    expect(bodyText).toContain(
-      'If you upload this summary log to create a new report, your waste balance will be 139.00 (from 30.00)'
-    )
-
-    await CheckSummaryLogPage.expandAllLoadDetails()
-    const rows = await CheckSummaryLogPage.loadRowItems()
-    expect(rows.some((r) => r.includes('Row ID'))).toBe(true)
-    const detailsText = await CheckSummaryLogPage.loadDetailsText()
-    expect(detailsText).toContain(ADJUSTED_ADDED_HEADING)
-
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
-  })
+  // The "should display open period adjusted loads and sub-states with
+  // accordions @openAdjusted" case used to live here, but its org/upload
+  // setup was byte-for-byte identical to summarylogs.exporter.e2e.js's
+  // happy-path test (both stages), just to assert the check page's
+  // sub-state/accordion content and pre-submit balance projection at stage
+  // 2 - merged there instead.
 
   it('should display the registered-only adjusted-loads copy @regOnlyAdjusted @cma', async () => {
     const organisationDetails = await createLinkedOrganisation([

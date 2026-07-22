@@ -35,70 +35,11 @@ describe('Summary Logs - Check Page with CMA Detection - Section Visibility', ()
     await browser.reloadSession()
   })
 
-  it('should not display closed period sections when uploading loads only to open periods @noClosedSection @cma', async () => {
-    const organisationDetails = await createLinkedOrganisation([
-      { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
-      { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
-    ])
-
-    const migrationResponse = await updateMigratedOrganisation(
-      organisationDetails.refNo,
-      [
-        {
-          reprocessingType: 'output',
-          regNumber: 'R25SR5111050912PA',
-          accNumber: 'ACC123456',
-          status: 'approved'
-        },
-        {
-          regNumber: 'E25SR500030913PA',
-          accNumber: 'ACC234567',
-          status: 'approved',
-          validFrom: '2025-02-02'
-        }
-      ]
-    )
-    await seedOverseasSites(
-      organisationDetails.refNo,
-      [1],
-      [124, 183, 512, 876]
-    )
-
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
-
-    await DashboardPage.selectExportingTab()
-    await DashboardPage.selectLink(1)
-
-    await WasteRecordsPage.submitSummaryLogLink()
-
-    await UploadSummaryLogPage.uploadFile('resources/exporter.xlsx')
-    await UploadSummaryLogPage.continue()
-
-    await checkBodyText('Your summary log is being checked', 30)
-    await checkBodyText('Upload your summary log', 60)
-
-    await checkBodyText('Open periods: new loads', 30)
-    const subStates = (await CheckSummaryLogPage.allSubStateHeadings()).join(
-      ' | '
-    )
-    expect(subStates).toContain(
-      '2 new loads will be recorded (and will add to your waste balance)'
-    )
-    expect(subStates).toContain(
-      '1 new load will be recorded (but will NOT add to your waste balance)'
-    )
-
-    const bodyText = await browser.execute(() => document.body.innerText)
-    expect(bodyText).toContain(
-      'The new loads will add 30.00 tonnes to your waste balance.'
-    )
-
-    await checkBodyTextDoesNotInclude('Closed periods: new loads', 5)
-    await checkBodyTextDoesNotInclude('Closed periods: adjusted loads', 5)
-
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
-  })
+  // The "should not display closed period sections when uploading loads only
+  // to open periods @noClosedSection" case used to live here, but its
+  // org/upload setup was byte-for-byte identical to summarylogs.exporter.e2e.js's
+  // happy-path test, just to assert the check page's sub-state content and
+  // the absence of closed-period sections - merged there instead.
 
   it('should display empty state for file with no changes @enhancedEmptyState @cma', async () => {
     const organisationDetails = await createLinkedOrganisation([
@@ -160,73 +101,11 @@ describe('Summary Logs - Check Page with CMA Detection - Section Visibility', ()
     await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
   })
 
-  it('should display the closed period section when CMAs are detected @cmaDetected @cma', async () => {
-    const organisationDetails = await createLinkedOrganisation([
-      {
-        material: 'Paper or board (R3)',
-        wasteProcessingType: 'Reprocessor',
-        withoutAccreditation: true
-      }
-    ])
-
-    const migrationResponse = await updateMigratedOrganisation(
-      organisationDetails.refNo,
-      [
-        {
-          reprocessingType: 'output',
-          regNumber: 'R25SR500040912PA',
-          status: 'approved',
-          withoutAccreditation: true
-        }
-      ]
-    )
-
-    const user = await registerAndLinkDefraIdUser(
-      organisationDetails.refNo,
-      migrationResponse.email
-    )
-
-    const regId = migrationResponse.registrationIds[0]
-
-    await seedSubmittedReport(
-      organisationDetails.refNo,
-      regId,
-      user.userId,
-      2026,
-      'quarterly',
-      1,
-      1,
-      { tonnageRecycled: 100, tonnageNotRecycled: 0 }
-    )
-
-    await loginViaHomePage(migrationResponse.email)
-
-    await DashboardPage.selectLink(1)
-
-    await WasteRecordsPage.submitSummaryLogLink()
-
-    await UploadSummaryLogPage.uploadFile(
-      'resources/reprocessor-output-regonly-cma.xlsx'
-    )
-    await UploadSummaryLogPage.continue()
-
-    await checkBodyText('Your summary log is being checked', 30)
-    await checkBodyText('Upload your summary log', 60)
-
-    await checkBodyText('Closed periods: new loads', 30)
-    const subStates = (await CheckSummaryLogPage.allSubStateHeadings()).join(
-      ' | '
-    )
-    expect(subStates).toContain('8 new loads will be recorded')
-    await checkBodyText('These have been added to your summary log.', 30)
-
-    // The closed-period resubmission banner renders on this page when
-    // closed-period changes are present.
-    await checkBodyText('resubmit it to your regulator', 10)
-
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
-  })
+  // The "should display the closed period section when CMAs are detected
+  // @cmaDetected" case used to live here, but its org/upload setup was
+  // byte-for-byte identical to the "detected" test in
+  // summarylogs.check.cma.messaging.e2e.js, just to assert the check page's
+  // closed-period heading and sub-state content - merged there instead.
 
   it('should not display open period sections when all loads are in closed periods @noOpenSection @cma', async () => {
     const organisationDetails = await createLinkedOrganisation([

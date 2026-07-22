@@ -104,6 +104,16 @@ describe('Summary Logs - Check Page with CMA Detection - Closed-period Adjustmen
     expect(bannerText).toContain('Important')
     expect(bannerText).toContain(IMPORTANT_BODY)
 
+    // Merged from summarylogs.check.cma.sections.e2e.js's cmaDetected case
+    // (same org/upload setup, duplicated purely to assert the closed-period
+    // section heading and sub-state content on this same check page).
+    await checkBodyText('Closed periods: new loads', 30)
+    const subStates = (await CheckSummaryLogPage.allSubStateHeadings()).join(
+      ' | '
+    )
+    expect(subStates).toContain('8 new loads will be recorded')
+    await checkBodyText('These have been added to your summary log.', 30)
+
     // Submit inline (not performUploadAndReturnToHomepage, which would click
     // "Return to home" and skip the success-page assertions below).
     await CheckSummaryLogPage.upload()
