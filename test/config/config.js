@@ -14,6 +14,7 @@ import { CognitoStub } from '../support/cognito-stub.js'
 const environment = process.env.ENVIRONMENT
 const withProxy = process.env.WITH_PROXY
 const xApiKey = process.env.X_API_KEY
+const withoutLogs = process.env.WITHOUT_LOGS
 
 if (environment === 'prod') {
   throw new Error(
@@ -120,6 +121,15 @@ const agent = new Agent({
 
 const globalUndiciAgent = environment ? proxy : agent
 
+// `docker logs` is only reachable against the local compose stack - there's
+// no equivalent for a deployed environment, so log/audit-log assertions are
+// skipped there (and can be force-disabled locally via WITHOUT_LOGS).
+const dockerLogParser = {
+  containerName: 'epr-backend'
+}
+
+const testLogs = !withoutLogs && !environment
+
 let apiUri
 let authUri
 let defraIdUri
@@ -153,5 +163,7 @@ export default {
   basicAuth,
   cognitoAuth,
   defraIdUri,
+  dockerLogParser,
+  testLogs,
   undiciAgent: globalUndiciAgent
 }
