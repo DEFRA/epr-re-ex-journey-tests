@@ -1,20 +1,25 @@
 /**
- * Splits a single CSV row into fields, honouring fast-csv's default selective
- * quoting so a quoted value containing a comma (e.g. an organisation name)
- * stays one field.
- * @param {string} row
- * @returns {string[]}
+ * Tokenises a full CSV body into rows of fields, honouring fast-csv's default
+ * selective quoting - including a quoted field that itself contains embedded
+ * newlines (e.g. the public register's multi-line "Registered office" header
+ * cell). Splitting the body on `\r?\n` before parsing quotes (the previous
+ * approach) breaks on exactly that case: a literal newline inside a quoted
+ * field gets mistaken for a row boundary, truncating the row from that field
+ * onward.
+ * @param {string} body
+ * @returns {string[][]}
  */
-export function parseCsvRow(row) {
-  const fields = []
+function parseCsvBody(body) {
+  const rows = []
+  let row = []
   let field = ''
   let inQuotes = false
 
-  for (let i = 0; i < row.length; i++) {
-    const character = row[i]
+  for (let i = 0; i < body.length; i++) {
+    const character = body[i]
 
     if (inQuotes) {
-      if (character === '"' && row[i + 1] === '"') {
+      if (character === '"' && body[i + 1] === '"') {
         field += '"'
         i++
       } else if (character === '"') {
@@ -25,15 +30,30 @@ export function parseCsvRow(row) {
     } else if (character === '"') {
       inQuotes = true
     } else if (character === ',') {
-      fields.push(field)
+      row.push(field)
+      field = ''
+    } else if (character === '\r' && body[i + 1] === '\n') {
+      row.push(field)
+      rows.push(row)
+      row = []
+      field = ''
+      i++
+    } else if (character === '\n') {
+      row.push(field)
+      rows.push(row)
+      row = []
       field = ''
     } else {
       field += character
     }
   }
 
-  fields.push(field)
-  return fields
+  if (field.length > 0 || row.length > 0) {
+    row.push(field)
+    rows.push(row)
+  }
+
+  return rows.filter((r) => !(r.length === 1 && r[0].trim() === ''))
 }
 
 /**
@@ -42,26 +62,29 @@ export function parseCsvRow(row) {
  * retargeting an assertion onto its neighbour.
  *
  * The body opens with a title/generated-at preamble, so the header is located
- * by its first column rather than assumed to be line one.
+ * by its first column's name rather than assumed to be row one.
  *
  * @param {string} body
- * @param {string} [headerPrefix] - First column of the header row, used to
- *   locate it amongst the preamble (e.g. 'Regulator,' for report submissions,
- *   'Type,' for the public register).
+ * @param {string} [headerPrefix] - First column of the header row (a trailing
+ *   comma, if present, is ignored), used to locate it amongst the preamble
+ *   (e.g. 'Regulator,' for report submissions, 'Type,' for the public
+ *   register).
  * @returns {Record<string, string>[]}
  */
 export function parseCsvRows(body, headerPrefix = 'Regulator,') {
-  const lines = body.split(/\r?\n/).filter((line) => line.trim().length > 0)
-  const headerIndex = lines.findIndex((line) => line.startsWith(headerPrefix))
+  const expectedFirstColumn = headerPrefix.replace(/,$/, '')
+  const rows = parseCsvBody(body)
+  const headerIndex = rows.findIndex((row) => row[0] === expectedFirstColumn)
 
   if (headerIndex === -1) {
     throw new Error('CSV header row not found')
   }
 
-  const names = parseCsvRow(lines[headerIndex])
+  const names = rows[headerIndex]
 
-  return lines.slice(headerIndex + 1).map((line) => {
-    const values = parseCsvRow(line)
-    return Object.fromEntries(names.map((name, index) => [name, values[index]]))
-  })
+  return rows
+    .slice(headerIndex + 1)
+    .map((row) =>
+      Object.fromEntries(names.map((name, index) => [name, row[index]]))
+    )
 }
