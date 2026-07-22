@@ -5,13 +5,14 @@ import DashboardPage from '../page-objects/dashboard.page.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
-  updateMigratedOrganisation
+  updateMigratedOrganisation,
+  uploadAndSubmitSummaryLog
 } from '../support/apicalls.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import CreatePRNPage from 'page-objects/create.prn.page.js'
 import CheckBeforeCreatingPrnPage from 'page-objects/check.before.creating.prn.page.js'
 import PrnCreatedPage from 'page-objects/prn.created.page.js'
-import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
 import PrnDashboardPage from 'page-objects/prn.dashboard.page.js'
 import PrnViewPage from 'page-objects/prn.view.page.js'
 import ConfirmDeletePRNPage from 'page-objects/confirm.delete.prn.page.js'
@@ -42,14 +43,18 @@ describe('Deleting Packing Recycling Notes (Exporter)', () => {
 
     await seedOverseasSites(organisationDetails.refNo)
 
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
-
-    await DashboardPage.selectTableLink(1, 1)
-
-    await WasteRecordsPage.submitSummaryLogLink()
+    const user = await createLinkAndLogin(
+      organisationDetails.refNo,
+      migrationResponse.email
+    )
 
     const filePath = `resources/sanity/exporter_${accNumber}_${regNumber}.xlsx`
-    await UploadSummaryLogPage.performUploadAndReturnToHomepage(filePath)
+    await uploadAndSubmitSummaryLog(
+      organisationDetails.refNo,
+      migrationResponse.registrationIds[0],
+      defraIdStub.authHeader(user.userId),
+      filePath
+    )
 
     await DashboardPage.selectTableLink(1, 1)
 

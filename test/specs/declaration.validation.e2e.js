@@ -6,7 +6,6 @@ import ReportDetailPage from 'page-objects/reports/report.detail.page.js'
 import ReportSubmittedPage from 'page-objects/reports/report.submitted.page.js'
 import ReportSupportingInformationPage from 'page-objects/reports/report.supporting.information.page.js'
 import ReportsPage from 'page-objects/reports/reports.page.js'
-import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
 import ConfirmationPage from 'page-objects/reports/confirmation.page.js'
 import DashboardPage from 'page-objects/dashboard.page.js'
 import TonnesNotRecycledPage from 'page-objects/reports/tonnes.not.recycled.page.js'
@@ -14,9 +13,11 @@ import TonnesRecycledPage from 'page-objects/reports/tonnes.recycled.page.js'
 import WasteRecordsPage from 'page-objects/waste.records.page.js'
 import {
   createLinkedOrganisation,
-  updateMigratedOrganisation
+  updateMigratedOrganisation,
+  uploadAndSubmitSummaryLog
 } from '../support/apicalls.js'
 import { checkBodyText } from '../support/checks.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 const REG_NUMBER = 'R25SR5111050912PA'
@@ -43,11 +44,15 @@ describe('Declaration name validation @declarationValidation', () => {
       ]
     )
 
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
+    const user = await createLinkAndLogin(
+      organisationDetails.refNo,
+      migrationResponse.email
+    )
 
-    await DashboardPage.selectTableLink(1, 1)
-    await WasteRecordsPage.submitSummaryLogLink()
-    await UploadSummaryLogPage.performUploadAndReturnToHomepage(
+    await uploadAndSubmitSummaryLog(
+      organisationDetails.refNo,
+      migrationResponse.registrationIds[0],
+      defraIdStub.authHeader(user.userId),
       'resources/reprocessor-output-regonly.xlsx'
     )
     await DashboardPage.selectTableLink(1, 1)

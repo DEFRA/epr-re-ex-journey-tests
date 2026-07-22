@@ -1,30 +1,20 @@
-const express = require('express')
-const app = express()
-app.disable('x-powered-by')
-app.use(express.json())
-
-function checkAuth(req, res, next) {
-    const authHeader = req.headers.authorization
-
-    if (!authHeader || !authHeader.startsWith('Basic ')) {
-        return res.status(401).json({ error: 'Authorization required' })
+{
+  "name": "Waste Organisations API",
+  "request": {
+    "method": "GET",
+    "urlPath": "/waste-organisations/organisations",
+    "headers": {
+      "Authorization": {
+        "matches": "Basic .*"
+      }
     }
-
-    const base64Credentials = authHeader.split(' ')[1]
-    const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8')
-    const [username, password] = credentials.split(':')
-
-    // Validate credentials (change these to your test values)
-    if (username === 'testuser' && password === 'testpassword') {
-        req.user = username
-        return next()
-    }
-
-    res.status(401).json({ error: 'Invalid credentials' })
-}
-
-app.get('/waste-organisations/organisations', checkAuth, (req, res) => {
-    res.json({
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
       "organisations": [
         {
           "id": "c14854d9-e20a-41b3-87d5-a1fd4bbe2153",
@@ -162,12 +152,8 @@ app.get('/waste-organisations/organisations', checkAuth, (req, res) => {
               "registrationYear": 2026
             }
           ]
-        },
+        }
       ]
-    })
-})
-
-app.listen(3020, '0.0.0.0', () => {
-    console.log('Mock API running on port 3020')
-    console.log('Test with: curl -u testuser:testpassword http://localhost:3020/waste-organisations/organisations')
-})
+    }
+  }
+}

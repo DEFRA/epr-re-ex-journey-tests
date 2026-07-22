@@ -6,15 +6,16 @@ import PrnCreatedPage from 'page-objects/prn.created.page.js'
 import PrnDashboardPage from 'page-objects/prn.dashboard.page.js'
 import PrnIssuedPage from 'page-objects/prn.issued.page.js'
 import PrnViewPage from 'page-objects/prn.view.page.js'
-import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
 import {
   createLinkedOrganisation,
   externalAPICancelPrn,
-  updateMigratedOrganisation
+  updateMigratedOrganisation,
+  uploadAndSubmitSummaryLog
 } from '../support/apicalls.js'
 import { checkBodyText } from '../support/checks.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
 import {
   thirdTradingName as newTradingName,
   thirdTradingName as updatedTradingName,
@@ -48,18 +49,22 @@ describe('Issuing Packing Recycling Notes', () => {
       'sepa'
     )
 
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
+    const user = await createLinkAndLogin(
+      organisationDetails.refNo,
+      migrationResponse.email
+    )
 
     // Tonnage value expected from Summary Log files upload
     // Paper and board	40,608.86
     const expectedWasteBalance = '40,405.86'
 
-    await DashboardPage.selectTableLink(1, 1)
-
-    await WasteRecordsPage.submitSummaryLogLink()
-
     const filePath = `resources/sanity/reprocessorInput_${accNumber}_${regNumber}.xlsx`
-    await UploadSummaryLogPage.performUploadAndReturnToHomepage(filePath)
+    await uploadAndSubmitSummaryLog(
+      organisationDetails.refNo,
+      migrationResponse.registrationIds[0],
+      defraIdStub.authHeader(user.userId),
+      filePath
+    )
 
     await DashboardPage.selectTableLink(1, 1)
 

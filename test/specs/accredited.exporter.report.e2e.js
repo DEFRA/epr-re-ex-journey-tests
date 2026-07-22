@@ -2,7 +2,6 @@ import { browser, expect } from '@wdio/globals'
 import HomePage from 'page-objects/homepage.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
-import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
 import ReportsPage from 'page-objects/reports/reports.page.js'
 import ReportDetailPage from 'page-objects/reports/report.detail.page.js'
 import PrnSummaryPage from '../page-objects/reports/prn.summary.page.js'
@@ -14,9 +13,11 @@ import {
   seedOverseasSites,
   createLinkedOrganisation,
   unsubmitReport,
-  updateMigratedOrganisation
+  updateMigratedOrganisation,
+  uploadAndSubmitSummaryLog
 } from '../support/apicalls.js'
 import { checkBodyText } from '../support/checks.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import ConfirmationPage from '../page-objects/reports/confirmation.page.js'
 import {
@@ -55,17 +56,19 @@ describe('Accredited exporter report flow @accreditedExporter', () => {
 
       await seedOverseasSites(organisationDetails.refNo)
 
-      await createLinkAndLogin(
+      const user = await createLinkAndLogin(
         organisationDetails.refNo,
         migrationResponse.email
       )
 
       // Upload summary log so report data exists
-      await DashboardPage.selectTableLink(1, 1)
-      await WasteRecordsPage.submitSummaryLogLink()
-
       const filePath = `resources/sanity/exporter_${accNumber}_${regNumber}.xlsx`
-      await UploadSummaryLogPage.performUploadAndReturnToHomepage(filePath)
+      await uploadAndSubmitSummaryLog(
+        organisationDetails.refNo,
+        migrationResponse.registrationIds[0],
+        defraIdStub.authHeader(user.userId),
+        filePath
+      )
 
       // Navigate to reports — all tests start from the Reports page
       await DashboardPage.selectTableLink(1, 1)
