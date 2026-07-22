@@ -281,6 +281,13 @@ The results of the test run are made available in the portal.
 
 By default in the CDP-Portal only tests tagged with @smoketest are run. If you wish to run all the tests, pass in `all` in the profile section of the CDP Portal UI.
 
+Two other profiles skip the test run entirely and instead seed data via the
+[data generator](#generating-test-organisation-data), exiting immediately
+afterwards:
+
+- `generate` - runs `npm run generatedata:allMaterialsMixed:withLinking`
+- `generateInd` - runs `npm run generatedata:withLinking`
+
 ## Requirements of CDP Environment Tests
 
 1. Your service builds as a docker container using the `.github/workflows/publish.yml`
