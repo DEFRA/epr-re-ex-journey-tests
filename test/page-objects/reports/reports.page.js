@@ -78,6 +78,28 @@ const getStatusColour = async (rowIndex, tableXPath) => {
   return match ? match[1] : 'blue'
 }
 
+// Reporting periods are listed oldest-first with no cap (merge-reporting-
+// periods.js sorts ascending, filter-periods-from-date.js only trims the
+// lower bound), so on a real environment whose clock we don't control, other
+// older unaddressed periods can accumulate ahead of the one a test is
+// actually working with. A row index captured once (e.g. "row 1" before
+// creating a report) is therefore not safe to reuse verbatim later - locate
+// the row by the period path its action link actually targets instead.
+const rowIndexByHrefSubstring = async (tableXPath, hrefSubstring) => {
+  const rows = await $$(`${tableXPath}//tbody/tr`)
+  const rowCount = await rows.length
+  for (let i = 0; i < rowCount; i++) {
+    const link = await rows[i].$(".//a[contains(@class,'govuk-link')]")
+    const href = (await link.getAttribute('href')) ?? ''
+    if (href.includes(hrefSubstring)) {
+      return i + 1
+    }
+  }
+  throw new Error(
+    `No row found in table with an action link containing '${hrefSubstring}'`
+  )
+}
+
 const activeTableXPath = tableAfterHeadingXPath(ACTIVE_HEADING)
 const submittedTableXPath = tableAfterHeadingXPath(SUBMITTED_HEADING)
 
@@ -144,6 +166,32 @@ class ReportsPage extends Page {
 
   async getActiveNumberOfRows() {
     return (await $$(activeTableXPath + '//tbody/tr')).length
+  }
+
+  /**
+   * Extracts the `/reports/{year}/{cadence}/{period}` path a wizard page is
+   * currently on, stripping any `/submissions/{n}/...` suffix so it stays a
+   * stable match for the row regardless of submission number or action
+   * (create draft, continue, review and submit, ...).
+   * @param {string} url - e.g. from `browser.getUrl()`
+   */
+  periodPathFromUrl(url) {
+    return new URL(url).pathname.replace(/\/submissions\/\d+.*$/, '')
+  }
+
+  async selectActiveActionLinkForPeriod(periodPath) {
+    const rowIndex = await rowIndexByHrefSubstring(activeTableXPath, periodPath)
+    await selectActionLink(rowIndex, activeTableXPath)
+  }
+
+  async getActiveStatusBadgeForPeriod(periodPath) {
+    const rowIndex = await rowIndexByHrefSubstring(activeTableXPath, periodPath)
+    return await getStatusBadge(rowIndex, activeTableXPath)
+  }
+
+  async getActiveStatusColourForPeriod(periodPath) {
+    const rowIndex = await rowIndexByHrefSubstring(activeTableXPath, periodPath)
+    return await getStatusColour(rowIndex, activeTableXPath)
   }
 }
 

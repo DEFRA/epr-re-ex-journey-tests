@@ -200,6 +200,14 @@ describe('Accredited exporter report flow @accreditedExporter', () => {
 
     it('should complete the full accredited exporter report flow through to confirmation @accreditedExporterFullFlow @smoketest', async () => {
       await ReportsPage.selectActiveActionLink(1)
+
+      // Reporting periods are listed oldest-first with no cap, so on a real
+      // environment (whose clock we don't control) other older unaddressed
+      // periods can accumulate ahead of this one over time. Capture the exact
+      // period this row's action actually targeted so later checks can
+      // re-locate the SAME row rather than assuming it's still row 1.
+      const periodPath = ReportsPage.periodPathFromUrl(await browser.getUrl())
+
       await ReportDetailPage.useThisData()
 
       // --- PRN Summary page ---
@@ -265,13 +273,15 @@ describe('Accredited exporter report flow @accreditedExporter', () => {
       const reportsHeading = await ReportsPage.headingText()
       expect(reportsHeading).toContain('Reports')
 
-      const readyStatusBadge = await ReportsPage.getActiveStatusBadge(1)
-      const readyStatusColour = await ReportsPage.getActiveStatusColour(1)
+      const readyStatusBadge =
+        await ReportsPage.getActiveStatusBadgeForPeriod(periodPath)
+      const readyStatusColour =
+        await ReportsPage.getActiveStatusColourForPeriod(periodPath)
 
       expect(readyStatusBadge).toBe('Ready to submit')
       expect(readyStatusColour).toBe('blue')
 
-      await ReportsPage.selectActiveActionLink(1)
+      await ReportsPage.selectActiveActionLinkForPeriod(periodPath)
 
       // Confirm and submit report
       await MonthlyReportDraftDeclarationPage.confirmAndSubmit()
@@ -315,8 +325,10 @@ describe('Accredited exporter report flow @accreditedExporter', () => {
       // Refresh to see the status change
       await browser.refresh()
 
-      const unsubmittedBadge = await ReportsPage.getActiveStatusBadge(1)
-      const unsubmittedColour = await ReportsPage.getActiveStatusColour(1)
+      const unsubmittedBadge =
+        await ReportsPage.getActiveStatusBadgeForPeriod(periodPath)
+      const unsubmittedColour =
+        await ReportsPage.getActiveStatusColourForPeriod(periodPath)
 
       expect(unsubmittedBadge).toBe('Ready to submit')
       expect(unsubmittedColour).toBe('blue')
