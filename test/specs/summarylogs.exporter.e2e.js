@@ -4,7 +4,10 @@ import UploadSummaryLogPage from '../page-objects/upload.summary.log.page.js'
 import CheckSummaryLogPage from '../page-objects/check.summary.log.page.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
-import { checkBodyText } from '../support/checks.js'
+import {
+  checkBodyText,
+  checkBodyTextDoesNotInclude
+} from '../support/checks.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
@@ -12,8 +15,18 @@ import {
 } from '../support/apicalls.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
+// PAE-1648 closed-period adjustment messaging copy (en.json
+// summary-log:closedPeriodAdjustments). Only the "absent" half is relevant
+// here — this org's upload never has closed-period adjustments, matching
+// (and merged from) the "no closed-period adjustments" case previously in
+// summarylogs.check.cma.messaging.e2e.js, which otherwise duplicated this
+// exact org/upload setup just to assert the banner/messaging is absent.
+const IMPORTANT_BODY =
+  "If you upload this summary log, you'll need to create a new report for any relevant period and an approved person from your business will need to resubmit it to your regulator."
+const FURTHER_ACTION_HEADING = 'Further action needed'
+
 describe('Summary Logs Exporter', () => {
-  it('Should be able to submit a Exporter Summary Log spreadsheet @exporter', async () => {
+  it('Should be able to submit a Exporter Summary Log spreadsheet, with no closed-period messaging @exporter @closedPeriodMessaging', async () => {
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
@@ -65,6 +78,12 @@ describe('Summary Logs Exporter', () => {
       '2 new loads will be recorded (and will add to your waste balance)',
       30
     )
+
+    // No closed-period adjustments in this upload, so the "Important" banner
+    // shown on the check page for closed-period changes must not appear.
+    expect(await CheckSummaryLogPage.importantBanner().isExisting()).toBe(false)
+    await checkBodyTextDoesNotInclude(IMPORTANT_BODY, 5)
+
     await CheckSummaryLogPage.upload()
 
     await checkBodyText('Your waste records are being updated', 30)
@@ -72,6 +91,13 @@ describe('Summary Logs Exporter', () => {
     await checkBodyText('Summary log uploaded', 30)
     await checkBodyText('Your updated waste balance', 10)
     await checkBodyText('30.00 tonnes', 10)
+
+    // Same closed-period-adjustment absence, this time on the success page's
+    // "Further action needed" section and "Go to reports" button.
+    await checkBodyTextDoesNotInclude(FURTHER_ACTION_HEADING, 5)
+    expect(await UploadSummaryLogPage.goToReportsButton().isExisting()).toBe(
+      false
+    )
 
     await UploadSummaryLogPage.clickOnReturnToHomePage()
 

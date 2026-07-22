@@ -4,18 +4,13 @@ import UploadSummaryLogPage from '../page-objects/upload.summary.log.page.js'
 import CheckSummaryLogPage from '../page-objects/check.summary.log.page.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
+import { checkBodyText } from '../support/checks.js'
 import {
-  checkBodyText,
-  checkBodyTextDoesNotInclude
-} from '../support/checks.js'
-import {
-  seedOverseasSites,
   createLinkedOrganisation,
   updateMigratedOrganisation,
   seedSubmittedReport
 } from '../support/apicalls.js'
 import {
-  createLinkAndLogin,
   registerAndLinkDefraIdUser,
   loginViaHomePage
 } from '../support/login-helper.js'
@@ -38,9 +33,8 @@ const FURTHER_ACTION_PARA_3 =
 // that renders when closed-period adjustments are detected. See
 // summarylogs.check.cma.sections.e2e.js for open/closed section visibility
 // and summarylogs.check.cma.adjusted-loads.e2e.js for adjusted-load sub-state
-// rendering. Splitting lets wdio's per-file worker scheduling run these in
-// parallel instead of serially in one ~4 minute file. The "no changes" case
-// below is data-driven, so it stays alongside the "detected" case.
+// rendering. The "no closed-period adjustments" control case lives in
+// summarylogs.exporter.e2e.js instead (see comment below).
 describe('Summary Logs - Check Page with CMA Detection - Closed-period Adjustment Messaging', () => {
   // Resets the shared browser session between tests. Without it, leftover auth
   // state makes a later "start now" auto-log-in and skip the stub's user-selection
@@ -136,64 +130,9 @@ describe('Summary Logs - Check Page with CMA Detection - Closed-period Adjustmen
     await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
   })
 
-  it('should not show the Important banner or Further action needed messaging when no closed-period adjustments are detected @closedPeriodMessaging @cma', async () => {
-    const organisationDetails = await createLinkedOrganisation([
-      { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
-      { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
-    ])
-
-    const migrationResponse = await updateMigratedOrganisation(
-      organisationDetails.refNo,
-      [
-        {
-          reprocessingType: 'output',
-          regNumber: 'R25SR5111050912PA',
-          accNumber: 'ACC123456',
-          status: 'approved'
-        },
-        {
-          regNumber: 'E25SR500030913PA',
-          accNumber: 'ACC234567',
-          status: 'approved',
-          validFrom: '2025-02-02'
-        }
-      ]
-    )
-    await seedOverseasSites(
-      organisationDetails.refNo,
-      [1],
-      [124, 183, 512, 876]
-    )
-
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
-
-    await DashboardPage.selectExportingTab()
-    await DashboardPage.selectLink(1)
-
-    await WasteRecordsPage.submitSummaryLogLink()
-
-    // Open-period loads only (no submitted report seeded), so no closed-period
-    // adjustments are detected.
-    await UploadSummaryLogPage.uploadFile('resources/exporter.xlsx')
-    await UploadSummaryLogPage.continue()
-
-    await checkBodyText('Your summary log is being checked', 30)
-    await checkBodyText('Upload your summary log', 60)
-
-    expect(await CheckSummaryLogPage.importantBanner().isExisting()).toBe(false)
-    await checkBodyTextDoesNotInclude(IMPORTANT_BODY, 5)
-
-    await CheckSummaryLogPage.upload()
-
-    await checkBodyText('Your waste records are being updated', 30)
-    await checkBodyText('Summary log uploaded', 60)
-
-    await checkBodyTextDoesNotInclude(FURTHER_ACTION_HEADING, 5)
-    expect(await UploadSummaryLogPage.goToReportsButton().isExisting()).toBe(
-      false
-    )
-
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
-  })
+  // The "no closed-period adjustments detected" control case used to live
+  // here, but its org/upload setup was byte-for-byte identical to
+  // summarylogs.exporter.e2e.js's happy-path test, just to assert the
+  // banner/messaging is absent — merged there instead of paying for a second
+  // identical org+login+upload cycle.
 })
