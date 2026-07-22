@@ -14,6 +14,8 @@ separate journey-test repos, one per app.
   - [Setup](#setup)
   - [Running local tests](#running-local-tests)
   - [Feature flags in journey tests](#feature-flags-in-journey-tests)
+  - [Generating test organisation data](#generating-test-organisation-data)
+  - [Generating summary-log spreadsheets](#generating-summary-log-spreadsheets)
   - [Debugging local tests](#debugging-local-tests)
 - [Production](#production)
   - [Running tests with Profile](#running-tests-with-profile)
@@ -150,6 +152,116 @@ only if all of them did (`if: always()`, so a failed leg fails the gate rather
 than skipping it). Its fixed name keeps branch protection decoupled from the
 matrix contents: adding or retiring an entry edits only `matrix.include`.
 
+### Generating test organisation data
+
+This only applies to local builds. `test/support/data-generator/` (ported
+from `epr-backend-journey-tests`) contains scripts that generate mock
+approved Organisation, Registration and Accreditation records directly via
+the API - useful for populating a local environment with data to explore
+manually, outside of the automated test suite.
+
+You can generate 5 organisation details, registrations and accreditations
+(all linked together, using a single random material) in one go with this
+command:
+
+```bash
+npm run generatedata
+```
+
+If you want to generate an organisation that has all materials (but varied
+waste processing types, like Reprocessor Input / Output / Exporter), you can
+run:
+
+```bash
+npm run generatedata:allMaterials
+```
+
+If you want to generate organisations that have all materials and all waste
+processing types (like Reprocessor Input / Output / Exporter in a single
+Organisation), you can run:
+
+```bash
+npm run generatedata:allMaterialsMixed
+```
+
+To generate with user linking (this assumes you have Defra ID Stub and Entra
+Stub running locally):
+
+```bash
+npm run generatedata:withLinking
+npm run generatedata:allMaterials:withLinking
+npm run generatedata:allMaterialsMixed:withLinking
+```
+
+This will create mock approved Organisation datasets with linked users. Only
+to be used for local development purposes.
+
+### Generating summary-log spreadsheets
+
+`test/support/spreadsheet/` (ported from `epr-backend-journey-tests`) is a
+built-in generator that can be used to generate a spreadsheet for Summary
+Logs, on demand, instead of relying only on static fixtures under
+`test/fixtures/`. It fills a real committed template from
+`resources/templates/` with N rows of randomised-but-valid data, giving exact,
+controlled row counts/content for a new test rather than searching for (or
+hand-editing) a fixture that happens to already have the right shape. It's a
+standalone module today - no spec currently calls it - available for
+authoring new summary-log tests that need this.
+
+Five generators are available, one per waste-processing type:
+
+```bash
+npm run generate:spreadsheet:output              # Reprocessor Output
+npm run generate:spreadsheet:input                # Reprocessor Input
+npm run generate:spreadsheet:exporter              # Exporter
+npm run generate:spreadsheet:regOnlyExporter       # Registered Only (Unaccredited) Exporter
+npm run generate:spreadsheet:regOnlyReprocessor    # Registered Only (Unaccredited) Reprocessor
+```
+
+You can also pass in registration number, accreditation number, material and
+number of rows to generate via environment variables. For example, to
+generate 20 rows of Reprocessor Output for Steel with a specific registration
+and accreditation number:
+
+```bash
+ROWS=20 MATERIAL=ST REG_NUMBER=reg-number-123 ACC_NUMBER=acc-number-123 npm run generate:spreadsheet:output
+```
+
+`MATERIAL` is one of the suffixes in `shared-spreadsheet-values.js`'s
+`MATERIALS`: Aluminium is `AL`, Fibre-based composite is `FB`, Glass is `GR`
+(Re-melt) or `GO` (Other), Paper or board is `PA`, Plastic is `PL`, Steel is
+`ST`, Wood is `WO`. Random if omitted.
+
+To dynamically populate the spreadsheet, use the `SHEETS` environment
+variable (0-indexed, Cover sheet doesn't count) to specify which sheets to
+populate according to their index. For example, with Reprocessor Output, to
+populate only the first sheet (Received) and leave the others empty:
+
+```bash
+SHEETS=0 ROWS=5 npm run generate:spreadsheet:output
+```
+
+To populate the first and third sheets (Reprocessor Input example) only:
+
+```bash
+SHEETS=0,2 npm run generate:spreadsheet:input
+```
+
+You do not need to pass in an accreditation number for Registered Only
+spreadsheets, since it wouldn't be used.
+
+To append more rows onto an existing generated spreadsheet, use the
+`FILENAME` environment variable to specify the file and `ROW_OFFSET` to
+specify how many rows to offset the new rows from. For example, for a
+previous spreadsheet that already has 10 rows generated, append 10 more:
+
+```bash
+FILENAME=./data/filename.xlsx ROW_OFFSET=10 ROWS=10 MATERIAL=AL REG_NUMBER=R25SR500000912AL ACC_NUMBER=ACC123456 npm run generate:spreadsheet:input
+```
+
+Generated files are written to `data/` (gitignored - transient output only;
+`resources/templates/` holds the committed source templates, not `data/`).
+
 ### Debugging local tests
 
 ```bash
@@ -168,6 +280,13 @@ The results of the test run are made available in the portal.
 ### Running tests with Profile
 
 By default in the CDP-Portal only tests tagged with @smoketest are run. If you wish to run all the tests, pass in `all` in the profile section of the CDP Portal UI.
+
+Two other profiles skip the test run entirely and instead seed data via the
+[data generator](#generating-test-organisation-data), exiting immediately
+afterwards:
+
+- `generate` - runs `npm run generatedata:allMaterialsMixed:withLinking`
+- `generateInd` - runs `npm run generatedata:withLinking`
 
 ## Requirements of CDP Environment Tests
 

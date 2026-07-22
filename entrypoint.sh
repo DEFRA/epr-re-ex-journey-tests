@@ -2,6 +2,19 @@
 
 echo "run_id: $RUN_ID"
 
+# Generate data based on PROFILE
+if [ "$PROFILE" = "generate" ]; then
+    npm run generatedata:allMaterialsMixed:withLinking
+    echo "Generated test users"
+    exit 0
+fi
+
+if [ "$PROFILE" = "generateInd" ]; then
+    npm run generatedata:withLinking
+    echo "Generated 5 orgs"
+    exit 0
+fi
+
 # Best-effort cleanup of every orgId the test suite created. Runs regardless
 # of pass/fail — we still want to delete data from failed runs. See PAE-1194.
 cleanup_created_orgs() {
