@@ -69,11 +69,16 @@ export const config = {
   specs: ['./test/specs/**/*.js'],
   // Tests to exclude
   exclude: [],
-  maxInstances: 5,
+  // 5 concurrent headless Chrome instances on a 4 vCPU GitHub-hosted runner
+  // oversubscribed the CPU: 5-way contention was measured making every
+  // running spec slower (including ones with no code changes), for a net
+  // wash or regression versus the reduced nominal parallelism. 4 matches the
+  // runner's core count so workers don't thrash each other.
+  maxInstances: 4,
 
   capabilities: [
     {
-      maxInstances: 5,
+      maxInstances: 4,
       browserName: 'chrome',
       // BiDi drops its browsing context on our navigations (and falls back per
       // call, adding latency); classic is stable and faster here.

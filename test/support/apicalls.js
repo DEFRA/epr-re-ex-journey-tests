@@ -1115,7 +1115,9 @@ export async function waitForSummaryLogStatus(
         `Summary log reached '${status}' while waiting for '${targetStatus}'`
       )
     }
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    // Matches wdio's waitforInterval (wdio.github.conf.js) so this polls no
+    // coarser than the UI's own checkBodyText waits.
+    await new Promise((resolve) => setTimeout(resolve, 200))
   }
 
   throw new Error(
