@@ -12,6 +12,7 @@ import {
   updateMigratedOrganisation,
   uploadAndSubmitSummaryLog
 } from '../support/apicalls.js'
+import { assertAuditLog } from '../support/docker-log-assertions.js'
 
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
 
@@ -256,7 +257,7 @@ describe('PRN state machine @prnStateMachine', () => {
   })
 
   it('issues a PRN through to external acceptance, rejecting a second acceptance @prnIssueAndAcceptFlow', async () => {
-    const { prnPath } = await createPrn(
+    const { prnId, prnPath } = await createPrn(
       ctx.baseAPI,
       ctx.org.refNo,
       ctx.registrationId,
@@ -272,6 +273,14 @@ describe('PRN state machine @prnStateMachine', () => {
       'awaiting_authorisation'
     )
     expect(authResponse.statusCode).to.equal(200)
+    await assertAuditLog({
+      eventCategory: 'waste-reporting',
+      eventAction: 'status-transition',
+      eventSubCategory: 'packaging-recycling-notes',
+      contextKeys: ['organisationId', 'prnId', 'previous', 'next'],
+      count: 1,
+      contextValues: [ctx.org.refNo, prnId, 'awaiting_authorisation']
+    })
 
     const issueResponse = await updatePrnStatus(
       ctx.baseAPI,
@@ -282,6 +291,14 @@ describe('PRN state machine @prnStateMachine', () => {
     expect(issueResponse.statusCode).to.equal(200)
     const issued = /** @type {any} */ (await issueResponse.body.json())
     expect(issued.prnNumber).to.match(/^SR\d{5,9}$/)
+    await assertAuditLog({
+      eventCategory: 'waste-reporting',
+      eventAction: 'status-transition',
+      eventSubCategory: 'packaging-recycling-notes',
+      contextKeys: ['organisationId', 'prnId', 'previous', 'next'],
+      count: 1,
+      contextValues: [ctx.org.refNo, prnId, 'awaiting_acceptance']
+    })
 
     const prnDetails = { prnNumber: issued.prnNumber, status: 'Issued' }
     await externalAPIAcceptPrn(prnDetails)

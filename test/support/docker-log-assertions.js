@@ -45,7 +45,104 @@ export async function assertLogMessage({ level, eventAction, message }) {
   expect(actualLog.message).to.contain(message)
 }
 
+function matchesAuditExpectation(log, expected) {
+  const {
+    eventCategory,
+    eventAction,
+    eventSubCategory,
+    contextKeys,
+    contextValues
+  } = expected
+
+  const contextValuesMatch = contextValues
+    ? contextValues.every((value) =>
+        JSON.stringify(log.context).includes(value)
+      )
+    : true
+
+  const subCategoryMatches = eventSubCategory
+    ? log.event.subCategory === eventSubCategory
+    : true
+
+  return (
+    log.event.category === eventCategory &&
+    log.event.action === eventAction &&
+    Object.keys(log.context).join(', ') === contextKeys.join(', ') &&
+    contextValuesMatch &&
+    subCategoryMatches
+  )
+}
+
 /**
+ * Checks one or more expected audit-log shapes against `docker logs`, all
+ * against a SHARED poll/accumulation loop. Must be batched together (rather
+ * than called once per expectation) whenever the expectations describe
+ * audit lines emitted by the same underlying action/request: DockerLogParser
+ * dedupes every audit line it has ever returned (across ALL calls, not just
+ * this one), so a line consumed - and discarded as a non-match - while
+ * polling for expectation A would never reappear for a later, separate call
+ * checking expectation B, even if it matched B all along.
+ *
+ * @param {Array<{
+ *   eventCategory: string,
+ *   eventAction: string,
+ *   eventSubCategory?: string,
+ *   contextKeys: string[],
+ *   count: number,
+ *   contextValues?: string[]
+ * }>} expectedList
+ */
+export async function assertAuditLogs(
+  expectedList,
+  { timeout = 15000, interval = 250 } = {}
+) {
+  if (!config.testLogs) {
+    logger.warn(
+      { step: 'assertAuditLogs' },
+      'Skipping docker audit log assertion'
+    )
+    return
+  }
+
+  const startTime = Date.now()
+  const accumulatedLogs = []
+  let unmet = expectedList
+
+  do {
+    accumulatedLogs.push(...(await dockerLogParser.retrieveAuditLogs()))
+
+    unmet = expectedList.filter((expected) => {
+      const matchCount = accumulatedLogs.filter((log) =>
+        matchesAuditExpectation(log, expected)
+      ).length
+      return matchCount !== expected.count
+    })
+
+    if (unmet.length === 0) {
+      return
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, interval))
+  } while (Date.now() - startTime < timeout)
+
+  const details = unmet
+    .map((expected) => {
+      const matchCount = accumulatedLogs.filter((log) =>
+        matchesAuditExpectation(log, expected)
+      ).length
+      return `Expected ${expected.count} audit logs for event category '${expected.eventCategory}'/action '${expected.eventAction}'. Found ${matchCount}.`
+    })
+    .join('\n')
+
+  expect.fail(
+    `${details}\nActual audit logs: ${JSON.stringify(accumulatedLogs)}`
+  )
+}
+
+/**
+ * Single-expectation convenience wrapper around {@link assertAuditLogs} for
+ * the common case of one audit check per call site.
+ *
  * @param {{
  *   eventCategory: string,
  *   eventAction: string,
@@ -55,47 +152,6 @@ export async function assertLogMessage({ level, eventAction, message }) {
  *   contextValues?: string[]
  * }} expected
  */
-export async function assertAuditLog({
-  eventCategory,
-  eventAction,
-  eventSubCategory,
-  contextKeys,
-  count,
-  contextValues
-}) {
-  if (!config.testLogs) {
-    logger.warn(
-      { step: 'assertAuditLog' },
-      'Skipping docker audit log assertion'
-    )
-    return
-  }
-
-  const actualLogs = await dockerLogParser.retrieveAuditLogs()
-
-  const filtered = actualLogs.filter((log) => {
-    const contextValuesMatch = contextValues
-      ? contextValues.every((value) =>
-          JSON.stringify(log.context).includes(value)
-        )
-      : true
-
-    const subCategoryMatches = eventSubCategory
-      ? log.event.subCategory === eventSubCategory
-      : true
-
-    return (
-      log.event.category === eventCategory &&
-      log.event.action === eventAction &&
-      Object.keys(log.context).join(', ') === contextKeys.join(', ') &&
-      contextValuesMatch &&
-      subCategoryMatches
-    )
-  })
-
-  if (filtered.length !== count) {
-    expect.fail(
-      `Expected ${count} audit logs for event category '${eventCategory}'/action '${eventAction}'. Found ${filtered.length}. Actual audit logs: ${JSON.stringify(actualLogs)}`
-    )
-  }
+export async function assertAuditLog(expected) {
+  await assertAuditLogs([expected])
 }

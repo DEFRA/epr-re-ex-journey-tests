@@ -5,6 +5,11 @@ import {
   Organisation,
   Registration
 } from '../support/generator.js'
+import {
+  assertAuditLog,
+  assertAuditLogs,
+  assertLogMessage
+} from '../support/docker-log-assertions.js'
 
 async function submit(baseAPI, path, payload) {
   return baseAPI.post(path, JSON.stringify(payload))
@@ -54,6 +59,38 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       expect(body.orgId).to.match(/^\d{6}$/)
       expect(body.referenceNumber).to.match(/^[0-9a-f]{24}$/i)
       expect(body.orgName).to.equal(organisation.companyName)
+
+      // Ported from epr-backend-journey-tests' formsubmission.feature: the
+      // "Stored organisation data" info log plus two audit trails - one
+      // database_insert for the org document, and two email_sent audits (user
+      // + regulator confirmation emails, same shape, hence count 2). Both
+      // audit checks are emitted by the same request at essentially the same
+      // instant, so they're asserted together via assertAuditLogs (a single
+      // shared poll) rather than two separate assertAuditLog calls - separate
+      // calls would race DockerLogParser's own dedup: a line consumed (and
+      // discarded as a non-match) while polling for the first expectation
+      // would never reappear for a later call checking the second.
+      await assertLogMessage({
+        level: 'info',
+        eventAction: 'request_success',
+        message: `Stored organisation data for orgId: ${body.orgId} and referenceNumber: ${body.referenceNumber}`
+      })
+      await assertAuditLogs([
+        {
+          eventCategory: 'database',
+          eventAction: 'database_insert',
+          contextKeys: ['orgId', 'orgName', 'referenceNumber'],
+          count: 1,
+          contextValues: [`${body.orgId}`, body.referenceNumber]
+        },
+        {
+          eventCategory: 'email',
+          eventAction: 'email_sent',
+          contextKeys: ['templateId', 'emailAddress', 'personalisation'],
+          count: 2,
+          contextValues: [`${body.orgId}`, body.referenceNumber]
+        }
+      ])
     })
 
     it('rejects a payload without email @orgSubmitMissingEmail', async () => {
@@ -186,6 +223,31 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       expect(response.statusCode).to.equal(400)
       await expectMessage(response, 'Invalid payload')
     })
+
+    // Ported from epr-backend-journey-tests' formsubmission.feature: the
+    // "Stored registration data" info log plus its database_insert audit -
+    // shared handler with the accreditation endpoint below (both routed
+    // through registrationAndAccreditationHandler).
+    it('creates a registration and emits the expected log/audit trail @regSubmitSuccess', async () => {
+      const registration = new Registration()
+      const payload = registration.toExporterPayload()
+
+      const response = await submit(baseAPI, path, payload)
+
+      expect(response.statusCode).to.equal(201)
+      await assertLogMessage({
+        level: 'info',
+        eventAction: 'request_success',
+        message: `Stored registration data for orgId: ${registration.orgId} and referenceNumber: ${registration.refNo}`
+      })
+      await assertAuditLog({
+        eventCategory: 'database',
+        eventAction: 'database_insert',
+        contextKeys: ['orgId', 'referenceNumber'],
+        count: 1,
+        contextValues: [registration.orgId, registration.refNo]
+      })
+    })
   })
 
   describe('Accreditation endpoint @formSubmissionAccreditation', () => {
@@ -268,6 +330,29 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
 
       expect(response.statusCode).to.equal(400)
       await expectMessage(response, 'Invalid payload')
+    })
+
+    // Ported from epr-backend-journey-tests' formsubmission.feature: the
+    // "Stored accreditation data" info log plus its database_insert audit.
+    it('creates an accreditation and emits the expected log/audit trail @accSubmitSuccess', async () => {
+      const accreditation = new Accreditation()
+      const payload = accreditation.toExporterPayload()
+
+      const response = await submit(baseAPI, path, payload)
+
+      expect(response.statusCode).to.equal(201)
+      await assertLogMessage({
+        level: 'info',
+        eventAction: 'request_success',
+        message: `Stored accreditation data for orgId: ${accreditation.orgId} and referenceNumber: ${accreditation.refNo}`
+      })
+      await assertAuditLog({
+        eventCategory: 'database',
+        eventAction: 'database_insert',
+        contextKeys: ['orgId', 'referenceNumber'],
+        count: 1,
+        contextValues: [accreditation.orgId, accreditation.refNo]
+      })
     })
   })
 })
