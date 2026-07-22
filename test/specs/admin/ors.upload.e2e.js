@@ -33,7 +33,7 @@ async function uploadWorkbookAndWaitForCompletion(workbookPath) {
 }
 
 describe('ORS upload flow @orsupload', () => {
-  it('Should upload an ORS workbook and show completed import status @smoketest', async () => {
+  it('Should upload an ORS workbook and show completed import status', async () => {
     const { orgId, refNo } = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
     ])
