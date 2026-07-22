@@ -57,7 +57,7 @@ async function setupRegisteredOnlyExporter() {
 }
 
 describe('Registered-only exporter report flow @registeredOnlyExporter', () => {
-  it('should complete the full registered-only exporter report flow through to confirmation @registeredOnlyExporterFullFlow', async () => {
+  it('should complete the full registered-only exporter report flow through to confirmation @registeredOnlyExporterFullFlow @smoketest', async () => {
     const setupResponse = await setupRegisteredOnlyExporter()
 
     await seedOverseasSites(

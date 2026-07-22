@@ -198,7 +198,7 @@ describe('Accredited exporter report flow @accreditedExporter', () => {
       await ConfirmDeleteReportPage.confirmDeletion()
     })
 
-    it('should complete the full accredited exporter report flow through to confirmation @accreditedExporterFullFlow @smoketest', async () => {
+    it('should complete the full accredited exporter report flow through to confirmation @accreditedExporterFullFlow', async () => {
       await ReportsPage.selectActiveActionLink(1)
       await ReportDetailPage.useThisData()
 
