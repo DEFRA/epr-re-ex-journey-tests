@@ -10,6 +10,8 @@
 #   - cognito-stub — external/regulator-facing PRN API auth
 #   - defra-id-stub — operator sign-in
 #   - epr-re-ex-entra-stub — service-to-service + admin-frontend sign-in
+#   - wire-mock — external HTTP APIs (waste-organisations lookup, forms
+#     submission), mirroring epr-re-ex-service's compose/wire-mock mappings
 #
 # Mongo has init scripts included for setting up resources on startup. Floci's
 # resources (buckets, queues) are created by the one-shot floci-init container,
@@ -177,15 +179,27 @@ services:
       start_period: 2s
       retries: 3
 
-  # Mocks the external waste-organisations lookup API that epr-frontend calls.
-  waste-organisations-mock-api:
-    build:
-      context: .
-      dockerfile: docker/mock/Dockerfile
+  # Mocks the external waste-organisations lookup API that epr-frontend
+  # calls, via the stub mapping at compose/wire-mock/mappings, copied from
+  # epr-re-ex-service's compose/wire-mock (the canonical source of truth for
+  # these stubs, kept in sync manually). The forms-submission-api mappings
+  # are copied too but currently unwired - epr-backend's own migration job
+  # that would call them isn't exercised by this suite (falls back to its
+  # own external-URL default; harmless, doesn't block startup).
+  wire-mock:
+    image: wiremock/wiremock:3.13.2@sha256:0d4ecb3e4dc8213fd7a4d37d6a78f6e6b553a6d2e15bd51b0999781282ac61b3
     ports:
-      - '3020:3020'
-    environment:
-      NODE_ENV: development
+      - '3100:8080'
+    volumes:
+      - ./compose/wire-mock:/home/wiremock
+    command:
+      - --global-response-templating
+      - --verbose
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080/__admin/health']
+      interval: 5s
+      start_period: 5s
+      retries: 5
 
   ################################################################################
   # Applications under test
@@ -252,7 +266,15 @@ services:
       # curl isn't installed in the `development` Dockerfile target (only the
       # `production` target adds it) — this healthcheck runs against whichever
       # target is in play, so use wget (present in both), not curl.
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1:3001/health']
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://127.0.0.1:3001/health'
+        ]
       interval: 5s
       start_period: 10s
       retries: 5
@@ -277,7 +299,7 @@ services:
       PORT: 3000
       REDIS_HOST: redis
       USE_SINGLE_INSTANCE_CACHE: true
-      WASTE_ORGANISATIONS_API_URL: http://waste-organisations-mock-api:3020/waste-organisations/organisations
+      WASTE_ORGANISATIONS_API_URL: http://wire-mock:8080/waste-organisations/organisations
       WASTE_ORGANISATIONS_API_USERNAME: testuser
       WASTE_ORGANISATIONS_API_PASSWORD: testpassword
     depends_on:
@@ -291,6 +313,8 @@ services:
         condition: service_healthy
       cdp-uploader:
         condition: service_started
+      wire-mock:
+        condition: service_healthy
 
   epr-re-ex-admin-frontend:
     image: defradigital/epr-re-ex-admin-frontend:${EPR_RE_EX_ADMIN_FRONTEND:-latest}
@@ -323,7 +347,15 @@ services:
     healthcheck:
       # curl isn't installed in this image (only wget is) — see the epr-backend
       # healthcheck comment above.
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1:3002/health']
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://127.0.0.1:3002/health'
+        ]
       interval: 3s
       start_period: 2s
       retries: 3

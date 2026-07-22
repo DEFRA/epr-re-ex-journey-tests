@@ -23,6 +23,6 @@
       "components/*": ["./test/components/*"]
     }
   },
-  "include": ["test/**/*.js", "docker/mock/**/*.js", "global.d.ts"],
+  "include": ["test/**/*.js", "global.d.ts"],
   "exclude": ["node_modules"]
 }
