@@ -2,7 +2,6 @@ import { browser, expect } from '@wdio/globals'
 import HomePage from 'page-objects/homepage.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
-import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
 import ReportsPage from 'page-objects/reports/reports.page.js'
 import ReportDetailPage from 'page-objects/reports/report.detail.page.js'
 import TonnesRecycledPage from '../page-objects/reports/tonnes.recycled.page.js'
@@ -14,8 +13,10 @@ import ReportCheckAnswersPage from 'page-objects/reports/report.check.answers.pa
 import ConfirmDeleteReportPage from '../page-objects/confirm.delete.report.page.js'
 import {
   createLinkedOrganisation,
-  updateMigratedOrganisation
+  updateMigratedOrganisation,
+  uploadAndSubmitSummaryLog
 } from '../support/apicalls.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
 import { expectActionRequiredStatus } from '../support/report-status.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
@@ -54,14 +55,19 @@ describe('Deleting an in-progress report', () => {
       ]
     )
 
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
+    const user = await createLinkAndLogin(
+      organisationDetails.refNo,
+      migrationResponse.email
+    )
 
     // Upload summary log so report data exists
-    await DashboardPage.selectTableLink(1, 1)
-    await WasteRecordsPage.submitSummaryLogLink()
-
     const filePath = `resources/sanity/reprocessorOutput_${accNumber}_${regNumber}.xlsx`
-    await UploadSummaryLogPage.performUploadAndReturnToHomepage(filePath)
+    await uploadAndSubmitSummaryLog(
+      organisationDetails.refNo,
+      migrationResponse.registrationIds[0],
+      defraIdStub.authHeader(user.userId),
+      filePath
+    )
 
     // --- Delete from supporting information page ---
 

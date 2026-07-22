@@ -2,13 +2,14 @@ import { browser, expect } from '@wdio/globals'
 import HomePage from 'page-objects/homepage.js'
 import DashboardPage from '../page-objects/dashboard.page.js'
 import WasteRecordsPage from '../page-objects/waste.records.page.js'
-import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
 import ReportDetailPage from 'page-objects/reports/report.detail.page.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
-  updateMigratedOrganisation
+  updateMigratedOrganisation,
+  uploadAndSubmitSummaryLog
 } from '../support/apicalls.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
 import { parseTonnage } from '../support/tonnage.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
@@ -56,11 +57,15 @@ describe('Report tonnage reconciles with the waste balance — exporter @reconci
 
     await seedOverseasSites(organisationDetails.refNo)
 
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
+    const user = await createLinkAndLogin(
+      organisationDetails.refNo,
+      migrationResponse.email
+    )
 
-    await DashboardPage.selectTableLink(1, 1)
-    await WasteRecordsPage.submitSummaryLogLink()
-    await UploadSummaryLogPage.performUploadAndReturnToHomepage(
+    await uploadAndSubmitSummaryLog(
+      organisationDetails.refNo,
+      migrationResponse.registrationIds[0],
+      defraIdStub.authHeader(user.userId),
       'resources/exporter-reconciliation.xlsx'
     )
   })
