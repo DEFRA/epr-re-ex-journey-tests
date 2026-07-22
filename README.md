@@ -14,6 +14,7 @@ separate journey-test repos, one per app.
   - [Setup](#setup)
   - [Running local tests](#running-local-tests)
   - [Feature flags in journey tests](#feature-flags-in-journey-tests)
+  - [Generating test organisation data](#generating-test-organisation-data)
   - [Generating summary-log spreadsheets](#generating-summary-log-spreadsheets)
   - [Debugging local tests](#debugging-local-tests)
 - [Production](#production)
@@ -150,6 +151,50 @@ match. So an aggregate job named `Run Journey Tests` `needs` the legs and passes
 only if all of them did (`if: always()`, so a failed leg fails the gate rather
 than skipping it). Its fixed name keeps branch protection decoupled from the
 matrix contents: adding or retiring an entry edits only `matrix.include`.
+
+### Generating test organisation data
+
+This only applies to local builds. `test/support/data-generator/` (ported
+from `epr-backend-journey-tests`) contains scripts that generate mock
+approved Organisation, Registration and Accreditation records directly via
+the API - useful for populating a local environment with data to explore
+manually, outside of the automated test suite.
+
+You can generate 5 organisation details, registrations and accreditations
+(all linked together, using a single random material) in one go with this
+command:
+
+```bash
+npm run generatedata
+```
+
+If you want to generate an organisation that has all materials (but varied
+waste processing types, like Reprocessor Input / Output / Exporter), you can
+run:
+
+```bash
+npm run generatedata:allMaterials
+```
+
+If you want to generate organisations that have all materials and all waste
+processing types (like Reprocessor Input / Output / Exporter in a single
+Organisation), you can run:
+
+```bash
+npm run generatedata:allMaterialsMixed
+```
+
+To generate with user linking (this assumes you have Defra ID Stub and Entra
+Stub running locally):
+
+```bash
+npm run generatedata:withLinking
+npm run generatedata:allMaterials:withLinking
+npm run generatedata:allMaterialsMixed:withLinking
+```
+
+This will create mock approved Organisation datasets with linked users. Only
+to be used for local development purposes.
 
 ### Generating summary-log spreadsheets
 
