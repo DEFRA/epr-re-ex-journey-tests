@@ -16,6 +16,10 @@ import {
   assertValidationConcerns,
   assertValidationFailures
 } from '../support/summary-log-assertions.js'
+import {
+  assertAuditLog,
+  assertLogMessage
+} from '../support/docker-log-assertions.js'
 
 // Ported from epr-backend-journey-tests' summarylogs-reprocessor-input.feature.
 // See summarylogs-validation.api.e2e.js for the shared floci-fixture-shortcut
@@ -99,9 +103,11 @@ describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput', () =
     // upload for the same registration (the source asserts both succeed) -
     // covered here as a plain sequential submit, since the concurrency
     // itself isn't this scenario's point (that's summarylogs-staleness's
-    // job). Also NOT covered: the structured log-message/audit-log
-    // assertions, waste-records-created DB check, and "no expiry" DB check
-    // - no log capture or MongoDB client wired into this layer.
+    // job). Also NOT covered: the waste-records-created DB check and "no
+    // expiry" DB check - no MongoDB client wired into this layer. The
+    // structured log-message/audit-log assertions ARE covered below, via
+    // `docker logs` against the local epr-backend container (see
+    // docker-log-assertions.js) - they no-op against a deployed environment.
     const submitResponse = await first.baseAPI.post(
       `${first.summaryLogPath}/submit`,
       '',
@@ -114,6 +120,19 @@ describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput', () =
       authHeader,
       'submitted'
     )
+
+    await assertLogMessage({
+      level: 'info',
+      eventAction: 'process_success',
+      message: `Summary log submitted: summaryLogId=${first.summaryLogId}`
+    })
+    await assertAuditLog({
+      eventCategory: 'waste-reporting',
+      eventAction: 'submit',
+      contextKeys: ['summaryLogId', 'organisationId', 'registrationId'],
+      count: 1,
+      contextValues: [first.summaryLogId, orgId, registrationId]
+    })
 
     const balanceAfterFirst = await waitForWasteBalance(
       orgId,
