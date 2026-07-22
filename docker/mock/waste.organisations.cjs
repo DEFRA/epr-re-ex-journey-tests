@@ -168,10 +168,11 @@ function checkAuth(req) {
 }
 
 const server = http.createServer((req, res) => {
-  if (
-    req.method === 'GET' &&
-    req.url === '/waste-organisations/organisations'
-  ) {
+  // req.url includes the query string (unlike Express's route matching,
+  // which matches on pathname alone) - strip it before comparing.
+  const { pathname } = new URL(req.url, 'http://localhost')
+
+  if (req.method === 'GET' && pathname === '/waste-organisations/organisations') {
     const auth = checkAuth(req)
     if (!auth.ok) {
       res.writeHead(401, { 'Content-Type': 'application/json' })
