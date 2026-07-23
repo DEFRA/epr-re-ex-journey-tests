@@ -1,3 +1,4 @@
+import { test } from '@playwright/test'
 import { expect } from 'chai'
 import { BaseAPI } from '../apis/base-api.js'
 import {
@@ -19,13 +20,13 @@ import {
 // Ported from epr-backend-journey-tests' summarylogs-reprocessor-output.feature.
 // See summarylogs-validation.api.e2e.js for the shared floci-fixture-shortcut
 // rationale and the loadsByWasteRecordType/DB-assertion gaps this repeats.
-describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput', () => {
+test.describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput', () => {
   let orgId
   let registrationId
   let accreditationId
   let authHeader
 
-  before(async () => {
+  test.beforeAll(async () => {
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor', material: 'Steel (R4)' }
     ])
@@ -46,7 +47,7 @@ describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput', ()
     accreditationId = migrated.accreditationIds[0]
   })
 
-  it('fails in-sheet revalidation @summaryLogReprocessorOutputInvalid', async () => {
+  test('fails in-sheet revalidation @summaryLogReprocessorOutputInvalid', async () => {
     const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
       orgId,
       registrationId,
@@ -120,8 +121,8 @@ describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput', ()
     )
   })
 
-  it('succeeds, with waste balance calculated over an initial upload and an adjustments upload @summaryLogReprocessorOutputValidatedFlow', async function () {
-    this.timeout(120000)
+  test('succeeds, with waste balance calculated over an initial upload and an adjustments upload @summaryLogReprocessorOutputValidatedFlow', async () => {
+    test.setTimeout(120000)
 
     const first = await ingestSummaryLogFixture(
       orgId,

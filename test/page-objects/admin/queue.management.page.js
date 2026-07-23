@@ -1,5 +1,4 @@
 import { AdminPage } from 'page-objects/admin/page'
-import { $, $$ } from '@wdio/globals'
 
 class QueueManagementPage extends AdminPage {
   open() {
@@ -7,30 +6,28 @@ class QueueManagementPage extends AdminPage {
   }
 
   async getHeaderText() {
-    const heading = await $('h1')
-    return heading.getText()
+    return this.page.locator('h1').innerText()
   }
 
   async getMessageCount() {
-    const text = await $('p').getText()
+    const text = await this.page.locator('p').innerText()
     const match = text.match(/(\d+) messages?/)
     return match ? Number(match[1]) : null
   }
 
   async getEmptyStateText() {
-    const paragraphs = await $$('#main-content p')
-    const texts = await Promise.all([...paragraphs].map((p) => p.getText()))
+    const texts = await this.page.locator('#main-content p').allInnerTexts()
     return texts.find((t) => t.includes('no messages'))
   }
 
   async getTableHeaders() {
-    const headers = await $$('table thead th')
-    return Promise.all([...headers].map((th) => th.getText()))
+    return this.page.locator('table thead th').allInnerTexts()
   }
 
   async getFirstRowData() {
-    const cells = await $$('table tbody tr:first-child td')
-    const texts = await Promise.all([...cells].map((td) => td.getText()))
+    const texts = await this.page
+      .locator('table tbody tr:first-child td')
+      .allInnerTexts()
     return {
       commandType: texts[0],
       sentTimestamp: texts[1],
@@ -39,47 +36,44 @@ class QueueManagementPage extends AdminPage {
   }
 
   async expandRawMessage() {
-    const details = await $('table tbody details summary')
-    await details.click()
+    await this.page.locator('table tbody details summary').click()
   }
 
   async getRawMessageBody() {
-    const code = await $('table tbody details .app-json-display')
-    await code.waitForDisplayed()
-    return code.getText()
+    return this.page
+      .locator('table tbody details .app-json-display')
+      .innerText()
   }
 
   async clickClearAllMessages() {
-    const button = await $(
-      'a.govuk-button--warning, button.govuk-button--warning'
-    )
-    await button.click()
+    await this.page
+      .locator('a.govuk-button--warning, button.govuk-button--warning')
+      .click()
   }
 
   async clearAllMessagesButtonExists() {
-    const button = await $(
-      'a.govuk-button--warning, button.govuk-button--warning'
+    return (
+      (await this.page
+        .locator('a.govuk-button--warning, button.govuk-button--warning')
+        .count()) > 0
     )
-    return await button.isExisting()
   }
 
   async getConfirmHeading() {
-    const heading = await $('h1')
-    return heading.getText()
+    return this.page.locator('h1').innerText()
   }
 
   async confirmClear() {
-    const button = await $('button[type=submit]')
-    await button.click()
+    await this.page.locator('button[type=submit]').click()
   }
 
   async getSuccessBannerText() {
-    const banner = await $(
-      '.govuk-notification-banner--success .govuk-notification-banner__content'
-    )
-    await banner.waitForDisplayed()
-    return banner.getText()
+    return this.page
+      .locator(
+        '.govuk-notification-banner--success .govuk-notification-banner__content'
+      )
+      .innerText()
   }
 }
 
-export default new QueueManagementPage()
+export { QueueManagementPage }

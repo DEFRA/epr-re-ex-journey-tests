@@ -1,3 +1,4 @@
+import { test } from '@playwright/test'
 import { expect } from 'chai'
 import {
   createAndRegisterDefraIdUser,
@@ -20,9 +21,9 @@ import {
 // rationale and the loadsByWasteRecordType/DB-assertion gaps this repeats.
 // Registered-only registrations have no accreditation, so there is no waste
 // balance to check here (unlike the accredited exporter/reprocessor specs).
-describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnly', () => {
-  it('creates a Waste Record @summaryLogExporterRegOnlyValid', async function () {
-    this.timeout(60000)
+test.describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnly', () => {
+  test('creates a Waste Record @summaryLogExporterRegOnlyValid', async () => {
+    test.setTimeout(60000)
 
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Exporter', withoutAccreditation: true }
@@ -99,7 +100,7 @@ describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnly', (
     expect(report.wasteProcessingType).to.equal('exporter')
   })
 
-  it('fails in-sheet revalidation @summaryLogExporterRegOnlyInvalid', async () => {
+  test('fails in-sheet revalidation @summaryLogExporterRegOnlyInvalid', async () => {
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Exporter', withoutAccreditation: true }
     ])
@@ -190,9 +191,9 @@ describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnly', (
   })
 })
 
-describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessorRegOnly', () => {
-  it('creates a Waste Record @summaryLogReprocessorRegOnlyValid', async function () {
-    this.timeout(60000)
+test.describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessorRegOnly', () => {
+  test('creates a Waste Record @summaryLogReprocessorRegOnlyValid', async () => {
+    test.setTimeout(60000)
 
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor', withoutAccreditation: true }
@@ -275,7 +276,7 @@ describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessorRegOn
     expect(report.details.material).to.equal('paper')
   })
 
-  it('fails in-sheet revalidation @summaryLogReprocessorRegOnlyInvalid', async () => {
+  test('fails in-sheet revalidation @summaryLogReprocessorRegOnlyInvalid', async () => {
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor', withoutAccreditation: true }
     ])

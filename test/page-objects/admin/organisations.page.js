@@ -1,5 +1,4 @@
 import { AdminPage } from 'page-objects/admin/page'
-import { $, $$ } from '@wdio/globals'
 
 class OrganisationsPage extends AdminPage {
   open() {
@@ -7,58 +6,66 @@ class OrganisationsPage extends AdminPage {
   }
 
   async getTableData() {
-    return await $$('table.govuk-table tbody tr').map(async (row) => {
-      const header = await row.$('th.govuk-table__header')
-      const orgId = await row.$('td:nth-child(2)')
-      const regNo = await row.$('td:nth-child(3)')
-      const regulator = await row.$('td:nth-child(4)')
-      const status = await row.$('td:nth-child(5)')
-      return {
-        header: await header.getText(),
-        orgId: await orgId.getText(),
-        regNo: await regNo.getText(),
-        regulator: await regulator.getText(),
-        status: await status.getText()
-      }
-    })
+    const rows = this.page.locator('table.govuk-table tbody tr')
+    const count = await rows.count()
+    const data = []
+
+    for (let i = 0; i < count; i++) {
+      const row = rows.nth(i)
+      data.push({
+        header: await row.locator('th.govuk-table__header').innerText(),
+        orgId: await row.locator('td:nth-child(2)').innerText(),
+        regNo: await row.locator('td:nth-child(3)').innerText(),
+        regulator: await row.locator('td:nth-child(4)').innerText(),
+        status: await row.locator('td:nth-child(5)').innerText()
+      })
+    }
+
+    return data
   }
 
   async viewLink(row) {
-    await $(
-      `main table tbody tr:nth-child(${row}) td:nth-child(6) a:nth-of-type(1)`
-    ).click()
+    await this.page
+      .locator(
+        `main table tbody tr:nth-child(${row}) td:nth-child(6) a:nth-of-type(1)`
+      )
+      .click()
   }
 
   async editLink(row) {
-    await $(
-      `#main-content > div > div > div > table > tbody > tr:nth-child(${row}) > td:nth-child(6) > a:nth-of-type(2)`
-    ).click()
+    await this.page
+      .locator(
+        `#main-content > div > div > div > table > tbody > tr:nth-child(${row}) > td:nth-child(6) > a:nth-of-type(2)`
+      )
+      .click()
   }
 
   async searchFor(orgName) {
-    await $('#search').setValue(orgName)
-    await $('button[type=submit]').click()
+    await this.page.locator('#search').fill(orgName)
+    await this.page.locator('button[type=submit]').click()
   }
 
   async searchResult() {
-    const elem = $('#main-content > div:nth-child(2) > div > div > h2')
-    return await elem.getText()
+    return this.page
+      .locator('#main-content > div:nth-child(2) > div > div > h2')
+      .innerText()
   }
 
   async getSuccessMessage() {
-    const successElem = $('#organisation-success-message')
-    return await successElem.getText()
+    return this.page.locator('#organisation-success-message').innerText()
   }
 
   async clearSearch() {
-    await $(
-      '#main-content > div:nth-child(1) > div > form > div.govuk-button-group > a'
-    ).click()
+    await this.page
+      .locator(
+        '#main-content > div:nth-child(1) > div > form > div.govuk-button-group > a'
+      )
+      .click()
   }
 
   async getPermissionText() {
-    return await $('#main-content > div > div > p').getText()
+    return this.page.locator('#main-content > div > div > p').innerText()
   }
 }
 
-export default new OrganisationsPage()
+export { OrganisationsPage }

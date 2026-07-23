@@ -1,9 +1,9 @@
-import { browser, expect } from '@wdio/globals'
-import HomePage from 'page-objects/homepage.js'
-import UploadSummaryLogPage from '../page-objects/upload.summary.log.page.js'
-import CheckSummaryLogPage from '../page-objects/check.summary.log.page.js'
-import WasteRecordsPage from '../page-objects/waste.records.page.js'
-import DashboardPage from '../page-objects/dashboard.page.js'
+import { test, expect } from '@playwright/test'
+import { HomePage } from 'page-objects/homepage.js'
+import { UploadSummaryLogPage } from '../page-objects/upload.summary.log.page.js'
+import { CheckSummaryLogPage } from '../page-objects/check.summary.log.page.js'
+import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
+import { DashboardPage } from '../page-objects/dashboard.page.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude
@@ -31,8 +31,16 @@ const FURTHER_ACTION_HEADING = 'Further action needed'
 // assert the check page's sub-state/accordion/projection content).
 const ADJUSTED_ADDED_HEADING = 'This load has added to your waste balance'
 
-describe('Summary Logs Exporter', () => {
-  it('Should be able to submit a Exporter Summary Log spreadsheet, with no closed-period messaging @exporter @closedPeriodMessaging', async () => {
+test.describe('Summary Logs Exporter', () => {
+  test('Should be able to submit a Exporter Summary Log spreadsheet, with no closed-period messaging @exporter @closedPeriodMessaging', async ({
+    page
+  }) => {
+    const homePage = new HomePage(page)
+    const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+    const checkSummaryLogPage = new CheckSummaryLogPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const dashboardPage = new DashboardPage(page)
+
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
@@ -62,30 +70,34 @@ describe('Summary Logs Exporter', () => {
       [124, 183, 512, 876]
     )
 
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
+    await createLinkAndLogin(
+      page,
+      organisationDetails.refNo,
+      migrationResponse.email
+    )
 
-    await DashboardPage.selectExportingTab()
-    await DashboardPage.selectLink(1)
+    await dashboardPage.selectExportingTab()
+    await dashboardPage.selectLink(1)
 
     // Single-registration orgs skip the selection list, so the reg/acc
     // numbers render as plain text on the task page, not as links.
-    await checkBodyText('E25SR500030913PA', 10)
-    await checkBodyText('ACC234567', 10)
+    await checkBodyText(page, 'E25SR500030913PA', 10)
+    await checkBodyText(page, 'ACC234567', 10)
 
-    await WasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink()
 
-    await UploadSummaryLogPage.uploadFile('resources/exporter.xlsx')
-    await UploadSummaryLogPage.continue()
+    await uploadSummaryLogPage.uploadFile('resources/exporter.xlsx')
+    await uploadSummaryLogPage.continue()
 
-    await checkBodyText('Your summary log is being checked', 30)
-    await checkBodyText('Upload your summary log', 60)
-    await checkBodyText('Open periods: new loads', 30)
+    await checkBodyText(page, 'Your summary log is being checked', 30)
+    await checkBodyText(page, 'Upload your summary log', 60)
+    await checkBodyText(page, 'Open periods: new loads', 30)
 
     // Merged from summarylogs.check.cma.sections.e2e.js's noClosedSection
     // case (same org/upload setup, duplicated purely to assert the check
     // page's sub-state content and the absence of closed-period sections).
     const stage1SubStates = (
-      await CheckSummaryLogPage.allSubStateHeadings()
+      await checkSummaryLogPage.allSubStateHeadings()
     ).join(' | ')
     expect(stage1SubStates).toContain(
       '2 new loads will be recorded (and will add to your waste balance)'
@@ -93,59 +105,63 @@ describe('Summary Logs Exporter', () => {
     expect(stage1SubStates).toContain(
       '1 new load will be recorded (but will NOT add to your waste balance)'
     )
-    const stage1BodyText = await browser.execute(() => document.body.innerText)
+    const stage1BodyText = await page.evaluate(() => document.body.innerText)
     expect(stage1BodyText).toContain(
       'The new loads will add 30.00 tonnes to your waste balance.'
     )
-    await checkBodyTextDoesNotInclude('Closed periods: new loads', 5)
-    await checkBodyTextDoesNotInclude('Closed periods: adjusted loads', 5)
+    await checkBodyTextDoesNotInclude(page, 'Closed periods: new loads', 5)
+    await checkBodyTextDoesNotInclude(page, 'Closed periods: adjusted loads', 5)
 
     // No closed-period adjustments in this upload, so the "Important" banner
     // shown on the check page for closed-period changes must not appear.
-    expect(await CheckSummaryLogPage.importantBanner().isExisting()).toBe(false)
-    await checkBodyTextDoesNotInclude(IMPORTANT_BODY, 5)
+    expect((await checkSummaryLogPage.importantBanner().count()) > 0).toBe(
+      false
+    )
+    await checkBodyTextDoesNotInclude(page, IMPORTANT_BODY, 5)
 
-    await CheckSummaryLogPage.upload()
+    await checkSummaryLogPage.upload()
 
-    await checkBodyText('Your waste records are being updated', 30)
+    await checkBodyText(page, 'Your waste records are being updated', 30)
 
-    await checkBodyText('Summary log uploaded', 30)
-    await checkBodyText('Your updated waste balance', 10)
-    await checkBodyText('30.00 tonnes', 10)
+    await checkBodyText(page, 'Summary log uploaded', 30)
+    await checkBodyText(page, 'Your updated waste balance', 10)
+    await checkBodyText(page, '30.00 tonnes', 10)
 
     // Same closed-period-adjustment absence, this time on the success page's
     // "Further action needed" section and "Go to reports" button.
-    await checkBodyTextDoesNotInclude(FURTHER_ACTION_HEADING, 5)
-    expect(await UploadSummaryLogPage.goToReportsButton().isExisting()).toBe(
+    await checkBodyTextDoesNotInclude(page, FURTHER_ACTION_HEADING, 5)
+    expect((await uploadSummaryLogPage.goToReportsButton().count()) > 0).toBe(
       false
     )
 
-    await UploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.clickOnReturnToHomePage()
 
-    await DashboardPage.selectExportingTab()
+    await dashboardPage.selectExportingTab()
 
-    let availableWasteBalance = await DashboardPage.availableWasteBalance(1)
+    let availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe('30.00')
 
-    await DashboardPage.selectLink(1)
-    const wasteBalanceAmount = await WasteRecordsPage.wasteBalanceAmount()
+    await dashboardPage.selectLink(1)
+    const wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
 
     expect(wasteBalanceAmount).toBe('30.00 tonnes')
 
-    await WasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink()
 
-    await UploadSummaryLogPage.uploadFile('resources/exporter-adjustments.xlsx')
-    await UploadSummaryLogPage.continue()
+    await uploadSummaryLogPage.uploadFile('resources/exporter-adjustments.xlsx')
+    await uploadSummaryLogPage.continue()
 
-    await checkBodyText('Your summary log is being checked', 30)
-    await checkBodyText('Upload your summary log', 60)
-    await checkBodyText('Open periods: new loads', 30)
+    await checkBodyText(page, 'Your summary log is being checked', 30)
+    await checkBodyText(page, 'Upload your summary log', 60)
+    await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(
+      page,
       '3 new loads will be recorded (and will add to your waste balance)',
       30
     )
-    await checkBodyText('Open periods: adjusted loads', 30)
+    await checkBodyText(page, 'Open periods: adjusted loads', 30)
     await checkBodyText(
+      page,
       '1 adjusted load will be recorded (and will reflect in your waste balance)',
       30
     )
@@ -153,7 +169,7 @@ describe('Summary Logs Exporter', () => {
     // Merged from summarylogs.check.cma.adjusted-loads.e2e.js's openAdjusted
     // case (same org/upload setup, duplicated purely to assert the check
     // page's sub-state/accordion content and pre-submit balance projection).
-    const sections = await CheckSummaryLogPage.allSectionHeadings()
+    const sections = await checkSummaryLogPage.allSectionHeadings()
     expect(sections).toEqual(
       expect.arrayContaining([
         'Open periods: new loads',
@@ -161,7 +177,7 @@ describe('Summary Logs Exporter', () => {
       ])
     )
     const stage2SubStates = (
-      await CheckSummaryLogPage.allSubStateHeadings()
+      await checkSummaryLogPage.allSubStateHeadings()
     ).join(' | ')
     expect(stage2SubStates).toContain(
       '1 new load will be recorded (but will NOT add to your waste balance)'
@@ -172,10 +188,11 @@ describe('Summary Logs Exporter', () => {
     // Guard on the projection (renders last, at page bottom) so the raw read
     // below isn't taken mid-parse; the expect()s keep the value diagnostics.
     await checkBodyText(
+      page,
       'If you upload this summary log to create a new report, your waste balance will be 139.00 (from 30.00)',
       10
     )
-    const stage2BodyText = await browser.execute(() => document.body.innerText)
+    const stage2BodyText = await page.evaluate(() => document.body.innerText)
     expect(stage2BodyText).toContain(
       'The new loads will add 99.00 tonnes to your waste balance.'
     )
@@ -187,28 +204,28 @@ describe('Summary Logs Exporter', () => {
     )
     expect(stage2BodyText).toContain('depending on the adjustment.')
 
-    await CheckSummaryLogPage.expandAllLoadDetails()
-    const rows = await CheckSummaryLogPage.loadRowItems()
+    await checkSummaryLogPage.expandAllLoadDetails()
+    const rows = await checkSummaryLogPage.loadRowItems()
     expect(rows.some((r) => r.includes('Row ID'))).toBe(true)
-    const detailsText = await CheckSummaryLogPage.loadDetailsText()
+    const detailsText = await checkSummaryLogPage.loadDetailsText()
     expect(detailsText).toContain(ADJUSTED_ADDED_HEADING)
 
-    await CheckSummaryLogPage.upload()
+    await checkSummaryLogPage.upload()
 
-    await checkBodyText('Your waste records are being updated', 30)
+    await checkBodyText(page, 'Your waste records are being updated', 30)
 
-    await checkBodyText('Summary log uploaded', 30)
-    await checkBodyText('Your updated waste balance', 10)
-    await checkBodyText('139.00 tonnes', 10)
+    await checkBodyText(page, 'Summary log uploaded', 30)
+    await checkBodyText(page, 'Your updated waste balance', 10)
+    await checkBodyText(page, '139.00 tonnes', 10)
 
-    await UploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.clickOnReturnToHomePage()
 
-    await DashboardPage.selectExportingTab()
+    await dashboardPage.selectExportingTab()
 
-    availableWasteBalance = await DashboardPage.availableWasteBalance(1)
+    availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe('139.00')
 
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 })

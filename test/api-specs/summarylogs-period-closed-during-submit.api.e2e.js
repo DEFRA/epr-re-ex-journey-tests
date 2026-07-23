@@ -1,3 +1,4 @@
+import { test } from '@playwright/test'
 import { expect } from 'chai'
 import { readFile } from 'node:fs/promises'
 import { BaseAPI } from '../apis/base-api.js'
@@ -28,10 +29,10 @@ const SUBMISSION_NUMBER = 1
 // HTTP, matching every other file in test/api-specs/). Everything reachable
 // via the HTTP API is covered; the DB-level assertion would need a Mongo
 // client added to this layer first.
-describe('Summary log submit blocked by period-closed-during-submit guard @summaryLogPeriodClosedDuringSubmit', () => {
+test.describe('Summary log submit blocked by period-closed-during-submit guard @summaryLogPeriodClosedDuringSubmit', () => {
   const baseAPI = new BaseAPI()
 
-  it('blocks submission when a report closes the period after validation @summaryLogPeriodClosedGuard', async () => {
+  test('blocks submission when a report closes the period after validation @summaryLogPeriodClosedGuard', async () => {
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor' }
     ])

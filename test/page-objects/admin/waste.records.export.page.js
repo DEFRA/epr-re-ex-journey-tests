@@ -10,4 +10,4 @@ class WasteRecordsExportPage extends AdminPage {
   }
 }
 
-export default new WasteRecordsExportPage()
+export { WasteRecordsExportPage }

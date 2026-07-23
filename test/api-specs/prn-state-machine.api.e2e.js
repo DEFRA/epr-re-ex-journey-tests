@@ -1,3 +1,4 @@
+import { test } from '@playwright/test'
 import { expect } from 'chai'
 import { AuthClient } from '../support/auth.js'
 import { BaseAPI } from '../apis/base-api.js'
@@ -123,14 +124,14 @@ async function updateAccreditationStatus(baseAPI, authClient, refNo, status) {
   )
 }
 
-describe('PRN state machine @prnStateMachine', () => {
+test.describe('PRN state machine @prnStateMachine', () => {
   let ctx
 
-  before(async () => {
+  test.beforeAll(async () => {
     ctx = await setUpAccreditedReprocessorWithBalance()
   })
 
-  it('rejects a self-transition from draft to draft @prnDraftToDraftRejected', async () => {
+  test('rejects a self-transition from draft to draft @prnDraftToDraftRejected', async () => {
     const { prnPath } = await createPrn(
       ctx.baseAPI,
       ctx.org.refNo,
@@ -152,7 +153,7 @@ describe('PRN state machine @prnStateMachine', () => {
     expect(body.message).to.equal('No transition exists from draft to draft')
   })
 
-  it('discards a draft PRN without touching the waste balance, then blocks further transitions @prnDiscardFlow', async () => {
+  test('discards a draft PRN without touching the waste balance, then blocks further transitions @prnDiscardFlow', async () => {
     const { prnPath } = await createPrn(
       ctx.baseAPI,
       ctx.org.refNo,
@@ -195,7 +196,7 @@ describe('PRN state machine @prnStateMachine', () => {
     )
   })
 
-  it('rejects issuance when the requested tonnage exceeds the available waste balance @prnInsufficientBalance', async () => {
+  test('rejects issuance when the requested tonnage exceeds the available waste balance @prnInsufficientBalance', async () => {
     const { prnPath } = await createPrn(
       ctx.baseAPI,
       ctx.org.refNo,
@@ -217,7 +218,7 @@ describe('PRN state machine @prnStateMachine', () => {
     expect(body.message).to.equal('Insufficient available waste balance')
   })
 
-  it('deletes a PRN awaiting authorisation, crediting the balance back, then blocks further transitions @prnDeleteFlow', async () => {
+  test('deletes a PRN awaiting authorisation, crediting the balance back, then blocks further transitions @prnDeleteFlow', async () => {
     const { prnPath } = await createPrn(
       ctx.baseAPI,
       ctx.org.refNo,
@@ -256,7 +257,7 @@ describe('PRN state machine @prnStateMachine', () => {
     )
   })
 
-  it('issues a PRN through to external acceptance, rejecting a second acceptance @prnIssueAndAcceptFlow', async () => {
+  test('issues a PRN through to external acceptance, rejecting a second acceptance @prnIssueAndAcceptFlow', async () => {
     const { prnId, prnPath } = await createPrn(
       ctx.baseAPI,
       ctx.org.refNo,
@@ -320,7 +321,7 @@ describe('PRN state machine @prnStateMachine', () => {
     )
   })
 
-  it('rejects a PRN through to cancellation @prnRejectAndCancelFlow', async () => {
+  test('rejects a PRN through to cancellation @prnRejectAndCancelFlow', async () => {
     const { prnPath } = await createPrn(
       ctx.baseAPI,
       ctx.org.refNo,
@@ -357,7 +358,7 @@ describe('PRN state machine @prnStateMachine', () => {
     expect(cancelResponse.statusCode).to.equal(200)
   })
 
-  it('lists PRNs created for the accreditation @prnListing', async () => {
+  test('lists PRNs created for the accreditation @prnListing', async () => {
     await createPrn(
       ctx.baseAPI,
       ctx.org.refNo,
@@ -385,7 +386,7 @@ describe('PRN state machine @prnStateMachine', () => {
   // mocha preserves declaration order within a describe block, so this is
   // safe as long as nothing above depends on the accreditation still being
   // plain 'approved'.
-  it('blocks issuance (but not creation) once the accreditation is suspended @prnSuspendedAccreditationBlocksIssuance', async () => {
+  test('blocks issuance (but not creation) once the accreditation is suspended @prnSuspendedAccreditationBlocksIssuance', async () => {
     const suspendResponse = await updateAccreditationStatus(
       ctx.baseAPI,
       ctx.authClient,
@@ -424,7 +425,7 @@ describe('PRN state machine @prnStateMachine', () => {
     )
   })
 
-  it('blocks both issuance and creation once the accreditation is cancelled @prnCancelledAccreditationBlocksBoth', async () => {
+  test('blocks both issuance and creation once the accreditation is cancelled @prnCancelledAccreditationBlocksBoth', async () => {
     const cancelResponse = await updateAccreditationStatus(
       ctx.baseAPI,
       ctx.authClient,
@@ -452,7 +453,7 @@ describe('PRN state machine @prnStateMachine', () => {
     )
   })
 
-  it('allows PRN creation again once the accreditation is re-approved @prnReapprovedAccreditationUnlocksCreation', async () => {
+  test('allows PRN creation again once the accreditation is re-approved @prnReapprovedAccreditationUnlocksCreation', async () => {
     const approveResponse = await updateAccreditationStatus(
       ctx.baseAPI,
       ctx.authClient,

@@ -1,23 +1,26 @@
-import { $, browser, expect } from '@wdio/globals'
+import { test, expect } from '@playwright/test'
 
-import LoginPage from 'page-objects/admin/login.page'
-import OrganisationsPage from 'page-objects/admin/organisations.page'
+import { AdminLoginPage } from 'page-objects/admin/login.page'
+import { OrganisationsPage } from 'page-objects/admin/organisations.page'
 
-describe('Signin redirect tests @signinredirect', () => {
-  it('Should be redirected to the originally requested page and not redirected to the home page', async () => {
-    await OrganisationsPage.open()
-    await expect(browser).toHaveTitle(expect.stringContaining('Organisations'))
+test.describe('Signin redirect tests @signinredirect', () => {
+  test('Should be redirected to the originally requested page and not redirected to the home page', async ({
+    page
+  }) => {
+    const loginPage = new AdminLoginPage(page)
+    const organisationsPage = new OrganisationsPage(page)
 
-    await $('=Sign in').click()
+    await organisationsPage.open()
+    await expect(page).toHaveTitle(/Organisations/)
 
-    await LoginPage.enterCredentials('ea@test.gov.uk', 'pass')
-    await LoginPage.submitCredentials()
+    await page.getByRole('link', { name: 'Sign in', exact: true }).click()
 
-    const orgTableHeader = await OrganisationsPage.getHeaderText()
+    await loginPage.enterCredentials('ea@test.gov.uk', 'pass')
+    await loginPage.submitCredentials()
+
+    const orgTableHeader = await organisationsPage.getHeaderText()
     expect(orgTableHeader).toBe('All organisations')
 
-    await expect($('body')).not.toHaveText(
-      expect.stringContaining('This is the home page.')
-    )
+    await expect(page.locator('body')).not.toHaveText(/This is the home page\./)
   })
 })

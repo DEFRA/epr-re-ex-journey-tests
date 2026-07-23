@@ -1,4 +1,4 @@
-import { browser, expect } from '@wdio/globals'
+import { test, expect } from '@playwright/test'
 
 /** @typedef {{ status: number, contentType: string | null, contentDisposition: string | null, body: string }} CsvResponse */
 
@@ -8,14 +8,14 @@ import {
   createSubmittedReport
 } from '../../support/apicalls.js'
 import { parseCsvRows } from '../../support/csv.js'
-import LoginPage from 'page-objects/admin/login.page'
-import Navigation from 'page-objects/admin/navigation.page'
-import ReportSubmissionsPage from 'page-objects/admin/report.submissions.page'
+import { AdminLoginPage } from 'page-objects/admin/login.page'
+import { Navigation } from 'page-objects/admin/navigation.page'
+import { ReportSubmissionsPage } from 'page-objects/admin/report.submissions.page'
 
-describe('Report Submissions page', () => {
+test.describe('Report Submissions page', () => {
   let orgName
 
-  before(async () => {
+  test.beforeAll(async () => {
     const { refNo, organisation } = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
@@ -33,49 +33,61 @@ describe('Report Submissions page', () => {
     await createSubmittedReport(refNo)
   })
 
-  it('Should be able to download Report Submissions if logged in @reportsubmissions', async () => {
-    await LoginPage.open()
-    await expect(browser).toHaveTitle(expect.stringContaining('Login'))
-    await LoginPage.enterCredentials('ea@test.gov.uk', 'pass')
-    await LoginPage.submitCredentials()
+  // Each test logs in independently - Playwright doesn't carry a browser
+  // session between tests the way WDIO's shared session did.
+  test.beforeEach(async ({ page }) => {
+    const loginPage = new AdminLoginPage(page)
+    await loginPage.loginAsServiceMaintainer()
+  })
 
-    await Navigation.clickOnLink('Report submissions')
+  test('Should be able to download Report Submissions if logged in @reportsubmissions', async ({
+    page
+  }) => {
+    const navigation = new Navigation(page)
+    const reportSubmissionsPage = new ReportSubmissionsPage(page)
+
+    await navigation.clickOnLink('Report submissions')
 
     const csv = /** @type {CsvResponse} */ (
-      /** @type {unknown} */ (await ReportSubmissionsPage.fetchCsv())
+      /** @type {unknown} */ (await reportSubmissionsPage.fetchCsv())
     )
-    await expect(csv.status).toEqual(200)
-    await expect(csv.contentType).toContain('text/csv')
-    await expect(csv.contentDisposition).toContain('attachment')
-    await expect(csv.body).toContain('Organisation name')
-    await expect(csv.body).toContain('Tonnage received for recycling')
-    await expect(csv.body).toContain(orgName)
+    expect(csv.status).toEqual(200)
+    expect(csv.contentType).toContain('text/csv')
+    expect(csv.contentDisposition).toContain('attachment')
+    expect(csv.body).toContain('Organisation name')
+    expect(csv.body).toContain('Tonnage received for recycling')
+    expect(csv.body).toContain(orgName)
 
     const orgRow = parseCsvRows(csv.body).findLast(
       (row) => row['Organisation name'] === orgName
     )
-    await expect(orgRow).toBeDefined()
+    expect(orgRow).toBeDefined()
     if (!orgRow) {
       throw new Error('Organisation row not found')
     }
-    await expect(orgRow['Submitted Date']).toBeTruthy()
-    await expect(orgRow['Submitted By']).toBeTruthy()
-    await expect(orgRow['Tonnage recycled']).toBeTruthy()
+    expect(orgRow['Submitted Date']).toBeTruthy()
+    expect(orgRow['Submitted By']).toBeTruthy()
+    expect(orgRow['Tonnage recycled']).toBeTruthy()
   })
 
-  it('should include all expected column headers in the CSV download @reportsubmissions', async () => {
-    await Navigation.clickOnLink('Report submissions')
+  test('should include all expected column headers in the CSV download @reportsubmissions', async ({
+    page
+  }) => {
+    const navigation = new Navigation(page)
+    const reportSubmissionsPage = new ReportSubmissionsPage(page)
+
+    await navigation.clickOnLink('Report submissions')
 
     const csv = /** @type {CsvResponse} */ (
-      /** @type {unknown} */ (await ReportSubmissionsPage.fetchCsv())
+      /** @type {unknown} */ (await reportSubmissionsPage.fetchCsv())
     )
-    await expect(csv.status).toEqual(200)
+    expect(csv.status).toEqual(200)
 
     const rows = csv.body
       .split(/\r?\n/)
       .filter((line) => line.trim().length > 0)
     const headerIndex = rows.findIndex((row) => row.startsWith('Regulator,'))
-    await expect(headerIndex).toBeGreaterThanOrEqual(0)
+    expect(headerIndex).toBeGreaterThanOrEqual(0)
 
     const headerRow = rows[headerIndex]
     const expectedHeaders = [
@@ -113,7 +125,7 @@ describe('Report Submissions page', () => {
     ]
 
     for (const header of expectedHeaders) {
-      await expect(headerRow).toContain(header)
+      expect(headerRow).toContain(header)
     }
   })
 })

@@ -1,8 +1,8 @@
-import { browser, expect } from '@wdio/globals'
-import HomePage from 'page-objects/homepage.js'
-import ReportCheckAnswersPage from 'page-objects/reports/report.check.answers.page.js'
-import ReportDetailPage from 'page-objects/reports/report.detail.page.js'
-import ReportsPage from 'page-objects/reports/reports.page.js'
+import { test, expect } from '@playwright/test'
+import { HomePage } from 'page-objects/homepage.js'
+import { ReportCheckAnswersPage } from 'page-objects/reports/report.check.answers.page.js'
+import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
+import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
@@ -17,7 +17,7 @@ import { uploadSummaryLogAndNavigateToReports } from '../support/report-navigati
 const REG_NUMBER = 'R25SR500010912PA'
 const ACC_NUMBER = 'R-ACC12145PA'
 
-const setupAccreditedReprocessor = async () => {
+const setupAccreditedReprocessor = async (page) => {
   const organisationDetails = await createLinkedOrganisation([
     { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
   ])
@@ -34,48 +34,56 @@ const setupAccreditedReprocessor = async () => {
     ]
   )
 
-  await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
+  await createLinkAndLogin(
+    page,
+    organisationDetails.refNo,
+    migrationResponse.email
+  )
 }
 
-describe('Incomplete report submit @incompleteReportBlock', () => {
-  before(async () => {
-    await setupAccreditedReprocessor()
+test.describe('Incomplete report submit @incompleteReportBlock', () => {
+  test('rejects submit on check-your-answers when manual fields are unpopulated @incompleteReportBlockReprocessor', async ({
+    page
+  }) => {
+    const homePage = new HomePage(page)
+    const reportsPage = new ReportsPage(page)
+    const reportDetailPage = new ReportDetailPage(page)
+    const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
+
+    await setupAccreditedReprocessor(page)
     await uploadSummaryLogAndNavigateToReports(
+      page,
       `resources/sanity/reprocessorOutput_${ACC_NUMBER}_${REG_NUMBER}.xlsx`
     )
-  })
 
-  after(async () => {
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
-  })
-
-  it('rejects submit on check-your-answers when manual fields are unpopulated @incompleteReportBlockReprocessor', async () => {
     // Start the report — creates it in `in_progress` with null manual fields
     // (tonnageRecycled, tonnageNotRecycled, prn.totalRevenue, prn.freeTonnage).
-    await ReportsPage.selectActiveActionLink(1)
-    await ReportDetailPage.useThisData()
+    await reportsPage.selectActiveActionLink(1)
+    await reportDetailPage.useThisData()
 
     // Navigate straight to check-your-answers, skipping every data-entry page.
-    const currentUrl = await browser.getUrl()
+    const currentUrl = page.url()
     const periodBase = currentUrl.split('/reports/')[0] + '/reports/'
     const periodPath = currentUrl
       .split('/reports/')[1]
       .split('/')
       .slice(0, 5)
       .join('/')
-    await browser.url(`${periodBase}${periodPath}/check-your-answers`)
+    await page.goto(`${periodBase}${periodPath}/check-your-answers`)
 
-    const checkHeading = await ReportCheckAnswersPage.headingText()
+    const checkHeading = await reportCheckAnswersPage.headingText()
     expect(checkHeading).toBe(
       'Check your answers before you create this draft report'
     )
 
     // Click "Create draft report" — BE returns 400, FE surfaces the generic
     // error page. The happy-path confirmation text is absent.
-    await ReportCheckAnswersPage.createReport()
+    await reportCheckAnswersPage.createReport()
 
-    await checkBodyText('Bad request', 10)
-    await checkBodyTextDoesNotInclude('report created', 10)
+    await checkBodyText(page, 'Bad request', 10)
+    await checkBodyTextDoesNotInclude(page, 'report created', 10)
+
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 })

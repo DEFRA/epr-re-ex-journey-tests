@@ -1,0 +1,21 @@
+userName: ${BROWSERSTACK_USER}
+accessKey: ${BROWSERSTACK_KEY}
+
+projectName: cdp-node-env-test-suite
+buildName: ${BROWSERSTACK_BUILD_NAME}
+buildIdentifier: '#${DATE_TIME}'
+
+platforms:
+  - os: Windows
+    osVersion: '11'
+    browserName: chrome
+    browserVersion: latest
+    playwrightConfigOptions:
+      name: windows11:chrome
+
+browserstackLocal: true
+browserStackLocalOptions:
+  forceLocal: false
+  onlyAutomate: true
+
+acceptSslCerts: true

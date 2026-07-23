@@ -1,13 +1,15 @@
-import { $ } from '@wdio/globals'
-
 class ConfirmationPage {
+  constructor(page) {
+    this.page = page
+  }
+
   async goToReports() {
-    await $('a*=Go to reports').click()
+    await this.page.getByRole('link', { name: 'Go to reports' }).click()
   }
 
   async viewDraftReport() {
-    await $('a*=View draft report').click()
+    await this.page.getByRole('link', { name: 'View draft report' }).click()
   }
 }
 
-export default new ConfirmationPage()
+export { ConfirmationPage }

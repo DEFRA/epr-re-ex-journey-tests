@@ -1,24 +1,24 @@
-/// <reference types="@wdio/globals/types" />
-import { browser, $ } from '@wdio/globals'
+import { expect } from '@playwright/test'
 import { Page } from 'page-objects/page'
 
 class CheckBeforeCreatingPRNPage extends Page {
   async headingText() {
-    const element = await $('h1.govuk-heading-xl')
-    await browser.waitUntil(
-      async () => (await element.getText()).includes('Check before'),
-      { timeout: 10000 }
-    )
-    return await element.getText()
+    const element = this.page.locator('h1.govuk-heading-xl')
+    await expect
+      .poll(() => element.innerText(), { timeout: 10000 })
+      .toContain('Check before')
+    return element.innerText()
   }
 
   async createPRN() {
-    await $('#main-content button[type=submit]').click()
+    await this.page.locator('#main-content button[type=submit]').click()
   }
 
   async discardAndStartAgain() {
-    await $('a=Discard and start again').click()
+    await this.page
+      .getByRole('link', { name: 'Discard and start again', exact: true })
+      .click()
   }
 }
 
-export default new CheckBeforeCreatingPRNPage()
+export { CheckBeforeCreatingPRNPage }

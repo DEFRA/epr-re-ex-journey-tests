@@ -1,3 +1,4 @@
+import { test } from '@playwright/test'
 import { expect } from 'chai'
 import { readFile } from 'node:fs/promises'
 import { BaseAPI } from '../apis/base-api.js'
@@ -57,10 +58,10 @@ async function uploadAndValidate(baseAPI, refNo, registrationId, authHeader) {
   return { summaryLogId, summaryLogPath }
 }
 
-describe('Summary log staleness detection @summaryLogStaleness', () => {
+test.describe('Summary log staleness detection @summaryLogStaleness', () => {
   const baseAPI = new BaseAPI()
 
-  it('rejects a stale preview at submission time, marking it superseded @summaryLogStalePreviewRejected', async () => {
+  test('rejects a stale preview at submission time, marking it superseded @summaryLogStalePreviewRejected', async () => {
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor' }
     ])

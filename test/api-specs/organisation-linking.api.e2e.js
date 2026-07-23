@@ -1,3 +1,4 @@
+import { test } from '@playwright/test'
 import { expect } from 'chai'
 import { AuthClient } from '../support/auth.js'
 import { BaseAPI } from '../apis/base-api.js'
@@ -39,15 +40,15 @@ async function registerAuthorisedUser(email) {
   return user
 }
 
-describe('Organisation linking/unlinking negative paths @organisationLinking', () => {
+test.describe('Organisation linking/unlinking negative paths @organisationLinking', () => {
   const baseAPI = new BaseAPI()
   const authClient = new AuthClient()
 
-  before(async () => {
+  test.beforeAll(async () => {
     await authClient.authenticate()
   })
 
-  it('rejects linking when the registration is not yet approved @orgLinkNotLinkable', async () => {
+  test('rejects linking when the registration is not yet approved @orgLinkNotLinkable', async () => {
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor' }
     ])
@@ -72,7 +73,7 @@ describe('Organisation linking/unlinking negative paths @organisationLinking', (
     expect(body.message).to.equal('Organisation is not in a linkable state')
   })
 
-  it('allows re-linking after unlinking @orgLinkRelinkAfterUnlink', async () => {
+  test('allows re-linking after unlinking @orgLinkRelinkAfterUnlink', async () => {
     const { org, migrated } = await setUpApprovedReprocessor()
     const user = await createAndRegisterDefraIdUser(migrated.email)
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
@@ -91,7 +92,7 @@ describe('Organisation linking/unlinking negative paths @organisationLinking', (
     expect(relinkResponse.statusCode).to.equal(200)
   })
 
-  it('rejects unlinking an organisation that is not linked @orgUnlinkNotLinked', async () => {
+  test('rejects unlinking an organisation that is not linked @orgUnlinkNotLinked', async () => {
     const { org, migrated } = await setUpApprovedReprocessor()
     const user = await createAndRegisterDefraIdUser(migrated.email)
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
@@ -113,7 +114,7 @@ describe('Organisation linking/unlinking negative paths @organisationLinking', (
     )
   })
 
-  it('rejects a different user attempting to link an already-linked organisation @orgLinkDifferentUserRejected', async () => {
+  test('rejects a different user attempting to link an already-linked organisation @orgLinkDifferentUserRejected', async () => {
     const { org, migrated } = await setUpApprovedReprocessor()
     const firstUser = await createAndRegisterDefraIdUser(migrated.email)
     await linkDefraIdUser(org.refNo, firstUser.userId, migrated.email)
@@ -130,7 +131,7 @@ describe('Organisation linking/unlinking negative paths @organisationLinking', (
     expect(body.message).to.equal('Organisation is not in a linkable state')
   })
 
-  it('rejects re-linking the same user to an already-linked organisation @orgLinkAlreadyLinkedRejected', async () => {
+  test('rejects re-linking the same user to an already-linked organisation @orgLinkAlreadyLinkedRejected', async () => {
     const { org, migrated } = await setUpApprovedReprocessor()
     const user = await createAndRegisterDefraIdUser(migrated.email)
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
@@ -146,7 +147,7 @@ describe('Organisation linking/unlinking negative paths @organisationLinking', (
     expect(body.message).to.equal('Organisation is not in a linkable state')
   })
 
-  it('rejects a linked user accessing another organisation @orgCrossOrganisationAccessRejected', async () => {
+  test('rejects a linked user accessing another organisation @orgCrossOrganisationAccessRejected', async () => {
     const { org, migrated } = await setUpApprovedReprocessor()
     const user = await createAndRegisterDefraIdUser(migrated.email)
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
@@ -163,7 +164,7 @@ describe('Organisation linking/unlinking negative paths @organisationLinking', (
     expect(body.message).to.equal('Insufficient scope')
   })
 
-  it('rejects an unlinked user accessing a recently linked organisation @orgUnlinkedUserAccessRejected', async () => {
+  test('rejects an unlinked user accessing a recently linked organisation @orgUnlinkedUserAccessRejected', async () => {
     const { org, migrated } = await setUpApprovedReprocessor()
     const linkedUser = await createAndRegisterDefraIdUser(migrated.email)
     await linkDefraIdUser(org.refNo, linkedUser.userId, migrated.email)

@@ -1,26 +1,23 @@
-import { $, browser } from '@wdio/globals'
 import { Page } from 'page-objects/page'
 import config from '../../config/config.js'
 
-// epr-re-ex-admin-frontend is served separately from the global wdio
-// baseUrl (which points at epr-frontend), so build an absolute URL here
-// rather than letting browser.url() prepend baseUrl.
+// epr-re-ex-admin-frontend is served separately from the global Playwright
+// baseURL (which points at epr-frontend), so build an absolute URL here
+// rather than letting page.goto() prepend baseURL.
 class AdminPage extends Page {
   open(path) {
     return super.open(`${config.adminUri}${path}`)
   }
 
   async getHeaderText() {
-    const heading = $('#main-content h1.govuk-heading-xl')
-    await heading.waitForExist()
-    return heading.getText()
+    return this.page.locator('#main-content h1.govuk-heading-xl').innerText()
   }
 
   /**
    * @param {string} endpoint
    */
   async fetchCsv(endpoint) {
-    return browser.execute(async (/** @type {string} */ endpoint) => {
+    return this.page.evaluate(async (endpoint) => {
       const form = document.querySelector('#main-content form')
       if (!form) {
         throw new Error(`Export form not found at ${endpoint}`)

@@ -1,8 +1,8 @@
-import { browser, expect } from '@wdio/globals'
+import { test, expect } from '@playwright/test'
 
-import LoginPage from 'page-objects/admin/login.page'
-import Navigation from 'page-objects/admin/navigation.page'
-import PublicRegisterPage from 'page-objects/admin/public.register.page'
+import { AdminLoginPage } from 'page-objects/admin/login.page'
+import { Navigation } from 'page-objects/admin/navigation.page'
+import { PublicRegisterPage } from 'page-objects/admin/public.register.page'
 import {
   createLinkedOrganisation,
   createSubmittedReport,
@@ -27,14 +27,14 @@ const MONTH_ABBR = [
   'Dec'
 ]
 
-describe('Public Register page', () => {
+test.describe('Public Register page', () => {
   const regNumber = 'R25SR500030912PA'
   const accNumber = 'ACC123456'
   let orgId
   let orgName
   let report
 
-  before(async () => {
+  test.beforeAll(async () => {
     const linkedOrganisation = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
@@ -53,19 +53,25 @@ describe('Public Register page', () => {
     report = await createSubmittedReport(linkedOrganisation.refNo)
   })
 
-  it('Should be able to view Public Register if logged in @publicregister', async () => {
-    await LoginPage.open()
-    await expect(browser).toHaveTitle(expect.stringContaining('Login'))
-    await LoginPage.enterCredentials('ea@test.gov.uk', 'pass')
-    await LoginPage.submitCredentials()
+  test('Should be able to view Public Register if logged in @publicregister', async ({
+    page
+  }) => {
+    const loginPage = new AdminLoginPage(page)
+    const navigation = new Navigation(page)
+    const publicRegisterPage = new PublicRegisterPage(page)
 
-    await Navigation.clickOnLink('Public register')
+    await loginPage.open()
+    await expect(page).toHaveTitle(/Login/)
+    await loginPage.enterCredentials('ea@test.gov.uk', 'pass')
+    await loginPage.submitCredentials()
+
+    await navigation.clickOnLink('Public register')
     expect(
-      await PublicRegisterPage.downloadPublicRegisterButtonExistence()
+      await publicRegisterPage.downloadPublicRegisterButtonExistence()
     ).toBe(true)
-    await PublicRegisterPage.downloadPublicRegister()
+    await publicRegisterPage.downloadPublicRegister()
 
-    const csv = await PublicRegisterPage.fetchCsv()
+    const csv = await publicRegisterPage.fetchCsv()
     expect(csv.status).toEqual(200)
     expect(csv.contentType).toContain('text/csv')
     expect(csv.contentDisposition).toContain('attachment')

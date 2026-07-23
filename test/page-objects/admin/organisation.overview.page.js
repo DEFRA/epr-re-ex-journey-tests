@@ -1,57 +1,60 @@
 import { AdminPage } from 'page-objects/admin/page'
-import { $, $$ } from '@wdio/globals'
 
 class OrganisationOverviewPage extends AdminPage {
   async getRegistrationsTableData() {
-    return await $$('table.govuk-table tbody tr').map(async (row) => {
-      const registrationNumber = await row.$('td:nth-child(1)')
-      const registrationStatus = await row.$('td:nth-child(2)')
-      const processingType = await row.$('td:nth-child(3)')
-      const material = await row.$('td:nth-child(4)')
-      const site = await row.$('td:nth-child(5)')
-      const accreditationNumber = await row.$('td:nth-child(6)')
-      const accreditationStatus = await row.$('td:nth-child(7)')
-      return {
-        registrationNumber: await registrationNumber.getText(),
-        registrationStatus: await registrationStatus.getText(),
-        processingType: await processingType.getText(),
-        material: await material.getText(),
-        site: await site.getText(),
-        accreditationNumber: await accreditationNumber.getText(),
-        accreditationStatus: await accreditationStatus.getText()
-      }
-    })
+    const rows = this.page.locator('table.govuk-table tbody tr')
+    const count = await rows.count()
+    const data = []
+
+    for (let i = 0; i < count; i++) {
+      const row = rows.nth(i)
+      data.push({
+        registrationNumber: await row.locator('td:nth-child(1)').innerText(),
+        registrationStatus: await row.locator('td:nth-child(2)').innerText(),
+        processingType: await row.locator('td:nth-child(3)').innerText(),
+        material: await row.locator('td:nth-child(4)').innerText(),
+        site: await row.locator('td:nth-child(5)').innerText(),
+        accreditationNumber: await row.locator('td:nth-child(6)').innerText(),
+        accreditationStatus: await row.locator('td:nth-child(7)').innerText()
+      })
+    }
+
+    return data
   }
 
   async viewRegistrationLink(row) {
-    await $(
-      `main table tbody tr:nth-child(${row}) td:nth-child(8) a:nth-of-type(1)`
-    ).click()
+    await this.page
+      .locator(
+        `main table tbody tr:nth-child(${row}) td:nth-child(8) a:nth-of-type(1)`
+      )
+      .click()
   }
 
   async getDefraIdLinkText() {
-    const summary = $('#main-content .govuk-summary-list')
-    await summary.waitForExist()
-    return summary.getText()
+    return this.page.locator('#main-content .govuk-summary-list').innerText()
   }
 
   async isUnlinkButtonDisplayed() {
-    return $('a*=Unlink organisation').isExisting()
+    return (
+      (await this.page
+        .getByRole('link', { name: 'Unlink organisation' })
+        .count()) > 0
+    )
   }
 
   async clickUnlink() {
-    await $('a*=Unlink organisation').click()
+    await this.page.getByRole('link', { name: 'Unlink organisation' }).click()
   }
 
   async getNoLinkedOrganisationText() {
-    return $('p*=No linked organisation').getText()
+    return this.page
+      .locator('p', { hasText: 'No linked organisation' })
+      .innerText()
   }
 
   async getNotificationBannerText() {
-    const banner = $('.govuk-notification-banner')
-    await banner.waitForExist()
-    return banner.getText()
+    return this.page.locator('.govuk-notification-banner').innerText()
   }
 }
 
-export default new OrganisationOverviewPage()
+export { OrganisationOverviewPage }

@@ -1,3 +1,4 @@
+import { test } from '@playwright/test'
 import { expect } from 'chai'
 import {
   createAndRegisterDefraIdUser,
@@ -20,12 +21,12 @@ import {
 // docker/scripts/floci/init.sh) directly to the upload-completed callback,
 // so the real async validation worker produces genuine validation
 // failures/loads data - no CDP uploader multipart round-trip needed.
-describe('Summary log row-level validation @summaryLogValidation', () => {
+test.describe('Summary log row-level validation @summaryLogValidation', () => {
   let orgId
   let registrationId
   let authHeader
 
-  before(async () => {
+  test.beforeAll(async () => {
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor' },
       { wasteProcessingType: 'Exporter' },
@@ -68,7 +69,7 @@ describe('Summary log row-level validation @summaryLogValidation', () => {
     registrationId = migrated.registrationIds[0]
   })
 
-  it('fails validation (Fatal) for Invalid Row ID and cannot be submitted @summaryLogInvalidRowId', async () => {
+  test('fails validation (Fatal) for Invalid Row ID and cannot be submitted @summaryLogInvalidRowId', async () => {
     const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
       orgId,
       registrationId,
@@ -115,7 +116,7 @@ describe('Summary log row-level validation @summaryLogValidation', () => {
     )
   })
 
-  it('fails validation (Fatal) for Invalid Table name and cannot be submitted @summaryLogInvalidTableName', async () => {
+  test('fails validation (Fatal) for Invalid Table name and cannot be submitted @summaryLogInvalidTableName', async () => {
     const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
       orgId,
       registrationId,
@@ -149,7 +150,7 @@ describe('Summary log row-level validation @summaryLogValidation', () => {
     )
   })
 
-  it('accepts upload and marks as invalid when summary log validation fails @summaryLogUploadCompletedInvalid', async () => {
+  test('accepts upload and marks as invalid when summary log validation fails @summaryLogUploadCompletedInvalid', async () => {
     // NOT covered: the source's DB-level assertion that the summary log
     // document itself was created with matching file/status fields - this
     // API test layer has no MongoDB client wired up (HTTP-only throughout
@@ -178,7 +179,7 @@ describe('Summary log row-level validation @summaryLogValidation', () => {
     ])
   })
 
-  it('processes with pending status and all required fields @summaryLogUploadCompletedPending', async () => {
+  test('processes with pending status and all required fields @summaryLogUploadCompletedPending', async () => {
     // NOT covered: the source's structured-log-message assertion and its DB
     // check - no log capture or MongoDB client wired up in this layer.
     const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
@@ -200,7 +201,7 @@ describe('Summary log row-level validation @summaryLogValidation', () => {
     expect(responseData.status).to.equal('preprocessing')
   })
 
-  it('processes with rejected status with all required fields @summaryLogUploadCompletedRejected', async () => {
+  test('processes with rejected status with all required fields @summaryLogUploadCompletedRejected', async () => {
     // NOT covered: same log-message/DB gap as the pending-status case above.
     const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
       orgId,
@@ -234,7 +235,7 @@ describe('Summary log row-level validation @summaryLogValidation', () => {
   // image is genuinely behind that checkout despite its git.hash label
   // claiming to descend from that commit - an environment/build gap, not a
   // test bug. Revisit once the running image picks up that feature.
-  it('creates Waste Records but excludes missing date row @summaryLogMissingDateRow', async () => {
+  test('creates Waste Records but excludes missing date row @summaryLogMissingDateRow', async () => {
     const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
       orgId,
       registrationId,

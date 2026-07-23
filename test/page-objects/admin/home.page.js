@@ -1,5 +1,4 @@
 import { AdminPage } from 'page-objects/admin/page'
-import { $ } from '@wdio/globals'
 
 class HomePage extends AdminPage {
   open() {
@@ -7,8 +6,8 @@ class HomePage extends AdminPage {
   }
 
   async getWelcomeText() {
-    return $('main h1').getText()
+    return this.page.locator('main h1').innerText()
   }
 }
 
-export default new HomePage()
+export { HomePage }

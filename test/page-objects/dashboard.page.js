@@ -1,90 +1,91 @@
-import { browser, $, $$ } from '@wdio/globals'
 import { Page } from 'page-objects/page'
 
 class DashboardPage extends Page {
   open(orgId) {
-    return browser.url(`/organisations/${orgId}`)
+    return this.page.goto(`/organisations/${orgId}`)
   }
 
   async selectLink(index) {
-    const linkElement = await $(
-      '#main-content table.govuk-table tr:nth-child(' + index + ') a.govuk-link'
-    )
-    await linkElement.waitForExist({ timeout: 10000 })
-    await linkElement.click()
+    await this.page
+      .locator(
+        '#main-content table.govuk-table tr:nth-child(' +
+          index +
+          ') a.govuk-link'
+      )
+      .click()
   }
 
   async selectTableLink(tableIndex, index) {
-    const linkElement = await $(
-      '#main-content table.govuk-table:nth-of-type(' +
-        tableIndex +
-        ') tr:nth-child(' +
-        index +
-        ') a.govuk-link'
-    )
-    await linkElement.waitForExist({ timeout: 10000 })
-    await linkElement.click()
+    await this.page
+      .locator(
+        '#main-content table.govuk-table:nth-of-type(' +
+          tableIndex +
+          ') tr:nth-child(' +
+          index +
+          ') a.govuk-link'
+      )
+      .click()
   }
 
   async availableWasteBalance(index) {
-    const wasteBalanceElement = await $(
-      '#main-content table.govuk-table tr:nth-child(' +
-        index +
-        ') > td.govuk-table__cell.govuk-table__cell--numeric'
-    )
-    await wasteBalanceElement.waitForExist({ timeout: 10000 })
-    return await wasteBalanceElement.getText()
+    return this.page
+      .locator(
+        '#main-content table.govuk-table tr:nth-child(' +
+          index +
+          ') > td.govuk-table__cell.govuk-table__cell--numeric'
+      )
+      .innerText()
   }
 
   async selectExportingTab() {
-    await $('//a[normalize-space()="Exporting"]').click()
+    await this.page.locator('//a[normalize-space()="Exporting"]').click()
   }
 
   async getMaterial(tableIndex, rowIndex) {
-    const materialElement = await $(
-      '#main-content table.govuk-table:nth-of-type(' +
-        tableIndex +
-        ') tr:nth-child(' +
-        rowIndex +
-        ') > td:nth-child(1)'
-    )
-    await materialElement.waitForExist({ timeout: 10000 })
-    return await materialElement.getText()
+    return this.page
+      .locator(
+        '#main-content table.govuk-table:nth-of-type(' +
+          tableIndex +
+          ') tr:nth-child(' +
+          rowIndex +
+          ') > td:nth-child(1)'
+      )
+      .innerText()
   }
 
   async getRegistrationStatus(tableIndex, rowIndex) {
-    const registrationElement = await $(
-      '#main-content table.govuk-table:nth-of-type(' +
-        tableIndex +
-        ') tr:nth-child(' +
-        rowIndex +
-        ') > td:nth-child(2)'
-    )
-    await registrationElement.waitForExist({ timeout: 10000 })
-    return await registrationElement.getText()
+    return this.page
+      .locator(
+        '#main-content table.govuk-table:nth-of-type(' +
+          tableIndex +
+          ') tr:nth-child(' +
+          rowIndex +
+          ') > td:nth-child(2)'
+      )
+      .innerText()
   }
 
   async getAccreditationStatus(tableIndex, rowIndex) {
-    const accreditationElement = await $(
-      '#main-content table.govuk-table:nth-of-type(' +
-        tableIndex +
-        ') tr:nth-child(' +
-        rowIndex +
-        ') > td:nth-child(3)'
-    )
-    await accreditationElement.waitForExist({ timeout: 10000 })
-    return await accreditationElement.getText()
+    return this.page
+      .locator(
+        '#main-content table.govuk-table:nth-of-type(' +
+          tableIndex +
+          ') tr:nth-child(' +
+          rowIndex +
+          ') > td:nth-child(3)'
+      )
+      .innerText()
   }
 
   async getTableRow(tableIndex, rowIndex) {
     const tableRow = new Map()
     const selector = `#main-content table.govuk-table:nth-of-type(${tableIndex})`
-    const tableHeaders = await $$(`${selector} > thead > tr th`)
-    const headerText = await tableHeaders.map((el) => el.getText())
-    const tableData = await $$(
-      `${selector} > tbody > tr:nth-child(${rowIndex}) td`
-    )
-    const rowText = await tableData.map((el) => el.getText())
+    const headerText = await this.page
+      .locator(`${selector} > thead > tr th`)
+      .allInnerTexts()
+    const rowText = await this.page
+      .locator(`${selector} > tbody > tr:nth-child(${rowIndex}) td`)
+      .allInnerTexts()
     for (let i = 0; i < headerText.length; i++) {
       tableRow.set(headerText[i], rowText[i])
     }
@@ -92,4 +93,4 @@ class DashboardPage extends Page {
   }
 }
 
-export default new DashboardPage()
+export { DashboardPage }

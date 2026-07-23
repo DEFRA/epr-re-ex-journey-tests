@@ -1,16 +1,16 @@
-import { $, browser, expect } from '@wdio/globals'
-import HomePage from 'page-objects/homepage.js'
-import MonthlyReportDraftDeclarationPage from 'page-objects/reports/monthly.report.draft.declaration.page.js'
-import ReportCheckAnswersPage from 'page-objects/reports/report.check.answers.page.js'
-import ReportDetailPage from 'page-objects/reports/report.detail.page.js'
-import ReportSubmittedPage from 'page-objects/reports/report.submitted.page.js'
-import ReportSupportingInformationPage from 'page-objects/reports/report.supporting.information.page.js'
-import ReportsPage from 'page-objects/reports/reports.page.js'
-import ConfirmationPage from 'page-objects/reports/confirmation.page.js'
-import DashboardPage from 'page-objects/dashboard.page.js'
-import TonnesNotRecycledPage from 'page-objects/reports/tonnes.not.recycled.page.js'
-import TonnesRecycledPage from 'page-objects/reports/tonnes.recycled.page.js'
-import WasteRecordsPage from 'page-objects/waste.records.page.js'
+import { test, expect } from '@playwright/test'
+import { HomePage } from 'page-objects/homepage.js'
+import { MonthlyReportDraftDeclarationPage } from 'page-objects/reports/monthly.report.draft.declaration.page.js'
+import { ReportCheckAnswersPage } from 'page-objects/reports/report.check.answers.page.js'
+import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
+import { ReportSubmittedPage } from 'page-objects/reports/report.submitted.page.js'
+import { ReportSupportingInformationPage } from 'page-objects/reports/report.supporting.information.page.js'
+import { ReportsPage } from 'page-objects/reports/reports.page.js'
+import { ConfirmationPage } from 'page-objects/reports/confirmation.page.js'
+import { DashboardPage } from 'page-objects/dashboard.page.js'
+import { TonnesNotRecycledPage } from 'page-objects/reports/tonnes.not.recycled.page.js'
+import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js'
+import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation,
@@ -22,8 +22,33 @@ import { createLinkAndLogin } from '../support/login-helper.js'
 
 const REG_NUMBER = 'R25SR5111050912PA'
 
-describe('Declaration name validation @declarationValidation', () => {
-  before(async () => {
+test.describe('Declaration name validation @declarationValidation', () => {
+  // All `test`s below build on one continuous, already-logged-in session (the
+  // declaration page is reached once in beforeAll and re-submitted with
+  // different names across tests) - shared across a whole describe block, so
+  // it needs its own Page created via the `browser` fixture rather than the
+  // per-test `page` fixture (which isn't available in beforeAll/afterAll).
+  /** @type {import('@playwright/test').Page} */
+  let page
+  let monthlyReportDraftDeclarationPage
+
+  test.beforeAll(async ({ browser }) => {
+    page = await browser.newPage()
+    monthlyReportDraftDeclarationPage = new MonthlyReportDraftDeclarationPage(
+      page
+    )
+    const dashboardPage = new DashboardPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const reportsPage = new ReportsPage(page)
+    const reportDetailPage = new ReportDetailPage(page)
+    const tonnesRecycledPage = new TonnesRecycledPage(page)
+    const tonnesNotRecycledPage = new TonnesNotRecycledPage(page)
+    const reportSupportingInformationPage = new ReportSupportingInformationPage(
+      page
+    )
+    const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
+    const confirmationPage = new ConfirmationPage(page)
+
     const organisationDetails = await createLinkedOrganisation([
       {
         material: 'Paper or board (R3)',
@@ -45,6 +70,7 @@ describe('Declaration name validation @declarationValidation', () => {
     )
 
     const user = await createLinkAndLogin(
+      page,
       organisationDetails.refNo,
       migrationResponse.email
     )
@@ -55,74 +81,72 @@ describe('Declaration name validation @declarationValidation', () => {
       defraIdStub.authHeader(user.userId),
       'resources/reprocessor-output-regonly.xlsx'
     )
-    await DashboardPage.selectTableLink(1, 1)
-    await WasteRecordsPage.manageReportsLink()
+    await dashboardPage.selectTableLink(1, 1)
+    await wasteRecordsPage.manageReportsLink()
 
-    await ReportsPage.selectActiveActionLink(1)
-    await ReportDetailPage.useThisData()
-    await TonnesRecycledPage.enterTonnage('12.50')
-    await TonnesRecycledPage.continue()
-    await TonnesNotRecycledPage.enterTonnage('7.50')
-    await TonnesNotRecycledPage.continue()
-    await ReportSupportingInformationPage.continue()
-    await ReportCheckAnswersPage.createReport()
-    await checkBodyText('report created', 30)
+    await reportsPage.selectActiveActionLink(1)
+    await reportDetailPage.useThisData()
+    await tonnesRecycledPage.enterTonnage('12.50')
+    await tonnesRecycledPage.continue()
+    await tonnesNotRecycledPage.enterTonnage('7.50')
+    await tonnesNotRecycledPage.continue()
+    await reportSupportingInformationPage.continue()
+    await reportCheckAnswersPage.createReport()
+    await checkBodyText(page, 'report created', 30)
 
-    await ConfirmationPage.goToReports()
-    await ReportsPage.selectActiveActionLink(1)
+    await confirmationPage.goToReports()
+    await reportsPage.selectActiveActionLink(1)
   })
 
-  after(async () => {
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+  test.afterAll(async () => {
+    const homePage = new HomePage(page)
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
+    await page.close()
   })
 
-  it('should show error when name is empty @declarationValidationEmpty', async () => {
-    const submitButton = await $('#main-content button[type=submit]')
-    await submitButton.waitForClickable({ timeout: 5000 })
-    await submitButton.click()
+  test('should show error when name is empty @declarationValidationEmpty', async () => {
+    await page.locator('#main-content button[type=submit]').click()
 
     await checkBodyText(
+      page,
       'You must enter your full name as it appears on this account',
       10
     )
   })
 
-  it('should show error when name is too short @declarationValidationTooShort', async () => {
-    await MonthlyReportDraftDeclarationPage.enterFullName('A')
-    const submitButton = await $('#main-content button[type=submit]')
-    await submitButton.waitForClickable({ timeout: 5000 })
-    await submitButton.click()
+  test('should show error when name is too short @declarationValidationTooShort', async () => {
+    await monthlyReportDraftDeclarationPage.enterFullName('A')
+    await page.locator('#main-content button[type=submit]').click()
 
-    await checkBodyText('Your name must be more than one character', 10)
+    await checkBodyText(page, 'Your name must be more than one character', 10)
   })
 
-  it('should show error when name is too long @declarationValidationTooLong', async () => {
+  test('should show error when name is too long @declarationValidationTooLong', async () => {
     const longName = 'A'.repeat(256)
-    await MonthlyReportDraftDeclarationPage.enterFullName(longName)
-    const submitButton = await $('#main-content button[type=submit]')
-    await submitButton.waitForClickable({ timeout: 5000 })
-    await submitButton.click()
+    await monthlyReportDraftDeclarationPage.enterFullName(longName)
+    await page.locator('#main-content button[type=submit]').click()
 
-    await checkBodyText('Your name must be fewer than 255 characters', 10)
+    await checkBodyText(page, 'Your name must be fewer than 255 characters', 10)
   })
 
-  it('should show error when name contains invalid characters @declarationValidationInvalidChars', async () => {
-    await MonthlyReportDraftDeclarationPage.enterFullName('James@bond.com')
-    const submitButton = await $('#main-content button[type=submit]')
-    await submitButton.waitForClickable({ timeout: 5000 })
-    await submitButton.click()
+  test('should show error when name contains invalid characters @declarationValidationInvalidChars', async () => {
+    await monthlyReportDraftDeclarationPage.enterFullName('James@bond.com')
+    await page.locator('#main-content button[type=submit]').click()
 
     await checkBodyText(
+      page,
       'Your name cannot contain these characters: @, #, $, %, &, <, >',
       10
     )
   })
 
-  it('should submit successfully with a valid name @declarationValidationHappyPath', async () => {
-    await MonthlyReportDraftDeclarationPage.confirmAndSubmit('James Bond')
+  test('should submit successfully with a valid name @declarationValidationHappyPath', async () => {
+    const reportSubmittedPage = new ReportSubmittedPage(page)
 
-    const confirmationText = await ReportSubmittedPage.confirmationText()
+    await monthlyReportDraftDeclarationPage.confirmAndSubmit('James Bond')
+
+    const confirmationText = await reportSubmittedPage.confirmationText()
     expect(confirmationText).toContain('report submitted to regulator')
   })
 })

@@ -1,3 +1,4 @@
+import { test } from '@playwright/test'
 import { expect } from 'chai'
 import { BaseAPI } from '../apis/base-api.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
@@ -39,8 +40,8 @@ async function setUpExporterWithReport() {
   return { baseAPI, org, registrationId, authHeader, reportPath }
 }
 
-describe('Reports PATCH endpoint @reportsPatch', () => {
-  it('succeeds patching prnRevenue on an in_progress report @reportsPatchPrnRevenue', async () => {
+test.describe('Reports PATCH endpoint @reportsPatch', () => {
+  test('succeeds patching prnRevenue on an in_progress report @reportsPatchPrnRevenue', async () => {
     const { baseAPI, authHeader, reportPath } = await setUpExporterWithReport()
 
     const response = await baseAPI.patch(
@@ -54,7 +55,7 @@ describe('Reports PATCH endpoint @reportsPatch', () => {
     expect(body.prn.totalRevenue).to.equal(1576.12)
   })
 
-  it('succeeds patching freeTonnage on an in_progress report @reportsPatchFreeTonnage', async () => {
+  test('succeeds patching freeTonnage on an in_progress report @reportsPatchFreeTonnage', async () => {
     const { baseAPI, authHeader, reportPath } = await setUpExporterWithReport()
 
     const response = await baseAPI.patch(
@@ -68,7 +69,7 @@ describe('Reports PATCH endpoint @reportsPatch', () => {
     expect(body.prn.freeTonnage).to.equal(0)
   })
 
-  it('succeeds patching prnRevenue and freeTonnage together @reportsPatchBothFields', async () => {
+  test('succeeds patching prnRevenue and freeTonnage together @reportsPatchBothFields', async () => {
     const { baseAPI, authHeader, reportPath } = await setUpExporterWithReport()
 
     const response = await baseAPI.patch(
@@ -83,7 +84,7 @@ describe('Reports PATCH endpoint @reportsPatch', () => {
     expect(body.prn.freeTonnage).to.equal(0)
   })
 
-  it('rejects a negative prnRevenue with a 422 @reportsPatchNegativePrnRevenue', async () => {
+  test('rejects a negative prnRevenue with a 422 @reportsPatchNegativePrnRevenue', async () => {
     const { baseAPI, authHeader, reportPath } = await setUpExporterWithReport()
 
     const response = await baseAPI.patch(
@@ -99,7 +100,7 @@ describe('Reports PATCH endpoint @reportsPatch', () => {
     )
   })
 
-  it('rejects an empty PATCH body with a 422 @reportsPatchEmptyBody', async () => {
+  test('rejects an empty PATCH body with a 422 @reportsPatchEmptyBody', async () => {
     const { baseAPI, authHeader, reportPath } = await setUpExporterWithReport()
 
     const response = await baseAPI.patch(
@@ -113,7 +114,7 @@ describe('Reports PATCH endpoint @reportsPatch', () => {
     expect(body.message).to.equal('"value" must have at least 1 key')
   })
 
-  it('returns a 404 for a non-existent period @reportsPatchNonExistentPeriod', async () => {
+  test('returns a 404 for a non-existent period @reportsPatchNonExistentPeriod', async () => {
     const { baseAPI, org, registrationId, authHeader } =
       await setUpExporterWithReport()
 
@@ -131,7 +132,7 @@ describe('Reports PATCH endpoint @reportsPatch', () => {
     )
   })
 
-  it('still supports patching supportingInformation unchanged @reportsPatchSupportingInformation', async () => {
+  test('still supports patching supportingInformation unchanged @reportsPatchSupportingInformation', async () => {
     const { baseAPI, authHeader, reportPath } = await setUpExporterWithReport()
 
     const response = await baseAPI.patch(
@@ -147,7 +148,7 @@ describe('Reports PATCH endpoint @reportsPatch', () => {
     expect(body.supportingInformation).to.equal('Test supporting information')
   })
 
-  it('reflects the PATCH on a subsequent GET @reportsPatchThenGet', async () => {
+  test('reflects the PATCH on a subsequent GET @reportsPatchThenGet', async () => {
     const { baseAPI, org, registrationId, authHeader, reportPath } =
       await setUpExporterWithReport()
 

@@ -1,12 +1,12 @@
-import { browser, expect } from '@wdio/globals'
-import CreatePRNPage from 'page-objects/create.prn.page.js'
-import HomePage from 'page-objects/homepage.js'
-import PrnCreatedPage from 'page-objects/prn.created.page.js'
-import PrnDashboardPage from 'page-objects/prn.dashboard.page.js'
-import PrnIssuedPage from 'page-objects/prn.issued.page.js'
-import PrnViewPage from 'page-objects/prn.view.page.js'
-import DashboardPage from '../page-objects/dashboard.page.js'
-import WasteRecordsPage from '../page-objects/waste.records.page.js'
+import { test, expect } from '@playwright/test'
+import { CreatePRNPage } from 'page-objects/create.prn.page.js'
+import { HomePage } from 'page-objects/homepage.js'
+import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
+import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
+import { PRNIssuedPage } from 'page-objects/prn.issued.page.js'
+import { PRNViewPage } from 'page-objects/prn.view.page.js'
+import { DashboardPage } from '../page-objects/dashboard.page.js'
+import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
   createLinkedOrganisation,
   externalAPIAcceptPrn,
@@ -20,8 +20,21 @@ import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
-describe('Issuing Packing Recycling Notes', () => {
-  it('Should be able to create, issue and accept PRNs for Plastic (Reprocessor Output) @issueprnoutput @smoketest', async function () {
+test.describe('Issuing Packing Recycling Notes', () => {
+  test('Should be able to create, issue and accept PRNs for Plastic (Reprocessor Output) @issueprnoutput @smoketest', async ({
+    page
+  }) => {
+    // Reassigned after each switchToNewTabAndClosePreviousTab call, since
+    // that closes the tab `page` currently points at - every page object
+    // constructed after a reassignment must be bound to the new value.
+    let currentPage = page
+
+    const createPRNPage = new CreatePRNPage(currentPage)
+    const prnCreatedPage = new PRNCreatedPage(currentPage)
+    let prnDashboardPage = new PRNDashboardPage(currentPage)
+    const dashboardPage = new DashboardPage(currentPage)
+    const wasteRecordsPage = new WasteRecordsPage(currentPage)
+
     const regNumber = 'R25SR500010912PL'
     const accNumber = 'R-ACC12145PL'
 
@@ -43,6 +56,7 @@ describe('Issuing Packing Recycling Notes', () => {
     )
 
     const user = await createLinkAndLogin(
+      currentPage,
       organisationDetails.refNo,
       migrationResponse.email
     )
@@ -57,58 +71,73 @@ describe('Issuing Packing Recycling Notes', () => {
       filePath
     )
 
-    await DashboardPage.selectTableLink(1, 1)
+    await dashboardPage.selectTableLink(1, 1)
 
-    await WasteRecordsPage.createNewPRNLink()
+    await wasteRecordsPage.createNewPRNLink()
 
     const originalWasteBalance = '56,455.67'
-    const wasteBalanceHint = await CreatePRNPage.wasteBalanceHint()
+    const wasteBalanceHint = await createPRNPage.wasteBalanceHint()
     expect(wasteBalanceHint).toBe(
       `Your waste balance available for creating PRNs is ${originalWasteBalance} tonnes.`
     )
 
-    const prnHelper = new PrnHelper()
+    let prnHelper = new PrnHelper(currentPage)
 
     const prnDetails = createPrnDetails({ accNumber, organisationDetails })
 
     await prnHelper.createAndCheckPrnDetails(prnDetails)
 
-    await checkBodyText('Your available waste balance has been updated.', 10)
     await checkBodyText(
+      currentPage,
+      'Your available waste balance has been updated.',
+      10
+    )
+    await checkBodyText(
+      currentPage,
       'You can now issue this PRN through your PRNs page.',
       10
     )
 
-    await PrnCreatedPage.returnToRegistrationPage()
-    await DashboardPage.selectTableLink(1, 1)
-    await WasteRecordsPage.managePRNsLink()
+    await prnCreatedPage.returnToRegistrationPage()
+    await dashboardPage.selectTableLink(1, 1)
+    await wasteRecordsPage.managePRNsLink()
 
     // Issue the created PRN
-    await PrnDashboardPage.selectAwaitingLink(1)
+    await prnDashboardPage.selectAwaitingLink(1)
     await prnHelper.issuePrnAndUpdateDetails(prnDetails, 'WR', {
       checkDoubleClick: true
     })
 
-    await PrnIssuedPage.viewPdfButton()
-    await switchToNewTabAndClosePreviousTab()
-    await prnHelper.checkViewPrnDetails(prnDetails)
-    await PrnViewPage.returnToPRNList()
+    const prnIssuedPage = new PRNIssuedPage(currentPage)
+    await prnIssuedPage.viewPdfButton()
+    currentPage = await switchToNewTabAndClosePreviousTab(currentPage)
 
-    await PrnDashboardPage.selectBackLink()
+    prnHelper = new PrnHelper(currentPage)
+    prnDashboardPage = new PRNDashboardPage(currentPage)
+    const prnViewPage = new PRNViewPage(currentPage)
+
+    await prnHelper.checkViewPrnDetails(prnDetails)
+    await prnViewPage.returnToPRNList()
+
+    await prnDashboardPage.selectBackLink()
 
     // RPD accepts the PRN
     await externalAPIAcceptPrn(prnDetails)
 
-    await WasteRecordsPage.managePRNsLink()
+    const wasteRecordsPageOnNewTab = new WasteRecordsPage(currentPage)
+    await wasteRecordsPageOnNewTab.managePRNsLink()
 
-    await PrnDashboardPage.selectIssuedTab()
+    await prnDashboardPage.selectIssuedTab()
     await prnHelper.checkIssuedRows(prnDetails, 1)
 
-    await PrnDashboardPage.selectIssuedLink(1)
-    await switchToNewTabAndClosePreviousTab()
+    await prnDashboardPage.selectIssuedLink(1)
+    currentPage = await switchToNewTabAndClosePreviousTab(currentPage)
+
+    prnHelper = new PrnHelper(currentPage)
     await prnHelper.checkViewPrnDetails(prnDetails)
 
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+    const homePageOnFinalTab = new HomePage(currentPage)
+    await homePageOnFinalTab.signOut()
+    await expect(currentPage).toHaveTitle(/Signed out/)
   })
 })

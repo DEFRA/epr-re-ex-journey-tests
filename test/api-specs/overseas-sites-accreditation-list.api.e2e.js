@@ -1,3 +1,4 @@
+import { test } from '@playwright/test'
 import { expect } from 'chai'
 import { AuthClient } from '../support/auth.js'
 import { BaseAPI } from '../apis/base-api.js'
@@ -48,15 +49,15 @@ function overseasSitesPath(refNo, registrationId, accreditationId) {
   return `/v1/organisations/${refNo}/registrations/${registrationId}/accreditations/${accreditationId}/overseas-sites`
 }
 
-describe('Overseas sites accreditation list @overseasSitesAccreditationList', () => {
+test.describe('Overseas sites accreditation list @overseasSitesAccreditationList', () => {
   const baseAPI = new BaseAPI()
   const authClient = new AuthClient()
 
-  before(async () => {
+  test.beforeAll(async () => {
     await authClient.authenticate()
   })
 
-  it('returns seeded overseas site detail keyed by ORS id @overseasSitesHappyPath', async () => {
+  test('returns seeded overseas site detail keyed by ORS id @overseasSitesHappyPath', async () => {
     const { refNo, registrationId, accreditationId } =
       await approvedExporterWithAccreditation(baseAPI, authClient)
 
@@ -83,7 +84,7 @@ describe('Overseas sites accreditation list @overseasSitesAccreditationList', ()
     }
   })
 
-  it('returns an empty object when the registration has no overseas sites @overseasSitesEmpty', async () => {
+  test('returns an empty object when the registration has no overseas sites @overseasSitesEmpty', async () => {
     const { refNo, registrationId, accreditationId } =
       await approvedExporterWithAccreditation(
         baseAPI,
@@ -102,7 +103,7 @@ describe('Overseas sites accreditation list @overseasSitesAccreditationList', ()
     expect(body).to.deep.equal({})
   })
 
-  it('resolves an overseasSiteId with no matching site record to null detail @overseasSitesMissingSiteRecord', async () => {
+  test('resolves an overseasSiteId with no matching site record to null detail @overseasSitesMissingSiteRecord', async () => {
     const { refNo, registrationId, accreditationId } =
       await approvedExporterWithAccreditation(
         baseAPI,
@@ -144,7 +145,7 @@ describe('Overseas sites accreditation list @overseasSitesAccreditationList', ()
     })
   })
 
-  it('keeps overseas sites isolated per registration within the same organisation @overseasSitesCrossLinkingIsolation', async () => {
+  test('keeps overseas sites isolated per registration within the same organisation @overseasSitesCrossLinkingIsolation', async () => {
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Exporter', material: 'Paper or board (R3)' },
       { wasteProcessingType: 'Exporter', material: 'Steel (R4)' }
@@ -179,7 +180,7 @@ describe('Overseas sites accreditation list @overseasSitesAccreditationList', ()
     expect(body).to.deep.equal({})
   })
 
-  it('rejects an accreditationId that does not belong to the requested registration @overseasSitesAccreditationMismatch', async () => {
+  test('rejects an accreditationId that does not belong to the requested registration @overseasSitesAccreditationMismatch', async () => {
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Exporter', material: 'Paper or board (R3)' },
       { wasteProcessingType: 'Exporter', material: 'Steel (R4)' }

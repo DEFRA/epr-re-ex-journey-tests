@@ -1,7 +1,7 @@
-import { browser, expect } from '@wdio/globals'
-import DashboardPage from 'page-objects/dashboard.page.js'
-import HomePage from 'page-objects/homepage.js'
-import WasteRecordsPage from 'page-objects/waste.records.page.js'
+import { test, expect } from '@playwright/test'
+import { DashboardPage } from 'page-objects/dashboard.page.js'
+import { HomePage } from 'page-objects/homepage.js'
+import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import seedOverseasSites, {
   createAndRegisterDefraIdUser,
   createLinkedOrganisation,
@@ -12,15 +12,23 @@ import {
   checkBodyText,
   checkBodyTextDoesNotInclude
 } from '../support/checks.js'
-import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
-import CheckSummaryLogPage from 'page-objects/check.summary.log.page.js'
+import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
+import { CheckSummaryLogPage } from 'page-objects/check.summary.log.page.js'
 import {
   createLinkAndLogin,
   loginViaHomePage
 } from '../support/login-helper.js'
 
-describe('@registered-only', () => {
-  it('should be able to upload Registered Only Reprocessor Summary Logs for registered-only operators and display unaccredited registrations alongside accredited ones @regOnlyReprocessor', async () => {
+test.describe('@registered-only', () => {
+  test('should be able to upload Registered Only Reprocessor Summary Logs for registered-only operators and display unaccredited registrations alongside accredited ones @regOnlyReprocessor', async ({
+    page
+  }) => {
+    const dashboardPage = new DashboardPage(page)
+    const homePage = new HomePage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+    const checkSummaryLogPage = new CheckSummaryLogPage(page)
+
     const organisationDetails = await createLinkedOrganisation([
       {
         material: 'Paper or board (R3)',
@@ -70,59 +78,69 @@ describe('@registered-only', () => {
         }
       ]
     )
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
+    await createLinkAndLogin(
+      page,
+      organisationDetails.refNo,
+      migrationResponse.email
+    )
 
-    const row = await DashboardPage.getTableRow(1, 1)
+    const row = await dashboardPage.getTableRow(1, 1)
     expect(row.get('Accreditation')).toBe('Not accredited')
     expect(row.get('Available waste balance (tonnes)')).toBe('Not applicable')
 
-    let material = await DashboardPage.getMaterial(2, 1)
+    let material = await dashboardPage.getMaterial(2, 1)
     expect(material).toBe('Fibre-based composite')
 
-    material = await DashboardPage.getMaterial(3, 1)
+    material = await dashboardPage.getMaterial(3, 1)
     expect(material).toBe('Plastic')
 
-    await DashboardPage.selectTableLink(1, 1)
+    await dashboardPage.selectTableLink(1, 1)
 
-    await checkBodyText('R25SR5111050912PA', 10)
-    await checkBodyText('Upload your summary log', 10)
-    await checkBodyTextDoesNotInclude('Available waste balance', 5)
-    await checkBodyTextDoesNotInclude('Accreditation number', 5)
-    await checkBodyTextDoesNotInclude('PRNs', 5)
+    await checkBodyText(page, 'R25SR5111050912PA', 10)
+    await checkBodyText(page, 'Upload your summary log', 10)
+    await checkBodyTextDoesNotInclude(page, 'Available waste balance', 5)
+    await checkBodyTextDoesNotInclude(page, 'Accreditation number', 5)
+    await checkBodyTextDoesNotInclude(page, 'PRNs', 5)
 
-    await WasteRecordsPage.submitSummaryLogLink()
-    await expect(browser).toHaveTitle(
-      expect.stringContaining('Summary log: upload')
-    )
-    await UploadSummaryLogPage.uploadFile(
+    await wasteRecordsPage.submitSummaryLogLink()
+    await expect(page).toHaveTitle(/Summary log: upload/)
+    await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-output-regonly.xlsx'
     )
-    await UploadSummaryLogPage.continue()
+    await uploadSummaryLogPage.continue()
 
-    await checkBodyText('Your summary log is being checked', 30)
+    await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkBodyText('Upload your summary log', 60)
-    await checkBodyText('Open periods: new loads', 30)
-    await checkBodyText('new loads will be recorded', 30)
-    await checkBodyText('These have been added to your summary log.', 30)
-    await CheckSummaryLogPage.upload()
+    await checkBodyText(page, 'Upload your summary log', 60)
+    await checkBodyText(page, 'Open periods: new loads', 30)
+    await checkBodyText(page, 'new loads will be recorded', 30)
+    await checkBodyText(page, 'These have been added to your summary log.', 30)
+    await checkSummaryLogPage.upload()
 
-    await checkBodyText('Summary log uploaded', 30)
-    await checkBodyTextDoesNotInclude('Your updated waste balance', 10)
-    await UploadSummaryLogPage.clickOnReturnToHomePage()
+    await checkBodyText(page, 'Summary log uploaded', 30)
+    await checkBodyTextDoesNotInclude(page, 'Your updated waste balance', 10)
+    await uploadSummaryLogPage.clickOnReturnToHomePage()
 
-    await DashboardPage.selectExportingTab()
-    const exportRow = await DashboardPage.getTableRow(1, 1)
+    await dashboardPage.selectExportingTab()
+    const exportRow = await dashboardPage.getTableRow(1, 1)
     expect(exportRow.get('Accreditation')).toBe('Not accredited')
     expect(exportRow.get('Available waste balance (tonnes)')).toBe(
       'Not applicable'
     )
 
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 
-  it('should be able to upload Registered Only Exporter Summary Logs for registered-only operator and display unaccredited registrations alongside accredited ones @regOnlyExporter', async () => {
+  test('should be able to upload Registered Only Exporter Summary Logs for registered-only operator and display unaccredited registrations alongside accredited ones @regOnlyExporter', async ({
+    page
+  }) => {
+    const dashboardPage = new DashboardPage(page)
+    const homePage = new HomePage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+    const checkSummaryLogPage = new CheckSummaryLogPage(page)
+
     const organisationDetails = await createLinkedOrganisation([
       {
         material: 'Paper or board (R3)',
@@ -155,32 +173,30 @@ describe('@registered-only', () => {
       migrationResponse.email
     )
 
-    await loginViaHomePage(migrationResponse.email)
+    await loginViaHomePage(page, migrationResponse.email)
 
-    await DashboardPage.selectTableLink(1, 1)
-    await checkBodyText('E25SR500030913PA', 10)
+    await dashboardPage.selectTableLink(1, 1)
+    await checkBodyText(page, 'E25SR500030913PA', 10)
 
-    await WasteRecordsPage.submitSummaryLogLink()
-    await expect(browser).toHaveTitle(
-      expect.stringContaining('Summary log: upload')
-    )
+    await wasteRecordsPage.submitSummaryLogLink()
+    await expect(page).toHaveTitle(/Summary log: upload/)
 
-    await UploadSummaryLogPage.uploadFile('resources/exporter-regonly.xlsx')
-    await UploadSummaryLogPage.continue()
+    await uploadSummaryLogPage.uploadFile('resources/exporter-regonly.xlsx')
+    await uploadSummaryLogPage.continue()
 
-    await checkBodyText('Your summary log is being checked', 30)
+    await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkBodyText('Upload your summary log', 60)
-    await checkBodyText('Open periods: new loads', 30)
-    await checkBodyText('new loads will be recorded', 30)
-    await checkBodyText('These have been added to your summary log.', 30)
-    await CheckSummaryLogPage.upload()
+    await checkBodyText(page, 'Upload your summary log', 60)
+    await checkBodyText(page, 'Open periods: new loads', 30)
+    await checkBodyText(page, 'new loads will be recorded', 30)
+    await checkBodyText(page, 'These have been added to your summary log.', 30)
+    await checkSummaryLogPage.upload()
 
-    await checkBodyText('Summary log uploaded', 30)
-    await checkBodyTextDoesNotInclude('Your updated waste balance', 10)
-    await UploadSummaryLogPage.clickOnReturnToHomePage()
+    await checkBodyText(page, 'Summary log uploaded', 30)
+    await checkBodyTextDoesNotInclude(page, 'Your updated waste balance', 10)
+    await uploadSummaryLogPage.clickOnReturnToHomePage()
 
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 })

@@ -1,68 +1,62 @@
-import { $, $$ } from '@wdio/globals'
 import { Page } from 'page-objects/page'
 
 class PRNDashboardPage extends Page {
   async selectAwaitingLink(index, tableIndex = 1) {
-    const linkElement = await $(
-      `#awaiting-action table.govuk-table:nth-of-type(${tableIndex}) tr:nth-child(` +
-        index +
-        ') a.govuk-link'
-    )
-    await linkElement.waitForExist({ timeout: 5000 })
-    await linkElement.click()
+    await this.page
+      .locator(
+        `#awaiting-action table.govuk-table:nth-of-type(${tableIndex}) tr:nth-child(` +
+          index +
+          ') a.govuk-link'
+      )
+      .click()
   }
 
   async selectIssuedLink(index) {
-    const linkElement = await $(
-      '#issued table.govuk-table tr:nth-child(' + index + ') a.govuk-link'
-    )
-    await linkElement.waitForExist({ timeout: 5000 })
-    await linkElement.click()
+    await this.page
+      .locator(
+        '#issued table.govuk-table tr:nth-child(' + index + ') a.govuk-link'
+      )
+      .click()
   }
 
   async selectCancelledLink(index) {
-    const linkElement = await $(
-      '#cancelled table.govuk-table tr:nth-child(' + index + ') a.govuk-link'
-    )
-    await linkElement.waitForExist({ timeout: 5000 })
-    await linkElement.click()
+    await this.page
+      .locator(
+        '#cancelled table.govuk-table tr:nth-child(' + index + ') a.govuk-link'
+      )
+      .click()
   }
 
   async selectIssuedTab() {
-    await $('//a[normalize-space()="Issued"]').click()
+    await this.page.locator('//a[normalize-space()="Issued"]').click()
   }
 
   async selectCancelledTab() {
-    await $('//a[normalize-space()="Cancelled"]').click()
+    await this.page.locator('//a[normalize-space()="Cancelled"]').click()
   }
 
   // Index changes depending on whether PRN cancellation / PRN awaiting authorisation exists
   async getTableHeading(index = 1) {
-    return await $(
-      `#awaiting-action > h2.govuk-heading-m:nth-of-type(${index})`
-    ).getText()
+    return this.page
+      .locator(`#awaiting-action > h2.govuk-heading-m:nth-of-type(${index})`)
+      .innerText()
   }
 
   async getCancelledRow(rowIndex) {
-    return await this.getTableRow('#cancelled', rowIndex)
+    return this.getTableRow('#cancelled', rowIndex)
   }
 
   async getTableRow(tableId, rowIndex) {
     const tableRow = new Map()
-    const tableHeaders = await $$(
-      `${tableId} table.govuk-table > thead > tr th`
-    )
-    const headerText = await tableHeaders.map((element) => {
-      return element.getText()
-    })
+    const headerText = await this.page
+      .locator(`${tableId} table.govuk-table > thead > tr th`)
+      .allInnerTexts()
 
-    const tableData = await $$(
-      `${tableId} table.govuk-table > tbody > tr:nth-child(${rowIndex}) td`
-    )
-
-    const rowText = await tableData.map((element) => {
-      return element.getText()
-    })
+    const rowText = await this.page
+      .locator(
+        `${tableId} table.govuk-table > tbody > tr:nth-child(${rowIndex}) td`
+      )
+      .allInnerTexts()
 
     for (let i = 0; i < headerText.length; i++) {
       tableRow.set(headerText[i], rowText[i])
@@ -71,32 +65,29 @@ class PRNDashboardPage extends Page {
   }
 
   async getIssuedRow(rowIndex) {
-    return await this.getTableRow('#issued', rowIndex)
+    return this.getTableRow('#issued', rowIndex)
   }
 
   async selectAwaitingActionTab() {
-    await $('//a[normalize-space()="Awaiting action"]').click()
+    await this.page.locator('//a[normalize-space()="Awaiting action"]').click()
   }
 
   // Depending on whether PRN cancellation / PRN awaiting authorisation exists, the table index might change / shift accordingly
   async getAwaitingRow(rowIndex, tableIndex = 1) {
     const authRow = new Map()
-    const tableHeaders = await $$(
-      `#awaiting-action table.govuk-table:nth-of-type(${tableIndex}) > thead > tr th`
-    )
-    const headerText = await tableHeaders.map((element) => {
-      return element.getText()
-    })
+    const headerText = await this.page
+      .locator(
+        `#awaiting-action table.govuk-table:nth-of-type(${tableIndex}) > thead > tr th`
+      )
+      .allInnerTexts()
 
-    const tableData = await $$(
-      `#awaiting-action table.govuk-table:nth-of-type(${tableIndex}) > tbody > tr:nth-child(` +
-        rowIndex +
-        ') td'
-    )
-
-    const rowText = await tableData.map((element) => {
-      return element.getText()
-    })
+    const rowText = await this.page
+      .locator(
+        `#awaiting-action table.govuk-table:nth-of-type(${tableIndex}) > tbody > tr:nth-child(` +
+          rowIndex +
+          ') td'
+      )
+      .allInnerTexts()
 
     for (let i = 0; i < headerText.length; i++) {
       authRow.set(headerText[i], rowText[i])
@@ -105,30 +96,32 @@ class PRNDashboardPage extends Page {
   }
 
   async cancelHintText() {
-    return await $('#main-content div.govuk-inset-text').getText()
+    return this.page.locator('#main-content div.govuk-inset-text').innerText()
   }
 
   async selectPrnHeadingText() {
-    return await $('#main-content > div > div > h2').getText()
+    return this.page.locator('#main-content > div > div > h2').innerText()
   }
 
   async getNoPrnMessage() {
-    return await $('#awaiting-action > p').getText()
+    return this.page.locator('#awaiting-action > p').innerText()
   }
 
   async getNoIssuedPrnMessage() {
-    return await $('#issued > p').getText()
+    return this.page.locator('#issued > p').innerText()
   }
 
   async getNoCreatedPrnMessage() {
-    return await $('#main-content > div > div > p').getText()
+    return this.page.locator('#main-content > div > div > p').innerText()
   }
 
   async createAPrnButton() {
-    await $(
-      '#main-content div.epr-heading-with-action > a[data-module="govuk-button"]'
-    ).click()
+    await this.page
+      .locator(
+        '#main-content div.epr-heading-with-action > a[data-module="govuk-button"]'
+      )
+      .click()
   }
 }
 
-export default new PRNDashboardPage()
+export { PRNDashboardPage }

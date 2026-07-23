@@ -11,6 +11,7 @@ coverage
 allure-report/
 allure-results/
 test-artifacts/
+test-results/
 FAILED
 # summarylogs-spreadsheet-data-generator.js's transient generated output -
 # distinct from resources/templates/, which holds its committed source

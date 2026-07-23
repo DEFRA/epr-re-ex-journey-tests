@@ -1,4 +1,3 @@
-import { $ } from '@wdio/globals'
 import { Page } from 'page-objects/page'
 
 class ResubmissionExplainerPage extends Page {
@@ -6,8 +5,8 @@ class ResubmissionExplainerPage extends Page {
   // anchor styled as a button (a GET link to the detail page), not a form
   // submit. It is the only govuk-button anchor on the explainer.
   async continue() {
-    await $('a.govuk-button').click()
+    await this.page.locator('a.govuk-button').click()
   }
 }
 
-export default new ResubmissionExplainerPage()
+export { ResubmissionExplainerPage }

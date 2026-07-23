@@ -1,8 +1,8 @@
-import { browser, expect } from '@wdio/globals'
-import HomePage from 'page-objects/homepage.js'
-import UploadSummaryLogPage from '../page-objects/upload.summary.log.page.js'
-import WasteRecordsPage from '../page-objects/waste.records.page.js'
-import DashboardPage from '../page-objects/dashboard.page.js'
+import { test, expect } from '@playwright/test'
+import { HomePage } from 'page-objects/homepage.js'
+import { UploadSummaryLogPage } from '../page-objects/upload.summary.log.page.js'
+import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
+import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { checkBodyText, checkUploadErrorText } from '../support/checks.js'
 import {
   createLinkedOrganisation,
@@ -11,18 +11,19 @@ import {
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 // Split from summarylogs.unhappy.paths.e2e.js (PAE-1405 CI runtime work) so
-// wdio's per-file worker scheduling can run these in parallel with
+// per-file worker scheduling can run these in parallel with
 // summarylogs.unhappy.paths.cover-and-ors.e2e.js instead of serially in one
 // file. This half covers template/structural rejection and per-cell
 // validation errors.
-describe('Summary Logs - Unhappy paths - Template and validation @unhappyPaths', () => {
-  // Resets the shared browser session between tests so leftover auth state does
-  // not auto-log-in and skip the stub's user-selection page (see CMA spec).
-  afterEach(async () => {
-    await browser.reloadSession()
-  })
+test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPaths', () => {
+  test('Should get an error message with an empty Summary Log spreadsheet @emptyMessage', async ({
+    page
+  }) => {
+    const homePage = new HomePage(page)
+    const dashboardPage = new DashboardPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const uploadSummaryLogPage = new UploadSummaryLogPage(page)
 
-  it('Should get an error message with an empty Summary Log spreadsheet @emptyMessage', async () => {
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
@@ -39,40 +40,53 @@ describe('Summary Logs - Unhappy paths - Template and validation @unhappyPaths',
       ]
     )
 
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
+    await createLinkAndLogin(
+      page,
+      organisationDetails.refNo,
+      migrationResponse.email
+    )
 
-    await DashboardPage.selectLink(1)
-    await WasteRecordsPage.submitSummaryLogLink()
+    await dashboardPage.selectLink(1)
+    await wasteRecordsPage.submitSummaryLogLink()
 
-    await UploadSummaryLogPage.uploadFile('resources/empty.xlsx')
-    await UploadSummaryLogPage.continue()
+    await uploadSummaryLogPage.uploadFile('resources/empty.xlsx')
+    await uploadSummaryLogPage.continue()
 
-    await checkBodyText('Your summary log is being checked', 30)
+    await checkBodyText(page, 'Your summary log is being checked', 30)
 
     await checkUploadErrorText(
+      page,
       '#main-content > div > div:nth-child(2) > div > div > p.govuk-body.govuk-\\!-font-weight-bold',
       "The summary log template you're uploading is incorrect - make sure you download the correct template for your registration or accreditation",
       30
     )
 
-    await UploadSummaryLogPage.continue()
+    await uploadSummaryLogPage.continue()
     await checkUploadErrorText(
+      page,
       '#main-content > div > div:nth-child(2) > div > div > p.govuk-body.govuk-\\!-font-weight-bold',
       "The summary log template you're uploading is incorrect - make sure you download the correct template for your registration or accreditation",
       30
     )
 
-    await UploadSummaryLogPage.returnToSubmissionPage()
+    await uploadSummaryLogPage.returnToSubmissionPage()
     // Single-registration orgs skip the selection list, so the reg/acc
     // numbers render as plain text on the task page, not as links.
-    await checkBodyText('R25SR5111050912PA', 10)
-    await checkBodyText('ACC123888', 10)
+    await checkBodyText(page, 'R25SR5111050912PA', 10)
+    await checkBodyText(page, 'ACC123888', 10)
 
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 
-  it('Should get an error message with a Summary Log spreadsheet that does not conform to template requirements @invalidTemplate', async () => {
+  test('Should get an error message with a Summary Log spreadsheet that does not conform to template requirements @invalidTemplate', async ({
+    page
+  }) => {
+    const homePage = new HomePage(page)
+    const dashboardPage = new DashboardPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
@@ -89,15 +103,17 @@ describe('Summary Logs - Unhappy paths - Template and validation @unhappyPaths',
       ]
     )
 
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
-
-    await DashboardPage.selectLink(1)
-    await WasteRecordsPage.submitSummaryLogLink()
-
-    await UploadSummaryLogPage.continue()
-    await expect(browser).toHaveTitle(
-      expect.stringContaining('Summary log: upload')
+    await createLinkAndLogin(
+      page,
+      organisationDetails.refNo,
+      migrationResponse.email
     )
+
+    await dashboardPage.selectLink(1)
+    await wasteRecordsPage.submitSummaryLogLink()
+
+    await uploadSummaryLogPage.continue()
+    await expect(page).toHaveTitle(/Summary log: upload/)
 
     // GOV.UK's Button component debounces preventDoubleClick for 1s from any
     // click on the button — including this one, blocked from submitting by
@@ -105,24 +121,31 @@ describe('Summary Logs - Unhappy paths - Template and validation @unhappyPaths',
     // on the click itself, before constraint validation can cancel it, so a
     // second click inside that window is silently swallowed. Wait it out
     // rather than racing it (no DOM state exposes the debounce).
-    // eslint-disable-next-line wdio/no-pause
-    await browser.pause(1200)
+    await page.waitForTimeout(1200)
 
-    await UploadSummaryLogPage.uploadFile('resources/bad-marker.xlsx')
-    await UploadSummaryLogPage.continue()
+    await uploadSummaryLogPage.uploadFile('resources/bad-marker.xlsx')
+    await uploadSummaryLogPage.continue()
 
-    await checkBodyText('Your summary log is being checked', 30)
+    await checkBodyText(page, 'Your summary log is being checked', 30)
 
     await checkBodyText(
+      page,
       "The summary log template you're uploading is incorrect - make sure you download the correct template for your registration or accreditation",
       60
     )
 
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 
-  it('Should show per-cell validation error detail for each failing cell @summLogsValidationErrors', async () => {
+  test('Should show per-cell validation error detail for each failing cell @summLogsValidationErrors', async ({
+    page
+  }) => {
+    const homePage = new HomePage(page)
+    const dashboardPage = new DashboardPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
     ])
@@ -138,29 +161,32 @@ describe('Summary Logs - Unhappy paths - Template and validation @unhappyPaths',
       ]
     )
 
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
-
-    await DashboardPage.selectLink(1)
-    await WasteRecordsPage.submitSummaryLogLink()
-
-    await expect(browser).toHaveTitle(
-      expect.stringContaining('Summary log: upload')
+    await createLinkAndLogin(
+      page,
+      organisationDetails.refNo,
+      migrationResponse.email
     )
 
-    await UploadSummaryLogPage.uploadFile('resources/exporter-invalid.xlsx')
-    await UploadSummaryLogPage.continue()
+    await dashboardPage.selectLink(1)
+    await wasteRecordsPage.submitSummaryLogLink()
 
-    await checkBodyText('Your summary log is being checked', 30)
+    await expect(page).toHaveTitle(/Summary log: upload/)
 
-    await checkBodyText('Your summary log cannot be uploaded', 60)
+    await uploadSummaryLogPage.uploadFile('resources/exporter-invalid.xlsx')
+    await uploadSummaryLogPage.continue()
 
-    await checkBodyText('errors in your summary log', 60)
+    await checkBodyText(page, 'Your summary log is being checked', 30)
+
+    await checkBodyText(page, 'Your summary log cannot be uploaded', 60)
+
+    await checkBodyText(page, 'errors in your summary log', 60)
     await checkBodyText(
+      page,
       "You'll need to fix all of your summary log errors before you can upload this file.",
       30
     )
 
-    const validationErrors = await UploadSummaryLogPage.getValidationErrors()
+    const validationErrors = await uploadSummaryLogPage.getValidationErrors()
     const expectedErrors = [
       {
         rowId: '1000',
@@ -352,7 +378,7 @@ describe('Summary Logs - Unhappy paths - Template and validation @unhappyPaths',
 
     expect(validationErrors).toEqual(expectedErrors)
 
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 })

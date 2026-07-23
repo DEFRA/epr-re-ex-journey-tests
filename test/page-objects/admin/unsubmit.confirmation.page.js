@@ -1,26 +1,32 @@
 import { AdminPage } from 'page-objects/admin/page'
-import { $ } from '@wdio/globals'
 
 class UnsubmitConfirmationPage extends AdminPage {
   async getWarningText() {
-    return await $('.govuk-warning-text__text').getText()
+    return this.page.locator('.govuk-warning-text__text').innerText()
   }
 
   async getDetailsText() {
-    return await $('#main-content').getText()
+    return this.page.locator('#main-content').innerText()
   }
 
   async confirmUnsubmit() {
-    await $('button=Yes, unsubmit this report').click()
+    await this.page
+      .getByRole('button', { name: 'Yes, unsubmit this report', exact: true })
+      .click()
   }
 
   async getSuccessMessage() {
-    return await $('.govuk-panel__title').getText()
+    return this.page.locator('.govuk-panel__title').innerText()
   }
 
   async returnToRegistrationOverview() {
-    await $('a=Back to registration overview').click()
+    await this.page
+      .getByRole('link', {
+        name: 'Back to registration overview',
+        exact: true
+      })
+      .click()
   }
 }
 
-export default new UnsubmitConfirmationPage()
+export { UnsubmitConfirmationPage }

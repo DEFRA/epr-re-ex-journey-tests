@@ -1,17 +1,17 @@
-import { $, browser, expect } from '@wdio/globals'
-import HomePage from 'page-objects/homepage.js'
-import DashboardPage from '../page-objects/dashboard.page.js'
-import WasteRecordsPage from '../page-objects/waste.records.page.js'
-import ReportsPage from 'page-objects/reports/reports.page.js'
-import ReportDetailPage from 'page-objects/reports/report.detail.page.js'
-import TonnesRecycledPage from '../page-objects/reports/tonnes.recycled.page.js'
-import TonnesNotRecycledPage from '../page-objects/reports/tonnes.not.recycled.page.js'
-import ReprocessorPrnSummaryPage from '../page-objects/reports/reprocessor.prn.summary.page.js'
-import FreePrnsPage from '../page-objects/reports/free.prns.page.js'
-import ReportSupportingInformationPage from 'page-objects/reports/report.supporting.information.page.js'
-import ReportCheckAnswersPage from 'page-objects/reports/report.check.answers.page.js'
-import MonthlyReportDraftDeclarationPage from '../page-objects/reports/monthly.report.draft.declaration.page.js'
-import ConfirmDeleteReportPage from '../page-objects/confirm.delete.report.page.js'
+import { test, expect } from '@playwright/test'
+import { HomePage } from 'page-objects/homepage.js'
+import { DashboardPage } from '../page-objects/dashboard.page.js'
+import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
+import { ReportsPage } from 'page-objects/reports/reports.page.js'
+import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
+import { TonnesRecycledPage } from '../page-objects/reports/tonnes.recycled.page.js'
+import { TonnesNotRecycledPage } from '../page-objects/reports/tonnes.not.recycled.page.js'
+import { ReprocessorPrnSummaryPage } from '../page-objects/reports/reprocessor.prn.summary.page.js'
+import { FreePrnsPage } from '../page-objects/reports/free.prns.page.js'
+import { ReportSupportingInformationPage } from 'page-objects/reports/report.supporting.information.page.js'
+import { ReportCheckAnswersPage } from 'page-objects/reports/report.check.answers.page.js'
+import { MonthlyReportDraftDeclarationPage } from '../page-objects/reports/monthly.report.draft.declaration.page.js'
+import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.page.js'
 import { checkBodyText } from '../support/checks.js'
 import {
   createLinkedOrganisation,
@@ -22,19 +22,43 @@ import { defraIdStub } from '../support/defra-id-stub.js'
 import { expectActionRequiredStatus } from '../support/report-status.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
-async function navigateReprocessorToSupportingInfo() {
-  await TonnesRecycledPage.enterTonnage('10')
-  await TonnesRecycledPage.continue()
-  await TonnesNotRecycledPage.enterTonnage('5')
-  await TonnesNotRecycledPage.continue()
-  await ReprocessorPrnSummaryPage.enterRevenue('100')
-  await ReprocessorPrnSummaryPage.continue()
-  await FreePrnsPage.enterTonnage('0')
-  await FreePrnsPage.continue()
+async function navigateReprocessorToSupportingInfo({
+  tonnesRecycledPage,
+  tonnesNotRecycledPage,
+  reprocessorPrnSummaryPage,
+  freePrnsPage
+}) {
+  await tonnesRecycledPage.enterTonnage('10')
+  await tonnesRecycledPage.continue()
+  await tonnesNotRecycledPage.enterTonnage('5')
+  await tonnesNotRecycledPage.continue()
+  await reprocessorPrnSummaryPage.enterRevenue('100')
+  await reprocessorPrnSummaryPage.continue()
+  await freePrnsPage.enterTonnage('0')
+  await freePrnsPage.continue()
 }
 
-describe('Deleting a ready to submit report', () => {
-  it('should delete from the submit page @delete-report', async () => {
+test.describe('Deleting a ready to submit report', () => {
+  test('should delete from the submit page @delete-report', async ({
+    page
+  }) => {
+    const homePage = new HomePage(page)
+    const dashboardPage = new DashboardPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const reportsPage = new ReportsPage(page)
+    const reportDetailPage = new ReportDetailPage(page)
+    const tonnesRecycledPage = new TonnesRecycledPage(page)
+    const tonnesNotRecycledPage = new TonnesNotRecycledPage(page)
+    const reprocessorPrnSummaryPage = new ReprocessorPrnSummaryPage(page)
+    const freePrnsPage = new FreePrnsPage(page)
+    const reportSupportingInformationPage = new ReportSupportingInformationPage(
+      page
+    )
+    const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
+    const monthlyReportDraftDeclarationPage =
+      new MonthlyReportDraftDeclarationPage(page)
+    const confirmDeleteReportPage = new ConfirmDeleteReportPage(page)
+
     const regNumber = 'R25SR500010912PL'
     const accNumber = 'R-ACC12145PL'
 
@@ -58,6 +82,7 @@ describe('Deleting a ready to submit report', () => {
     )
 
     const user = await createLinkAndLogin(
+      page,
       organisationDetails.refNo,
       migrationResponse.email
     )
@@ -72,51 +97,56 @@ describe('Deleting a ready to submit report', () => {
     )
 
     // Navigate to reports and create a draft report
-    await DashboardPage.selectTableLink(1, 1)
-    await WasteRecordsPage.manageReportsLink()
-    await ReportsPage.selectActiveActionLink(1)
-    await ReportDetailPage.useThisData()
+    await dashboardPage.selectTableLink(1, 1)
+    await wasteRecordsPage.manageReportsLink()
+    await reportsPage.selectActiveActionLink(1)
+    await reportDetailPage.useThisData()
 
     // Navigate through reprocessor data entry pages
-    await navigateReprocessorToSupportingInfo()
-    await ReportSupportingInformationPage.continue()
+    await navigateReprocessorToSupportingInfo({
+      tonnesRecycledPage,
+      tonnesNotRecycledPage,
+      reprocessorPrnSummaryPage,
+      freePrnsPage
+    })
+    await reportSupportingInformationPage.continue()
 
     // Create the draft report (transitions to ready_to_submit)
-    await ReportCheckAnswersPage.createReport()
+    await reportCheckAnswersPage.createReport()
 
     // Confirmation page — go back to reports list
-    await checkBodyText('report created', 30)
-    await $('a*=Go to reports').click()
+    await checkBodyText(page, 'report created', 30)
+    await page.getByRole('link', { name: 'Go to reports' }).click()
 
     // Report should now be ready to submit — click into it
-    const statusBefore = await ReportsPage.getActiveStatusBadge(1)
-    const colourBefore = await ReportsPage.getActiveStatusColour(1)
+    const statusBefore = await reportsPage.getActiveStatusBadge(1)
+    const colourBefore = await reportsPage.getActiveStatusColour(1)
 
     expect(statusBefore).toBe('Ready to submit')
     expect(colourBefore).toBe('blue')
 
-    await ReportsPage.selectActiveActionLink(1)
+    await reportsPage.selectActiveActionLink(1)
 
     // On the submit/declaration page — click delete report
-    await MonthlyReportDraftDeclarationPage.deleteReport()
+    await monthlyReportDraftDeclarationPage.deleteReport()
 
     // Verify confirm deletion page
-    const deleteHeading = await ConfirmDeleteReportPage.headingText()
+    const deleteHeading = await confirmDeleteReportPage.headingText()
     expect(deleteHeading).toBe('Confirm deletion of this report')
 
-    const warningText = await ConfirmDeleteReportPage.warningText()
+    const warningText = await confirmDeleteReportPage.warningText()
     expect(warningText).toContain('This action cannot be undone')
 
     // Confirm deletion
-    await ConfirmDeleteReportPage.confirmDeletion()
+    await confirmDeleteReportPage.confirmDeletion()
 
     // Should be back on reports list with status reverted to due
-    const reportsHeading = await ReportsPage.headingText()
+    const reportsHeading = await reportsPage.headingText()
     expect(reportsHeading).toContain('Reports')
 
-    await expectActionRequiredStatus(1)
+    await expectActionRequiredStatus(page, 1)
 
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 })

@@ -1,7 +1,7 @@
-import { expect } from '@wdio/globals'
+import { test, expect } from '@playwright/test'
 
-import LoginPage from 'page-objects/admin/login.page'
-import ReportSubmissionsPage from 'page-objects/admin/report.submissions.page'
+import { AdminLoginPage } from 'page-objects/admin/login.page'
+import { ReportSubmissionsPage } from 'page-objects/admin/report.submissions.page'
 import { parseCsvRows } from '../../support/csv.js'
 import {
   RESTATED_PERIOD,
@@ -30,9 +30,9 @@ const SUBMISSION_2 = { ...RESTATED_PERIOD, submissionNumber: 2 }
  * would also match orgs left by previous runs. The faker name's random suffix
  * makes it the only unique discriminator.
  */
-async function downloadPeriodRows(companyName) {
-  await ReportSubmissionsPage.open()
-  const csv = await ReportSubmissionsPage.fetchCsv()
+async function downloadPeriodRows(reportSubmissionsPage, companyName) {
+  await reportSubmissionsPage.open()
+  const csv = await reportSubmissionsPage.fetchCsv()
 
   if (csv.status !== 200) {
     throw new Error(`Report submissions CSV download failed: ${csv.status}`)
@@ -45,21 +45,28 @@ async function downloadPeriodRows(companyName) {
   )
 }
 
-// Function (not arrow) so this.timeout is reachable: the summary-log pipeline
-// (upload, scan, async validation and submission) needs longer than the
-// default per-test minute.
-describe('Report submissions CSV - multiple submissions per period', function () {
-  this.timeout(3 * 60 * 1000)
+// The summary-log pipeline (upload, scan, async validation and submission)
+// needs longer than the default per-test timeout.
+test.describe('Report submissions CSV - multiple submissions per period', () => {
+  test.describe.configure({ timeout: 3 * 60 * 1000 })
 
-  before(async () => {
-    await LoginPage.loginAsServiceMaintainer()
+  test.beforeEach(async ({ page }) => {
+    const loginPage = new AdminLoginPage(page)
+    await loginPage.loginAsServiceMaintainer()
   })
 
-  it('exports one row per submitted report, and an in-flight correction neither adds a row nor blanks the submitted figures @reportsubmissions @multipleSubmissions', async () => {
+  test('exports one row per submitted report, and an in-flight correction neither adds a row nor blanks the submitted figures @reportsubmissions @multipleSubmissions', async ({
+    page
+  }) => {
+    const reportSubmissionsPage = new ReportSubmissionsPage(page)
+
     const { refNo, companyName, registrationId, defraAuthHeader } =
       await seedRestatedClosedPeriod({ tonnageRecycled: SUBMISSION_1_TONNAGE })
 
-    const afterFirstSubmission = await downloadPeriodRows(companyName)
+    const afterFirstSubmission = await downloadPeriodRows(
+      reportSubmissionsPage,
+      companyName
+    )
     expect(afterFirstSubmission).toHaveLength(1)
     expect(afterFirstSubmission[0]['Submission Number']).toEqual('1')
     expect(afterFirstSubmission[0]['Tonnage recycled']).toEqual(
@@ -80,7 +87,10 @@ describe('Report submissions CSV - multiple submissions per period', function ()
       { tonnageRecycled: SUBMISSION_2_TONNAGE, tonnageNotRecycled: 0 }
     )
 
-    const whileDraftInFlight = await downloadPeriodRows(companyName)
+    const whileDraftInFlight = await downloadPeriodRows(
+      reportSubmissionsPage,
+      companyName
+    )
     expect(whileDraftInFlight).toHaveLength(1)
     expect(whileDraftInFlight[0]['Submission Number']).toEqual('1')
     expect(whileDraftInFlight[0]['Tonnage recycled']).toEqual(
@@ -96,7 +106,10 @@ describe('Report submissions CSV - multiple submissions per period', function ()
       version
     )
 
-    const afterResubmission = await downloadPeriodRows(companyName)
+    const afterResubmission = await downloadPeriodRows(
+      reportSubmissionsPage,
+      companyName
+    )
     expect(afterResubmission).toHaveLength(2)
     expect(afterResubmission.map((row) => row['Submission Number'])).toEqual([
       '1',

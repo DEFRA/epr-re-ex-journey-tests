@@ -1,14 +1,13 @@
-import { $ } from '@wdio/globals'
 import { Page } from 'page-objects/page'
 
 class ReportStaleErrorPage extends Page {
   async returnToReports() {
-    await $('a*=Return to reports').click()
+    await this.page.getByRole('link', { name: 'Return to reports' }).click()
   }
 
   async deleteAndStartAgain() {
-    await $('button[type=submit]').click()
+    await this.page.locator('button[type=submit]').click()
   }
 }
 
-export default new ReportStaleErrorPage()
+export { ReportStaleErrorPage }

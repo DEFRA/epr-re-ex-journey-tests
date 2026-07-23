@@ -1,3 +1,4 @@
+import { test } from '@playwright/test'
 import { expect } from 'chai'
 import { BaseAPI } from '../apis/base-api.js'
 import {
@@ -21,13 +22,13 @@ function expectMessage(response, message) {
   })
 }
 
-describe('Raw form-submission ingestion validation @formSubmissionIngestion', () => {
+test.describe('Raw form-submission ingestion validation @formSubmissionIngestion', () => {
   const baseAPI = new BaseAPI()
 
-  describe('Organisation endpoint @formSubmissionOrganisation', () => {
+  test.describe('Organisation endpoint @formSubmissionOrganisation', () => {
     const path = '/v1/apply/organisation'
 
-    it('rejects a payload without pages metadata @orgSubmitMissingPages', async () => {
+    test('rejects a payload without pages metadata @orgSubmitMissingPages', async () => {
       const payload = new Organisation().toPayload()
       delete payload.meta.definition.pages
 
@@ -37,7 +38,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       await expectMessage(response, 'Could not extract email from answers')
     })
 
-    it('rejects a payload without data @orgSubmitMissingData', async () => {
+    test('rejects a payload without data @orgSubmitMissingData', async () => {
       const payload = new Organisation().toPayload()
       delete payload.data
 
@@ -47,7 +48,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       await expectMessage(response, 'Could not extract email from answers')
     })
 
-    it('succeeds without nations, returning orgId/referenceNumber/orgName @orgSubmitMissingNations', async () => {
+    test('succeeds without nations, returning orgId/referenceNumber/orgName @orgSubmitMissingNations', async () => {
       const organisation = new Organisation()
       const payload = organisation.toPayload()
       delete payload.data.main.VcdRNr
@@ -93,7 +94,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       ])
     })
 
-    it('rejects a payload without email @orgSubmitMissingEmail', async () => {
+    test('rejects a payload without email @orgSubmitMissingEmail', async () => {
       const payload = new Organisation().toPayload()
       delete payload.data.main.aSoxDO
 
@@ -103,7 +104,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       await expectMessage(response, 'Could not extract email from answers')
     })
 
-    it('rejects a payload without organisation name @orgSubmitMissingOrgName', async () => {
+    test('rejects a payload without organisation name @orgSubmitMissingOrgName', async () => {
       const payload = new Organisation().toPayload()
       delete payload.data.main.RUKDyH
 
@@ -116,14 +117,14 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       )
     })
 
-    it('rejects a missing payload @orgSubmitNoPayload', async () => {
+    test('rejects a missing payload @orgSubmitNoPayload', async () => {
       const response = await submit(baseAPI, path, null)
 
       expect(response.statusCode).to.equal(400)
       await expectMessage(response, 'Invalid payload')
     })
 
-    it('rejects a payload that is not a valid object @orgSubmitInvalidPayload', async () => {
+    test('rejects a payload that is not a valid object @orgSubmitInvalidPayload', async () => {
       const response = await submit(baseAPI, path, 'invalid-data')
 
       expect(response.statusCode).to.equal(400)
@@ -131,10 +132,10 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
     })
   })
 
-  describe('Registration endpoint @formSubmissionRegistration', () => {
+  test.describe('Registration endpoint @formSubmissionRegistration', () => {
     const path = '/v1/apply/registration'
 
-    it('rejects a payload without data @regSubmitMissingData', async () => {
+    test('rejects a payload without data @regSubmitMissingData', async () => {
       const payload = new Registration().toExporterPayload()
       delete payload.data
 
@@ -144,7 +145,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       await expectMessage(response, 'Could not extract orgId from answers')
     })
 
-    it('rejects a payload without pages metadata @regSubmitMissingPages', async () => {
+    test('rejects a payload without pages metadata @regSubmitMissingPages', async () => {
       const payload = new Registration().toExporterPayload()
       delete payload.meta.definition.pages
 
@@ -154,7 +155,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       await expectMessage(response, 'Could not extract orgId from answers')
     })
 
-    it('rejects a payload without organisation ID @regSubmitMissingOrgId', async () => {
+    test('rejects a payload without organisation ID @regSubmitMissingOrgId', async () => {
       const payload = new Registration().toExporterPayload()
       delete payload.data.main.QnSRcX
 
@@ -164,7 +165,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       await expectMessage(response, 'Could not extract orgId from answers')
     })
 
-    it('rejects an invalid organisation ID value @regSubmitInvalidOrgId', async () => {
+    test('rejects an invalid organisation ID value @regSubmitInvalidOrgId', async () => {
       const payload = new Registration().toExporterPayload()
       payload.data.main.QnSRcX = 'invalid value'
 
@@ -174,7 +175,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       await expectMessage(response, 'Could not extract orgId from answers')
     })
 
-    it('rejects an organisation ID below the minimum value @regSubmitOrgIdBelowMinimum', async () => {
+    test('rejects an organisation ID below the minimum value @regSubmitOrgIdBelowMinimum', async () => {
       const registration = new Registration()
       registration.orgId = '5000'
       registration.refNo = 'abcd1234ef567890abcd1234'
@@ -186,7 +187,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       await expectMessage(response, 'Organisation ID must be at least 500000')
     })
 
-    it('rejects a payload without reference number @regSubmitMissingRefNo', async () => {
+    test('rejects a payload without reference number @regSubmitMissingRefNo', async () => {
       const payload = new Registration().toExporterPayload()
       delete payload.data.main.RIXIzA
 
@@ -199,7 +200,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       )
     })
 
-    it('returns a 500 for a reference number failing schema validation @regSubmitInvalidRefNoSchema', async () => {
+    test('returns a 500 for a reference number failing schema validation @regSubmitInvalidRefNoSchema', async () => {
       const registration = new Registration()
       registration.orgId = '500123'
       registration.refNo = '50000'
@@ -210,14 +211,14 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       expect(response.statusCode).to.equal(500)
     })
 
-    it('rejects a missing payload @regSubmitNoPayload', async () => {
+    test('rejects a missing payload @regSubmitNoPayload', async () => {
       const response = await submit(baseAPI, path, null)
 
       expect(response.statusCode).to.equal(400)
       await expectMessage(response, 'Invalid payload')
     })
 
-    it('rejects a payload that is not a valid object @regSubmitInvalidPayload', async () => {
+    test('rejects a payload that is not a valid object @regSubmitInvalidPayload', async () => {
       const response = await submit(baseAPI, path, 'invalid-data')
 
       expect(response.statusCode).to.equal(400)
@@ -228,7 +229,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
     // "Stored registration data" info log plus its database_insert audit -
     // shared handler with the accreditation endpoint below (both routed
     // through registrationAndAccreditationHandler).
-    it('creates a registration and emits the expected log/audit trail @regSubmitSuccess', async () => {
+    test('creates a registration and emits the expected log/audit trail @regSubmitSuccess', async () => {
       const registration = new Registration()
       const payload = registration.toExporterPayload()
 
@@ -250,10 +251,10 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
     })
   })
 
-  describe('Accreditation endpoint @formSubmissionAccreditation', () => {
+  test.describe('Accreditation endpoint @formSubmissionAccreditation', () => {
     const path = '/v1/apply/accreditation'
 
-    it('rejects a payload without pages metadata @accSubmitMissingPages', async () => {
+    test('rejects a payload without pages metadata @accSubmitMissingPages', async () => {
       const payload = new Accreditation().toExporterPayload()
       delete payload.meta.definition.pages
 
@@ -263,7 +264,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       await expectMessage(response, 'Could not extract orgId from answers')
     })
 
-    it('rejects a payload without organisation ID @accSubmitMissingOrgId', async () => {
+    test('rejects a payload without organisation ID @accSubmitMissingOrgId', async () => {
       const payload = new Accreditation().toExporterPayload()
       delete payload.data.main.Ooierc
 
@@ -273,7 +274,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       await expectMessage(response, 'Could not extract orgId from answers')
     })
 
-    it('rejects an invalid organisation ID value @accSubmitInvalidOrgId', async () => {
+    test('rejects an invalid organisation ID value @accSubmitInvalidOrgId', async () => {
       const payload = new Accreditation().toExporterPayload()
       payload.data.main.Ooierc = 'invalid value'
 
@@ -283,7 +284,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       await expectMessage(response, 'Could not extract orgId from answers')
     })
 
-    it('rejects an organisation ID below the minimum value @accSubmitOrgIdBelowMinimum', async () => {
+    test('rejects an organisation ID below the minimum value @accSubmitOrgIdBelowMinimum', async () => {
       const accreditation = new Accreditation()
       accreditation.orgId = '5000'
       accreditation.refNo = 'abcdef123456fedcba654321'
@@ -295,7 +296,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       await expectMessage(response, 'Organisation ID must be at least 500000')
     })
 
-    it('rejects a payload without reference number @accSubmitMissingRefNo', async () => {
+    test('rejects a payload without reference number @accSubmitMissingRefNo', async () => {
       const payload = new Accreditation().toExporterPayload()
       delete payload.data.main.MyWHms
 
@@ -308,7 +309,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       )
     })
 
-    it('returns a 500 for a reference number failing schema validation @accSubmitInvalidRefNoSchema', async () => {
+    test('returns a 500 for a reference number failing schema validation @accSubmitInvalidRefNoSchema', async () => {
       const accreditation = new Accreditation()
       accreditation.refNo = '500000'
       const payload = accreditation.toExporterPayload()
@@ -318,14 +319,14 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
       expect(response.statusCode).to.equal(500)
     })
 
-    it('rejects a missing payload @accSubmitNoPayload', async () => {
+    test('rejects a missing payload @accSubmitNoPayload', async () => {
       const response = await submit(baseAPI, path, null)
 
       expect(response.statusCode).to.equal(400)
       await expectMessage(response, 'Invalid payload')
     })
 
-    it('rejects a payload that is not a valid object @accSubmitInvalidPayload', async () => {
+    test('rejects a payload that is not a valid object @accSubmitInvalidPayload', async () => {
       const response = await submit(baseAPI, path, 'invalid-data')
 
       expect(response.statusCode).to.equal(400)
@@ -334,7 +335,7 @@ describe('Raw form-submission ingestion validation @formSubmissionIngestion', ()
 
     // Ported from epr-backend-journey-tests' formsubmission.feature: the
     // "Stored accreditation data" info log plus its database_insert audit.
-    it('creates an accreditation and emits the expected log/audit trail @accSubmitSuccess', async () => {
+    test('creates an accreditation and emits the expected log/audit trail @accSubmitSuccess', async () => {
       const accreditation = new Accreditation()
       const payload = accreditation.toExporterPayload()
 

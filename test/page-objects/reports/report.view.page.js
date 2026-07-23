@@ -1,20 +1,25 @@
-import { $, browser } from '@wdio/globals'
 import { Page } from 'page-objects/page'
 
 class ReportViewPage extends Page {
   open(orgId, regId, year, cadence, period, submissionNumber = 1) {
-    return browser.url(
+    return this.page.goto(
       `/organisations/${orgId}/registrations/${regId}/reports/${year}/${cadence}/${period}/submissions/${submissionNumber}/view`
     )
   }
 
+  #makeChangesLinkLocator() {
+    return this.page.locator('a.govuk-button', {
+      hasText: 'Make changes to this report'
+    })
+  }
+
   async makeChangesLink() {
-    await $('a.govuk-button=Make changes to this report').click()
+    await this.#makeChangesLinkLocator().click()
   }
 
   async hasMakeChangesLink() {
-    return await $('a.govuk-button=Make changes to this report').isExisting()
+    return (await this.#makeChangesLinkLocator().count()) > 0
   }
 }
 
-export default new ReportViewPage()
+export { ReportViewPage }

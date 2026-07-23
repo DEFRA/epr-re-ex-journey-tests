@@ -1,3 +1,4 @@
+import { test } from '@playwright/test'
 import { expect } from 'chai'
 import { randomUUID } from 'crypto'
 import { BaseAPI } from '../apis/base-api.js'
@@ -34,12 +35,12 @@ async function submitUploadCompleted(baseAPI, summaryLog, fileStatus) {
   )
 }
 
-describe('Summary log upload-completed state transitions @summaryLogTransitions', () => {
+test.describe('Summary log upload-completed state transitions @summaryLogTransitions', () => {
   const baseAPI = new BaseAPI()
   let orgId
   let registrationId
 
-  before(async () => {
+  test.beforeAll(async () => {
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor' }
     ])
@@ -110,7 +111,7 @@ describe('Summary log upload-completed state transitions @summaryLogTransitions'
   const validTransitions = ['pending', 'complete', 'rejected']
 
   for (const toStatus of validTransitions) {
-    it(`allows a valid transition from pending to ${toStatus} @summaryLogValidTransition${toStatus}`, async () => {
+    test(`allows a valid transition from pending to ${toStatus} @summaryLogValidTransition${toStatus}`, async () => {
       const summaryLog = newSummaryLog('pending')
 
       const firstResponse = await submitUploadCompleted(
@@ -169,7 +170,7 @@ describe('Summary log upload-completed state transitions @summaryLogTransitions'
   ]
 
   for (const { from, to, fromLog, toLog } of invalidTransitions) {
-    it(`rejects an invalid transition from ${from} to ${to} @summaryLogInvalidTransition${from}To${to}`, async () => {
+    test(`rejects an invalid transition from ${from} to ${to} @summaryLogInvalidTransition${from}To${to}`, async () => {
       if (from === 'complete') {
         const { response, body } = await attemptFromComplete(to)
         expect(body.message).to.equal(

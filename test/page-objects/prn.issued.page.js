@@ -1,38 +1,29 @@
-import { $ } from '@wdio/globals'
 import { Page } from 'page-objects/page'
 
 class PRNIssuedPage extends Page {
   async prnNumberText() {
-    const prnNoElement = await $(
-      '#main-content > div > div > div > div > strong'
-    )
-    await prnNoElement.waitForExist({ timeout: 5000 })
-    return await prnNoElement.getText()
+    return this.page
+      .locator('#main-content > div > div > div > div > strong')
+      .innerText()
   }
 
-  async issueAnotherPRN() {
-    const issueAnotherPRNelement = await $(
-      '#main-content > div > div > p:nth-child(4) > a'
-    )
-    await issueAnotherPRNelement.waitForExist({ timeout: 5000 })
-    return issueAnotherPRNelement
+  issueAnotherPRN() {
+    return this.page.locator('#main-content > div > div > p:nth-child(4) > a')
   }
 
-  async managePRNs() {
-    const managePRNsElement = await $(
-      '#main-content > div > div > p:nth-child(5) > a'
-    )
-    await managePRNsElement.waitForExist({ timeout: 5000 })
-    return managePRNsElement
+  managePRNs() {
+    return this.page.locator('#main-content > div > div > p:nth-child(5) > a')
   }
 
   async returnToHomePage() {
-    await $('a*=Return to home').click()
+    await this.page.getByRole('link', { name: 'Return to home' }).click()
   }
 
   async viewPdfButton() {
-    await $('#main-content > div > div > p:nth-child(3) > a').click()
+    await this.page
+      .locator('#main-content > div > div > p:nth-child(3) > a')
+      .click()
   }
 }
 
-export default new PRNIssuedPage()
+export { PRNIssuedPage }
