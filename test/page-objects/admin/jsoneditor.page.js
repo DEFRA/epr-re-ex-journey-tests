@@ -36,12 +36,18 @@ class JsonEditor {
   }
 
   async updateOrgId(orgId) {
-    const cell = this.page.locator(
-      '#jsoneditor > div > div.jsoneditor-outer.has-main-menu-bar.has-nav-bar > div > div > table > tbody > tr:nth-child(6) > td:nth-child(3) > table > tbody > tr > td:nth-child(4) > div'
-    )
+    // Was a hardcoded tr:nth-child(6) row-position selector, but the tree's
+    // row order shifts depending on the org's JSON shape (e.g. whether
+    // statusHistory or other optional fields are present) - orgId doesn't
+    // reliably land on row 6 for every org. Find the row by field name
+    // instead, which is stable regardless of shape.
+    const row = this.page.locator('tr', {
+      has: this.page.locator('.jsoneditor-field', { hasText: /^orgId$/ })
+    })
+    const cell = row.locator('.jsoneditor-value').first()
     await cell.click()
     await cell.clear()
-    await cell.fill(orgId)
+    await cell.fill(String(orgId))
     // Press Tab to blur the cell and trigger the jsoneditor onChange handler
     await this.page.keyboard.press('Tab')
   }
