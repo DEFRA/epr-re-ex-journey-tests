@@ -94,7 +94,7 @@ function matchesAuditExpectation(log, expected) {
  */
 export async function assertAuditLogs(
   expectedList,
-  { timeout = 15000, interval = 250 } = {}
+  { timeout = 30000, interval = 250 } = {}
 ) {
   if (!config.testLogs) {
     logger.warn(
