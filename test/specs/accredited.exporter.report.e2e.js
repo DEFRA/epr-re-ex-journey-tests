@@ -318,6 +318,9 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       const reportsHeading = await reportsPage.headingText()
       expect(reportsHeading).toContain('Reports')
 
+      // Refresh to see the status change
+      await page.reload()
+
       const readyStatusBadge = await reportsPage.getActiveStatusBadge(1)
       const readyStatusColour = await reportsPage.getActiveStatusColour(1)
 
