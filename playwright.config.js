@@ -34,8 +34,8 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: isCI,
   maxFailures: isLocalDev ? 1 : 0,
-  retries: isCI ? 1 : 0,
-  workers: isCI ? 4 : 1,
+  retries: 1,
+  workers: 4,
 
   globalSetup: './test/support/global-setup.js',
   globalTeardown: './test/support/global-teardown.js',
