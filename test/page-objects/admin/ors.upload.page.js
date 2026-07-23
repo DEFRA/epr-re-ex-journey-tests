@@ -190,8 +190,13 @@ class OrsUploadPage extends AdminPage {
   }
 
   async clickPageNumber(pageNumber) {
+    // On the last page, the numbered page link and the "Next page" link can
+    // share the same href (both point at the same next page), so this can
+    // resolve to more than one element - take the first, matching what
+    // WDIO's $() silently did.
     await this.page
       .locator(`nav.govuk-pagination a[href*="page=${pageNumber}&"]`)
+      .first()
       .click()
   }
 

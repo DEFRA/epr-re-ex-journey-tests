@@ -59,6 +59,7 @@ class SystemLogsPage extends AdminPage {
       .locator(
         '#main-content div.govuk-summary-card__content > dl > div:nth-child(2) > dd'
       )
+      .first()
       .innerText()
     return userId.trim()
   }

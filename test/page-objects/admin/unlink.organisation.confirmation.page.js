@@ -2,7 +2,7 @@ import { AdminPage } from 'page-objects/admin/page'
 
 class UnlinkOrganisationConfirmationPage extends AdminPage {
   async getBodyText() {
-    return this.page.locator('#main-content p.govuk-body').innerText()
+    return this.page.locator('#main-content p.govuk-body').first().innerText()
   }
 
   async getWarningText() {

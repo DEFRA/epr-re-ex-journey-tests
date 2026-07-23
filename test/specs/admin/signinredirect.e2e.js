@@ -13,7 +13,7 @@ test.describe('Signin redirect tests @signinredirect', () => {
     await organisationsPage.open()
     await expect(page).toHaveTitle(/Organisations/)
 
-    await page.getByText('Sign in', { exact: true }).click()
+    await page.getByText('Sign in', { exact: true }).first().click()
 
     await loginPage.enterCredentials('ea@test.gov.uk', 'pass')
     await loginPage.submitCredentials()
