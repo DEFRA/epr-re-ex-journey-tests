@@ -151,6 +151,10 @@ runs:
       run: npm ci
       shell: bash
 
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps chromium
+      shell: bash
+
     - name: Add hosts entry
       run: |
         sudo echo "127.0.0.1 defra-id-stub" | sudo tee -a /etc/hosts
