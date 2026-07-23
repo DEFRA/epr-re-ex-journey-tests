@@ -12,6 +12,13 @@ class TonnageMonitoringPage extends AdminPage {
   }
 
   async tonnageMaterialTableData() {
+    // .count() below reads the DOM as-is with no auto-wait (unlike actions
+    // such as .click()), so without this the table can be read before it's
+    // rendered - seen as an intermittent 0-row result in CI.
+    await this.page
+      .locator('table.govuk-table')
+      .waitFor({ state: 'visible', timeout: 10000 })
+
     const headerElements = this.page.locator('table.govuk-table thead th')
     const headerCount = await headerElements.count()
     const headers = []

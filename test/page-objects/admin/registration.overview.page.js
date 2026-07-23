@@ -2,6 +2,13 @@ import { AdminPage } from 'page-objects/admin/page'
 
 class RegistrationOverviewPage extends AdminPage {
   async getReportsTableData() {
+    // .count() below reads the DOM as-is with no auto-wait, so without this
+    // the table can be read before it's rendered - seen as an intermittent
+    // 0-row result in CI.
+    await this.page
+      .locator('#reports table')
+      .waitFor({ state: 'visible', timeout: 10000 })
+
     const rows = this.page.locator('#reports table tbody tr')
     const count = await rows.count()
     const data = []
