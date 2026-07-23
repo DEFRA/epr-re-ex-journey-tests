@@ -1,63 +1,61 @@
-import { browser, $, $$ } from '@wdio/globals'
-
 class Page {
+  constructor(page) {
+    this.page = page
+  }
+
   open(path) {
-    return browser.url(path)
+    return this.page.goto(path)
   }
 
   async headingText() {
-    const element = await $('h1.govuk-heading-xl')
-    await element.waitForExist({ timeout: 5000 })
-    return await element.getText()
+    return this.page.locator('h1.govuk-heading-xl').innerText()
   }
 
   async selectBackLink() {
-    await $('a*=Back').click()
+    await this.page.locator('a', { hasText: 'Back' }).click()
   }
 
   async messageText() {
-    const bodyElement = await $('#main-content > div > div > div')
-    await bodyElement.waitForExist({ timeout: 5000 })
-    return await bodyElement.getText()
+    return this.page.locator('#main-content > div > div > div').innerText()
   }
 
   async dashboardHeaderText() {
-    return $('#main-content > div > div > div > h1').getText()
+    return this.page.locator('#main-content > div > div > div > h1').innerText()
   }
 
   async wasteBalanceAmount() {
-    const element = await $('[data-testid="waste-balance-amount"]')
-    await element.waitForExist({ timeout: 5000 })
-    return await element.getText()
+    return this.page.locator('[data-testid="waste-balance-amount"]').innerText()
   }
 
   async prnDetails() {
-    const summaryRows = await $$(
+    const summaryRows = this.page.locator(
       'dl.govuk-summary-list:nth-of-type(1) > div.govuk-summary-list__row'
     )
     return await this.toDataMap(summaryRows)
   }
 
   async accreditationDetails() {
-    const summaryRows = await $$(
+    const summaryRows = this.page.locator(
       'dl.govuk-summary-list:nth-of-type(2) > div.govuk-summary-list__row'
     )
     return await this.toDataMap(summaryRows)
   }
 
-  async toDataMap(summaryRows) {
+  async toDataMap(rowsLocator) {
     const dataMap = {}
+    const count = await rowsLocator.count()
 
-    for (const row of summaryRows) {
-      const key = await row.$('.govuk-summary-list__key').getText()
-      const value = await row.$('.govuk-summary-list__value').getText()
+    for (let i = 0; i < count; i++) {
+      const row = rowsLocator.nth(i)
+      const key = await row.locator('.govuk-summary-list__key').innerText()
+      const value = await row.locator('.govuk-summary-list__value').innerText()
       dataMap[key] = value
     }
     return dataMap
   }
 
   async signOut() {
-    await $('a*=Sign out').click()
+    await this.page.locator('a', { hasText: 'Sign out' }).click()
   }
 }
 

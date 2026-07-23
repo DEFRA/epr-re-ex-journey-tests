@@ -1,11 +1,11 @@
-import { browser, expect } from '@wdio/globals'
-import CheckBeforeCreatingPrnPage from 'page-objects/check.before.creating.prn.page.js'
-import ConfirmDiscardPRNPage from 'page-objects/confirm.discard.prn.page.js'
-import CreatePRNPage from 'page-objects/create.prn.page.js'
-import HomePage from 'page-objects/homepage.js'
-import PrnDashboardPage from 'page-objects/prn.dashboard.page.js'
-import DashboardPage from '../page-objects/dashboard.page.js'
-import WasteRecordsPage from '../page-objects/waste.records.page.js'
+import { test, expect } from '@playwright/test'
+import { CheckBeforeCreatingPRNPage } from 'page-objects/check.before.creating.prn.page.js'
+import { ConfirmDiscardPRNPage } from 'page-objects/confirm.discard.prn.page.js'
+import { CreatePRNPage } from 'page-objects/create.prn.page.js'
+import { HomePage } from 'page-objects/homepage.js'
+import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
+import { DashboardPage } from '../page-objects/dashboard.page.js'
+import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
@@ -17,8 +17,18 @@ import {
 import { PrnHelper } from '../support/prn.helper.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
-describe('Create Packing Recycling Notes (Exporter)', () => {
-  it('Should test various (Unhappy) paths for Create PRN Exporter @prnexporter', async () => {
+test.describe('Create Packing Recycling Notes (Exporter)', () => {
+  test('Should test various (Unhappy) paths for Create PRN Exporter @prnexporter', async ({
+    page
+  }) => {
+    const checkBeforeCreatingPrnPage = new CheckBeforeCreatingPRNPage(page)
+    const confirmDiscardPRNPage = new ConfirmDiscardPRNPage(page)
+    const createPRNPage = new CreatePRNPage(page)
+    const homePage = new HomePage(page)
+    const prnDashboardPage = new PRNDashboardPage(page)
+    const dashboardPage = new DashboardPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+
     const regNumber = 'E25SR500020912AL'
     const accNumber = 'E-ACC12245AL'
 
@@ -39,13 +49,17 @@ describe('Create Packing Recycling Notes (Exporter)', () => {
       ]
     )
 
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
+    await createLinkAndLogin(
+      page,
+      organisationDetails.refNo,
+      migrationResponse.email
+    )
 
-    await DashboardPage.selectTableLink(1, 1)
+    await dashboardPage.selectTableLink(1, 1)
 
-    await WasteRecordsPage.createNewPERNLink()
+    await wasteRecordsPage.createNewPERNLink()
 
-    const prnHelper = new PrnHelper(true)
+    const prnHelper = new PrnHelper(page, true)
 
     const prnDetails = createPrnDetails({
       tradingName,
@@ -60,29 +74,29 @@ describe('Create Packing Recycling Notes (Exporter)', () => {
     await prnHelper.createAndCheckDraftPrn(prnDetails)
 
     // Discard the first attempt
-    await CheckBeforeCreatingPrnPage.discardAndStartAgain()
-    const discardHeading = await ConfirmDiscardPRNPage.headingText()
+    await checkBeforeCreatingPrnPage.discardAndStartAgain()
+    const discardHeading = await confirmDiscardPRNPage.headingText()
     expect(discardHeading).toBe('Are you sure you want to discard this PERN?')
-    await ConfirmDiscardPRNPage.discardAndStartAgain()
+    await confirmDiscardPRNPage.discardAndStartAgain()
 
     prnDetails.issuerNotes = 'Testing'
     await prnHelper.createAndCheckDraftPrn(prnDetails)
 
     // This time we go to the discard page, and check the back link works
-    await CheckBeforeCreatingPrnPage.discardAndStartAgain()
-    await ConfirmDiscardPRNPage.selectBackLink()
+    await checkBeforeCreatingPrnPage.discardAndStartAgain()
+    await confirmDiscardPRNPage.selectBackLink()
 
-    await CheckBeforeCreatingPrnPage.createPRN()
+    await checkBeforeCreatingPrnPage.createPRN()
 
     // Check Create PRN validation errors
-    let createAPrnPageHeading = await CreatePRNPage.headingText()
+    let createAPrnPageHeading = await createPRNPage.headingText()
     expect(createAPrnPageHeading).toBe('Create a PERN')
-    let materialDetails = await CreatePRNPage.materialDetails()
+    let materialDetails = await createPRNPage.materialDetails()
     expect(materialDetails).toBe('Material: Aluminium')
 
-    await CreatePRNPage.continue()
+    await createPRNPage.continue()
 
-    let errorMessages = await CreatePRNPage.errorMessages(2)
+    let errorMessages = await createPRNPage.errorMessages(2)
     expect(errorMessages).toEqual([
       'Enter PERN tonnage as a whole number',
       'Enter a packaging producer or compliance scheme'
@@ -90,28 +104,28 @@ describe('Create Packing Recycling Notes (Exporter)', () => {
 
     await prnHelper.createAndCheckDraftPrn(prnDetails)
 
-    await CheckBeforeCreatingPrnPage.createPRN()
+    await checkBeforeCreatingPrnPage.createPRN()
 
     // Now we see an error message related to tonnage exceeding waste balance
-    errorMessages = await CreatePRNPage.errorMessages(1)
+    errorMessages = await createPRNPage.errorMessages(1)
     expect(errorMessages).toEqual([
       'The tonnage you entered exceeds your available waste balance'
     ])
     // End of Check Create PERN validation errors
 
     // Check Create a PERN page is accessible from PERN Dashboard button
-    await HomePage.homeLink()
-    await DashboardPage.selectTableLink(1, 1)
-    await WasteRecordsPage.managePERNsLink()
-    await PrnDashboardPage.createAPrnButton()
+    await homePage.homeLink()
+    await dashboardPage.selectTableLink(1, 1)
+    await wasteRecordsPage.managePERNsLink()
+    await prnDashboardPage.createAPrnButton()
 
     // Check we are on Create a PERN Page
-    createAPrnPageHeading = await CreatePRNPage.headingText()
+    createAPrnPageHeading = await createPRNPage.headingText()
     expect(createAPrnPageHeading).toBe('Create a PERN')
-    materialDetails = await CreatePRNPage.materialDetails()
+    materialDetails = await createPRNPage.materialDetails()
     expect(materialDetails).toBe('Material: Aluminium')
 
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 })

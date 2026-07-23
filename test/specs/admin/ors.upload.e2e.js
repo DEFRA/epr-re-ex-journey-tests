@@ -1,10 +1,10 @@
 import path from 'node:path'
 import os from 'node:os'
 
-import { $, browser, expect } from '@wdio/globals'
+import { test, expect } from '@playwright/test'
 
-import LoginPage from 'page-objects/admin/login.page'
-import OrsUploadPage from 'page-objects/admin/ors.upload.page'
+import { AdminLoginPage } from 'page-objects/admin/login.page'
+import { OrsUploadPage } from 'page-objects/admin/ors.upload.page'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
@@ -13,27 +13,34 @@ import {
   createOrsSpreadsheet,
   validOrsSites
 } from '../../support/ors-spreadsheet.js'
-import OrganisationsPage from 'page-objects/admin/organisations.page'
-import OrganisationOverviewPage from 'page-objects/admin/organisation.overview.page'
-import RegistrationOverviewPage from 'page-objects/admin/registration.overview.page'
-import ORSOverviewPage from 'page-objects/admin/ors.overview.page'
+import { OrganisationsPage } from 'page-objects/admin/organisations.page'
+import { OrganisationOverviewPage } from 'page-objects/admin/organisation.overview.page'
+import { RegistrationOverviewPage } from 'page-objects/admin/registration.overview.page'
+import { ORSOverviewPage } from 'page-objects/admin/ors.overview.page'
 
-async function uploadWorkbookAndWaitForCompletion(workbookPath) {
-  await OrsUploadPage.open()
-  await expect(browser).toHaveTitle(
-    expect.stringContaining('Upload ORS workbooks')
-  )
+async function uploadWorkbookAndWaitForCompletion(
+  orsUploadPage,
+  page,
+  workbookPath
+) {
+  await orsUploadPage.open()
+  await expect(page).toHaveTitle(/Upload ORS workbooks/)
 
-  await OrsUploadPage.expectUploadFormVisible()
-  await OrsUploadPage.uploadWorkbook(workbookPath)
-  await OrsUploadPage.clickStartUpload()
-  await OrsUploadPage.waitForStatusPage()
+  await orsUploadPage.expectUploadFormVisible()
+  await orsUploadPage.uploadWorkbook(workbookPath)
+  await orsUploadPage.clickStartUpload()
+  await orsUploadPage.waitForStatusPage()
 
-  return OrsUploadPage.waitForCompletedOrFailedImport()
+  return orsUploadPage.waitForCompletedOrFailedImport()
 }
 
-describe('ORS upload flow @orsupload', () => {
-  it('Should upload an ORS workbook and show completed import status', async () => {
+test.describe('ORS upload flow @orsupload', () => {
+  test('Should upload an ORS workbook and show completed import status', async ({
+    page
+  }) => {
+    const loginPage = new AdminLoginPage(page)
+    const orsUploadPage = new OrsUploadPage(page)
+
     const { orgId, refNo } = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
     ])
@@ -61,32 +68,34 @@ describe('ORS upload flow @orsupload', () => {
       sites: validOrsSites
     })
 
-    await LoginPage.loginAsServiceMaintainer()
+    await loginPage.loginAsServiceMaintainer()
 
-    const finalStatus = await uploadWorkbookAndWaitForCompletion(workbookPath)
+    const finalStatus = await uploadWorkbookAndWaitForCompletion(
+      orsUploadPage,
+      page,
+      workbookPath
+    )
 
     expect(finalStatus).toEqual('Import completed')
 
-    const statusSummary = await OrsUploadPage.getStatusSummaryText()
+    const statusSummary = await orsUploadPage.getStatusSummaryText()
     expect(statusSummary).toContain('Files processed: 1')
     expect(statusSummary).toContain('Successful: 1')
     expect(statusSummary).toContain('Failed: 0')
 
-    const fileResults = await OrsUploadPage.getUploadedFileResults()
+    const fileResults = await orsUploadPage.getUploadedFileResults()
     expect(fileResults).toHaveLength(1)
     expect(fileResults[0].fileName).toContain(`ors-test-${orgId}`)
     expect(fileResults[0].result).toEqual('success')
 
-    const viewRecordsLink = await $('a[href="/overseas-sites"]')
-    await expect(viewRecordsLink).toBeDisplayed()
+    const viewRecordsLink = page.locator('a[href="/overseas-sites"]').first()
+    await expect(viewRecordsLink).toBeVisible()
 
-    await OrsUploadPage.openList()
-    await expect(browser).toHaveTitle(
-      expect.stringContaining('Overseas reprocessing sites')
-    )
-    await OrsUploadPage.expectDownloadCsvVisible()
+    await orsUploadPage.openList()
+    await expect(page).toHaveTitle(/Overseas reprocessing sites/)
+    await orsUploadPage.expectDownloadCsvVisible()
 
-    const csvDownload = await OrsUploadPage.fetchListCsv()
+    const csvDownload = await orsUploadPage.fetchListCsv()
     expect(csvDownload.status).toEqual(200)
     expect(csvDownload.contentType).toContain('text/csv')
     expect(csvDownload.contentDisposition).toEqual(
@@ -117,10 +126,10 @@ describe('ORS upload flow @orsupload', () => {
       'Valid from'
     ]
 
-    const actualHeaders = await OrsUploadPage.getListTableHeaders()
+    const actualHeaders = await orsUploadPage.getListTableHeaders()
     expect(actualHeaders).toEqual(expectedHeaders)
 
-    const rows = await OrsUploadPage.getListTableRows()
+    const rows = await orsUploadPage.getListTableRows()
     expect(rows.length).toBeGreaterThan(0)
 
     const uploadedRow = rows.find(
@@ -148,33 +157,46 @@ describe('ORS upload flow @orsupload', () => {
       '1 January 2025'
     ])
 
-    await OrsUploadPage.openList('page=1&pageSize=2')
-    await OrsUploadPage.expectPaginationVisible()
+    await orsUploadPage.openList('page=1&pageSize=2')
+    await orsUploadPage.expectPaginationVisible()
 
-    const pageOneStatus = await OrsUploadPage.getPaginationStatusText()
+    const pageOneStatus = await orsUploadPage.getPaginationStatusText()
     expect(pageOneStatus).toContain('Showing page 1 of')
 
-    await OrsUploadPage.clickNextPage()
-    await expect(browser).toHaveUrl(
-      expect.stringContaining('page=2&pageSize=2')
-    )
+    await orsUploadPage.clickNextPage()
+    await expect(page).toHaveURL(/page=2&pageSize=2/)
 
-    const pageTwoStatus = await OrsUploadPage.getPaginationStatusText()
+    const pageTwoStatus = await orsUploadPage.getPaginationStatusText()
     expect(pageTwoStatus).toContain('Showing page 2 of')
 
-    const pageTwoRows = await OrsUploadPage.getListTableRows()
+    const pageTwoRows = await orsUploadPage.getListTableRows()
     expect(pageTwoRows.length).toBeGreaterThan(0)
     expect(pageTwoRows.length).toBeLessThanOrEqual(2)
   })
 
-  describe('Registration number filter @orsupload', () => {
+  // .serial: later tests consume registration numbers and the org name
+  // created in "Should upload workbooks for filter tests" via shared
+  // closure state - non-serial mode doesn't guarantee that setup runs (or
+  // finishes running) before the tests that depend on it.
+  test.describe.serial('Registration number filter @orsupload', () => {
     let alphaRegistrationNumber
     let alphaAccreditationNumber
     let betaRegistrationNumber
     let betaAccreditationNumber
     let organisationName
 
-    it('Should upload workbooks for filter tests', async () => {
+    // The suite's WDIO original logged in once in the first test of this
+    // block and relied on the shared browser session for the rest.
+    // Playwright isolates every test in its own context, so log in fresh
+    // each time instead.
+    test.beforeEach(async ({ page }) => {
+      const loginPage = new AdminLoginPage(page)
+      await loginPage.loginAsServiceMaintainer()
+    })
+
+    test('Should upload workbooks for filter tests', async ({ page }) => {
+      const orsUploadPage = new OrsUploadPage(page)
+
       const { orgId, refNo, organisation } = await createLinkedOrganisation([
         { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' },
         { material: 'Steel (R4)', wasteProcessingType: 'Exporter' }
@@ -226,68 +248,80 @@ describe('ORS upload flow @orsupload', () => {
         sites: validOrsSites
       })
 
-      await LoginPage.loginAsServiceMaintainer()
-
       expect(
-        await uploadWorkbookAndWaitForCompletion(alphaWorkbookPath)
+        await uploadWorkbookAndWaitForCompletion(
+          orsUploadPage,
+          page,
+          alphaWorkbookPath
+        )
       ).toEqual('Import completed')
       expect(
-        await uploadWorkbookAndWaitForCompletion(betaWorkbookPath)
+        await uploadWorkbookAndWaitForCompletion(
+          orsUploadPage,
+          page,
+          betaWorkbookPath
+        )
       ).toEqual('Import completed')
     })
 
-    it('Should filter list by registration number', async () => {
-      await OrsUploadPage.openList()
-      await OrsUploadPage.filterByRegistrationNumber(alphaRegistrationNumber)
-      await expect(browser).toHaveUrl(
-        expect.stringContaining(
+    test('Should filter list by registration number', async ({ page }) => {
+      const orsUploadPage = new OrsUploadPage(page)
+
+      await orsUploadPage.openList()
+      await orsUploadPage.filterByRegistrationNumber(alphaRegistrationNumber)
+      await expect(page).toHaveURL(
+        new RegExp(
           `registrationNumber=${encodeURIComponent(alphaRegistrationNumber)}`
         )
       )
-      await expect(await OrsUploadPage.getRegistrationNumberFilterValue()).toBe(
+      expect(await orsUploadPage.getRegistrationNumberFilterValue()).toBe(
         alphaRegistrationNumber
       )
 
-      const filteredRows = await OrsUploadPage.getListTableRows()
+      const filteredRows = await orsUploadPage.getListTableRows()
       expect(filteredRows.length).toBe(3)
       expect(
         filteredRows.every((row) => row[1] === alphaRegistrationNumber)
       ).toBe(true)
     })
 
-    it('Should clear the registration number filter', async () => {
-      await OrsUploadPage.openList()
-      await OrsUploadPage.filterByRegistrationNumber(alphaRegistrationNumber)
-      await OrsUploadPage.clearRegistrationNumberFilter()
-      await expect(browser).not.toHaveUrl(
-        expect.stringContaining(
+    test('Should clear the registration number filter', async ({ page }) => {
+      const orsUploadPage = new OrsUploadPage(page)
+
+      await orsUploadPage.openList()
+      await orsUploadPage.filterByRegistrationNumber(alphaRegistrationNumber)
+      await orsUploadPage.clearRegistrationNumberFilter()
+      await expect(page).not.toHaveURL(
+        new RegExp(
           `registrationNumber=${encodeURIComponent(alphaRegistrationNumber)}`
         )
       )
     })
 
-    it('Should preserve filter through pagination', async () => {
-      await OrsUploadPage.openList(
+    test('Should preserve filter through pagination', async ({ page }) => {
+      const orsUploadPage = new OrsUploadPage(page)
+
+      await orsUploadPage.openList(
         new URLSearchParams({
           page: '1',
           pageSize: '2',
           registrationNumber: alphaRegistrationNumber
         }).toString()
       )
-      await OrsUploadPage.expectPaginationVisible()
+      await orsUploadPage.expectPaginationVisible()
 
-      const pageOneStatus = await OrsUploadPage.getPaginationStatusText()
+      const pageOneStatus = await orsUploadPage.getPaginationStatusText()
       expect(pageOneStatus).toContain('Showing page 1 of 2')
 
-      const pageOneRows = await OrsUploadPage.getListTableRows()
+      const pageOneRows = await orsUploadPage.getListTableRows()
       expect(pageOneRows).toHaveLength(2)
       expect(
         pageOneRows.every((row) => row[1] === alphaRegistrationNumber)
       ).toBe(true)
 
-      await OrsUploadPage.clickPageNumber(2)
-      await expect(browser).toHaveUrl(
-        expect.stringContaining(
+      await orsUploadPage.clickPageNumber(2)
+      await expect(page).toHaveURL(
+        new RegExp(
           new URLSearchParams({
             page: '2',
             pageSize: '2',
@@ -296,23 +330,25 @@ describe('ORS upload flow @orsupload', () => {
         )
       )
 
-      const pageTwoStatus = await OrsUploadPage.getPaginationStatusText()
+      const pageTwoStatus = await orsUploadPage.getPaginationStatusText()
       expect(pageTwoStatus).toContain('Showing page 2 of 2')
 
-      const pageTwoRows = await OrsUploadPage.getListTableRows()
+      const pageTwoRows = await orsUploadPage.getListTableRows()
       expect(pageTwoRows).toHaveLength(1)
       expect(pageTwoRows[0][1]).toEqual(alphaRegistrationNumber)
     })
 
-    it('Should download CSV with active filter', async () => {
-      await OrsUploadPage.openList(
+    test('Should download CSV with active filter', async ({ page }) => {
+      const orsUploadPage = new OrsUploadPage(page)
+
+      await orsUploadPage.openList(
         new URLSearchParams({
           page: '1',
           pageSize: '2',
           registrationNumber: alphaRegistrationNumber
         }).toString()
       )
-      const filteredCsvDownload = await OrsUploadPage.fetchListCsv()
+      const filteredCsvDownload = await orsUploadPage.fetchListCsv()
       expect(filteredCsvDownload.status).toEqual(200)
       expect(filteredCsvDownload.contentType).toContain('text/csv')
       expect(filteredCsvDownload.contentDisposition).toEqual(
@@ -325,24 +361,35 @@ describe('ORS upload flow @orsupload', () => {
       expect(filteredCsvDownload.body).toContain(betaRegistrationNumber)
     })
 
-    it('Should show empty state for non-matching filter', async () => {
-      await OrsUploadPage.openList('registrationNumber=NOT-FOUND')
-      expect(await OrsUploadPage.getInsetText()).toContain(
+    test('Should show empty state for non-matching filter', async ({
+      page
+    }) => {
+      const orsUploadPage = new OrsUploadPage(page)
+
+      await orsUploadPage.openList('registrationNumber=NOT-FOUND')
+      expect(await orsUploadPage.getInsetText()).toContain(
         "No overseas reprocessing site data found matching 'NOT-FOUND'."
       )
     })
 
-    it('Should be able to view ORS data for an organisation', async () => {
-      await OrganisationsPage.open()
-      await OrganisationsPage.searchFor(organisationName)
-      await OrganisationsPage.viewLink(1)
-      await OrganisationOverviewPage.viewRegistrationLink(1)
-      await RegistrationOverviewPage.clickOnViewORSLink()
-      let orsOverviewHeader = await ORSOverviewPage.getHeaderText()
+    test('Should be able to view ORS data for an organisation', async ({
+      page
+    }) => {
+      const organisationsPage = new OrganisationsPage(page)
+      const organisationOverviewPage = new OrganisationOverviewPage(page)
+      const registrationOverviewPage = new RegistrationOverviewPage(page)
+      const orsOverviewPage = new ORSOverviewPage(page)
+
+      await organisationsPage.open()
+      await organisationsPage.searchFor(organisationName)
+      await organisationsPage.viewLink(1)
+      await organisationOverviewPage.viewRegistrationLink(1)
+      await registrationOverviewPage.clickOnViewORSLink()
+      let orsOverviewHeader = await orsOverviewPage.getHeaderText()
       expect(orsOverviewHeader).toContain(
         organisationName + ' - ' + alphaAccreditationNumber
       )
-      let actualOrsTableData = await ORSOverviewPage.getORSTableData()
+      let actualOrsTableData = await orsOverviewPage.getORSTableData()
       const expectedOrsTableData = [
         {
           orsId: '001',
@@ -387,11 +434,11 @@ describe('ORS upload flow @orsupload', () => {
       expect(actualOrsTableData).toEqual(expectedOrsTableData)
 
       // Return to Organisation Overview Page
-      ORSOverviewPage.clickOnBreadcrumbLink(2)
-      await OrganisationOverviewPage.viewRegistrationLink(2)
+      await orsOverviewPage.clickOnBreadcrumbLink(2)
+      await organisationOverviewPage.viewRegistrationLink(2)
 
-      await RegistrationOverviewPage.clickOnViewORSLink()
-      orsOverviewHeader = await ORSOverviewPage.getHeaderText()
+      await registrationOverviewPage.clickOnViewORSLink()
+      orsOverviewHeader = await orsOverviewPage.getHeaderText()
       expect(orsOverviewHeader).toContain(
         organisationName + ' - ' + betaAccreditationNumber
       )
@@ -438,7 +485,7 @@ describe('ORS upload flow @orsupload', () => {
         }
       ]
 
-      actualOrsTableData = await ORSOverviewPage.getORSTableData()
+      actualOrsTableData = await orsOverviewPage.getORSTableData()
       expect(actualOrsTableData).toEqual(expectedSecondOrsTableData)
     })
   })

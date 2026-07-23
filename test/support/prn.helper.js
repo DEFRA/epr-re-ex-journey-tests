@@ -1,22 +1,34 @@
-import CheckBeforeCreatingPrnPage from 'page-objects/check.before.creating.prn.page.js'
-import { expect } from '@wdio/globals'
-import PrnViewPage from 'page-objects/prn.view.page.js'
-import CreatePRNPage from 'page-objects/create.prn.page.js'
-import PrnDashboardPage from 'page-objects/prn.dashboard.page.js'
-import PrnIssuedPage from 'page-objects/prn.issued.page.js'
+import { expect } from '@playwright/test'
+import { CheckBeforeCreatingPRNPage } from 'page-objects/check.before.creating.prn.page.js'
+import { PRNViewPage } from 'page-objects/prn.view.page.js'
+import { CreatePRNPage } from 'page-objects/create.prn.page.js'
+import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
+import { PRNIssuedPage } from 'page-objects/prn.issued.page.js'
 import { todayddMMMMyyyy } from './date.js'
-import PrnCreatedPage from 'page-objects/prn.created.page.js'
-import ConfirmCancelPrnPage from 'page-objects/confirm.cancel.prn.page.js'
-import PrnCancelledPage from 'page-objects/prn.cancelled.page.js'
+import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
+import { ConfirmCancelPRNPage } from 'page-objects/confirm.cancel.prn.page.js'
+import { PRNCancelledPage } from 'page-objects/prn.cancelled.page.js'
 
 export class PrnHelper {
-  constructor(isPern = false) {
+  /**
+   * @param {import('@playwright/test').Page} page
+   * @param {boolean} isPern
+   */
+  constructor(page, isPern = false) {
     this.prnWording = isPern ? 'PERN' : 'PRN'
     this.isPern = isPern
+    this.checkBeforeCreatingPrnPage = new CheckBeforeCreatingPRNPage(page)
+    this.prnViewPage = new PRNViewPage(page)
+    this.createPRNPage = new CreatePRNPage(page)
+    this.prnDashboardPage = new PRNDashboardPage(page)
+    this.prnIssuedPage = new PRNIssuedPage(page)
+    this.prnCreatedPage = new PRNCreatedPage(page)
+    this.confirmCancelPrnPage = new ConfirmCancelPRNPage(page)
+    this.prnCancelledPage = new PRNCancelledPage(page)
   }
 
   async checkPrnDetails(expectedPrnDetails) {
-    const prnDetails = await CheckBeforeCreatingPrnPage.prnDetails()
+    const prnDetails = await this.checkBeforeCreatingPrnPage.prnDetails()
     expect(prnDetails.Issuer).toBe(expectedPrnDetails.companyName)
     expect(prnDetails['Packaging producer or compliance scheme']).toBe(
       expectedPrnDetails.tradingName
@@ -33,7 +45,7 @@ export class PrnHelper {
     )
 
     const accreditationDetails =
-      await CheckBeforeCreatingPrnPage.accreditationDetails()
+      await this.checkBeforeCreatingPrnPage.accreditationDetails()
 
     expect(accreditationDetails.Material).toBe(expectedPrnDetails.materialDesc)
     expect(accreditationDetails['Accreditation number']).toBe(
@@ -47,13 +59,13 @@ export class PrnHelper {
   }
 
   async checkViewPrnDetails(expectedPrnDetails) {
-    const headingText = await PrnViewPage.headingText()
+    const headingText = await this.prnViewPage.headingText()
     if (!this.isPern) {
       expect(headingText).toBe('Packaging Waste Recycling Note')
     } else {
       expect(headingText).toBe('Packaging Waste Export Recycling Note')
     }
-    const prnViewDetails = await PrnViewPage.prnDetails()
+    const prnViewDetails = await this.prnViewPage.prnDetails()
     expect(prnViewDetails[`${this.prnWording} number`]).toBe(
       expectedPrnDetails.prnNumber
     )
@@ -74,7 +86,8 @@ export class PrnHelper {
       expectedPrnDetails.process
     )
 
-    const accreditationViewDetails = await PrnViewPage.accreditationDetails()
+    const accreditationViewDetails =
+      await this.prnViewPage.accreditationDetails()
     expect(accreditationViewDetails.Material).toBe(
       expectedPrnDetails.materialDesc
     )
@@ -90,8 +103,8 @@ export class PrnHelper {
 
   async createAndCheckPrnDetails(prnDetails) {
     await this.createAndCheckDraftPrn(prnDetails)
-    await CheckBeforeCreatingPrnPage.createPRN()
-    const message = await PrnCreatedPage.messageText()
+    await this.checkBeforeCreatingPrnPage.createPRN()
+    const message = await this.prnCreatedPage.messageText()
     expect(message).toContain(`${this.prnWording} created`)
     expect(message).toContain('Awaiting authorisation')
     prnDetails.status = 'Awaiting authorisation'
@@ -99,7 +112,7 @@ export class PrnHelper {
   }
 
   async createAndCheckDraftPrn(prnDetails) {
-    await CreatePRNPage.createPrn(
+    await this.createPRNPage.createPrn(
       prnDetails.tonnageWordings.integer,
       prnDetails.tradingName,
       prnDetails.issuerNotes
@@ -110,13 +123,13 @@ export class PrnHelper {
     } else {
       prnDetails.issuerNotesToCheck = prnDetails.issuerNotes
     }
-    const headingText = await CheckBeforeCreatingPrnPage.headingText()
+    const headingText = await this.checkBeforeCreatingPrnPage.headingText()
     expect(headingText).toBe(`Check before creating ${this.prnWording}`)
     await this.checkPrnDetails(prnDetails)
   }
 
   async checkAwaitingRows(prnDetails, rowIndex, tableIndex = 1) {
-    const awaitingRow = await PrnDashboardPage.getAwaitingRow(
+    const awaitingRow = await this.prnDashboardPage.getAwaitingRow(
       rowIndex,
       tableIndex
     )
@@ -145,12 +158,12 @@ export class PrnHelper {
   }
 
   async checkCancelledRows(prnDetails, rowIndex) {
-    const cancelledRow = await PrnDashboardPage.getCancelledRow(rowIndex)
+    const cancelledRow = await this.prnDashboardPage.getCancelledRow(rowIndex)
     await this.checkTableRows(cancelledRow, prnDetails)
   }
 
   async checkIssuedRows(prnDetails, rowIndex) {
-    const issuedRow = await PrnDashboardPage.getIssuedRow(rowIndex)
+    const issuedRow = await this.prnDashboardPage.getIssuedRow(rowIndex)
     await this.checkTableRows(issuedRow, prnDetails)
   }
 
@@ -160,19 +173,19 @@ export class PrnHelper {
     { checkDoubleClick = false } = {}
   ) {
     if (checkDoubleClick) {
-      await PrnViewPage.issueAndCheckDoubleClickPrevented()
+      await this.prnViewPage.issueAndCheckDoubleClickPrevented()
     } else {
-      await PrnViewPage.issuePRNButton()
+      await this.prnViewPage.issuePRNButton()
     }
 
     const awaitingAcceptanceStatus = 'Awaiting acceptance'
-    const prnIssuedText = await PrnIssuedPage.messageText()
+    const prnIssuedText = await this.prnIssuedPage.messageText()
 
     expect(prnIssuedText).toContain(
       `${this.prnWording} issued to ` + prnDetails.tradingName
     )
     expect(prnIssuedText).toContain(`${this.prnWording} number:`)
-    const prnNumber = await PrnIssuedPage.prnNumberText()
+    const prnNumber = await this.prnIssuedPage.prnNumberText()
     const prnNoPattern = new RegExp(`${prnPrefix}\\d{5,9}`)
     expect(prnNoPattern.test(prnNumber)).toEqual(true)
 
@@ -182,8 +195,8 @@ export class PrnHelper {
   }
 
   async checkIssuedPageLinks() {
-    const managePRNsElement = await PrnIssuedPage.managePRNs()
-    const issueAnotherPRNElement = await PrnIssuedPage.issueAnotherPRN()
+    const managePRNsElement = await this.prnIssuedPage.managePRNs()
+    const issueAnotherPRNElement = await this.prnIssuedPage.issueAnotherPRN()
     expect(managePRNsElement.getAttribute('href')).toEqual(
       issueAnotherPRNElement.getAttribute('href')
     )
@@ -193,27 +206,27 @@ export class PrnHelper {
     prnDetails,
     { checkDoubleClick = false } = {}
   ) {
-    await PrnViewPage.cancelPRNButton()
-    const confirmCancelHeading = await ConfirmCancelPrnPage.headingText()
+    await this.prnViewPage.cancelPRNButton()
+    const confirmCancelHeading = await this.confirmCancelPrnPage.headingText()
     expect(confirmCancelHeading).toBe(
       `Confirm cancellation of this ${this.prnWording}`
     )
 
     if (checkDoubleClick) {
-      await ConfirmCancelPrnPage.confirmCancelAndCheckDoubleClickPrevented()
+      await this.confirmCancelPrnPage.confirmCancelAndCheckDoubleClickPrevented()
     } else {
-      await ConfirmCancelPrnPage.confirmCancelPrn()
+      await this.confirmCancelPrnPage.confirmCancelPrn()
     }
-    const cancelledMessageText = await PrnCancelledPage.messageText()
+    const cancelledMessageText = await this.prnCancelledPage.messageText()
     expect(cancelledMessageText).toContain(`${this.prnWording} cancelled`)
 
-    const prnStatus = await PrnCancelledPage.statusText()
+    const prnStatus = await this.prnCancelledPage.statusText()
     expect(prnStatus).toContain('Cancelled')
     prnDetails.status = 'Cancelled'
     if (!this.isPern) {
-      await PrnCancelledPage.prnsPage()
+      await this.prnCancelledPage.prnsPage()
     } else {
-      await PrnCancelledPage.pernsPage()
+      await this.prnCancelledPage.pernsPage()
     }
   }
 }

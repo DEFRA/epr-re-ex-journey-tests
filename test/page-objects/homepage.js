@@ -1,44 +1,40 @@
-import { browser, $, $$ } from '@wdio/globals'
 import { Page } from 'page-objects/page'
 
 class HomePage extends Page {
   open(lang = '') {
-    return browser.url(lang + '/')
+    return this.page.goto(lang + '/')
   }
 
   openStart(lang = '') {
-    return browser.url(lang + '/start')
+    return this.page.goto(lang + '/start')
   }
 
   async getStartNowHref() {
-    return await $('a.govuk-button').getAttribute('href')
+    return this.page.locator('a.govuk-button').getAttribute('href')
   }
 
   async clickStartNow() {
-    await $('a.govuk-button').click()
+    await this.page.locator('a.govuk-button').click()
   }
 
   async linkRegistration() {
     // GOV.UK radios visually hide the native input under a styled circle, so
-    // clicking the input directly fails WebdriverIO's clickability check —
+    // clicking the input directly fails Playwright's actionability check —
     // click the label instead.
-    await $('label[for="organisation-id"]').click()
-    await $('button[type=submit]').click()
+    await this.page.locator('label[for="organisation-id"]').click()
+    await this.page.locator('button[type=submit]').click()
   }
 
   async navLinkElements() {
-    return await $$(
-      'ul#navigation li.govuk-service-navigation__item'
-    ).getElements()
+    return this.page
+      .locator('ul#navigation li.govuk-service-navigation__item')
+      .all()
   }
 
   async getNavLinkTexts() {
-    const links = await this.navLinkElements()
-    const texts = []
-    for (const link of links) {
-      texts.push(await link.getText())
-    }
-    return texts
+    return this.page
+      .locator('ul#navigation li.govuk-service-navigation__item')
+      .allInnerTexts()
   }
 
   /**
@@ -46,42 +42,42 @@ class HomePage extends Page {
    * @param {string} text - The link text
    */
   async getNavigationLinkHref(text) {
-    return await $(`a*=${text}`).getAttribute('href')
+    return this.page.locator('a', { hasText: text }).getAttribute('href')
   }
 
   // Phase Banner selector
   get phaseBannerTag() {
-    return $('.govuk-phase-banner__content__tag')
+    return this.page.locator('.govuk-phase-banner__content__tag')
   }
 
   get phaseBannerFeedbackLink() {
-    return $('.govuk-phase-banner__text a')
+    return this.page.locator('.govuk-phase-banner__text a')
   }
 
   /**
    * Get the phase banner tag text (e.g. "Beta")
    */
   async getPhaseTagText() {
-    return await this.phaseBannerTag.getText()
+    return this.phaseBannerTag.innerText()
   }
 
   /**
    * Get the feedback link href
    */
   async getFeedbackLinkHref() {
-    return await this.phaseBannerFeedbackLink.getAttribute('href')
+    return this.phaseBannerFeedbackLink.getAttribute('href')
   }
 
   /**
    * Get the feedback link text
    */
   async getFeedbackLinkText() {
-    return await this.phaseBannerFeedbackLink.getText()
+    return this.phaseBannerFeedbackLink.innerText()
   }
 
   async homeLink() {
-    await $('a*=Home').click()
+    await this.page.locator('a', { hasText: 'Home' }).click()
   }
 }
 
-export default new HomePage()
+export { HomePage }

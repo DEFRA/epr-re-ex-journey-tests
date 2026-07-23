@@ -1,22 +1,23 @@
 import { AdminPage } from 'page-objects/admin/page'
-import { $ } from '@wdio/globals'
 
 class UnlinkOrganisationConfirmationPage extends AdminPage {
   async getBodyText() {
-    return $('#main-content p.govuk-body').getText()
+    return this.page.locator('#main-content p.govuk-body').first().innerText()
   }
 
   async getWarningText() {
-    return $('#main-content .govuk-warning-text__text').getText()
+    return this.page
+      .locator('#main-content .govuk-warning-text__text')
+      .innerText()
   }
 
   async confirmUnlink() {
-    await $('#main-content form button').click()
+    await this.page.locator('#main-content form button').click()
   }
 
   async cancel() {
-    await $('a*=Cancel').click()
+    await this.page.locator('a', { hasText: 'Cancel' }).click()
   }
 }
 
-export default new UnlinkOrganisationConfirmationPage()
+export { UnlinkOrganisationConfirmationPage }

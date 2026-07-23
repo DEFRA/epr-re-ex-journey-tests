@@ -17,7 +17,8 @@
 # resources (buckets, queues) are created by the one-shot floci-init container,
 # which other services wait on via service_completed_successfully.
 #
-# It also includes a selenium-chrome container for running the browser headless.
+# The test suite runs on Playwright, which manages its own browser binaries
+# directly (no remote Selenium grid container needed).
 #
 # The services being tested are started up here using the latest builds from
 # Docker Hub by default, or built from a sibling checkout (../epr-backend) when
@@ -29,20 +30,6 @@
 name: epr-re-ex-journey-tests
 
 services:
-  ################################################################################
-  # Headless browser, used by the test suite to actually run the tests against the
-  # containers.
-  selenium-chrome:
-    image: selenium/standalone-chrome:149.0@sha256:90fbfd0cec921daba37e87f92e0edbd2c1b6e03b14d3972dba6338dec3884b70
-    platform: linux/amd64
-    ports:
-      - 4444:4444
-    environment:
-      SE_NODE_MAX_SESSIONS: 5
-    network_mode: host
-
-  ################################################################################
-
   mongodb:
     image: mongo:8.3.4@sha256:0f887198e29c093fd2b36c3e2eb43c7b98e47c081d89fbd5bc212da0cd43ec58
     restart: always
@@ -335,7 +322,8 @@ services:
       USE_SINGLE_INSTANCE_CACHE: true
       # Unlike epr-frontend above, the admin UI redirects the browser straight
       # to cdp-uploader rather than proxying uploads server-side, so this must
-      # be the host-visible URL (selenium-chrome runs with network_mode: host).
+      # be the host-visible URL (Playwright launches the browser on the host,
+      # outside the docker network).
       CDP_UPLOADER_URL: http://localhost:7337
     depends_on:
       redis:

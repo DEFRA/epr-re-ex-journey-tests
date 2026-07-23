@@ -1,3 +1,4 @@
+import { test } from '@playwright/test'
 import { expect } from 'chai'
 import {
   createAndRegisterDefraIdUser,
@@ -20,8 +21,8 @@ import { assertValidationFailures } from '../support/summary-log-assertions.js'
 // That flow is the same real ORS-import pipeline parked for backlog item 8
 // (overseas-sites-accreditation-list) - disproportionate effort for one
 // scenario, revisit alongside that item.
-describe('Summary Logs - Exporter @summaryLogExporter', () => {
-  it('fails in-sheet revalidation @summaryLogExporterInvalid', async () => {
+test.describe('Summary Logs - Exporter @summaryLogExporter', () => {
+  test('fails in-sheet revalidation @summaryLogExporterInvalid', async () => {
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Exporter' }
     ])

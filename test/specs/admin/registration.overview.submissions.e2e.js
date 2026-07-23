@@ -1,11 +1,11 @@
-import { browser, expect } from '@wdio/globals'
+import { test, expect } from '@playwright/test'
 
-import LoginPage from 'page-objects/admin/login.page'
-import OrganisationsPage from 'page-objects/admin/organisations.page'
-import OrganisationOverviewPage from 'page-objects/admin/organisation.overview.page'
-import RegistrationOverviewPage from 'page-objects/admin/registration.overview.page'
-import ReportViewPage from 'page-objects/admin/report.view.page'
-import UnsubmitConfirmationPage from 'page-objects/admin/unsubmit.confirmation.page'
+import { AdminLoginPage } from 'page-objects/admin/login.page'
+import { OrganisationsPage } from 'page-objects/admin/organisations.page'
+import { OrganisationOverviewPage } from 'page-objects/admin/organisation.overview.page'
+import { RegistrationOverviewPage } from 'page-objects/admin/registration.overview.page'
+import { ReportViewPage } from 'page-objects/admin/report.view.page'
+import { UnsubmitConfirmationPage } from 'page-objects/admin/unsubmit.confirmation.page'
 import {
   RESTATED_PERIOD,
   seedReportSubmission,
@@ -24,30 +24,38 @@ const findOrThrow = (items, predicate, description) => {
   return item
 }
 
-// Function (not arrow) so this.timeout is reachable: the summary-log pipeline
-// (upload, scan, async validation and submission) needs longer than the
-// default per-test minute.
-describe('Registration overview - multiple submissions per period', function () {
-  this.timeout(3 * 60 * 1000)
+// The summary-log pipeline (upload, scan, async validation and submission)
+// needs longer than the default per-test timeout.
+test.describe('Registration overview - multiple submissions per period', () => {
+  test.describe.configure({ timeout: 3 * 60 * 1000 })
 
-  before(async () => {
-    await LoginPage.loginAsServiceMaintainer()
+  test.beforeEach(async ({ page }) => {
+    const loginPage = new AdminLoginPage(page)
+    await loginPage.loginAsServiceMaintainer()
   })
 
-  it('lists every submission for a period as its own reachable row, with submission numbers on view and unsubmit pages @organisations @multipleSubmissions', async () => {
+  test('lists every submission for a period as its own reachable row, with submission numbers on view and unsubmit pages @organisations @multipleSubmissions', async ({
+    page
+  }) => {
+    const organisationsPage = new OrganisationsPage(page)
+    const organisationOverviewPage = new OrganisationOverviewPage(page)
+    const registrationOverviewPage = new RegistrationOverviewPage(page)
+    const reportViewPage = new ReportViewPage(page)
+    const unsubmitConfirmationPage = new UnsubmitConfirmationPage(page)
+
     // A registered-only reprocessor whose Q1 2026 is closed by a submitted
     // report and then restated, so the backend flags it requiring resubmission.
     const { refNo, companyName, registrationId, defraAuthHeader } =
       await seedRestatedClosedPeriod()
 
-    await OrganisationsPage.open()
-    await OrganisationsPage.searchFor(companyName)
-    await OrganisationsPage.viewLink(1)
-    await OrganisationOverviewPage.viewRegistrationLink(1)
+    await organisationsPage.open()
+    await organisationsPage.searchFor(companyName)
+    await organisationsPage.viewLink(1)
+    await organisationOverviewPage.viewRegistrationLink(1)
 
     // The restated period renders two rows: the submitted first submission
     // and a requires_resubmission skeleton with nothing to view yet.
-    let reportsData = await RegistrationOverviewPage.getReportsTableData()
+    let reportsData = await registrationOverviewPage.getReportsTableData()
     let quarterOneRows = reportsData.filter(isQuarterOne2026)
     expect(quarterOneRows).toHaveLength(2)
 
@@ -88,9 +96,9 @@ describe('Registration overview - multiple submissions per period', function () 
       ...RESTATED_PERIOD,
       submissionNumber: 2
     })
-    await browser.refresh()
+    await page.reload()
 
-    reportsData = await RegistrationOverviewPage.getReportsTableData()
+    reportsData = await registrationOverviewPage.getReportsTableData()
     quarterOneRows = reportsData.filter(isQuarterOne2026)
     // Row order relies on the backend calendar sorting items within a period
     // by submissionNumber ascending (build-all-submission-periods.js), which
@@ -135,13 +143,13 @@ describe('Registration overview - multiple submissions per period', function () 
       reportsData.findIndex(
         (row) => isQuarterOne2026(row) && row.submission === '1'
       ) + 1
-    await RegistrationOverviewPage.clickOnViewReportLink(
+    await registrationOverviewPage.clickOnViewReportLink(
       firstSubmissionRowNumber
     )
-    expect(await ReportViewPage.getHeaderText()).toEqual(
+    expect(await reportViewPage.getHeaderText()).toEqual(
       'Report – 2026 quarterly period 1 submission 1'
     )
-    await browser.back()
+    await page.goBack()
 
     // Unsubmit the second submission: the confirm and result pages both name
     // the affected submission.
@@ -149,17 +157,17 @@ describe('Registration overview - multiple submissions per period', function () 
       reportsData.findIndex(
         (row) => isQuarterOne2026(row) && row.submission === '2'
       ) + 1
-    await RegistrationOverviewPage.clickOnUnsubmitReportLink(
+    await registrationOverviewPage.clickOnUnsubmitReportLink(
       secondSubmissionRowNumber
     )
-    expect(await UnsubmitConfirmationPage.getDetailsText()).toContain(
+    expect(await unsubmitConfirmationPage.getDetailsText()).toContain(
       'Submission: 2'
     )
-    await UnsubmitConfirmationPage.confirmUnsubmit()
-    expect(await UnsubmitConfirmationPage.getSuccessMessage()).toEqual(
+    await unsubmitConfirmationPage.confirmUnsubmit()
+    expect(await unsubmitConfirmationPage.getSuccessMessage()).toEqual(
       'Report unsubmitted'
     )
-    expect(await UnsubmitConfirmationPage.getDetailsText()).toContain(
+    expect(await unsubmitConfirmationPage.getDetailsText()).toContain(
       'Submission: 2'
     )
   })

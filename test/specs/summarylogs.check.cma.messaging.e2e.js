@@ -1,9 +1,9 @@
-import { browser, expect } from '@wdio/globals'
-import HomePage from 'page-objects/homepage.js'
-import UploadSummaryLogPage from '../page-objects/upload.summary.log.page.js'
-import CheckSummaryLogPage from '../page-objects/check.summary.log.page.js'
-import WasteRecordsPage from '../page-objects/waste.records.page.js'
-import DashboardPage from '../page-objects/dashboard.page.js'
+import { test, expect } from '@playwright/test'
+import { HomePage } from 'page-objects/homepage.js'
+import { UploadSummaryLogPage } from '../page-objects/upload.summary.log.page.js'
+import { CheckSummaryLogPage } from '../page-objects/check.summary.log.page.js'
+import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
+import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { checkBodyText } from '../support/checks.js'
 import {
   createLinkedOrganisation,
@@ -35,16 +35,16 @@ const FURTHER_ACTION_PARA_3 =
 // and summarylogs.check.cma.adjusted-loads.e2e.js for adjusted-load sub-state
 // rendering. The "no closed-period adjustments" control case lives in
 // summarylogs.exporter.e2e.js instead (see comment below).
-describe('Summary Logs - Check Page with CMA Detection - Closed-period Adjustment Messaging', () => {
-  // Resets the shared browser session between tests. Without it, leftover auth
-  // state makes a later "start now" auto-log-in and skip the stub's user-selection
-  // page, so loginViaEmail times out (passes solo, fails in suite). deleteCookies
-  // alone was not enough.
-  afterEach(async () => {
-    await browser.reloadSession()
-  })
+test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adjustment Messaging', () => {
+  test('should show the Important banner and Further action needed messaging when closed-period adjustments are detected @closedPeriodMessaging @cma', async ({
+    page
+  }) => {
+    const homePage = new HomePage(page)
+    const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+    const checkSummaryLogPage = new CheckSummaryLogPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const dashboardPage = new DashboardPage(page)
 
-  it('should show the Important banner and Further action needed messaging when closed-period adjustments are detected @closedPeriodMessaging @cma', async () => {
     const organisationDetails = await createLinkedOrganisation([
       {
         material: 'Paper or board (R3)',
@@ -83,61 +83,61 @@ describe('Summary Logs - Check Page with CMA Detection - Closed-period Adjustmen
       { tonnageRecycled: 100, tonnageNotRecycled: 0 }
     )
 
-    await loginViaHomePage(migrationResponse.email)
+    await loginViaHomePage(page, migrationResponse.email)
 
-    await DashboardPage.selectLink(1)
+    await dashboardPage.selectLink(1)
 
-    await WasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink()
 
-    await UploadSummaryLogPage.uploadFile(
+    await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-output-regonly-cma.xlsx'
     )
-    await UploadSummaryLogPage.continue()
+    await uploadSummaryLogPage.continue()
 
-    await checkBodyText('Your summary log is being checked', 30)
-    await checkBodyText('Upload your summary log', 60)
+    await checkBodyText(page, 'Your summary log is being checked', 30)
+    await checkBodyText(page, 'Upload your summary log', 60)
 
     // The "Important" banner is shown on the check before you submit page.
-    const banner = await CheckSummaryLogPage.importantBanner()
-    expect(await banner.isExisting()).toBe(true)
-    const bannerText = await banner.getText()
+    const banner = checkSummaryLogPage.importantBanner()
+    expect((await banner.count()) > 0).toBe(true)
+    const bannerText = await banner.innerText()
     expect(bannerText).toContain('Important')
     expect(bannerText).toContain(IMPORTANT_BODY)
 
     // Merged from summarylogs.check.cma.sections.e2e.js's cmaDetected case
     // (same org/upload setup, duplicated purely to assert the closed-period
     // section heading and sub-state content on this same check page).
-    await checkBodyText('Closed periods: new loads', 30)
-    const subStates = (await CheckSummaryLogPage.allSubStateHeadings()).join(
+    await checkBodyText(page, 'Closed periods: new loads', 30)
+    const subStates = (await checkSummaryLogPage.allSubStateHeadings()).join(
       ' | '
     )
     expect(subStates).toContain('8 new loads will be recorded')
-    await checkBodyText('These have been added to your summary log.', 30)
+    await checkBodyText(page, 'These have been added to your summary log.', 30)
 
     // Submit inline (not performUploadAndReturnToHomepage, which would click
     // "Return to home" and skip the success-page assertions below).
-    await CheckSummaryLogPage.upload()
+    await checkSummaryLogPage.upload()
 
-    await checkBodyText('Your waste records are being updated', 30)
-    await checkBodyText('Summary log uploaded', 60)
+    await checkBodyText(page, 'Your waste records are being updated', 30)
+    await checkBodyText(page, 'Summary log uploaded', 60)
 
     // The "Further action needed" section and "Go to reports" button are shown
     // on the success page, and the button links to the reports page.
-    await checkBodyText(FURTHER_ACTION_HEADING, 10)
-    await checkBodyText(FURTHER_ACTION_PARA_1, 5)
-    await checkBodyText(FURTHER_ACTION_PARA_2, 5)
-    await checkBodyText(FURTHER_ACTION_PARA_3, 5)
-    expect(await UploadSummaryLogPage.goToReportsButton().isExisting()).toBe(
+    await checkBodyText(page, FURTHER_ACTION_HEADING, 10)
+    await checkBodyText(page, FURTHER_ACTION_PARA_1, 5)
+    await checkBodyText(page, FURTHER_ACTION_PARA_2, 5)
+    await checkBodyText(page, FURTHER_ACTION_PARA_3, 5)
+    expect((await uploadSummaryLogPage.goToReportsButton().count()) > 0).toBe(
       true
     )
     expect(
-      await UploadSummaryLogPage.goToReportsButton().getAttribute('href')
+      await uploadSummaryLogPage.goToReportsButton().getAttribute('href')
     ).toBe(
       `/organisations/${organisationDetails.refNo}/registrations/${regId}/reports`
     )
 
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 
   // The "no closed-period adjustments detected" control case used to live

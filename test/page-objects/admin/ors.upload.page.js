@@ -1,23 +1,23 @@
 import path from 'node:path'
 
-import { $, $$, browser, expect } from '@wdio/globals'
+import { expect } from '@playwright/test'
 import { AdminPage } from 'page-objects/admin/page'
 
 class OrsUploadPage extends AdminPage {
   get listTable() {
-    return $('table.govuk-table')
+    return this.page.locator('table.govuk-table')
   }
 
   get registrationNumberInput() {
-    return $('#registrationNumber')
+    return this.page.locator('#registrationNumber')
   }
 
   get paginationNav() {
-    return $('nav.govuk-pagination')
+    return this.page.locator('nav.govuk-pagination')
   }
 
   get downloadCsvForm() {
-    return $('form[method="POST"]')
+    return this.page.locator('form[method="POST"]')
   }
 
   openList(query = '') {
@@ -30,130 +30,95 @@ class OrsUploadPage extends AdminPage {
   }
 
   async capturePageState() {
-    const url = await browser.getUrl()
-    const heading = await $('main h1')
-      .getText()
+    const url = this.page.url()
+    const heading = await this.page
+      .locator('main h1')
+      .innerText()
       .catch(() => '(no h1 found)')
-    const body = await $('[data-testid="app-page-body"]')
-      .getText()
+    const body = await this.page
+      .locator('[data-testid="app-page-body"]')
+      .innerText()
       .catch(() => '(no page body found)')
 
     return `URL: ${url}\nHeading: ${heading}\nBody: ${body}`
   }
 
   async uploadWorkbook(localFilePath) {
-    const remotePath = await browser.uploadFile(localFilePath)
-    const uploadInput = await $('#ors-upload')
-    await uploadInput.waitForDisplayed({
-      timeout: 5000,
-      timeoutMsg: 'Upload file input not displayed'
-    })
-    await uploadInput.setValue(remotePath)
+    await this.page.locator('#ors-upload').setInputFiles(localFilePath)
   }
 
   async clickStartUpload() {
-    const startUploadButton = await $('button[type="submit"]')
-    await startUploadButton.waitForClickable({
-      timeout: 5000,
-      timeoutMsg: 'Start upload button not clickable'
-    })
-    await startUploadButton.click()
+    await this.page.locator('button[type="submit"]').click()
   }
 
   async waitForStatusPage() {
-    await browser.waitUntil(
-      async () => {
-        const url = await browser.getUrl()
-        return /\/overseas-sites\/imports\/[^/]+$/u.test(url)
-      },
-      {
-        timeout: 15000,
-        interval: 500,
-        timeoutMsg: `Not redirected to status page. ${await this.capturePageState()}`
-      }
-    )
+    await this.page.waitForURL(/\/overseas-sites\/imports\/[^/]+$/, {
+      timeout: 15000
+    })
   }
 
   async waitForCompletedOrFailedImport() {
-    await browser.waitUntil(
-      async () => {
-        const heading = await $('main h1').getText()
-        return heading === 'Import completed' || heading === 'Import failed'
-      },
-      {
+    await expect
+      .poll(() => this.page.locator('main h1').innerText(), {
         timeout: 30000,
-        interval: 3000,
-        timeoutMsg: `Import did not reach terminal state. ${await this.capturePageState()}`
-      }
-    )
+        intervals: [3000]
+      })
+      .toMatch(/Import completed|Import failed/)
 
-    return $('main h1').getText()
+    return this.page.locator('main h1').innerText()
   }
 
   async getStatusSummaryText() {
-    return $('#main-content').getText()
+    return this.page.locator('#main-content').innerText()
   }
 
   async getUploadedFileResults() {
-    const rows = await $$('table.govuk-table tbody tr')
+    const rows = this.page.locator('table.govuk-table tbody tr')
+    const count = await rows.count()
     const results = []
 
-    for (const row of rows) {
-      const fileName = await row.$('td:nth-child(1)').getText()
-      const result = await row.$('td:nth-child(2)').getText()
-      const details = await row.$('td:nth-child(3)').getText()
-
-      results.push({ fileName, result, details })
+    for (let i = 0; i < count; i++) {
+      const row = rows.nth(i)
+      results.push({
+        fileName: await row.locator('td:nth-child(1)').innerText(),
+        result: await row.locator('td:nth-child(2)').innerText(),
+        details: await row.locator('td:nth-child(3)').innerText()
+      })
     }
 
     return results
   }
 
   async getListTableHeaders() {
-    const listTable = await this.listTable
-    await listTable.waitForDisplayed({
-      timeout: 10000,
-      timeoutMsg: 'ORS list table not displayed'
-    })
+    await this.listTable.waitFor({ state: 'visible', timeout: 10000 })
 
-    const headerCells = await $$('table.govuk-table thead th')
+    const headerCells = this.page.locator('table.govuk-table thead th')
+    const count = await headerCells.count()
     const headers = []
 
-    for (const headerCell of headerCells) {
-      headers.push((await headerCell.getText()).trim())
+    for (let i = 0; i < count; i++) {
+      headers.push((await headerCells.nth(i).innerText()).trim())
     }
 
     return headers
   }
 
   async getListTableRows() {
-    const listTable = await this.listTable
-    await listTable.waitForDisplayed({
-      timeout: 10000,
-      timeoutMsg: 'ORS list table not displayed'
-    })
+    await this.listTable.waitFor({ state: 'visible', timeout: 10000 })
 
-    await browser.waitUntil(
-      async () => {
-        const rows = await $$('table.govuk-table tbody tr')
-        return (await rows.length) > 0
-      },
-      {
-        timeout: 10000,
-        interval: 250,
-        timeoutMsg: 'ORS list table rows not displayed'
-      }
-    )
+    const rows = this.page.locator('table.govuk-table tbody tr')
+    await rows.first().waitFor({ state: 'visible', timeout: 10000 })
 
-    const rows = await $$('table.govuk-table tbody tr')
+    const count = await rows.count()
     const tableRows = []
 
-    for (const row of rows) {
-      const cells = await row.$$('td')
+    for (let i = 0; i < count; i++) {
+      const cells = rows.nth(i).locator('td')
+      const cellCount = await cells.count()
       const rowValues = []
 
-      for (const cell of cells) {
-        rowValues.push((await cell.getText()).trim())
+      for (let j = 0; j < cellCount; j++) {
+        rowValues.push((await cells.nth(j).innerText()).trim())
       }
 
       tableRows.push(rowValues)
@@ -163,11 +128,11 @@ class OrsUploadPage extends AdminPage {
   }
 
   async expectDownloadCsvVisible() {
-    const form = await this.downloadCsvForm
-    const button = await form.$('button[type="submit"]')
+    const form = this.downloadCsvForm
+    const button = form.locator('button[type="submit"]')
 
-    await expect(form).toBeDisplayed()
-    await expect(button).toBeDisplayed()
+    await expect(form).toBeVisible()
+    await expect(button).toBeVisible()
     await expect(button).toHaveText('Download CSV')
   }
 
@@ -175,7 +140,12 @@ class OrsUploadPage extends AdminPage {
    * @returns {Promise<{status: number, contentDisposition: string|null, contentType: string|null, body: string}>}
    */
   async fetchListCsv() {
-    return browser.execute(async () => {
+    // page.evaluate reads the DOM as-is with no auto-wait, so without this
+    // the form can be read before the page has finished rendering it - same
+    // class of intermittent "form not found" failure as fetchCsv() below.
+    await this.downloadCsvForm.waitFor({ state: 'visible', timeout: 10000 })
+
+    return this.page.evaluate(async () => {
       const form = document.querySelector('form[method="POST"]')
 
       if (!form) {
@@ -209,99 +179,62 @@ class OrsUploadPage extends AdminPage {
   }
 
   async expectPaginationVisible() {
-    const paginationNav = await this.paginationNav
-    await expect(paginationNav).toBeDisplayed()
+    await expect(this.paginationNav).toBeVisible()
   }
 
   async getPaginationStatusText() {
-    const summary = await $('//p[contains(normalize-space(.), "Showing page")]')
-    await summary.waitForDisplayed({
-      timeout: 10000,
-      timeoutMsg: 'Pagination status summary not displayed'
-    })
-
-    return summary.getText()
+    return this.page
+      .locator('//p[contains(normalize-space(.), "Showing page")]')
+      .innerText()
   }
 
   async clickNextPage() {
-    const nextLink = await $('nav.govuk-pagination .govuk-pagination__next a')
-    await nextLink.waitForClickable({
-      timeout: 10000,
-      timeoutMsg: 'Next pagination link not clickable'
-    })
-    await nextLink.click()
+    await this.page
+      .locator('nav.govuk-pagination .govuk-pagination__next a')
+      .click()
   }
 
   async clickPageNumber(pageNumber) {
-    const pageLink = await $(
-      `nav.govuk-pagination a[href*="page=${pageNumber}&"]`
-    )
-    await pageLink.waitForClickable({
-      timeout: 10000,
-      timeoutMsg: `Pagination link for page ${pageNumber} not clickable`
-    })
-    await pageLink.click()
+    // On the last page, the numbered page link and the "Next page" link can
+    // share the same href (both point at the same next page), so this can
+    // resolve to more than one element - take the first, matching what
+    // WDIO's $() silently did.
+    await this.page
+      .locator(`nav.govuk-pagination a[href*="page=${pageNumber}&"]`)
+      .first()
+      .click()
   }
 
   async filterByRegistrationNumber(registrationNumber) {
-    const input = await this.registrationNumberInput
-    await input.waitForDisplayed({
-      timeout: 10000,
-      timeoutMsg: 'Registration number filter input not displayed'
-    })
-    await input.setValue(registrationNumber)
-
-    const button = await $('form.app-filters button[type="submit"]')
-    await button.waitForClickable({
-      timeout: 10000,
-      timeoutMsg: 'Registration number search button not clickable'
-    })
-    await button.click()
+    await this.registrationNumberInput.fill(registrationNumber)
+    await this.page.locator('form.app-filters button[type="submit"]').click()
   }
 
   async getRegistrationNumberFilterValue() {
-    const input = await this.registrationNumberInput
-    await input.waitForDisplayed({
-      timeout: 10000,
-      timeoutMsg: 'Registration number filter input not displayed'
-    })
-
-    return input.getValue()
+    return this.registrationNumberInput.inputValue()
   }
 
   async clearRegistrationNumberFilter() {
-    const clearLink = await $('form.app-filters a.govuk-button--inverse')
-    await clearLink.waitForClickable({
-      timeout: 10000,
-      timeoutMsg: 'Clear registration number filter link not clickable'
-    })
-    await clearLink.click()
+    await this.page.locator('form.app-filters a.govuk-button--inverse').click()
   }
 
   async getInsetText() {
-    const insetText = await $('.govuk-inset-text')
-    await insetText.waitForDisplayed({
-      timeout: 10000,
-      timeoutMsg: 'Inset text not displayed'
-    })
-
-    return insetText.getText()
+    return this.page.locator('.govuk-inset-text').innerText()
   }
 
   async permissionsErrorHeading() {
-    return await $('#main-content > div > div > h1').getText()
+    return this.page.locator('#main-content > div > div > h1').innerText()
   }
 
   async permissionsErrorText() {
-    return await $('#main-content > div > div > p:nth-child(2)').getText()
+    return this.page
+      .locator('#main-content > div > div > p:nth-child(2)')
+      .innerText()
   }
 
   async expectUploadFormVisible() {
-    const uploadInput = await $('#ors-upload')
-    const startButton = await $('button[type="submit"]')
-
-    await expect(uploadInput).toBeDisplayed()
-    await expect(startButton).toBeDisplayed()
+    await expect(this.page.locator('#ors-upload')).toBeVisible()
+    await expect(this.page.locator('button[type="submit"]')).toBeVisible()
   }
 
   workbookFileName(filePath) {
@@ -309,4 +242,4 @@ class OrsUploadPage extends AdminPage {
   }
 }
 
-export default new OrsUploadPage()
+export { OrsUploadPage }

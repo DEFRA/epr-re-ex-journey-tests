@@ -10,4 +10,4 @@ class ReportSubmissionsPage extends AdminPage {
   }
 }
 
-export default new ReportSubmissionsPage()
+export { ReportSubmissionsPage }

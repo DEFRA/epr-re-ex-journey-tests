@@ -1,5 +1,4 @@
 import { AdminPage } from 'page-objects/admin/page'
-import { $ } from '@wdio/globals'
 
 class PublicRegisterPage extends AdminPage {
   open() {
@@ -7,13 +6,17 @@ class PublicRegisterPage extends AdminPage {
   }
 
   async downloadPublicRegister() {
-    return await $('#main-content > div > div > div > form > button').click()
+    return this.page
+      .locator('#main-content > div > div > div > form > button')
+      .click()
   }
 
   async downloadPublicRegisterButtonExistence() {
-    return await $(
-      '#main-content > div > div > div > form > button'
-    ).isExisting()
+    return (
+      (await this.page
+        .locator('#main-content > div > div > div > form > button')
+        .count()) > 0
+    )
   }
 
   async fetchCsv() {
@@ -21,4 +24,4 @@ class PublicRegisterPage extends AdminPage {
   }
 }
 
-export default new PublicRegisterPage()
+export { PublicRegisterPage }

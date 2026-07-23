@@ -1,24 +1,20 @@
-import { $$, browser } from '@wdio/globals'
-
 class Navigation {
+  constructor(page) {
+    this.page = page
+  }
+
   async clickOnLink(linkText) {
-    await browser.waitUntil(
-      async () => {
-        const elements = await $$('#navigation li a')
-        return (await elements.length) > 0
-      },
-      {
-        timeout: 5000,
-        timeoutMsg: 'Expected to find navigation items'
-      }
-    )
-    const links = await $$('#navigation li a').getElements()
-    const targetLink = await links.find(async (el) => {
-      const text = await el.getText()
-      return text === linkText
-    })
-    await targetLink.click()
+    // GOV.UK service navigation links render with significant leading/
+    // trailing whitespace around the text (indentation inside the <a>), so
+    // the exact-match regex must tolerate it rather than anchoring directly
+    // to the trimmed text - otherwise it never matches.
+    const escaped = linkText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    await this.page
+      .locator('#navigation li a', {
+        hasText: new RegExp(`^\\s*${escaped}\\s*$`)
+      })
+      .click()
   }
 }
 
-export default new Navigation()
+export { Navigation }

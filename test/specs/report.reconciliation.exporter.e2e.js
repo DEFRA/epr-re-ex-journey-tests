@@ -1,8 +1,8 @@
-import { browser, expect } from '@wdio/globals'
-import HomePage from 'page-objects/homepage.js'
-import DashboardPage from '../page-objects/dashboard.page.js'
-import WasteRecordsPage from '../page-objects/waste.records.page.js'
-import ReportDetailPage from 'page-objects/reports/report.detail.page.js'
+import { test, expect } from '@playwright/test'
+import { HomePage } from 'page-objects/homepage.js'
+import { DashboardPage } from '../page-objects/dashboard.page.js'
+import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
+import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
@@ -35,14 +35,14 @@ const YEAR = 2026
 const CADENCE = 'monthly'
 const PERIOD = 2 // fixture loads are dated February 2026
 
-describe('Report tonnage reconciles with the waste balance — exporter @reconciliation', () => {
+test.describe('Report tonnage reconciles with the waste balance — exporter @reconciliation', () => {
   const regNumber = 'E25SR500020912PA'
   const accNumber = 'E-ACC12245PA'
 
   let organisationDetails
   let migrationResponse
 
-  before(async () => {
+  test.beforeEach(async ({ page }) => {
     organisationDetails = await createLinkedOrganisation([
       {
         material: 'Paper or board (R3)',
@@ -58,6 +58,7 @@ describe('Report tonnage reconciles with the waste balance — exporter @reconci
     await seedOverseasSites(organisationDetails.refNo)
 
     const user = await createLinkAndLogin(
+      page,
       organisationDetails.refNo,
       migrationResponse.email
     )
@@ -70,25 +71,32 @@ describe('Report tonnage reconciles with the waste balance — exporter @reconci
     )
   })
 
-  after(async () => {
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+  test.afterEach(async ({ page }) => {
+    const homePage = new HomePage(page)
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 
-  it('displayed report total matches the displayed waste balance (UI) @reconciliationExporterUi', async () => {
-    await DashboardPage.selectTableLink(1, 1)
-    const balanceText = await WasteRecordsPage.wasteBalanceAmount()
+  test('displayed report total matches the displayed waste balance (UI) @reconciliationExporterUi', async ({
+    page
+  }) => {
+    const dashboardPage = new DashboardPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const reportDetailPage = new ReportDetailPage(page)
+
+    await dashboardPage.selectTableLink(1, 1)
+    const balanceText = await wasteRecordsPage.wasteBalanceAmount()
 
     // Go straight to the February period the fixture loads belong to, rather
     // than the first actionable report (whose period is not guaranteed).
-    await ReportDetailPage.open(
+    await reportDetailPage.open(
       organisationDetails.refNo,
       migrationResponse.registrationIds[0],
       YEAR,
       CADENCE,
       PERIOD
     )
-    const reportTotalText = await ReportDetailPage.totalTonnageExported()
+    const reportTotalText = await reportDetailPage.totalTonnageExported()
 
     expect(parseTonnage(reportTotalText)).toEqual(parseTonnage(balanceText))
     expect(parseTonnage(reportTotalText)).toEqual(EXPECTED_RECONCILED_TONNAGE)

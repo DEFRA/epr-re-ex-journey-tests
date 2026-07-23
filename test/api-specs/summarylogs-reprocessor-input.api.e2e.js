@@ -1,3 +1,4 @@
+import { test } from '@playwright/test'
 import { expect } from 'chai'
 import {
   createAndRegisterDefraIdUser,
@@ -24,13 +25,13 @@ import {
 // Ported from epr-backend-journey-tests' summarylogs-reprocessor-input.feature.
 // See summarylogs-validation.api.e2e.js for the shared floci-fixture-shortcut
 // rationale and the loadsByWasteRecordType/DB-assertion gaps this repeats.
-describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput', () => {
+test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput', () => {
   let orgId
   let registrationId
   let accreditationId
   let authHeader
 
-  before(async () => {
+  test.beforeAll(async () => {
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor' }
     ])
@@ -51,8 +52,8 @@ describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput', () =
     accreditationId = migrated.accreditationIds[0]
   })
 
-  it('creates a Waste Record, then a second upload rejects a removed row, then adjustments update the balance @summaryLogReprocessorInputValidatedFlow', async function () {
-    this.timeout(120000)
+  test('creates a Waste Record, then a second upload rejects a removed row, then adjustments update the balance @summaryLogReprocessorInputValidatedFlow', async () => {
+    test.setTimeout(120000)
 
     const first = await ingestSummaryLogFixture(
       orgId,
@@ -313,7 +314,7 @@ describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput', () =
     ).to.equal(386.51)
   })
 
-  it('fails in-sheet revalidation @summaryLogReprocessorInputInvalid', async () => {
+  test('fails in-sheet revalidation @summaryLogReprocessorInputInvalid', async () => {
     const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
       orgId,
       registrationId,
@@ -451,7 +452,7 @@ describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput', () =
     )
   })
 
-  it('fails in-sheet revalidation on the Sent On sheet @summaryLogReprocessorInputSentOnInvalid', async () => {
+  test('fails in-sheet revalidation on the Sent On sheet @summaryLogReprocessorInputSentOnInvalid', async () => {
     const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
       orgId,
       registrationId,

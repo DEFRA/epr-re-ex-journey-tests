@@ -1,14 +1,13 @@
-import { $ } from '@wdio/globals'
 import { ReportDataBasePage } from './report-data.base.page.js'
 
 class TonnesRecycledPage extends ReportDataBasePage {
   async getValue() {
-    return await $('#tonnageRecycled').getValue()
+    return this.page.locator('#tonnageRecycled').inputValue()
   }
 
   async enterTonnage(value) {
-    await $('#tonnageRecycled').setValue(value)
+    await this.page.locator('#tonnageRecycled').fill(value)
   }
 }
 
-export default new TonnesRecycledPage()
+export { TonnesRecycledPage }

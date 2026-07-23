@@ -1,4 +1,3 @@
-import { browser, $ } from '@wdio/globals'
 import { Page } from 'page-objects/page'
 import { checkDoubleClickPrevented } from '../support/double-click.js'
 
@@ -7,27 +6,28 @@ import { checkDoubleClickPrevented } from '../support/double-click.js'
 // A base class (not Object.assign) so the type-checker sees the inherited methods.
 export class SummaryLogUploadActions extends Page {
   open(orgId, regId) {
-    return browser.url(
+    return this.page.goto(
       `/organisations/${orgId}/registrations/${regId}/summary-logs/upload`
     )
   }
 
   async uploadFile(filePath) {
-    const remoteFilePath = await browser.uploadFile(filePath)
-    await $('#summary-log-upload').setValue(remoteFilePath)
+    await this.page.locator('#summary-log-upload').setInputFiles(filePath)
   }
 
   async continue() {
-    await $('#main-content button[type=submit]').click()
+    await this.page.locator('#main-content button[type=submit]').click()
   }
 
   async clickOnReturnToHomePage() {
-    await $('a*=Return to home').click()
+    await this.page.locator('a', { hasText: 'Return to home' }).click()
   }
 
   async confirmAndCheckDoubleClickPrevented() {
-    await checkDoubleClickPrevented('#main-content button[type=submit]', {
-      waitForNavigation: false
-    })
+    await checkDoubleClickPrevented(
+      this.page,
+      '#main-content button[type=submit]',
+      { waitForNavigation: false }
+    )
   }
 }

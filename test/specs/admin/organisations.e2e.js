@@ -1,11 +1,11 @@
-import { expect } from '@wdio/globals'
+import { test, expect } from '@playwright/test'
 
-import LoginPage from 'page-objects/admin/login.page'
-import Navigation from 'page-objects/admin/navigation.page'
-import OrganisationsPage from 'page-objects/admin/organisations.page'
-import OrganisationOverviewPage from 'page-objects/admin/organisation.overview.page'
-import RegistrationOverviewPage from 'page-objects/admin/registration.overview.page'
-import JsonEditor from 'page-objects/admin/jsoneditor.page'
+import { AdminLoginPage } from 'page-objects/admin/login.page'
+import { Navigation } from 'page-objects/admin/navigation.page'
+import { OrganisationsPage } from 'page-objects/admin/organisations.page'
+import { OrganisationOverviewPage } from 'page-objects/admin/organisation.overview.page'
+import { RegistrationOverviewPage } from 'page-objects/admin/registration.overview.page'
+import { JsonEditor } from 'page-objects/admin/jsoneditor.page'
 import {
   createLinkedOrganisation,
   createSubmittedReport,
@@ -13,15 +13,26 @@ import {
   FAKE_REGISTRATION_NUMBER,
   updateMigratedOrganisation
 } from '../../support/apicalls.js'
-import SystemLogsPage from 'page-objects/admin/system.logs.page'
-import UnsubmitConfirmationPage from 'page-objects/admin/unsubmit.confirmation.page'
+import { SystemLogsPage } from 'page-objects/admin/system.logs.page'
+import { UnsubmitConfirmationPage } from 'page-objects/admin/unsubmit.confirmation.page'
 
-describe('Organisations page', () => {
-  before(async () => {
-    await LoginPage.loginAsServiceMaintainer()
+test.describe('Organisations page', () => {
+  // Each test logs in independently (Playwright gives every test a fresh,
+  // isolated browser context - unlike WDIO's single shared session per file,
+  // login state doesn't carry over between tests).
+  test.beforeEach(async ({ page }) => {
+    const loginPage = new AdminLoginPage(page)
+    await loginPage.loginAsServiceMaintainer()
   })
 
-  it('Should be able to update an organisation and view system logs @organisations', async () => {
+  test('Should be able to update an organisation and view system logs @organisations', async ({
+    page
+  }) => {
+    const navigation = new Navigation(page)
+    const organisationsPage = new OrganisationsPage(page)
+    const jsonEditor = new JsonEditor(page)
+    const systemLogsPage = new SystemLogsPage(page)
+
     const linkedOrganisation = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
@@ -29,13 +40,13 @@ describe('Organisations page', () => {
 
     const organisation = linkedOrganisation.organisation
 
-    await Navigation.clickOnLink('Organisations')
+    await navigation.clickOnLink('Organisations')
 
-    await OrganisationsPage.searchFor(organisation.companyName)
-    const searchResult = await OrganisationsPage.searchResult()
+    await organisationsPage.searchFor(organisation.companyName)
+    const searchResult = await organisationsPage.searchResult()
     expect(searchResult).toEqual('1 result found')
 
-    const searchOrgTable = await OrganisationsPage.getTableData()
+    const searchOrgTable = await organisationsPage.getTableData()
     const expectedSearchOrgTable = [
       {
         header: organisation.companyName,
@@ -49,25 +60,25 @@ describe('Organisations page', () => {
 
     const updatedOrgId = linkedOrganisation.orgId + 100000
 
-    await OrganisationsPage.editLink(1)
+    await organisationsPage.editLink(1)
 
-    await JsonEditor.switchToTextEditor()
-    const actualOrgValue = await JsonEditor.getEditorTextValue()
+    await jsonEditor.switchToTextEditor()
+    const actualOrgValue = await jsonEditor.getEditorTextValue()
     expect(actualOrgValue).toContain(organisation.email)
-    await JsonEditor.switchToTreeEditor()
-    await JsonEditor.updateOrgId(updatedOrgId)
-    await JsonEditor.saveChanges()
+    await jsonEditor.switchToTreeEditor()
+    await jsonEditor.updateOrgId(updatedOrgId)
+    await jsonEditor.saveChanges()
 
-    const successMessage = await OrganisationsPage.getSuccessMessage()
+    const successMessage = await organisationsPage.getSuccessMessage()
     expect(successMessage).toEqual('Organisation record updated')
 
-    await Navigation.clickOnLink('Organisations')
+    await navigation.clickOnLink('Organisations')
 
-    await OrganisationsPage.searchFor(organisation.companyName)
-    const updatedSearchResult = await OrganisationsPage.searchResult()
+    await organisationsPage.searchFor(organisation.companyName)
+    const updatedSearchResult = await organisationsPage.searchResult()
     expect(updatedSearchResult).toEqual('1 result found')
 
-    const updatedSearchOrgTable = await OrganisationsPage.getTableData()
+    const updatedSearchOrgTable = await organisationsPage.getTableData()
     const expectedUpdatedSearchOrgTable = [
       {
         header: organisation.companyName,
@@ -79,12 +90,12 @@ describe('Organisations page', () => {
     ]
     expect(updatedSearchOrgTable).toEqual(expectedUpdatedSearchOrgTable)
 
-    await Navigation.clickOnLink('System logs')
-    await SystemLogsPage.searchFor(linkedOrganisation.refNo)
-    const searchResults = await SystemLogsPage.searchResults()
-    await expect(searchResults).toExist()
+    await navigation.clickOnLink('System logs')
+    await systemLogsPage.searchFor(linkedOrganisation.refNo)
+    const searchResults = await systemLogsPage.searchResults()
+    await expect(searchResults).toBeAttached()
 
-    const actualJsonDifference = await SystemLogsPage.jsonDifference()
+    const actualJsonDifference = await systemLogsPage.jsonDifference()
     const expectedJsonDifference = {
       version: {
         _changed: '1 -> 2'
@@ -105,7 +116,13 @@ describe('Organisations page', () => {
     expect(JSON.parse(actualJsonDifference)).toEqual(expectedJsonDifference)
   })
 
-  it('Should be able to view an organisation overview and drill down to a registration overview @organisations', async () => {
+  test('Should be able to view an organisation overview and drill down to a registration overview @organisations', async ({
+    page
+  }) => {
+    const organisationsPage = new OrganisationsPage(page)
+    const organisationOverviewPage = new OrganisationOverviewPage(page)
+    const registrationOverviewPage = new RegistrationOverviewPage(page)
+
     const linkedOrganisation = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
@@ -113,13 +130,13 @@ describe('Organisations page', () => {
 
     const { organisation, registrations } = linkedOrganisation
 
-    await OrganisationsPage.open()
+    await organisationsPage.open()
 
-    await OrganisationsPage.searchFor(organisation.companyName)
-    const searchResult = await OrganisationsPage.searchResult()
+    await organisationsPage.searchFor(organisation.companyName)
+    const searchResult = await organisationsPage.searchResult()
     expect(searchResult).toEqual('1 result found')
 
-    const searchOrgTable = await OrganisationsPage.getTableData()
+    const searchOrgTable = await organisationsPage.getTableData()
     const expectedSearchOrgTable = [
       {
         header: organisation.companyName,
@@ -131,15 +148,15 @@ describe('Organisations page', () => {
     ]
     expect(searchOrgTable).toEqual(expectedSearchOrgTable)
 
-    await OrganisationsPage.viewLink(1)
+    await organisationsPage.viewLink(1)
 
     // organisation overview page
     const organisationOverviewPageHeader =
-      await OrganisationOverviewPage.getHeaderText()
+      await organisationOverviewPage.getHeaderText()
     expect(organisationOverviewPageHeader).toEqual(organisation.companyName)
 
     const registrationsData =
-      await OrganisationOverviewPage.getRegistrationsTableData()
+      await organisationOverviewPage.getRegistrationsTableData()
     const expectedRegistrationsData = [
       {
         registrationNumber: '',
@@ -162,11 +179,11 @@ describe('Organisations page', () => {
     ]
     expect(registrationsData).toEqual(expectedRegistrationsData)
 
-    await OrganisationOverviewPage.viewRegistrationLink(1)
+    await organisationOverviewPage.viewRegistrationLink(1)
 
     // registration overview page
     const registrationOverviewPageHeader =
-      await RegistrationOverviewPage.getHeaderText()
+      await registrationOverviewPage.getHeaderText()
     const registrationOverviewHeaderRegex = new RegExp(
       `^${organisation.companyName} - \\w+$` // Header is company name following by registration number or (dynamic) registration id (when no registration number has been assigned)
     )
@@ -174,15 +191,22 @@ describe('Organisations page', () => {
       registrationOverviewHeaderRegex
     )
 
-    const reportsData = await RegistrationOverviewPage.getReportsTableData()
+    const reportsData = await registrationOverviewPage.getReportsTableData()
     expect(reportsData.length).toBeGreaterThanOrEqual(1)
 
     const summaryLogContent =
-      await RegistrationOverviewPage.getSummaryLogsContent()
+      await registrationOverviewPage.getSummaryLogsContent()
     expect(summaryLogContent).toContain('No summary logs')
   })
 
-  it('Should be able to view an organisation overview and unsubmit a report @organisations @unsubmit', async () => {
+  test('Should be able to view an organisation overview and unsubmit a report @organisations @unsubmit', async ({
+    page
+  }) => {
+    const organisationsPage = new OrganisationsPage(page)
+    const organisationOverviewPage = new OrganisationOverviewPage(page)
+    const registrationOverviewPage = new RegistrationOverviewPage(page)
+    const unsubmitConfirmationPage = new UnsubmitConfirmationPage(page)
+
     const linkedOrganisation = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
@@ -200,13 +224,13 @@ describe('Organisations page', () => {
 
     await createSubmittedReport(linkedOrganisation.refNo)
 
-    await OrganisationsPage.open()
+    await organisationsPage.open()
 
-    await OrganisationsPage.searchFor(organisation.companyName)
-    const searchResult = await OrganisationsPage.searchResult()
+    await organisationsPage.searchFor(organisation.companyName)
+    const searchResult = await organisationsPage.searchResult()
     expect(searchResult).toEqual('1 result found')
 
-    const searchOrgTable = await OrganisationsPage.getTableData()
+    const searchOrgTable = await organisationsPage.getTableData()
     const expectedSearchOrgTable = [
       {
         header: organisation.companyName,
@@ -218,16 +242,16 @@ describe('Organisations page', () => {
     ]
     expect(searchOrgTable).toEqual(expectedSearchOrgTable)
 
-    await OrganisationsPage.viewLink(1)
+    await organisationsPage.viewLink(1)
 
     // organisation overview page
     const organisationOverviewPageHeader =
-      await OrganisationOverviewPage.getHeaderText()
+      await organisationOverviewPage.getHeaderText()
     expect(organisationOverviewPageHeader).toEqual(organisation.companyName)
 
-    await OrganisationOverviewPage.viewRegistrationLink(1)
+    await organisationOverviewPage.viewRegistrationLink(1)
 
-    let reportsData = await RegistrationOverviewPage.getReportsTableData()
+    let reportsData = await registrationOverviewPage.getReportsTableData()
     const lastRowIdx = reportsData.length - 1
     expect(reportsData.length).toBeGreaterThanOrEqual(1)
     expect(reportsData[lastRowIdx].status).toEqual('submitted')
@@ -235,19 +259,19 @@ describe('Organisations page', () => {
     expect(reportsData[lastRowIdx].actions).toContain('Unsubmit')
 
     // unsubmit report
-    await RegistrationOverviewPage.clickOnUnsubmitReportLink(lastRowIdx + 1)
-    const warningText = await UnsubmitConfirmationPage.getWarningText()
+    await registrationOverviewPage.clickOnUnsubmitReportLink(lastRowIdx + 1)
+    const warningText = await unsubmitConfirmationPage.getWarningText()
     expect(warningText).toContain(
       "Unsubmitting will move the report back to 'ready to submit'. The operator will need to delete and resubmit it."
     )
-    await UnsubmitConfirmationPage.confirmUnsubmit()
+    await unsubmitConfirmationPage.confirmUnsubmit()
 
-    const successMessage = await UnsubmitConfirmationPage.getSuccessMessage()
+    const successMessage = await unsubmitConfirmationPage.getSuccessMessage()
     expect(successMessage).toEqual('Report unsubmitted')
 
-    await UnsubmitConfirmationPage.returnToRegistrationOverview()
+    await unsubmitConfirmationPage.returnToRegistrationOverview()
 
-    reportsData = await RegistrationOverviewPage.getReportsTableData()
+    reportsData = await registrationOverviewPage.getReportsTableData()
     expect(reportsData.length).toBeGreaterThanOrEqual(1)
     expect(reportsData[lastRowIdx].status).toEqual('ready_to_submit')
     expect(reportsData[lastRowIdx].actions).not.toContain('Unsubmit')

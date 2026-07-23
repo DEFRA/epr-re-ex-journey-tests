@@ -3,13 +3,17 @@ import {
   updateMigratedOrganisation,
   updateStatus
 } from '~/test/support/apicalls.js'
-import DashboardPage from 'page-objects/dashboard.page.js'
-import { $, browser, expect } from '@wdio/globals'
+import { DashboardPage } from 'page-objects/dashboard.page.js'
+import { test, expect } from '@playwright/test'
 import { checkBodyText } from '~/test/support/checks.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
 
-describe('Cancelled accreditation @cancelledaccreditation', () => {
-  it('Should not be able to access PERNs when an accreditation is cancelled @cancelledprn', async () => {
+test.describe('Cancelled accreditation @cancelledaccreditation', () => {
+  test('Should not be able to access PERNs when an accreditation is cancelled @cancelledprn', async ({
+    page
+  }) => {
+    const dashboardPage = new DashboardPage(page)
+
     const regNumber = 'E25SR500030913PA'
     const accNumber = 'ACC234567'
 
@@ -31,41 +35,49 @@ describe('Cancelled accreditation @cancelledaccreditation', () => {
 
     await updateStatus(orgId, 'suspended')
 
-    await createLinkAndLogin(orgId, migrationResponse.email)
+    await createLinkAndLogin(page, orgId, migrationResponse.email)
 
     // We can still create PERN when accreditation is suspended and links should be available
-    let accStatus = await DashboardPage.getAccreditationStatus(1, 1)
+    let accStatus = await dashboardPage.getAccreditationStatus(1, 1)
     expect(accStatus).toBe('Suspended')
 
-    let regStatus = await DashboardPage.getRegistrationStatus(1, 1)
+    let regStatus = await dashboardPage.getRegistrationStatus(1, 1)
     expect(regStatus).toBe('Approved')
 
-    await DashboardPage.selectTableLink(1, 1)
+    await dashboardPage.selectTableLink(1, 1)
 
-    expect(await $('a*=Create new PERN').isExisting()).toBe(true)
-    expect(await $('a*=Manage PERNs').isExisting()).toBe(true)
+    expect(
+      (await page.locator('a', { hasText: 'Create new PERN' }).count()) > 0
+    ).toBe(true)
+    expect(
+      (await page.locator('a', { hasText: 'Manage PERNs' }).count()) > 0
+    ).toBe(true)
 
     // now we cancel the accreditation, PERN links should be gone
     await updateStatus(orgId, 'cancelled')
 
-    await DashboardPage.selectBackLink()
+    await dashboardPage.selectBackLink()
 
-    accStatus = await DashboardPage.getAccreditationStatus(1, 1)
+    accStatus = await dashboardPage.getAccreditationStatus(1, 1)
     expect(accStatus).toBe('Not accredited')
 
-    regStatus = await DashboardPage.getRegistrationStatus(1, 1)
+    regStatus = await dashboardPage.getRegistrationStatus(1, 1)
     expect(regStatus).toBe('Approved')
 
-    await DashboardPage.selectTableLink(1, 1)
+    await dashboardPage.selectTableLink(1, 1)
 
-    expect(await $('a*=Create new PERN').isExisting()).toBe(false)
-    expect(await $('a*=Manage PERNs').isExisting()).toBe(false)
+    expect(
+      (await page.locator('a', { hasText: 'Create new PERN' }).count()) > 0
+    ).toBe(false)
+    expect(
+      (await page.locator('a', { hasText: 'Manage PERNs' }).count()) > 0
+    ).toBe(false)
 
     // Try to access pern directly -- should get a 404
-    await browser.url(
+    await page.goto(
       `/organisations/${orgId}/registrations/${registrationId}/accreditations/${accreditationId}/packaging-recycling-notes`
     )
-    await checkBodyText('404', 10)
-    await checkBodyText('Page not found', 10)
+    await checkBodyText(page, '404', 10)
+    await checkBodyText(page, 'Page not found', 10)
   })
 })

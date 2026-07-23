@@ -1,20 +1,23 @@
-import { $, $$, browser } from '@wdio/globals'
+import { expect } from '@playwright/test'
 import { checkDoubleClickPrevented } from '../support/double-click.js'
 
 class CreatePRNPage {
+  constructor(page) {
+    this.page = page
+  }
+
   open(orgId, regId) {
-    return browser.url(
+    return this.page.goto(
       `/organisations/${orgId}/registrations/${regId}/create-prn`
     )
   }
 
   async headingText() {
-    const headingElement = await $('h1.govuk-heading-xl')
-    await browser.waitUntil(
-      async () => (await headingElement.getText()).includes('Create a'),
-      { timeout: 10000 }
-    )
-    return await headingElement.getText()
+    const headingElement = this.page.locator('h1.govuk-heading-xl')
+    await expect
+      .poll(() => headingElement.innerText(), { timeout: 10000 })
+      .toContain('Create a')
+    return headingElement.innerText()
   }
 
   async createPrn(tonnage, producer, issuerNotes) {
@@ -30,53 +33,48 @@ class CreatePRNPage {
   }
 
   async enterTonnage(tonnes) {
-    await $('#tonnage').setValue(tonnes)
+    await this.page.locator('#tonnage').fill(String(tonnes))
   }
 
   async enterValue(producer) {
-    await $('#recipient').setValue(producer)
+    await this.page.locator('#recipient').fill(producer)
   }
 
   async submitAndCheckDoubleClickPrevented() {
-    await checkDoubleClickPrevented('#main-content button[type=submit]', {
-      waitForNavigation: false
-    })
+    await checkDoubleClickPrevented(
+      this.page,
+      '#main-content button[type=submit]',
+      { waitForNavigation: false }
+    )
   }
 
   async continue() {
-    await $('#main-content button[type=submit]').click()
+    await this.page.locator('#main-content button[type=submit]').click()
   }
 
   async addIssuerNotes(notes) {
-    await $('#notes').setValue(notes)
+    await this.page.locator('#notes').fill(notes)
   }
 
   async materialDetails() {
-    return await $('#main-content > div > div > form > p').getText()
+    return this.page.locator('#main-content > div > div > form > p').innerText()
   }
 
   async wasteBalanceHint() {
-    const wasteBalanceHintElement = await $(
-      '#main-content > div > div > div.govuk-inset-text'
-    )
-    await wasteBalanceHintElement.waitForExist({ timeout: 10000 })
-    return wasteBalanceHintElement.getText()
+    return this.page
+      .locator('#main-content > div > div > div.govuk-inset-text')
+      .innerText()
   }
 
   async errorMessages(expectedAmount) {
-    await browser.waitUntil(
-      async () => {
-        const elements = await $$('#main-content div[role=alert] ul li a')
-        return elements.length === expectedAmount
-      },
-      {
-        timeout: 5000,
-        timeoutMsg: 'Expected to find error list items'
-      }
+    const errorLinks = this.page.locator(
+      '#main-content div[role=alert] ul li a'
     )
-    const errorLinks = await $$('#main-content div[role=alert] ul li a')
-    return await errorLinks.map((el) => el.getText())
+    await expect
+      .poll(() => errorLinks.count(), { timeout: 5000 })
+      .toBe(expectedAmount)
+    return errorLinks.allInnerTexts()
   }
 }
 
-export default new CreatePRNPage()
+export { CreatePRNPage }

@@ -1,5 +1,5 @@
-import { expect } from '@wdio/globals'
-import ReportsPage from 'page-objects/reports/reports.page.js'
+import { expect } from '@playwright/test'
+import { ReportsPage } from 'page-objects/reports/reports.page.js'
 
 const ACTION_REQUIRED_COLOUR = { Due: 'orange', Overdue: 'red' }
 
@@ -11,11 +11,13 @@ const ACTION_REQUIRED_COLOUR = { Due: 'orange', Overdue: 'red' }
  * the reporting period (once its due date has passed). The suite runs against a
  * remote environment whose clock we cannot control, so we accept either status
  * rather than asserting a time-dependent value.
+ * @param {import('@playwright/test').Page} page
  * @param {number} rowIndex
  */
-export const expectActionRequiredStatus = async (rowIndex) => {
-  const badge = await ReportsPage.getActiveStatusBadge(rowIndex)
-  const colour = await ReportsPage.getActiveStatusColour(rowIndex)
+export const expectActionRequiredStatus = async (page, rowIndex) => {
+  const reportsPage = new ReportsPage(page)
+  const badge = await reportsPage.getActiveStatusBadge(rowIndex)
+  const colour = await reportsPage.getActiveStatusColour(rowIndex)
 
   expect(Object.keys(ACTION_REQUIRED_COLOUR)).toContain(badge)
   expect(colour).toBe(ACTION_REQUIRED_COLOUR[badge])

@@ -1,3 +1,4 @@
+import { test } from '@playwright/test'
 import { expect } from 'chai'
 import { AuthClient } from '../support/auth.js'
 import { BaseAPI } from '../apis/base-api.js'
@@ -22,15 +23,15 @@ async function putOrganisation(baseAPI, authClient, refNo, data) {
   )
 }
 
-describe('Organisation/accreditation cross-linking integrity @organisationAccreditationLinking', () => {
+test.describe('Organisation/accreditation cross-linking integrity @organisationAccreditationLinking', () => {
   const baseAPI = new BaseAPI()
   const authClient = new AuthClient()
 
-  before(async () => {
+  test.beforeAll(async () => {
     await authClient.authenticate()
   })
 
-  it('rejects two registrations pointing at the same accreditationId @orgAccreditationDuplicateLink', async () => {
+  test('rejects two registrations pointing at the same accreditationId @orgAccreditationDuplicateLink', async () => {
     const org = await createLinkedOrganisation([
       {
         wasteProcessingType: 'Reprocessor',
@@ -72,7 +73,7 @@ describe('Organisation/accreditation cross-linking integrity @organisationAccred
     )
   })
 
-  it('rejects an accreditationId that is not a valid MongoDB ObjectId @orgAccreditationInvalidId', async () => {
+  test('rejects an accreditationId that is not a valid MongoDB ObjectId @orgAccreditationInvalidId', async () => {
     const org = await createLinkedOrganisation([
       {
         wasteProcessingType: 'Reprocessor',
@@ -112,7 +113,7 @@ describe('Organisation/accreditation cross-linking integrity @organisationAccred
     )
   })
 
-  it('rejects an accreditationId that does not exist @orgAccreditationNonExistentId', async () => {
+  test('rejects an accreditationId that does not exist @orgAccreditationNonExistentId', async () => {
     const org = await createLinkedOrganisation([
       {
         wasteProcessingType: 'Reprocessor',
@@ -152,7 +153,7 @@ describe('Organisation/accreditation cross-linking integrity @organisationAccred
     )
   })
 
-  it('rejects swapped accreditationIds between Glass Re-melt and Other @orgAccreditationSwapSameMaterial', async () => {
+  test('rejects swapped accreditationIds between Glass Re-melt and Other @orgAccreditationSwapSameMaterial', async () => {
     const org = await createLinkedOrganisation([
       {
         wasteProcessingType: 'Reprocessor',
@@ -195,7 +196,7 @@ describe('Organisation/accreditation cross-linking integrity @organisationAccred
     )
   })
 
-  it('rejects swapped accreditationIds between different materials and processing types @orgAccreditationSwapDifferentMaterial', async () => {
+  test('rejects swapped accreditationIds between different materials and processing types @orgAccreditationSwapDifferentMaterial', async () => {
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor', material: 'Paper or board (R3)' },
       { wasteProcessingType: 'Exporter', material: 'Steel (R4)' }

@@ -1,17 +1,24 @@
-FROM node:lts-alpine@sha256:a0b9bf06e4e6193cf7a0f58816cc935ff8c2a908f81e6f1a95432d679c54fbfd
+# Playwright's bundled browser binaries need glibc, not musl - this base
+# image ships them preinstalled and matched to the @playwright/test version
+# pinned in package.json (keep both in lockstep on version bumps).
+FROM mcr.microsoft.com/playwright:v1.59.1-noble
 
 ENV TZ="Europe/London"
 
 USER root
 
-RUN apk update\
-    && apk add \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
     curl \
     zip \
-    bash \
-    openjdk17-jdk
+    unzip \
+    openjdk-17-jre-headless \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apk add --no-cache aws-cli
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+    && unzip awscliv2.zip \
+    && ./aws/install \
+    && rm -rf awscliv2.zip aws
 
 WORKDIR /app
 

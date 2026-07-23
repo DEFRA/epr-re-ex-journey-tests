@@ -1,9 +1,9 @@
-import { browser, expect } from '@wdio/globals'
-import HomePage from 'page-objects/homepage.js'
-import UploadSummaryLogPage from '../page-objects/upload.summary.log.page.js'
-import CheckSummaryLogPage from '../page-objects/check.summary.log.page.js'
-import WasteRecordsPage from '../page-objects/waste.records.page.js'
-import DashboardPage from '../page-objects/dashboard.page.js'
+import { test, expect } from '@playwright/test'
+import { HomePage } from 'page-objects/homepage.js'
+import { UploadSummaryLogPage } from '../page-objects/upload.summary.log.page.js'
+import { CheckSummaryLogPage } from '../page-objects/check.summary.log.page.js'
+import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
+import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { checkBodyText } from '../support/checks.js'
 import {
   seedOverseasSites,
@@ -25,19 +25,19 @@ const MISSING_DATA_HEADING = 'does NOT have all the required summary log data'
 // group covers adjusted-load sub-state rendering (headings, accordions,
 // balance projections). See summarylogs.check.cma.sections.e2e.js for
 // open/closed section visibility and summarylogs.check.cma.messaging.e2e.js
-// for the closed-period banner/messaging copy. Splitting lets wdio's per-file
+// for the closed-period banner/messaging copy. Splitting lets per-file
 // worker scheduling run these in parallel instead of serially in one
 // ~4 minute file.
-describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => {
-  // Resets the shared browser session between tests. Without it, leftover auth
-  // state makes a later "start now" auto-log-in and skip the stub's user-selection
-  // page, so loginViaEmail times out (passes solo, fails in suite). deleteCookies
-  // alone was not enough.
-  afterEach(async () => {
-    await browser.reloadSession()
-  })
+test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => {
+  test('should display closed period adjusted loads when a reported load is amended @cmaAdjusted @cma', async ({
+    page
+  }) => {
+    const homePage = new HomePage(page)
+    const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+    const checkSummaryLogPage = new CheckSummaryLogPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const dashboardPage = new DashboardPage(page)
 
-  it('should display closed period adjusted loads when a reported load is amended @cmaAdjusted @cma', async () => {
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
@@ -67,15 +67,16 @@ describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => 
     )
 
     const user = await createLinkAndLogin(
+      page,
       organisationDetails.refNo,
       migrationResponse.email
     )
 
-    await DashboardPage.selectExportingTab()
-    await DashboardPage.selectLink(1)
+    await dashboardPage.selectExportingTab()
+    await dashboardPage.selectLink(1)
 
-    await WasteRecordsPage.submitSummaryLogLink()
-    await UploadSummaryLogPage.performUploadAndReturnToHomepage(
+    await wasteRecordsPage.submitSummaryLogLink()
+    await uploadSummaryLogPage.performUploadAndReturnToHomepage(
       'resources/exporter.xlsx'
     )
 
@@ -91,18 +92,18 @@ describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => 
       { prnRevenue: 100, freeTonnage: 0 }
     )
 
-    await DashboardPage.selectExportingTab()
-    await DashboardPage.selectLink(1)
-    await WasteRecordsPage.submitSummaryLogLink()
-    await UploadSummaryLogPage.uploadFile('resources/exporter-adjustments.xlsx')
-    await UploadSummaryLogPage.continue()
+    await dashboardPage.selectExportingTab()
+    await dashboardPage.selectLink(1)
+    await wasteRecordsPage.submitSummaryLogLink()
+    await uploadSummaryLogPage.uploadFile('resources/exporter-adjustments.xlsx')
+    await uploadSummaryLogPage.continue()
 
-    await checkBodyText('Your summary log is being checked', 30)
-    await checkBodyText('Upload your summary log', 60)
+    await checkBodyText(page, 'Your summary log is being checked', 30)
+    await checkBodyText(page, 'Upload your summary log', 60)
 
-    await checkBodyText('Closed periods: adjusted loads', 30)
+    await checkBodyText(page, 'Closed periods: adjusted loads', 30)
 
-    const sections = await CheckSummaryLogPage.allSectionHeadings()
+    const sections = await checkSummaryLogPage.allSectionHeadings()
     expect(sections).toEqual(
       expect.arrayContaining([
         'Open periods: new loads',
@@ -111,7 +112,7 @@ describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => 
       ])
     )
 
-    const subStates = (await CheckSummaryLogPage.allSubStateHeadings()).join(
+    const subStates = (await checkSummaryLogPage.allSubStateHeadings()).join(
       ' | '
     )
     expect(subStates).toContain(
@@ -133,10 +134,11 @@ describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => 
     // Guard on the projection (renders last, at page bottom) so the raw read
     // below isn't taken mid-parse; the expect()s keep the value diagnostics.
     await checkBodyText(
+      page,
       'If you upload this summary log to create a new report, your waste balance will be 139.00 (from 30.00)',
       10
     )
-    const bodyText = await browser.execute(() => document.body.innerText)
+    const bodyText = await page.evaluate(() => document.body.innerText)
     // Open and closed new-loads sections each render their own caption, so two
     // "new loads will add" lines are expected here, not one.
     expect(bodyText).toContain(
@@ -156,14 +158,14 @@ describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => 
       'If you upload this summary log to create a new report, your waste balance will be 139.00 (from 30.00)'
     )
 
-    await CheckSummaryLogPage.expandAllLoadDetails()
-    const rows = await CheckSummaryLogPage.loadRowItems()
+    await checkSummaryLogPage.expandAllLoadDetails()
+    const rows = await checkSummaryLogPage.loadRowItems()
     expect(rows.some((r) => r.includes('Row ID'))).toBe(true)
-    const detailsText = await CheckSummaryLogPage.loadDetailsText()
+    const detailsText = await checkSummaryLogPage.loadDetailsText()
     expect(detailsText).toContain(ADJUSTED_ADDED_HEADING)
 
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 
   // The "should display open period adjusted loads and sub-states with
@@ -173,7 +175,15 @@ describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => 
   // sub-state/accordion content and pre-submit balance projection at stage
   // 2 - merged there instead.
 
-  it('should display the registered-only adjusted-loads copy @regOnlyAdjusted @cma', async () => {
+  test('should display the registered-only adjusted-loads copy @regOnlyAdjusted @cma', async ({
+    page
+  }) => {
+    const homePage = new HomePage(page)
+    const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+    const checkSummaryLogPage = new CheckSummaryLogPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const dashboardPage = new DashboardPage(page)
+
     const organisationDetails = await createLinkedOrganisation([
       {
         material: 'Paper or board (R3)',
@@ -194,34 +204,38 @@ describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => 
       ]
     )
 
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
+    await createLinkAndLogin(
+      page,
+      organisationDetails.refNo,
+      migrationResponse.email
+    )
 
-    await DashboardPage.selectLink(1)
+    await dashboardPage.selectLink(1)
 
-    await WasteRecordsPage.submitSummaryLogLink()
-    await UploadSummaryLogPage.performUploadAndReturnToHomepage(
+    await wasteRecordsPage.submitSummaryLogLink()
+    await uploadSummaryLogPage.performUploadAndReturnToHomepage(
       'resources/reprocessor-output-regonly.xlsx'
     )
 
-    await DashboardPage.selectLink(1)
-    await WasteRecordsPage.submitSummaryLogLink()
-    await UploadSummaryLogPage.uploadFile(
+    await dashboardPage.selectLink(1)
+    await wasteRecordsPage.submitSummaryLogLink()
+    await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-output-regonly-adjustments.xlsx'
     )
-    await UploadSummaryLogPage.continue()
+    await uploadSummaryLogPage.continue()
 
-    await checkBodyText('Your summary log is being checked', 30)
-    await checkBodyText('Upload your summary log', 60)
-    await checkBodyText('Open periods: adjusted loads', 30)
+    await checkBodyText(page, 'Your summary log is being checked', 30)
+    await checkBodyText(page, 'Upload your summary log', 60)
+    await checkBodyText(page, 'Open periods: adjusted loads', 30)
 
-    const subStates = (await CheckSummaryLogPage.allSubStateHeadings()).join(
+    const subStates = (await checkSummaryLogPage.allSubStateHeadings()).join(
       ' | '
     )
     expect(subStates).toContain('1 adjusted load will be recorded')
-    await checkBodyText('These have been added to your summary log.', 30)
+    await checkBodyText(page, 'These have been added to your summary log.', 30)
 
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 
   // PAE-1743: an adjusted load excluded for a reason OTHER than missing data must
@@ -230,7 +244,15 @@ describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => 
   // covers the REDUCED sub-group. The per-code reason strings and the PRN->PERN
   // wording swap are unit-tested (controller.test.js), so one journey through the
   // canonical PRN case is enough here.
-  it('should show the reason under the reduced heading for an adjusted PRN-excluded load @adjustedReducedReason @cma', async () => {
+  test('should show the reason under the reduced heading for an adjusted PRN-excluded load @adjustedReducedReason @cma', async ({
+    page
+  }) => {
+    const homePage = new HomePage(page)
+    const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+    const checkSummaryLogPage = new CheckSummaryLogPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const dashboardPage = new DashboardPage(page)
+
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
@@ -247,33 +269,37 @@ describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => 
       ]
     )
 
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
+    await createLinkAndLogin(
+      page,
+      organisationDetails.refNo,
+      migrationResponse.email
+    )
 
     // Baseline: row 1001 is included and contributes 339.99t to the balance.
-    await DashboardPage.selectLink(1)
-    await WasteRecordsPage.submitSummaryLogLink()
-    await UploadSummaryLogPage.performUploadAndReturnToHomepage(
+    await dashboardPage.selectLink(1)
+    await wasteRecordsPage.submitSummaryLogLink()
+    await uploadSummaryLogPage.performUploadAndReturnToHomepage(
       'resources/summary-log.xlsx'
     )
 
     // Re-upload with row 1001's PRN answer flipped to Yes, excluding it — an
     // open-period adjustment that reverses its earlier contribution.
-    await DashboardPage.selectLink(1)
-    await WasteRecordsPage.submitSummaryLogLink()
-    await UploadSummaryLogPage.uploadFile(
+    await dashboardPage.selectLink(1)
+    await wasteRecordsPage.submitSummaryLogLink()
+    await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-input-prn-issued.xlsx'
     )
-    await UploadSummaryLogPage.continue()
+    await uploadSummaryLogPage.continue()
 
-    await checkBodyText('Your summary log is being checked', 30)
-    await checkBodyText('Upload your summary log', 60)
-    await checkBodyText('Open periods: adjusted loads', 30)
+    await checkBodyText(page, 'Your summary log is being checked', 30)
+    await checkBodyText(page, 'Upload your summary log', 60)
+    await checkBodyText(page, 'Open periods: adjusted loads', 30)
 
-    await CheckSummaryLogPage.expandAllLoadDetails()
+    await checkSummaryLogPage.expandAllLoadDetails()
 
-    const detailsText = await CheckSummaryLogPage.loadDetailsText()
-    const rows = await CheckSummaryLogPage.loadRowItems()
-    const bodyText = await browser.execute(() => document.body.innerText)
+    const detailsText = await checkSummaryLogPage.loadDetailsText()
+    const rows = await checkSummaryLogPage.loadRowItems()
+    const bodyText = await page.evaluate(() => document.body.innerText)
 
     // The balance still moves by the excluded load's 339.99t — the ticket is
     // explicit that the balance was correct and only the reason was hidden, so
@@ -289,7 +315,7 @@ describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => 
     )
     expect(bodyText).not.toContain(MISSING_DATA_HEADING)
 
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 })

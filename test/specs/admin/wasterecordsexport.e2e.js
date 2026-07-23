@@ -1,28 +1,34 @@
-import { browser, expect } from '@wdio/globals'
+import { test, expect } from '@playwright/test'
 
-import LoginPage from 'page-objects/admin/login.page'
-import Navigation from 'page-objects/admin/navigation.page'
-import WasteRecordsExportPage from 'page-objects/admin/waste.records.export.page'
+import { AdminLoginPage } from 'page-objects/admin/login.page'
+import { Navigation } from 'page-objects/admin/navigation.page'
+import { WasteRecordsExportPage } from 'page-objects/admin/waste.records.export.page'
 
-describe('Waste records export page', () => {
-  it('Should download a CSV with the expected metadata header columns @wasterecordsexport', async () => {
-    await LoginPage.open()
-    await expect(browser).toHaveTitle(expect.stringContaining('Login'))
-    await LoginPage.enterCredentials('ea@test.gov.uk', 'pass')
-    await LoginPage.submitCredentials()
+test.describe('Waste records export page', () => {
+  test('Should download a CSV with the expected metadata header columns @wasterecordsexport', async ({
+    page
+  }) => {
+    const loginPage = new AdminLoginPage(page)
+    const navigation = new Navigation(page)
+    const wasteRecordsExportPage = new WasteRecordsExportPage(page)
 
-    await Navigation.clickOnLink('Waste records export')
+    await loginPage.open()
+    await expect(page).toHaveTitle(/Login/)
+    await loginPage.enterCredentials('ea@test.gov.uk', 'pass')
+    await loginPage.submitCredentials()
 
-    const csv = await WasteRecordsExportPage.fetchCsv()
-    await expect(csv.status).toEqual(200)
-    await expect(csv.contentType).toContain('text/csv')
-    await expect(csv.contentDisposition).toContain('attachment')
-    await expect(csv.contentDisposition).toContain('waste-records-')
+    await navigation.clickOnLink('Waste records export')
+
+    const csv = await wasteRecordsExportPage.fetchCsv()
+    expect(csv.status).toEqual(200)
+    expect(csv.contentType).toContain('text/csv')
+    expect(csv.contentDisposition).toContain('attachment')
+    expect(csv.contentDisposition).toContain('waste-records-')
 
     const rows = csv.body
       .split(/\r?\n/)
       .filter((line) => line.trim().length > 0)
-    await expect(rows.length).toBeGreaterThanOrEqual(1)
+    expect(rows.length).toBeGreaterThanOrEqual(1)
 
     const headerRow = rows[0]
     const expectedMetadataHeaders = [
@@ -42,7 +48,7 @@ describe('Waste records export page', () => {
     ]
 
     for (const header of expectedMetadataHeaders) {
-      await expect(headerRow).toContain(header)
+      expect(headerRow).toContain(header)
     }
   })
 })

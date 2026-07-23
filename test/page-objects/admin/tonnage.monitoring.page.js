@@ -1,5 +1,4 @@
 import { AdminPage } from 'page-objects/admin/page'
-import { $, $$ } from '@wdio/globals'
 
 class TonnageMonitoringPage extends AdminPage {
   open() {
@@ -7,30 +6,37 @@ class TonnageMonitoringPage extends AdminPage {
   }
 
   async downloadCsv() {
-    return await $('#main-content > div > div > div > form > button').click()
+    return this.page
+      .locator('#main-content > div > div > div > form > button')
+      .click()
   }
 
   async tonnageMaterialTableData() {
-    const table = await $('table.govuk-table')
-    await table.waitForExist({ timeout: 5000 })
+    // .count() below reads the DOM as-is with no auto-wait (unlike actions
+    // such as .click()), so without this the table can be read before it's
+    // rendered - seen as an intermittent 0-row result in CI.
+    await this.page
+      .locator('table.govuk-table')
+      .waitFor({ state: 'visible', timeout: 10000 })
 
-    const headerElements = await $$('table.govuk-table thead th')
+    const headerElements = this.page.locator('table.govuk-table thead th')
+    const headerCount = await headerElements.count()
     const headers = []
-    for (const el of headerElements) {
-      const text = await el.getText()
-      headers.push(text)
+    for (let i = 0; i < headerCount; i++) {
+      headers.push(await headerElements.nth(i).innerText())
     }
 
-    const rows = await $$('table.govuk-table tbody tr')
+    const rows = this.page.locator('table.govuk-table tbody tr')
+    const rowCount = await rows.count()
     const tableData = []
 
-    for (const row of rows) {
-      const cells = await row.$$('th, td')
+    for (let i = 0; i < rowCount; i++) {
+      const cells = rows.nth(i).locator('th, td')
       const rowData = {}
 
-      for (let i = 0; i < headers.length; i++) {
-        const cellText = await cells[i].getText()
-        rowData[headers[i]] = cellText.trim()
+      for (let j = 0; j < headers.length; j++) {
+        const cellText = await cells.nth(j).innerText()
+        rowData[headers[j]] = cellText.trim()
       }
 
       tableData.push(rowData)
@@ -40,4 +46,4 @@ class TonnageMonitoringPage extends AdminPage {
   }
 }
 
-export default new TonnageMonitoringPage()
+export { TonnageMonitoringPage }

@@ -1,17 +1,24 @@
-import { browser, expect } from '@wdio/globals'
-import HomePage from 'page-objects/homepage.js'
-import DashboardPage from '../page-objects/dashboard.page.js'
-import WasteRecordsPage from '../page-objects/waste.records.page.js'
+import { test, expect } from '@playwright/test'
+import { HomePage } from 'page-objects/homepage.js'
+import { DashboardPage } from '../page-objects/dashboard.page.js'
+import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/apicalls.js'
-import UploadSummaryLogPage from 'page-objects/upload.summary.log.page.js'
+import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { checkBodyText } from '../support/checks.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
-describe('Summary Logs (Glass Material) @smoketest', () => {
-  it('Should be able to distinguish between Glass Re-Melt and Glass Other @glassMaterial', async () => {
+test.describe('Summary Logs (Glass Material) @smoketest', () => {
+  test('Should be able to distinguish between Glass Re-Melt and Glass Other @glassMaterial', async ({
+    page
+  }) => {
+    const homePage = new HomePage(page)
+    const dashboardPage = new DashboardPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+
     const organisationDetails = await createLinkedOrganisation([
       {
         material: 'Glass (R5)',
@@ -53,41 +60,45 @@ describe('Summary Logs (Glass Material) @smoketest', () => {
         }
       ]
     )
-    await createLinkAndLogin(organisationDetails.refNo, migrationResponse.email)
+    await createLinkAndLogin(
+      page,
+      organisationDetails.refNo,
+      migrationResponse.email
+    )
 
-    const firstGlassMaterial = await DashboardPage.getMaterial(1, 1)
+    const firstGlassMaterial = await dashboardPage.getMaterial(1, 1)
     expect(firstGlassMaterial).toBe('Glass remelt')
 
-    const secondGlassMaterial = await DashboardPage.getMaterial(2, 1)
+    const secondGlassMaterial = await dashboardPage.getMaterial(2, 1)
     expect(secondGlassMaterial).toBe('Glass other')
 
-    await DashboardPage.selectExportingTab()
-    const glassMaterial = await DashboardPage.getMaterial(1, 1)
+    await dashboardPage.selectExportingTab()
+    const glassMaterial = await dashboardPage.getMaterial(1, 1)
     expect(glassMaterial).toBe('Glass other')
 
-    await DashboardPage.selectLink(1)
+    await dashboardPage.selectLink(1)
 
     // Single-registration orgs skip the selection list, so the reg/acc
     // numbers render as plain text on the task page, not as links.
-    await checkBodyText('E25SR500030913GO', 10)
-    await checkBodyText('234567GO', 10)
+    await checkBodyText(page, 'E25SR500030913GO', 10)
+    await checkBodyText(page, '234567GO', 10)
 
-    let dashboardHeaderText = await WasteRecordsPage.dashboardHeaderText()
+    let dashboardHeaderText = await wasteRecordsPage.dashboardHeaderText()
     expect(dashboardHeaderText).toContain('Glass other')
 
-    await HomePage.homeLink()
-    await DashboardPage.selectTableLink(1, 1)
+    await homePage.homeLink()
+    await dashboardPage.selectTableLink(1, 1)
 
-    dashboardHeaderText = await WasteRecordsPage.dashboardHeaderText()
+    dashboardHeaderText = await wasteRecordsPage.dashboardHeaderText()
     expect(dashboardHeaderText).toContain('Glass remelt')
 
     // PAE-913: Verify summary logs upload doesn't allow random registration Id
-    UploadSummaryLogPage.open(organisationDetails.refNo, 'invalidId')
-    await checkBodyText('404', 10)
-    await checkBodyText('Page not found', 10)
+    await uploadSummaryLogPage.open(organisationDetails.refNo, 'invalidId')
+    await checkBodyText(page, '404', 10)
+    await checkBodyText(page, 'Page not found', 10)
     // End of PAE-913 verification
 
-    await HomePage.signOut()
-    await expect(browser).toHaveTitle(expect.stringContaining('Signed out'))
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 })

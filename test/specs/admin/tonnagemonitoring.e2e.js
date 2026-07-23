@@ -1,31 +1,37 @@
-import { browser, expect } from '@wdio/globals'
+import { test, expect } from '@playwright/test'
 
-import LoginPage from 'page-objects/admin/login.page'
-import Navigation from 'page-objects/admin/navigation.page'
-import TonnageMonitoringPage from 'page-objects/admin/tonnage.monitoring.page'
+import { AdminLoginPage } from 'page-objects/admin/login.page'
+import { Navigation } from 'page-objects/admin/navigation.page'
+import { TonnageMonitoringPage } from 'page-objects/admin/tonnage.monitoring.page'
 
-describe('Tonnage Monitoring page', () => {
-  it('Should be able to view Tonnage Monitoring if logged in @tonnagemonitoring', async () => {
-    await LoginPage.open()
-    await expect(browser).toHaveTitle(expect.stringContaining('Login'))
-    await LoginPage.enterCredentials('ea@test.gov.uk', 'pass')
-    await LoginPage.submitCredentials()
+test.describe('Tonnage Monitoring page', () => {
+  test('Should be able to view Tonnage Monitoring if logged in @tonnagemonitoring', async ({
+    page
+  }) => {
+    const loginPage = new AdminLoginPage(page)
+    const navigation = new Navigation(page)
+    const tonnageMonitoringPage = new TonnageMonitoringPage(page)
 
-    await Navigation.clickOnLink('Tonnage monitoring')
+    await loginPage.open()
+    await expect(page).toHaveTitle(/Login/)
+    await loginPage.enterCredentials('ea@test.gov.uk', 'pass')
+    await loginPage.submitCredentials()
 
-    const tableData = await TonnageMonitoringPage.tonnageMaterialTableData()
+    await navigation.clickOnLink('Tonnage monitoring')
 
-    await expect(tableData.length).toBeGreaterThan(0)
+    const tableData = await tonnageMonitoringPage.tonnageMaterialTableData()
+
+    expect(tableData.length).toBeGreaterThan(0)
     const firstRow = tableData[0]
-    await expect(firstRow).toHaveProperty('Material')
-    await expect(firstRow).toHaveProperty('Type')
-    await expect(firstRow).toHaveProperty('Total')
+    expect(firstRow).toHaveProperty('Material')
+    expect(firstRow).toHaveProperty('Type')
+    expect(firstRow).toHaveProperty('Total')
 
     const monthColumns = Object.keys(firstRow).filter(
       (key) =>
         key !== 'Material' && key !== 'Type' && key !== 'Total' && key !== ''
     )
-    await expect(monthColumns.length).toBeGreaterThan(0)
+    expect(monthColumns.length).toBeGreaterThan(0)
 
     const materials = [
       'Aluminium',
@@ -44,22 +50,22 @@ describe('Tonnage Monitoring page', () => {
         const row = tableData.find(
           (r) => r.Material === material && r.Type === type
         )
-        await expect(row).toBeDefined()
+        expect(row).toBeDefined()
         if (!row) {
           throw new Error('Row not found')
         }
 
         for (const month of monthColumns) {
-          await expect(row).toHaveProperty(month)
+          expect(row).toHaveProperty(month)
           const tonnageValue = row[month]
-          await expect(tonnageValue).toBeDefined()
+          expect(tonnageValue).toBeDefined()
         }
 
-        await expect(row).toHaveProperty('Total')
-        await expect(row.Total).toBeDefined()
+        expect(row).toHaveProperty('Total')
+        expect(row.Total).toBeDefined()
       }
     }
 
-    await TonnageMonitoringPage.downloadCsv()
+    await tonnageMonitoringPage.downloadCsv()
   })
 })

@@ -1,7 +1,7 @@
-import HomePage from 'page-objects/homepage.js'
-import { browser } from '@wdio/globals'
+import { test } from '@playwright/test'
+import { HomePage } from 'page-objects/homepage.js'
 
-import AxeBuilder from '@axe-core/webdriverio'
+import AxeBuilder from '@axe-core/playwright'
 import { logViolationsToAllure } from '../support/accessibility.js'
 
 function failOnViolationLevel(results) {
@@ -14,11 +14,14 @@ function failOnViolationLevel(results) {
   })
 }
 
-describe('WCAG Accessibility', () => {
-  it('Should have no critical accessibility violations for Home Page @smoketest', async () => {
-    await HomePage.open()
+test.describe('WCAG Accessibility', () => {
+  test('Should have no critical accessibility violations for Home Page @smoketest', async ({
+    page
+  }) => {
+    const homePage = new HomePage(page)
+    await homePage.open()
 
-    const builder = new AxeBuilder({ client: browser })
+    const builder = new AxeBuilder({ page })
     const results = await builder.analyze()
     await logViolationsToAllure(results.violations)
     failOnViolationLevel(results)

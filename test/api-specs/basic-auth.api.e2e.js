@@ -1,3 +1,4 @@
+import { test } from '@playwright/test'
 import { expect } from 'chai'
 import { BaseAPI } from '../apis/base-api.js'
 import { BasicAuth } from '../support/basic-auth.js'
@@ -6,10 +7,10 @@ import { createLinkedOrganisation } from '../support/apicalls.js'
 const OVERSEAS_SITES_PATH =
   '/v1/organisations/unknownOrgId/registrations/someRegId/accreditations/someAccId/overseas-sites'
 
-describe('Basic auth @basicAuth', () => {
+test.describe('Basic auth @basicAuth', () => {
   const baseAPI = new BaseAPI()
 
-  it('returns the organisation when using the default basic auth credentials @basicAuthOrganisation', async () => {
+  test('returns the organisation when using the default basic auth credentials @basicAuthOrganisation', async () => {
     const { refNo } = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor' }
     ])
@@ -26,7 +27,7 @@ describe('Basic auth @basicAuth', () => {
     expect(body.id).to.equal(refNo)
   })
 
-  it('returns a 422 validation error for malformed overseas-sites path params via basic auth @basicAuthOverseasSitesValidation', async () => {
+  test('returns a 422 validation error for malformed overseas-sites path params via basic auth @basicAuthOverseasSitesValidation', async () => {
     const basicAuth = new BasicAuth()
     await basicAuth.defaultBasicAuthHeader()
 
@@ -42,7 +43,7 @@ describe('Basic auth @basicAuth', () => {
     )
   })
 
-  it('rejects the organisation request with incorrect basic auth credentials @basicAuthInvalidCredentials', async () => {
+  test('rejects the organisation request with incorrect basic auth credentials @basicAuthInvalidCredentials', async () => {
     const { refNo } = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor' }
     ])
@@ -59,7 +60,7 @@ describe('Basic auth @basicAuth', () => {
     expect(body.message).to.equal('Missing authentication')
   })
 
-  it('rejects the overseas-sites request with incorrect basic auth credentials @basicAuthInvalidCredentials', async () => {
+  test('rejects the overseas-sites request with incorrect basic auth credentials @basicAuthInvalidCredentials', async () => {
     const basicAuth = new BasicAuth()
     await basicAuth.generateAuthHeader('invalid', 'invalid')
 
