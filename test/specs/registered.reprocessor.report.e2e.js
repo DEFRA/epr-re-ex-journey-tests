@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { HomePage } from 'page-objects/homepage.js'
+import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
 import { TonnesRecycledPage } from '../page-objects/reports/tonnes.recycled.page.js'
@@ -110,9 +111,13 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       await checkBodyText(page, '404', 10)
       await checkBodyText(page, 'Page not found', 10)
 
-      // The 404 checks above navigate away via raw page.goto — return to the
-      // reports list so the next test in this shared session starts from the
-      // state it expects.
+      // The 404 checks above navigate away via raw page.goto to pages with no
+      // rendered dashboard, so re-open the dashboard from scratch (rather
+      // than assuming a table is already on the page) before returning to
+      // the reports list, so the next test in this shared session starts
+      // from the state it expects.
+      const dashboardPage = new DashboardPage(page)
+      await dashboardPage.open(organisationDetails.refNo)
       await navigateToReports(page)
     })
 
