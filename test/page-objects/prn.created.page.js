@@ -2,15 +2,15 @@ import { Page } from 'page-objects/page'
 
 class PRNCreatedPage extends Page {
   async pernsPageLink() {
-    await this.page.locator('a', { hasText: 'PERNs page' }).click()
+    await this.goToPernsPage()
   }
 
   async prnsPageLink() {
-    await this.page.locator('a', { hasText: 'PRNs page' }).click()
+    await this.goToPrnsPage()
   }
 
   async returnToRegistrationPage() {
-    await this.page.locator('a', { hasText: 'Return to home' }).click()
+    await this.returnToHomePage()
   }
 }
 

@@ -1,5 +1,4 @@
 import { Page } from 'page-objects/page'
-import { checkDoubleClickPrevented } from '../support/double-click.js'
 
 class ConfirmDeleteReportPage extends Page {
   async warningText() {
@@ -7,11 +6,11 @@ class ConfirmDeleteReportPage extends Page {
   }
 
   async confirmDeletion() {
-    await this.page.locator('button[type=submit]').click()
+    await this.submit()
   }
 
   async confirmDeletionAndCheckDoubleClickPrevented() {
-    await checkDoubleClickPrevented(this.page, 'button[type=submit]')
+    await this.submitAndCheckDoubleClickPrevented()
   }
 }
 

@@ -1,11 +1,8 @@
 import { Page } from 'page-objects/page'
-import { checkDoubleClickPrevented } from '../support/double-click.js'
+
+const ISSUE_BUTTON_SELECTOR = '#main-content > div > div > form > div > button'
 
 class PRNViewPage extends Page {
-  async headingText() {
-    return this.page.locator('h1.govuk-heading-xl').innerText()
-  }
-
   async returnToPRNList() {
     await this.page.locator('a', { hasText: 'Return to PRN list' }).click()
   }
@@ -25,16 +22,11 @@ class PRNViewPage extends Page {
   }
 
   async issuePRNButton() {
-    await this.page
-      .locator('#main-content > div > div > form > div > button')
-      .click()
+    await this.submit(ISSUE_BUTTON_SELECTOR)
   }
 
   async issueAndCheckDoubleClickPrevented() {
-    await checkDoubleClickPrevented(
-      this.page,
-      '#main-content > div > div > form > div > button'
-    )
+    await this.submitAndCheckDoubleClickPrevented(ISSUE_BUTTON_SELECTOR)
   }
 }
 

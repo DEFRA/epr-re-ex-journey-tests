@@ -1,6 +1,5 @@
 import { Page } from 'page-objects/page'
 import { expect } from '@playwright/test'
-import { checkDoubleClickPrevented } from '../../support/double-click.js'
 import { UploadSummaryLogPage } from '../upload.summary.log.page.js'
 import { ReportsPage } from './reports.page.js'
 
@@ -12,7 +11,7 @@ class ReportDetailPage extends Page {
   }
 
   async useThisData() {
-    await this.page.locator('button[type=submit]').click()
+    await this.submit()
   }
 
   // The detail page renders each section total as a `govuk-caption-l` label
@@ -31,7 +30,7 @@ class ReportDetailPage extends Page {
   }
 
   async useThisDataAndCheckDoubleClickPrevented() {
-    await checkDoubleClickPrevented(this.page, 'button[type=submit]')
+    await this.submitAndCheckDoubleClickPrevented()
   }
 
   async uploadNewSummaryLog() {

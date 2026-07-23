@@ -47,21 +47,7 @@ class PRNDashboardPage extends Page {
   }
 
   async getTableRow(tableId, rowIndex) {
-    const tableRow = new Map()
-    const headerText = await this.page
-      .locator(`${tableId} table.govuk-table > thead > tr th`)
-      .allInnerTexts()
-
-    const rowText = await this.page
-      .locator(
-        `${tableId} table.govuk-table > tbody > tr:nth-child(${rowIndex}) td`
-      )
-      .allInnerTexts()
-
-    for (let i = 0; i < headerText.length; i++) {
-      tableRow.set(headerText[i], rowText[i])
-    }
-    return tableRow
+    return this.readGovukTableRow(`${tableId} table.govuk-table`, rowIndex)
   }
 
   async getIssuedRow(rowIndex) {
@@ -74,25 +60,10 @@ class PRNDashboardPage extends Page {
 
   // Depending on whether PRN cancellation / PRN awaiting authorisation exists, the table index might change / shift accordingly
   async getAwaitingRow(rowIndex, tableIndex = 1) {
-    const authRow = new Map()
-    const headerText = await this.page
-      .locator(
-        `#awaiting-action table.govuk-table:nth-of-type(${tableIndex}) > thead > tr th`
-      )
-      .allInnerTexts()
-
-    const rowText = await this.page
-      .locator(
-        `#awaiting-action table.govuk-table:nth-of-type(${tableIndex}) > tbody > tr:nth-child(` +
-          rowIndex +
-          ') td'
-      )
-      .allInnerTexts()
-
-    for (let i = 0; i < headerText.length; i++) {
-      authRow.set(headerText[i], rowText[i])
-    }
-    return authRow
+    return this.readGovukTableRow(
+      `#awaiting-action table.govuk-table:nth-of-type(${tableIndex})`,
+      rowIndex
+    )
   }
 
   async cancelHintText() {
