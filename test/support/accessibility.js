@@ -1,4 +1,5 @@
 import { step, attachment } from 'allure-js-commons'
+import AxeBuilder from '@axe-core/playwright'
 
 function convertHTML(str) {
   const symbols = {
@@ -52,6 +53,51 @@ export async function logViolationsToAllure(violations) {
           'text/plain'
         )
       }
+    )
+  }
+}
+
+/**
+ * Runs an axe scan against the page's current state, logs any violations to
+ * Allure grouped under a step named for the page, and returns the violations
+ * tagged with pageName so callers can accumulate them across a multi-page
+ * tour and report every offending page in one assertion.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} pageName
+ */
+export async function scanPageForAccessibilityViolations(page, pageName) {
+  const builder = new AxeBuilder({ page })
+  const results = await builder.analyze()
+
+  await step(`Accessibility scan: ${pageName}`, async () => {
+    await logViolationsToAllure(results.violations)
+  })
+
+  return results.violations.map((violation) => ({ ...violation, pageName }))
+}
+
+/**
+ * Fails with a single summary error listing every Serious/Critical violation
+ * across all pages scanned, rather than stopping at the first one - so a
+ * multi-page tour surfaces every offending page in one run instead of
+ * requiring a fix-rerun cycle per page.
+ * @param {Array<object>} violations - accumulated output of scanPageForAccessibilityViolations
+ */
+export function assertNoSeriousOrCriticalViolations(violations) {
+  const severe = violations.filter(
+    (violation) =>
+      violation.impact === 'critical' || violation.impact === 'serious'
+  )
+
+  if (severe.length > 0) {
+    const summary = severe
+      .map(
+        (violation) =>
+          `- [${violation.pageName}] ${violation.id} (${violation.impact}): ${violation.description}`
+      )
+      .join('\n')
+    throw new Error(
+      `Found ${severe.length} Serious/Critical accessibility violation(s):\n${summary}`
     )
   }
 }
