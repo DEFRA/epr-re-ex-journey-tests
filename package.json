@@ -13,7 +13,8 @@
     "@grpc/grpc-js": "1.13.5",
     "serialize-javascript": "7.0.5",
     "undici": "$undici",
-    "uuid": "14.0.0"
+    "uuid": "14.0.0",
+    "tmp": "0.2.7"
   },
   "aliases": {
     "~": ".",
