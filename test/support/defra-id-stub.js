@@ -1,5 +1,6 @@
 import config from '../config/config.js'
 import { request } from 'undici'
+import { readLoggedInUserIds, trackLoggedInUserId } from './cleanup-tracker.js'
 
 export class DefraIdStub {
   constructor(baseUrl = config.defraIdUri) {
@@ -76,6 +77,10 @@ export class DefraIdStub {
       await response.body.json()
     )
     this.accessTokens.set(userId, responseJson.access_token)
+    // Recorded to a shared file, not just the in-memory map: this method runs
+    // in whichever worker process happened to run this test, but
+    // expireAllUsers() runs once in globalTeardown's own separate process.
+    trackLoggedInUserId(userId)
     return responseJson
   }
 
@@ -89,7 +94,14 @@ export class DefraIdStub {
 
   async expireAllUsers() {
     const instanceHeaders = { ...this.defaultHeaders }
-    for (const userId of this.accessTokens.keys()) {
+    // Read from the shared tracker file, not just this.accessTokens: this
+    // runs in globalTeardown's own process, which never sees tokens
+    // generated in the worker processes that actually ran the tests.
+    const userIds = new Set([
+      ...readLoggedInUserIds(),
+      ...this.accessTokens.keys()
+    ])
+    for (const userId of userIds) {
       await request(
         `${this.baseUrl}/cdp-defra-id-stub/API/register/${userId}/expire`,
         {
