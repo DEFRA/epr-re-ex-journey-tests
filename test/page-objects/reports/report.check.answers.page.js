@@ -1,13 +1,12 @@
 import { Page } from 'page-objects/page'
-import { checkDoubleClickPrevented } from '../../support/double-click.js'
 
 class ReportCheckAnswersPage extends Page {
   async createReport() {
-    await this.page.locator('button[type=submit]').click()
+    await this.submit()
   }
 
   async createReportAndCheckDoubleClickPrevented() {
-    await checkDoubleClickPrevented(this.page, 'button[type=submit]')
+    await this.submitAndCheckDoubleClickPrevented()
   }
 
   async deleteAndStartAgainLink() {

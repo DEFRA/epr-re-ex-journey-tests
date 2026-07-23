@@ -2,24 +2,15 @@ import { AdminPage } from 'page-objects/admin/page'
 
 class OrganisationOverviewPage extends AdminPage {
   async getRegistrationsTableData() {
-    const rows = this.page.locator('table.govuk-table tbody tr')
-    const count = await rows.count()
-    const data = []
-
-    for (let i = 0; i < count; i++) {
-      const row = rows.nth(i)
-      data.push({
-        registrationNumber: await row.locator('td:nth-child(1)').innerText(),
-        registrationStatus: await row.locator('td:nth-child(2)').innerText(),
-        processingType: await row.locator('td:nth-child(3)').innerText(),
-        material: await row.locator('td:nth-child(4)').innerText(),
-        site: await row.locator('td:nth-child(5)').innerText(),
-        accreditationNumber: await row.locator('td:nth-child(6)').innerText(),
-        accreditationStatus: await row.locator('td:nth-child(7)').innerText()
-      })
-    }
-
-    return data
+    return this.readGovukTableRows('table.govuk-table', {
+      registrationNumber: 1,
+      registrationStatus: 2,
+      processingType: 3,
+      material: 4,
+      site: 5,
+      accreditationNumber: 6,
+      accreditationStatus: 7
+    })
   }
 
   async viewRegistrationLink(row) {

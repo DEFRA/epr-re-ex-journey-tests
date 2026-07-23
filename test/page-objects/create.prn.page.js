@@ -1,11 +1,9 @@
 import { expect } from '@playwright/test'
-import { checkDoubleClickPrevented } from '../support/double-click.js'
+import { Page } from 'page-objects/page'
 
-class CreatePRNPage {
-  constructor(page) {
-    this.page = page
-  }
+const SUBMIT_SELECTOR = '#main-content button[type=submit]'
 
+class CreatePRNPage extends Page {
   open(orgId, regId) {
     return this.page.goto(
       `/organisations/${orgId}/registrations/${regId}/create-prn`
@@ -41,15 +39,13 @@ class CreatePRNPage {
   }
 
   async submitAndCheckDoubleClickPrevented() {
-    await checkDoubleClickPrevented(
-      this.page,
-      '#main-content button[type=submit]',
-      { waitForNavigation: false }
-    )
+    await super.submitAndCheckDoubleClickPrevented(SUBMIT_SELECTOR, {
+      waitForNavigation: false
+    })
   }
 
   async continue() {
-    await this.page.locator('#main-content button[type=submit]').click()
+    await this.submit(SUBMIT_SELECTOR)
   }
 
   async addIssuerNotes(notes) {

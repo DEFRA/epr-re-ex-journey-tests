@@ -1,149 +1,25 @@
-import { test, expect } from '@playwright/test'
-import { HomePage } from 'page-objects/homepage.js'
-import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
-import { DashboardPage } from '../page-objects/dashboard.page.js'
-import {
-  seedOverseasSites,
-  createLinkedOrganisation,
-  updateMigratedOrganisation,
-  uploadAndSubmitSummaryLog
-} from '../support/apicalls.js'
-import { defraIdStub } from '../support/defra-id-stub.js'
-import { createLinkAndLogin } from '../support/login-helper.js'
-import { CreatePRNPage } from 'page-objects/create.prn.page.js'
-import { CheckBeforeCreatingPRNPage } from 'page-objects/check.before.creating.prn.page.js'
-import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
-import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
-import { PRNViewPage } from 'page-objects/prn.view.page.js'
-import { ConfirmDeletePRNPage } from 'page-objects/confirm.delete.prn.page.js'
-import { tonnageWordings, tradingName } from '../support/fixtures.js'
+import { test } from '@playwright/test'
+import { runDeleteCreatedPrn } from '../support/delete-created-prn.js'
 
 test.describe('Deleting Packing Recycling Notes (Exporter)', () => {
   test('Should be able to create and delete PRN for Fibre (Exporter) @delprnexp', async ({
     page
   }) => {
-    const homePage = new HomePage(page)
-    const wasteRecordsPage = new WasteRecordsPage(page)
-    const dashboardPage = new DashboardPage(page)
-    const createPRNPage = new CreatePRNPage(page)
-    const checkBeforeCreatingPrnPage = new CheckBeforeCreatingPRNPage(page)
-    const prnCreatedPage = new PRNCreatedPage(page)
-    const prnDashboardPage = new PRNDashboardPage(page)
-    const prnViewPage = new PRNViewPage(page)
-    const confirmDeletePRNPage = new ConfirmDeletePRNPage(page)
-
     const regNumber = 'E25SR500020912FB'
     const accNumber = 'E-ACC12245FB'
 
-    const organisationDetails = await createLinkedOrganisation([
-      {
-        material: 'Fibre-based composite material (R3)',
-        wasteProcessingType: 'Exporter'
-      }
-    ])
-
-    const migrationResponse = await updateMigratedOrganisation(
-      organisationDetails.refNo,
-      [
-        {
-          regNumber,
-          accNumber,
-          status: 'approved'
-        }
-      ]
-    )
-
-    await seedOverseasSites(organisationDetails.refNo)
-
-    const user = await createLinkAndLogin(
-      page,
-      organisationDetails.refNo,
-      migrationResponse.email
-    )
-
-    const filePath = `resources/sanity/exporter_${accNumber}_${regNumber}.xlsx`
-    await uploadAndSubmitSummaryLog(
-      organisationDetails.refNo,
-      migrationResponse.registrationIds[0],
-      defraIdStub.authHeader(user.userId),
-      filePath
-    )
-
-    await dashboardPage.selectTableLink(1, 1)
-
-    const expectedWasteBalance = '1,580.71 tonnes'
-    // Check waste balance amount from upload
-    let wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
-    expect(wasteBalanceAmount).toBe(expectedWasteBalance)
-
-    await wasteRecordsPage.createNewPERNLink()
-
-    let issuerNotes = ''
-
-    issuerNotes = 'Testing'
-    await createPRNPage.createPrn(
-      tonnageWordings.integer,
-      tradingName,
-      issuerNotes
-    )
-
-    const headingText = await checkBeforeCreatingPrnPage.headingText()
-    expect(headingText).toBe('Check before creating PERN')
-    await checkBeforeCreatingPrnPage.createPRN()
-
-    const message = await prnCreatedPage.messageText()
-
-    const awaitingAuthorisationStatus = 'Awaiting authorisation'
-
-    expect(message).toContain('PERN created')
-    expect(message).toContain(awaitingAuthorisationStatus)
-
-    await prnCreatedPage.returnToRegistrationPage()
-    await dashboardPage.selectTableLink(1, 1)
-
-    const expectedDeductedWasteBalance = '1,377.71 tonnes'
-    // Check waste balance amount is deducted from creation
-    wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
-    expect(wasteBalanceAmount).toBe(expectedDeductedWasteBalance)
-
-    await wasteRecordsPage.managePERNsLink()
-
-    // Check No PERNs have been issued yet message
-    await prnDashboardPage.selectIssuedTab()
-    const noIssuedPrnMessage = await prnDashboardPage.getNoIssuedPrnMessage()
-    expect(noIssuedPrnMessage).toBe('No PERNs have been issued yet.')
-
-    // Return to awaiting authorisation PERNs
-    await prnDashboardPage.selectAwaitingActionTab()
-    await prnDashboardPage.selectAwaitingLink(1)
-
-    // Test the back link on Delete PERN confirmation page first
-    await prnViewPage.deletePRNButton()
-
-    let confirmDeleteHeadingText = await confirmDeletePRNPage.headingText()
-    expect(confirmDeleteHeadingText).toBe(
-      'Are you sure you want to delete this PERN?'
-    )
-    await confirmDeletePRNPage.selectBackLink()
-
-    // Now delete the PERN
-    await prnViewPage.deletePRNButton()
-    confirmDeleteHeadingText = await confirmDeletePRNPage.headingText()
-    expect(confirmDeleteHeadingText).toBe(
-      'Are you sure you want to delete this PERN?'
-    )
-    await confirmDeletePRNPage.deletePrn()
-
-    const noCreatedPrnMessage = await prnDashboardPage.getNoCreatedPrnMessage()
-    expect(noCreatedPrnMessage).toBe('You have not created any PERNs.')
-
-    await prnDashboardPage.selectBackLink()
-
-    // Check waste balance amount is now from the uploaded value and "returned" from the deleted PRN
-    wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
-    expect(wasteBalanceAmount).toBe(expectedWasteBalance)
-
-    await homePage.signOut()
-    await expect(page).toHaveTitle(/Signed out/)
+    await runDeleteCreatedPrn(page, {
+      wasteProcessingType: 'Exporter',
+      material: 'Fibre-based composite material (R3)',
+      regNumber,
+      accNumber,
+      seedOverseasSites: true,
+      summaryLogFilePath: `resources/sanity/exporter_${accNumber}_${regNumber}.xlsx`,
+      expectedWasteBalance: '1,580.71 tonnes',
+      expectedDeductedWasteBalance: '1,377.71 tonnes',
+      isPern: true,
+      createNewLinkName: 'createNewPERNLink',
+      manageLinkName: 'managePERNsLink'
+    })
   })
 })

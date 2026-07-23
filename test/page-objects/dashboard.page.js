@@ -41,55 +41,31 @@ class DashboardPage extends Page {
     await this.page.locator('//a[normalize-space()="Exporting"]').click()
   }
 
-  async getMaterial(tableIndex, rowIndex) {
+  async getTableCell(tableIndex, rowIndex, cellIndex) {
     return this.page
       .locator(
-        '#main-content table.govuk-table:nth-of-type(' +
-          tableIndex +
-          ') tr:nth-child(' +
-          rowIndex +
-          ') > td:nth-child(1)'
+        `#main-content table.govuk-table:nth-of-type(${tableIndex}) tr:nth-child(${rowIndex}) > td:nth-child(${cellIndex})`
       )
       .innerText()
+  }
+
+  async getMaterial(tableIndex, rowIndex) {
+    return this.getTableCell(tableIndex, rowIndex, 1)
   }
 
   async getRegistrationStatus(tableIndex, rowIndex) {
-    return this.page
-      .locator(
-        '#main-content table.govuk-table:nth-of-type(' +
-          tableIndex +
-          ') tr:nth-child(' +
-          rowIndex +
-          ') > td:nth-child(2)'
-      )
-      .innerText()
+    return this.getTableCell(tableIndex, rowIndex, 2)
   }
 
   async getAccreditationStatus(tableIndex, rowIndex) {
-    return this.page
-      .locator(
-        '#main-content table.govuk-table:nth-of-type(' +
-          tableIndex +
-          ') tr:nth-child(' +
-          rowIndex +
-          ') > td:nth-child(3)'
-      )
-      .innerText()
+    return this.getTableCell(tableIndex, rowIndex, 3)
   }
 
   async getTableRow(tableIndex, rowIndex) {
-    const tableRow = new Map()
-    const selector = `#main-content table.govuk-table:nth-of-type(${tableIndex})`
-    const headerText = await this.page
-      .locator(`${selector} > thead > tr th`)
-      .allInnerTexts()
-    const rowText = await this.page
-      .locator(`${selector} > tbody > tr:nth-child(${rowIndex}) td`)
-      .allInnerTexts()
-    for (let i = 0; i < headerText.length; i++) {
-      tableRow.set(headerText[i], rowText[i])
-    }
-    return tableRow
+    return this.readGovukTableRow(
+      `#main-content table.govuk-table:nth-of-type(${tableIndex})`,
+      rowIndex
+    )
   }
 }
 

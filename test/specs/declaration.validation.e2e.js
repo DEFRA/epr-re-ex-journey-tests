@@ -106,7 +106,7 @@ test.describe('Declaration name validation @declarationValidation', () => {
   })
 
   test('should show error when name is empty @declarationValidationEmpty', async () => {
-    await page.locator('#main-content button[type=submit]').click()
+    await monthlyReportDraftDeclarationPage.continue()
 
     await checkBodyText(
       page,
@@ -117,7 +117,7 @@ test.describe('Declaration name validation @declarationValidation', () => {
 
   test('should show error when name is too short @declarationValidationTooShort', async () => {
     await monthlyReportDraftDeclarationPage.enterFullName('A')
-    await page.locator('#main-content button[type=submit]').click()
+    await monthlyReportDraftDeclarationPage.continue()
 
     await checkBodyText(page, 'Your name must be more than one character', 10)
   })
@@ -125,14 +125,14 @@ test.describe('Declaration name validation @declarationValidation', () => {
   test('should show error when name is too long @declarationValidationTooLong', async () => {
     const longName = 'A'.repeat(256)
     await monthlyReportDraftDeclarationPage.enterFullName(longName)
-    await page.locator('#main-content button[type=submit]').click()
+    await monthlyReportDraftDeclarationPage.continue()
 
     await checkBodyText(page, 'Your name must be fewer than 255 characters', 10)
   })
 
   test('should show error when name contains invalid characters @declarationValidationInvalidChars', async () => {
     await monthlyReportDraftDeclarationPage.enterFullName('James@bond.com')
-    await page.locator('#main-content button[type=submit]').click()
+    await monthlyReportDraftDeclarationPage.continue()
 
     await checkBodyText(
       page,
