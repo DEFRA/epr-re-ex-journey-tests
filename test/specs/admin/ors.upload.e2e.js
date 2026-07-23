@@ -88,7 +88,7 @@ test.describe('ORS upload flow @orsupload', () => {
     expect(fileResults[0].fileName).toContain(`ors-test-${orgId}`)
     expect(fileResults[0].result).toEqual('success')
 
-    const viewRecordsLink = page.locator('a[href="/overseas-sites"]')
+    const viewRecordsLink = page.locator('a[href="/overseas-sites"]').first()
     await expect(viewRecordsLink).toBeVisible()
 
     await orsUploadPage.openList()
@@ -174,7 +174,11 @@ test.describe('ORS upload flow @orsupload', () => {
     expect(pageTwoRows.length).toBeLessThanOrEqual(2)
   })
 
-  test.describe('Registration number filter @orsupload', () => {
+  // .serial: later tests consume registration numbers and the org name
+  // created in "Should upload workbooks for filter tests" via shared
+  // closure state - non-serial mode doesn't guarantee that setup runs (or
+  // finishes running) before the tests that depend on it.
+  test.describe.serial('Registration number filter @orsupload', () => {
     let alphaRegistrationNumber
     let alphaAccreditationNumber
     let betaRegistrationNumber
