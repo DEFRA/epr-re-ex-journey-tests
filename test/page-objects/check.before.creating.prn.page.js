@@ -16,7 +16,7 @@ class CheckBeforeCreatingPRNPage extends Page {
 
   async discardAndStartAgain() {
     await this.page
-      .locator('a', { hasText: /^Discard and start again$/ })
+      .locator('a', { hasText: /^\s*Discard and start again\s*$/ })
       .click()
   }
 }

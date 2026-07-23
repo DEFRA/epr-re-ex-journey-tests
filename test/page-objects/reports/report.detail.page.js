@@ -44,7 +44,7 @@ class ReportDetailPage extends Page {
 
   async cancelAndReturnToReports() {
     await this.page
-      .locator('a', { hasText: /^Cancel and return to reports$/ })
+      .locator('a', { hasText: /^\s*Cancel and return to reports\s*$/ })
       .click()
   }
 

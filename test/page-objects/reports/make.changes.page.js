@@ -27,7 +27,7 @@ class MakeChangesPage extends Page {
   }
 
   async cancel() {
-    await this.page.locator('a', { hasText: /^Cancel$/ }).click()
+    await this.page.locator('a', { hasText: /^\s*Cancel\s*$/ }).click()
   }
 }
 

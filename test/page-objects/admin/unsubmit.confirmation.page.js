@@ -21,7 +21,7 @@ class UnsubmitConfirmationPage extends AdminPage {
 
   async returnToRegistrationOverview() {
     await this.page
-      .locator('a', { hasText: /^Back to registration overview$/ })
+      .locator('a', { hasText: /^\s*Back to registration overview\s*$/ })
       .click()
   }
 }
