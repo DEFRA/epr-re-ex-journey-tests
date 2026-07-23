@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { HomePage } from 'page-objects/homepage.js'
+import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
 import { TonnesRecycledPage } from '../page-objects/reports/tonnes.recycled.page.js'
@@ -7,13 +8,17 @@ import { TonnesNotRecycledPage } from '../page-objects/reports/tonnes.not.recycl
 import { ReportSupportingInformationPage } from 'page-objects/reports/report.supporting.information.page.js'
 import { ReportCheckAnswersPage } from 'page-objects/reports/report.check.answers.page.js'
 import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.page.js'
+import { MonthlyReportDraftDeclarationPage } from 'page-objects/reports/monthly.report.draft.declaration.page.js'
 import {
   createLinkedOrganisation,
   unsubmitReport,
   updateMigratedOrganisation
 } from '../support/apicalls.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
-import { uploadSummaryLogAndNavigateToReports } from '../support/report-navigation.js'
+import {
+  navigateToReports,
+  uploadSummaryLogAndNavigateToReports
+} from '../support/report-navigation.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude
@@ -23,7 +28,6 @@ import {
   closeCurrentTabAndReturn,
   switchToNewTab
 } from '../support/windowtabs.js'
-import { MonthlyReportDraftDeclarationPage } from 'page-objects/reports/monthly.report.draft.declaration.page.js'
 import { ReportSubmittedPage } from 'page-objects/reports/report.submitted.page.js'
 
 const REG_NUMBER = 'R25SR5111050912PA'
@@ -87,174 +91,250 @@ async function setupRegisteredOnlyReprocessor(page) {
 }
 
 test.describe('Registered-only reprocessor report flow @registeredOnlyReprocessor', () => {
-  test('should complete the full registered-only reprocessor report flow through to confirmation @registeredOnlyReprocessorFullFlow', async ({
-    page
-  }) => {
-    const homePage = new HomePage(page)
-    const reportsPage = new ReportsPage(page)
-    const reportDetailPage = new ReportDetailPage(page)
-    const tonnesRecycledPage = new TonnesRecycledPage(page)
-    const tonnesNotRecycledPage = new TonnesNotRecycledPage(page)
-    const reportSupportingInformationPage = new ReportSupportingInformationPage(
-      page
-    )
-    const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
-    const confirmationPage = new ConfirmationPage(page)
-    const monthlyReportDraftDeclarationPage =
-      new MonthlyReportDraftDeclarationPage(page)
-    const reportSubmittedPage = new ReportSubmittedPage(page)
+  // These 3 tests share one continuous login session/report, the same
+  // pattern used in accredited.reprocessor.report.e2e.js - serial mode + a
+  // manually-created page shares setup instead of re-paying org creation,
+  // login, and summary log upload 3 times. BackLinks cleans its report back
+  // to "Due" so FullFlow (last, since it ends in a submitted/unsubmitted
+  // state) starts fresh.
+  //
+  // CheckAnswersGuard (below, outside this group) leaves a Ready-to-submit
+  // report with no proven-safe way back to "Due" for this registered-only
+  // (no-accreditation) org shape, so it keeps its own independent setup
+  // rather than risk a flaky shared sequence.
+  test.describe.serial('registered-only reprocessor with upload', () => {
+    /** @type {import('@playwright/test').Page} */
+    let page
+    let setupResponse
 
-    const setupResponse = await setupRegisteredOnlyReprocessor(page)
-    await uploadAndNavigateToReports(page)
+    test.beforeAll(async ({ browser }) => {
+      page = await browser.newPage()
+      setupResponse = await setupRegisteredOnlyReprocessor(page)
+      await uploadAndNavigateToReports(page)
+    })
 
-    // Start the report — verify detail page buttons before proceeding
-    await reportsPage.selectActiveActionLink(1)
-    await reportDetailPage.verifyDetailPageButtons()
+    test.afterAll(async () => {
+      const homePage = new HomePage(page)
+      await homePage.signOut()
+      await expect(page).toHaveTitle(/Signed out/)
+      await page.close()
+    })
 
-    await reportsPage.selectActiveActionLink(1)
-    await checkBodyText(page, REG_NUMBER, 10)
-    await reportDetailPage.useThisData()
+    test('should return 404 when navigating directly to PRN pages @registeredOnlyReprocessorRouteGuard', async () => {
+      const { organisationDetails, migrationResponse } = setupResponse
 
-    // --- Tonnes recycled page ---
-    const tonnesRecycledHeading = await tonnesRecycledPage.headingText()
-    expect(tonnesRecycledHeading).toBeTruthy()
+      // Try to access prn-summary directly — should get 404
+      await page.goto(
+        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/2026/quarterly/1/submissions/1/prn-summary`
+      )
+      await checkBodyText(page, '404', 10)
+      await checkBodyText(page, 'Page not found', 10)
 
-    await tonnesRecycledPage.enterTonnage('12.50')
-    await tonnesRecycledPage.continue()
+      // Try to access free-prns directly — should get 404
+      await page.goto(
+        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/2026/quarterly/1/submissions/1/free-prns`
+      )
+      await checkBodyText(page, '404', 10)
+      await checkBodyText(page, 'Page not found', 10)
 
-    // --- Tonnes not recycled page ---
-    const tonnesNotRecycledHeading = await tonnesNotRecycledPage.headingText()
-    expect(tonnesNotRecycledHeading).toBeTruthy()
+      // The 404 checks above navigate away via raw page.goto to pages with no
+      // rendered dashboard, so re-open the dashboard from scratch (rather
+      // than assuming a table is already on the page) before returning to
+      // the reports list, so the next test in this shared session starts
+      // from the state it expects.
+      const dashboardPage = new DashboardPage(page)
+      await dashboardPage.open(organisationDetails.refNo)
+      await navigateToReports(page)
+    })
 
-    await tonnesNotRecycledPage.enterTonnage('7.50')
-    await tonnesNotRecycledPage.continue()
+    test('should navigate back correctly through the registered-only reprocessor flow @registeredOnlyReprocessorBackLinks', async () => {
+      const reportsPage = new ReportsPage(page)
+      const reportDetailPage = new ReportDetailPage(page)
+      const tonnesRecycledPage = new TonnesRecycledPage(page)
+      const tonnesNotRecycledPage = new TonnesNotRecycledPage(page)
+      const reportSupportingInformationPage =
+        new ReportSupportingInformationPage(page)
+      const confirmDeleteReportPage = new ConfirmDeleteReportPage(page)
 
-    // --- Supporting information page (no PRN pages for registered-only) ---
-    const supportingInfoHeading =
-      await reportSupportingInformationPage.headingText()
-    expect(supportingInfoHeading).toBe(
-      'Add supporting information for your regulator (optional)'
-    )
-    await reportSupportingInformationPage.continue()
+      await reportsPage.selectActiveActionLink(1)
+      await reportDetailPage.useThisData()
 
-    // --- Check your answers page ---
-    const checkHeading = await reportCheckAnswersPage.headingText()
-    expect(checkHeading).toBe(
-      'Check your answers before you create this draft report'
-    )
+      // On tonnes-recycled — back link goes to reports list
+      await tonnesRecycledPage.selectBackLink()
+      const reportsHeading = await reportsPage.headingText()
+      expect(reportsHeading).toContain('Reports')
 
-    // Verify recycling activity values displayed (rendered without formatTonnage, so no trailing zero)
-    await checkBodyText(page, '12.5', 10)
-    await checkBodyText(page, '7.5', 10)
+      // Re-enter the wizard — report is in_progress so the action link
+      // routes straight to tonnes-recycled
+      await reportsPage.selectActiveActionLink(1)
 
-    // Verify NO PRN section present
-    await checkBodyTextDoesNotInclude(page, 'PRN revenue', 5)
-    await checkBodyTextDoesNotInclude(page, 'Free PRNs', 5)
-    await checkBodyTextDoesNotInclude(page, 'Average price per tonne', 5)
+      // Continue to tonnes-not-recycled
+      await tonnesRecycledPage.enterTonnage('12.50')
+      await tonnesRecycledPage.continue()
 
-    // Submit the report
-    await reportCheckAnswersPage.createReport()
+      // On tonnes-not-recycled — back link goes to tonnes-recycled
+      await tonnesNotRecycledPage.selectBackLink()
+      const backToTonnesRecycled = await tonnesRecycledPage.headingText()
+      expect(backToTonnesRecycled).toBeTruthy()
 
-    // Verify confirmation page
-    await checkBodyText(page, 'report created', 30)
+      // Continue to supporting-information (skips PRN pages)
+      await tonnesRecycledPage.enterTonnage('12.50')
+      await tonnesRecycledPage.continue()
+      await tonnesNotRecycledPage.enterTonnage('7.50')
+      await tonnesNotRecycledPage.continue()
 
-    // --- View draft report in new tab ---
-    await confirmationPage.viewDraftReport()
-    let newTab = await switchToNewTab(page)
+      // On supporting-information — back link goes to tonnes-not-recycled (not free-prns)
+      await reportSupportingInformationPage.selectBackLink()
+      const backToTonnesNotRecycled = await tonnesNotRecycledPage.headingText()
+      expect(backToTonnesNotRecycled).toBeTruthy()
 
-    // Verify draft report page content
-    await checkBodyText(newTab, 'Draft report for Quarter', 10)
-    await checkBodyText(newTab, 'Ready to submit', 10)
-    await checkBodyText(newTab, 'Created by:', 10)
-    await checkBodyText(newTab, 'Created on:', 10)
-    await checkBodyText(newTab, 'Site', 10)
-    await checkBodyText(newTab, 'Packaging waste received for reprocessing', 10)
-    await checkBodyText(newTab, 'Packaging waste recycling', 10)
-    await checkBodyText(newTab, 'Packaging waste sent on', 10)
-    await checkBodyText(newTab, 'Supporting information', 10)
+      // Clean up — leave the period "Due" for the next test
+      await tonnesNotRecycledPage.deleteReportLink()
+      await confirmDeleteReportPage.confirmDeletion()
+    })
 
-    // Close draft tab and return to confirmation page
-    await closeCurrentTabAndReturn(newTab)
+    test('should complete the full registered-only reprocessor report flow through to confirmation @registeredOnlyReprocessorFullFlow', async () => {
+      const reportsPage = new ReportsPage(page)
+      const reportDetailPage = new ReportDetailPage(page)
+      const tonnesRecycledPage = new TonnesRecycledPage(page)
+      const tonnesNotRecycledPage = new TonnesNotRecycledPage(page)
+      const reportSupportingInformationPage =
+        new ReportSupportingInformationPage(page)
+      const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
+      const confirmationPage = new ConfirmationPage(page)
+      const monthlyReportDraftDeclarationPage =
+        new MonthlyReportDraftDeclarationPage(page)
+      const reportSubmittedPage = new ReportSubmittedPage(page)
 
-    await confirmationPage.goToReports()
-    await reportsPage.selectActiveActionLink(1)
+      // Start the report — verify detail page buttons before proceeding
+      await reportsPage.selectActiveActionLink(1)
+      await reportDetailPage.verifyDetailPageButtons()
 
-    // Confirm and submit report
-    await monthlyReportDraftDeclarationPage.confirmAndSubmit()
+      await reportsPage.selectActiveActionLink(1)
+      await checkBodyText(page, REG_NUMBER, 10)
+      await reportDetailPage.useThisData()
 
-    const confirmationText = await reportSubmittedPage.confirmationText()
-    expect(confirmationText).toContain('report submitted to regulator')
+      // --- Tonnes recycled page ---
+      const tonnesRecycledHeading = await tonnesRecycledPage.headingText()
+      expect(tonnesRecycledHeading).toBeTruthy()
 
-    await reportSubmittedPage.viewReportLink()
-    newTab = await switchToNewTab(page)
+      await tonnesRecycledPage.enterTonnage('12.50')
+      await tonnesRecycledPage.continue()
 
-    await checkBodyText(newTab, 'Report for Quarter', 10)
-    await checkBodyText(newTab, 'Submitted', 10)
-    await checkBodyText(newTab, 'Submitted by:', 10)
-    await checkBodyText(newTab, 'Submitted on:', 10)
-    await checkBodyText(newTab, 'Site', 10)
-    await checkBodyText(newTab, 'Packaging waste received for reprocessing', 10)
-    await checkBodyText(newTab, 'Packaging waste recycling', 10)
-    await checkBodyText(newTab, 'Packaging waste sent on', 10)
-    await checkBodyText(newTab, 'Supporting information', 10)
+      // --- Tonnes not recycled page ---
+      const tonnesNotRecycledHeading = await tonnesNotRecycledPage.headingText()
+      expect(tonnesNotRecycledHeading).toBeTruthy()
 
-    // Close report tab and return to submission confirmation page
-    await closeCurrentTabAndReturn(newTab)
+      await tonnesNotRecycledPage.enterTonnage('7.50')
+      await tonnesNotRecycledPage.continue()
 
-    await reportSubmittedPage.returnToReportsLink()
+      // --- Supporting information page (no PRN pages for registered-only) ---
+      const supportingInfoHeading =
+        await reportSupportingInformationPage.headingText()
+      expect(supportingInfoHeading).toBe(
+        'Add supporting information for your regulator (optional)'
+      )
+      await reportSupportingInformationPage.continue()
 
-    const submittedBadge = await reportsPage.getSubmittedStatusBadge(1)
-    const submittedColour = await reportsPage.getSubmittedStatusColour(1)
+      // --- Check your answers page ---
+      const checkHeading = await reportCheckAnswersPage.headingText()
+      expect(checkHeading).toBe(
+        'Check your answers before you create this draft report'
+      )
 
-    expect(submittedBadge).toBe('Submitted')
-    expect(submittedColour).toBe('green')
+      // Verify recycling activity values displayed (rendered without formatTonnage, so no trailing zero)
+      await checkBodyText(page, '12.5', 10)
+      await checkBodyText(page, '7.5', 10)
 
-    // Now we unsubmit the report via epr-backend to see the effects on the frontend
-    await unsubmitReport(
-      setupResponse.organisationDetails.refNo,
-      setupResponse.migrationResponse.registrationIds[0],
-      2026,
-      'quarterly',
-      1,
-      1
-    )
+      // Verify NO PRN section present
+      await checkBodyTextDoesNotInclude(page, 'PRN revenue', 5)
+      await checkBodyTextDoesNotInclude(page, 'Free PRNs', 5)
+      await checkBodyTextDoesNotInclude(page, 'Average price per tonne', 5)
 
-    // Refresh to see the status change
-    await page.reload()
+      // Submit the report
+      await reportCheckAnswersPage.createReport()
 
-    const unsubmittedBadge = await reportsPage.getActiveStatusBadge(1)
-    const unsubmittedColour = await reportsPage.getActiveStatusColour(1)
+      // Verify confirmation page
+      await checkBodyText(page, 'report created', 30)
 
-    expect(unsubmittedBadge).toBe('Ready to submit')
-    expect(unsubmittedColour).toBe('blue')
+      // --- View draft report in new tab ---
+      await confirmationPage.viewDraftReport()
+      let newTab = await switchToNewTab(page)
 
-    await homePage.signOut()
-    await expect(page).toHaveTitle(/Signed out/)
-  })
+      // Verify draft report page content
+      await checkBodyText(newTab, 'Draft report for Quarter', 10)
+      await checkBodyText(newTab, 'Ready to submit', 10)
+      await checkBodyText(newTab, 'Created by:', 10)
+      await checkBodyText(newTab, 'Created on:', 10)
+      await checkBodyText(newTab, 'Site', 10)
+      await checkBodyText(
+        newTab,
+        'Packaging waste received for reprocessing',
+        10
+      )
+      await checkBodyText(newTab, 'Packaging waste recycling', 10)
+      await checkBodyText(newTab, 'Packaging waste sent on', 10)
+      await checkBodyText(newTab, 'Supporting information', 10)
 
-  test('should return 404 when navigating directly to PRN pages @registeredOnlyReprocessorRouteGuard', async ({
-    page
-  }) => {
-    const homePage = new HomePage(page)
-    const { organisationDetails, migrationResponse } =
-      await setupRegisteredOnlyReprocessor(page)
+      // Close draft tab and return to confirmation page
+      await closeCurrentTabAndReturn(newTab)
 
-    // Try to access prn-summary directly — should get 404
-    await page.goto(
-      `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/2026/quarterly/1/submissions/1/prn-summary`
-    )
-    await checkBodyText(page, '404', 10)
-    await checkBodyText(page, 'Page not found', 10)
+      await confirmationPage.goToReports()
+      await reportsPage.selectActiveActionLink(1)
 
-    // Try to access free-prns directly — should get 404
-    await page.goto(
-      `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/2026/quarterly/1/submissions/1/free-prns`
-    )
-    await checkBodyText(page, '404', 10)
-    await checkBodyText(page, 'Page not found', 10)
+      // Confirm and submit report
+      await monthlyReportDraftDeclarationPage.confirmAndSubmit()
 
-    await homePage.signOut()
-    await expect(page).toHaveTitle(/Signed out/)
+      const confirmationText = await reportSubmittedPage.confirmationText()
+      expect(confirmationText).toContain('report submitted to regulator')
+
+      await reportSubmittedPage.viewReportLink()
+      newTab = await switchToNewTab(page)
+
+      await checkBodyText(newTab, 'Report for Quarter', 10)
+      await checkBodyText(newTab, 'Submitted', 10)
+      await checkBodyText(newTab, 'Submitted by:', 10)
+      await checkBodyText(newTab, 'Submitted on:', 10)
+      await checkBodyText(newTab, 'Site', 10)
+      await checkBodyText(
+        newTab,
+        'Packaging waste received for reprocessing',
+        10
+      )
+      await checkBodyText(newTab, 'Packaging waste recycling', 10)
+      await checkBodyText(newTab, 'Packaging waste sent on', 10)
+      await checkBodyText(newTab, 'Supporting information', 10)
+
+      // Close report tab and return to submission confirmation page
+      await closeCurrentTabAndReturn(newTab)
+
+      await reportSubmittedPage.returnToReportsLink()
+
+      const submittedBadge = await reportsPage.getSubmittedStatusBadge(1)
+      const submittedColour = await reportsPage.getSubmittedStatusColour(1)
+
+      expect(submittedBadge).toBe('Submitted')
+      expect(submittedColour).toBe('green')
+
+      // Now we unsubmit the report via epr-backend to see the effects on the frontend
+      await unsubmitReport(
+        setupResponse.organisationDetails.refNo,
+        setupResponse.migrationResponse.registrationIds[0],
+        2026,
+        'quarterly',
+        1,
+        1
+      )
+
+      // Refresh to see the status change
+      await page.reload()
+
+      const unsubmittedBadge = await reportsPage.getActiveStatusBadge(1)
+      const unsubmittedColour = await reportsPage.getActiveStatusColour(1)
+
+      expect(unsubmittedBadge).toBe('Ready to submit')
+      expect(unsubmittedColour).toBe('blue')
+    })
   })
 
   test('should redirect to reports list when navigating back to check-answers after report is created @registeredOnlyReprocessorCheckAnswersGuard', async ({
@@ -272,62 +352,6 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
 
     const reportsHeading = await reportsPage.headingText()
     expect(reportsHeading).toContain('Reports')
-
-    await homePage.signOut()
-    await expect(page).toHaveTitle(/Signed out/)
-  })
-
-  test('should navigate back correctly through the registered-only reprocessor flow @registeredOnlyReprocessorBackLinks', async ({
-    page
-  }) => {
-    const homePage = new HomePage(page)
-    const reportsPage = new ReportsPage(page)
-    const reportDetailPage = new ReportDetailPage(page)
-    const tonnesRecycledPage = new TonnesRecycledPage(page)
-    const tonnesNotRecycledPage = new TonnesNotRecycledPage(page)
-    const reportSupportingInformationPage = new ReportSupportingInformationPage(
-      page
-    )
-    const confirmDeleteReportPage = new ConfirmDeleteReportPage(page)
-
-    await setupRegisteredOnlyReprocessor(page)
-    await uploadAndNavigateToReports(page)
-
-    await reportsPage.selectActiveActionLink(1)
-    await reportDetailPage.useThisData()
-
-    // On tonnes-recycled — back link goes to reports list
-    await tonnesRecycledPage.selectBackLink()
-    const reportsHeading = await reportsPage.headingText()
-    expect(reportsHeading).toContain('Reports')
-
-    // Re-enter the wizard — report is in_progress so the action link
-    // routes straight to tonnes-recycled
-    await reportsPage.selectActiveActionLink(1)
-
-    // Continue to tonnes-not-recycled
-    await tonnesRecycledPage.enterTonnage('12.50')
-    await tonnesRecycledPage.continue()
-
-    // On tonnes-not-recycled — back link goes to tonnes-recycled
-    await tonnesNotRecycledPage.selectBackLink()
-    const backToTonnesRecycled = await tonnesRecycledPage.headingText()
-    expect(backToTonnesRecycled).toBeTruthy()
-
-    // Continue to supporting-information (skips PRN pages)
-    await tonnesRecycledPage.enterTonnage('12.50')
-    await tonnesRecycledPage.continue()
-    await tonnesNotRecycledPage.enterTonnage('7.50')
-    await tonnesNotRecycledPage.continue()
-
-    // On supporting-information — back link goes to tonnes-not-recycled (not free-prns)
-    await reportSupportingInformationPage.selectBackLink()
-    const backToTonnesNotRecycled = await tonnesNotRecycledPage.headingText()
-    expect(backToTonnesNotRecycled).toBeTruthy()
-
-    // Clean up
-    await tonnesNotRecycledPage.deleteReportLink()
-    await confirmDeleteReportPage.confirmDeletion()
 
     await homePage.signOut()
     await expect(page).toHaveTitle(/Signed out/)

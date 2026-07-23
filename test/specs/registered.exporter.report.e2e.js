@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { HomePage } from 'page-objects/homepage.js'
+import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { ConfirmationPage } from 'page-objects/reports/confirmation.page.js'
 import { MonthlyReportDraftDeclarationPage } from 'page-objects/reports/monthly.report.draft.declaration.page.js'
 import { ReportCheckAnswersPage } from 'page-objects/reports/report.check.answers.page.js'
@@ -23,7 +24,10 @@ import {
   switchToNewTab
 } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
-import { uploadSummaryLogAndNavigateToReports } from '../support/report-navigation.js'
+import {
+  navigateToReports,
+  uploadSummaryLogAndNavigateToReports
+} from '../support/report-navigation.js'
 
 const REG_NUMBER = 'E25SR500030913PA'
 
@@ -64,170 +68,224 @@ async function setupRegisteredOnlyExporter(page) {
 }
 
 test.describe('Registered-only exporter report flow @registeredOnlyExporter', () => {
-  test('should complete the full registered-only exporter report flow through to confirmation @registeredOnlyExporterFullFlow @smoketest', async ({
-    page
-  }) => {
-    const homePage = new HomePage(page)
-    const confirmationPage = new ConfirmationPage(page)
-    const monthlyReportDraftDeclarationPage =
-      new MonthlyReportDraftDeclarationPage(page)
-    const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
-    const reportDetailPage = new ReportDetailPage(page)
-    const reportSubmittedPage = new ReportSubmittedPage(page)
-    const reportSupportingInformationPage = new ReportSupportingInformationPage(
-      page
-    )
-    const reportsPage = new ReportsPage(page)
-    const tonnesNotExportedPage = new TonnesNotExportedPage(page)
+  // These 3 tests share one continuous login session/report, the same
+  // pattern used in accredited.reprocessor.report.e2e.js - serial mode + a
+  // manually-created page shares setup instead of re-paying org creation,
+  // login, and summary log upload 3 times. BackLinks cleans its report back
+  // to "Due" so FullFlow (last, since it ends in a submitted/unsubmitted
+  // state) starts fresh.
+  //
+  // CheckAnswersGuard and SubmitGuard (below, outside this group) each leave
+  // a Ready-to-submit/Submitted report with no proven-safe way back to "Due"
+  // for this registered-only (no-accreditation) org shape, so they keep
+  // their own independent setup rather than risk a flaky shared sequence.
+  test.describe.serial('registered-only exporter with upload', () => {
+    /** @type {import('@playwright/test').Page} */
+    let page
+    let setupResponse
 
-    const setupResponse = await setupRegisteredOnlyExporter(page)
+    test.beforeAll(async ({ browser }) => {
+      page = await browser.newPage()
+      setupResponse = await setupRegisteredOnlyExporter(page)
+      await seedOverseasSites(
+        setupResponse.organisationDetails.refNo,
+        [0],
+        [143, 297, 565, 893]
+      )
+      await uploadAndNavigateToReports(page)
+    })
 
-    await seedOverseasSites(
-      setupResponse.organisationDetails.refNo,
-      [0],
-      [143, 297, 565, 893]
-    )
+    test.afterAll(async () => {
+      const homePage = new HomePage(page)
+      await homePage.signOut()
+      await expect(page).toHaveTitle(/Signed out/)
+      await page.close()
+    })
 
-    await uploadAndNavigateToReports(page)
+    test('should return 404 when navigating directly to PERN pages @registeredOnlyExporterRouteGuard', async () => {
+      const { organisationDetails, migrationResponse } = setupResponse
 
-    // Start the report — verify detail page buttons before proceeding
-    await reportsPage.selectActiveActionLink(1)
-    await reportDetailPage.verifyDetailPageButtons()
+      // Try to access prn-summary directly — should get 404
+      await page.goto(
+        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/2026/quarterly/1/submissions/1/prn-summary`
+      )
+      await checkBodyText(page, '404', 10)
+      await checkBodyText(page, 'Page not found', 10)
 
-    await reportsPage.selectActiveActionLink(1)
-    await reportDetailPage.useThisData()
+      // Try to access free-perns directly — should get 404
+      await page.goto(
+        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/2026/quarterly/1/submissions/1/free-perns`
+      )
+      await checkBodyText(page, '404', 10)
+      await checkBodyText(page, 'Page not found', 10)
 
-    // --- Tonnes not exported page ---
-    const tonnesNotExportedHeading = await tonnesNotExportedPage.headingText()
-    expect(tonnesNotExportedHeading).toBeTruthy()
+      // The 404 checks above navigate away via raw page.goto to pages with no
+      // rendered dashboard, so re-open the dashboard from scratch (rather
+      // than assuming a table is already on the page) before returning to
+      // the reports list, so the next test in this shared session starts
+      // from the state it expects.
+      const dashboardPage = new DashboardPage(page)
+      await dashboardPage.open(organisationDetails.refNo)
+      await navigateToReports(page)
+    })
 
-    await tonnesNotExportedPage.enterTonnage('5.50')
-    await tonnesNotExportedPage.continue()
+    test('should navigate back correctly through the registered-only exporter flow @registeredOnlyExporterBackLinks', async () => {
+      const reportDetailPage = new ReportDetailPage(page)
+      const reportSupportingInformationPage =
+        new ReportSupportingInformationPage(page)
+      const reportsPage = new ReportsPage(page)
+      const tonnesNotExportedPage = new TonnesNotExportedPage(page)
+      const confirmDeleteReportPage = new ConfirmDeleteReportPage(page)
 
-    // --- Supporting information page (no PERN pages for registered-only) ---
-    const supportingInfoHeading =
-      await reportSupportingInformationPage.headingText()
-    expect(supportingInfoHeading).toBe(
-      'Add supporting information for your regulator (optional)'
-    )
-    await reportSupportingInformationPage.continue()
+      await reportsPage.selectActiveActionLink(1)
+      await reportDetailPage.useThisData()
 
-    // --- Check your answers page ---
-    const checkHeading = await reportCheckAnswersPage.headingText()
-    expect(checkHeading).toBe(
-      'Check your answers before you create this draft report'
-    )
+      // On tonnes-not-exported — back link goes to reports list
+      await tonnesNotExportedPage.selectBackLink()
+      const reportsHeading = await reportsPage.headingText()
+      expect(reportsHeading).toContain('Reports')
 
-    // Verify tonnage not exported value and change link present on CYA
-    await checkBodyText(page, '5.50', 10)
-    const changeLink = page.locator('a[href*="tonnes-not-exported"]')
-    expect(await changeLink.count()).toBeGreaterThan(0)
+      // Re-enter the wizard — report is in_progress so the action link
+      // routes straight to tonnes-not-exported
+      await reportsPage.selectActiveActionLink(1)
 
-    // Verify NO PERN section present
-    await checkBodyTextDoesNotInclude(page, 'PERN revenue', 5)
-    await checkBodyTextDoesNotInclude(page, 'Free PERNs', 5)
+      // Continue to tonnage not exported page
+      await tonnesNotExportedPage.enterTonnage('5.50')
 
-    // Submit the report
-    await reportCheckAnswersPage.createReport()
+      await tonnesNotExportedPage.continue()
 
-    // Verify confirmation page
-    await checkBodyText(page, 'report created', 30)
+      // On supporting-information — back link goes to tonnes-not-exported (not free-perns)
+      await reportSupportingInformationPage.selectBackLink()
+      const backToTonnesNotExported = await tonnesNotExportedPage.headingText()
+      expect(backToTonnesNotExported).toBeTruthy()
 
-    // --- View draft report in new tab ---
-    await confirmationPage.viewDraftReport()
-    let newTab = await switchToNewTab(page)
+      // Clean up — leave the period "Due" for the next test
+      await tonnesNotExportedPage.deleteReportLink()
+      await confirmDeleteReportPage.confirmDeletion()
+    })
 
-    // Verify draft report page content
-    await checkBodyText(newTab, 'Draft report for Quarter', 10)
-    await checkBodyText(newTab, 'Ready to submit', 10)
-    await checkBodyText(newTab, 'Created by:', 10)
-    await checkBodyText(newTab, 'Created on:', 10)
-    await checkBodyText(newTab, 'Packaging waste received for exporting', 10)
-    await checkBodyText(newTab, 'Packaging waste exported for recycling', 10)
-    await checkBodyText(newTab, 'Packaging waste sent on', 10)
-    await checkBodyText(newTab, 'Supporting information', 10)
+    test('should complete the full registered-only exporter report flow through to confirmation @registeredOnlyExporterFullFlow @smoketest', async () => {
+      const confirmationPage = new ConfirmationPage(page)
+      const monthlyReportDraftDeclarationPage =
+        new MonthlyReportDraftDeclarationPage(page)
+      const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
+      const reportDetailPage = new ReportDetailPage(page)
+      const reportSubmittedPage = new ReportSubmittedPage(page)
+      const reportSupportingInformationPage =
+        new ReportSupportingInformationPage(page)
+      const reportsPage = new ReportsPage(page)
+      const tonnesNotExportedPage = new TonnesNotExportedPage(page)
 
-    // Close draft tab and return to confirmation page
-    await closeCurrentTabAndReturn(newTab)
+      // Start the report — verify detail page buttons before proceeding
+      await reportsPage.selectActiveActionLink(1)
+      await reportDetailPage.verifyDetailPageButtons()
 
-    await confirmationPage.goToReports()
-    await reportsPage.selectActiveActionLink(1)
+      await reportsPage.selectActiveActionLink(1)
+      await reportDetailPage.useThisData()
 
-    // Confirm and submit report
-    await monthlyReportDraftDeclarationPage.confirmAndSubmit()
+      // --- Tonnes not exported page ---
+      const tonnesNotExportedHeading = await tonnesNotExportedPage.headingText()
+      expect(tonnesNotExportedHeading).toBeTruthy()
 
-    const confirmationText = await reportSubmittedPage.confirmationText()
-    expect(confirmationText).toContain('report submitted to regulator')
+      await tonnesNotExportedPage.enterTonnage('5.50')
+      await tonnesNotExportedPage.continue()
 
-    await reportSubmittedPage.viewReportLink()
-    newTab = await switchToNewTab(page)
+      // --- Supporting information page (no PERN pages for registered-only) ---
+      const supportingInfoHeading =
+        await reportSupportingInformationPage.headingText()
+      expect(supportingInfoHeading).toBe(
+        'Add supporting information for your regulator (optional)'
+      )
+      await reportSupportingInformationPage.continue()
 
-    await checkBodyText(newTab, 'Report for Quarter', 10)
-    await checkBodyText(newTab, 'Submitted', 10)
-    await checkBodyText(newTab, 'Submitted by:', 10)
-    await checkBodyText(newTab, 'Submitted on:', 10)
-    await checkBodyText(newTab, 'Packaging waste received for exporting', 10)
-    await checkBodyText(newTab, 'Packaging waste exported for recycling', 10)
-    await checkBodyText(newTab, 'Packaging waste sent on', 10)
-    await checkBodyText(newTab, 'Supporting information', 10)
+      // --- Check your answers page ---
+      const checkHeading = await reportCheckAnswersPage.headingText()
+      expect(checkHeading).toBe(
+        'Check your answers before you create this draft report'
+      )
 
-    // Close report tab and return to submission confirmation page
-    await closeCurrentTabAndReturn(newTab)
+      // Verify tonnage not exported value and change link present on CYA
+      await checkBodyText(page, '5.50', 10)
+      const changeLink = page.locator('a[href*="tonnes-not-exported"]')
+      expect(await changeLink.count()).toBeGreaterThan(0)
 
-    await reportSubmittedPage.returnToReportsLink()
-    const submittedBadge = await reportsPage.getSubmittedStatusBadge(1)
-    const submittedColour = await reportsPage.getSubmittedStatusColour(1)
+      // Verify NO PERN section present
+      await checkBodyTextDoesNotInclude(page, 'PERN revenue', 5)
+      await checkBodyTextDoesNotInclude(page, 'Free PERNs', 5)
 
-    expect(submittedBadge).toBe('Submitted')
-    expect(submittedColour).toBe('green')
+      // Submit the report
+      await reportCheckAnswersPage.createReport()
 
-    // Now we unsubmit the report via epr-backend to see the effects on the frontend
-    await unsubmitReport(
-      setupResponse.organisationDetails.refNo,
-      setupResponse.migrationResponse.registrationIds[0],
-      2026,
-      'quarterly',
-      1,
-      1
-    )
+      // Verify confirmation page
+      await checkBodyText(page, 'report created', 30)
 
-    // Refresh to see the status change
-    await page.reload()
+      // --- View draft report in new tab ---
+      await confirmationPage.viewDraftReport()
+      let newTab = await switchToNewTab(page)
 
-    const unsubmittedBadge = await reportsPage.getActiveStatusBadge(1)
-    const unsubmittedColour = await reportsPage.getActiveStatusColour(1)
+      // Verify draft report page content
+      await checkBodyText(newTab, 'Draft report for Quarter', 10)
+      await checkBodyText(newTab, 'Ready to submit', 10)
+      await checkBodyText(newTab, 'Created by:', 10)
+      await checkBodyText(newTab, 'Created on:', 10)
+      await checkBodyText(newTab, 'Packaging waste received for exporting', 10)
+      await checkBodyText(newTab, 'Packaging waste exported for recycling', 10)
+      await checkBodyText(newTab, 'Packaging waste sent on', 10)
+      await checkBodyText(newTab, 'Supporting information', 10)
 
-    expect(unsubmittedBadge).toBe('Ready to submit')
-    expect(unsubmittedColour).toBe('blue')
+      // Close draft tab and return to confirmation page
+      await closeCurrentTabAndReturn(newTab)
 
-    await homePage.signOut()
-    await expect(page).toHaveTitle(/Signed out/)
-  })
+      await confirmationPage.goToReports()
+      await reportsPage.selectActiveActionLink(1)
 
-  test('should return 404 when navigating directly to PERN pages @registeredOnlyExporterRouteGuard', async ({
-    page
-  }) => {
-    const homePage = new HomePage(page)
+      // Confirm and submit report
+      await monthlyReportDraftDeclarationPage.confirmAndSubmit()
 
-    const { organisationDetails, migrationResponse } =
-      await setupRegisteredOnlyExporter(page)
+      const confirmationText = await reportSubmittedPage.confirmationText()
+      expect(confirmationText).toContain('report submitted to regulator')
 
-    // Try to access prn-summary directly — should get 404
-    await page.goto(
-      `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/2026/quarterly/1/submissions/1/prn-summary`
-    )
-    await checkBodyText(page, '404', 10)
-    await checkBodyText(page, 'Page not found', 10)
+      await reportSubmittedPage.viewReportLink()
+      newTab = await switchToNewTab(page)
 
-    // Try to access free-perns directly — should get 404
-    await page.goto(
-      `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/2026/quarterly/1/submissions/1/free-perns`
-    )
-    await checkBodyText(page, '404', 10)
-    await checkBodyText(page, 'Page not found', 10)
+      await checkBodyText(newTab, 'Report for Quarter', 10)
+      await checkBodyText(newTab, 'Submitted', 10)
+      await checkBodyText(newTab, 'Submitted by:', 10)
+      await checkBodyText(newTab, 'Submitted on:', 10)
+      await checkBodyText(newTab, 'Packaging waste received for exporting', 10)
+      await checkBodyText(newTab, 'Packaging waste exported for recycling', 10)
+      await checkBodyText(newTab, 'Packaging waste sent on', 10)
+      await checkBodyText(newTab, 'Supporting information', 10)
 
-    await homePage.signOut()
-    await expect(page).toHaveTitle(/Signed out/)
+      // Close report tab and return to submission confirmation page
+      await closeCurrentTabAndReturn(newTab)
+
+      await reportSubmittedPage.returnToReportsLink()
+      const submittedBadge = await reportsPage.getSubmittedStatusBadge(1)
+      const submittedColour = await reportsPage.getSubmittedStatusColour(1)
+
+      expect(submittedBadge).toBe('Submitted')
+      expect(submittedColour).toBe('green')
+
+      // Now we unsubmit the report via epr-backend to see the effects on the frontend
+      await unsubmitReport(
+        setupResponse.organisationDetails.refNo,
+        setupResponse.migrationResponse.registrationIds[0],
+        2026,
+        'quarterly',
+        1,
+        1
+      )
+
+      // Refresh to see the status change
+      await page.reload()
+
+      const unsubmittedBadge = await reportsPage.getActiveStatusBadge(1)
+      const unsubmittedColour = await reportsPage.getActiveStatusColour(1)
+
+      expect(unsubmittedBadge).toBe('Ready to submit')
+      expect(unsubmittedColour).toBe('blue')
+    })
   })
 
   test('should redirect to reports list when navigating back to check-answers after report is created @registeredOnlyExporterCheckAnswersGuard', async ({
@@ -301,51 +359,6 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
 
     const confirmationText = await reportSubmittedPage.confirmationText()
     expect(confirmationText).toContain('report submitted to regulator')
-
-    await homePage.signOut()
-    await expect(page).toHaveTitle(/Signed out/)
-  })
-
-  test('should navigate back correctly through the registered-only exporter flow @registeredOnlyExporterBackLinks', async ({
-    page
-  }) => {
-    const homePage = new HomePage(page)
-    const reportDetailPage = new ReportDetailPage(page)
-    const reportSupportingInformationPage = new ReportSupportingInformationPage(
-      page
-    )
-    const reportsPage = new ReportsPage(page)
-    const tonnesNotExportedPage = new TonnesNotExportedPage(page)
-    const confirmDeleteReportPage = new ConfirmDeleteReportPage(page)
-
-    await setupRegisteredOnlyExporter(page)
-    await uploadAndNavigateToReports(page)
-
-    await reportsPage.selectActiveActionLink(1)
-    await reportDetailPage.useThisData()
-
-    // On tonnes-not-exported — back link goes to reports list
-    await tonnesNotExportedPage.selectBackLink()
-    const reportsHeading = await reportsPage.headingText()
-    expect(reportsHeading).toContain('Reports')
-
-    // Re-enter the wizard — report is in_progress so the action link
-    // routes straight to tonnes-not-exported
-    await reportsPage.selectActiveActionLink(1)
-
-    // Continue to tonnage not exported page
-    await tonnesNotExportedPage.enterTonnage('5.50')
-
-    await tonnesNotExportedPage.continue()
-
-    // On supporting-information — back link goes to tonnes-not-exported (not free-perns)
-    await reportSupportingInformationPage.selectBackLink()
-    const backToTonnesNotExported = await tonnesNotExportedPage.headingText()
-    expect(backToTonnesNotExported).toBeTruthy()
-
-    // Clean up
-    await tonnesNotExportedPage.deleteReportLink()
-    await confirmDeleteReportPage.confirmDeletion()
 
     await homePage.signOut()
     await expect(page).toHaveTitle(/Signed out/)
