@@ -14,7 +14,8 @@
     "serialize-javascript": "7.0.5",
     "undici": "$undici",
     "uuid": "14.0.0",
-    "tmp": "0.2.7"
+    "tmp": "0.2.7",
+    "fast-uri": "3.1.4"
   },
   "aliases": {
     "~": ".",
