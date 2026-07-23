@@ -140,6 +140,11 @@ class OrsUploadPage extends AdminPage {
    * @returns {Promise<{status: number, contentDisposition: string|null, contentType: string|null, body: string}>}
    */
   async fetchListCsv() {
+    // page.evaluate reads the DOM as-is with no auto-wait, so without this
+    // the form can be read before the page has finished rendering it - same
+    // class of intermittent "form not found" failure as fetchCsv() below.
+    await this.downloadCsvForm.waitFor({ state: 'visible', timeout: 10000 })
+
     return this.page.evaluate(async () => {
       const form = document.querySelector('form[method="POST"]')
 

@@ -17,6 +17,14 @@ class AdminPage extends Page {
    * @param {string} endpoint
    */
   async fetchCsv(endpoint) {
+    // page.evaluate reads the DOM as-is with no auto-wait (unlike actions
+    // such as .click()), so without this the export form can be read before
+    // the page has finished rendering it - seen as an intermittent "Export
+    // form not found" failure in CI.
+    await this.page
+      .locator('#main-content form')
+      .waitFor({ state: 'visible', timeout: 10000 })
+
     return this.page.evaluate(async (endpoint) => {
       const form = document.querySelector('#main-content form')
       if (!form) {
