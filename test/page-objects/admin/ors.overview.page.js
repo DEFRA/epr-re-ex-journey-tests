@@ -2,32 +2,19 @@ import { AdminPage } from 'page-objects/admin/page'
 
 class ORSOverviewPage extends AdminPage {
   async getORSTableData() {
-    const rows = this.page.locator('table.govuk-table tbody tr')
-    const count = await rows.count()
-    const data = []
-
-    for (let i = 0; i < count; i++) {
-      const row = rows.nth(i)
-      data.push({
-        orsId: await row.locator('td:nth-child(1)').innerText(),
-        packagingWasteCategory: await row
-          .locator('td:nth-child(2)')
-          .innerText(),
-        destinationCountry: await row.locator('td:nth-child(3)').innerText(),
-        overseasReprocessorName: await row
-          .locator('td:nth-child(4)')
-          .innerText(),
-        addressLine1: await row.locator('td:nth-child(5)').innerText(),
-        addressLine2: await row.locator('td:nth-child(6)').innerText(),
-        cityOrTown: await row.locator('td:nth-child(7)').innerText(),
-        stateProvinceOrRegion: await row.locator('td:nth-child(8)').innerText(),
-        postcode: await row.locator('td:nth-child(9)').innerText(),
-        coordinates: await row.locator('td:nth-child(10)').innerText(),
-        validFrom: await row.locator('td:nth-child(11)').innerText()
-      })
-    }
-
-    return data
+    return this.readGovukTableRows('table.govuk-table', {
+      orsId: 1,
+      packagingWasteCategory: 2,
+      destinationCountry: 3,
+      overseasReprocessorName: 4,
+      addressLine1: 5,
+      addressLine2: 6,
+      cityOrTown: 7,
+      stateProvinceOrRegion: 8,
+      postcode: 9,
+      coordinates: 10,
+      validFrom: 11
+    })
   }
 
   async clickOnBreadcrumbLink(position) {

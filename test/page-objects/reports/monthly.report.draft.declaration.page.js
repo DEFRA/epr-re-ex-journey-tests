@@ -1,5 +1,6 @@
 import { Page } from 'page-objects/page'
-import { checkDoubleClickPrevented } from '../../support/double-click.js'
+
+const SUBMIT_SELECTOR = '#main-content button[type=submit]'
 
 class MonthlyReportDraftDeclarationPage extends Page {
   async statusTag() {
@@ -10,17 +11,18 @@ class MonthlyReportDraftDeclarationPage extends Page {
     await this.page.locator('#submissionDeclaredBy').fill(name)
   }
 
+  async continue() {
+    await this.submit(SUBMIT_SELECTOR)
+  }
+
   async confirmAndSubmit(name = 'Test User') {
     await this.enterFullName(name)
-    await this.page.locator('#main-content button[type=submit]').click()
+    await this.continue()
   }
 
   async submitAndCheckDoubleClickPrevented(name = 'Test User') {
     await this.enterFullName(name)
-    await checkDoubleClickPrevented(
-      this.page,
-      '#main-content button[type=submit]'
-    )
+    await super.submitAndCheckDoubleClickPrevented(SUBMIT_SELECTOR)
   }
 
   async deleteReport() {

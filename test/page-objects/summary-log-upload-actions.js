@@ -1,5 +1,6 @@
 import { Page } from 'page-objects/page'
-import { checkDoubleClickPrevented } from '../support/double-click.js'
+
+const SUBMIT_SELECTOR = '#main-content button[type=submit]'
 
 // Flag-independent upload-page primitives for UploadSummaryLogPage: the upload
 // page itself is unchanged by the flag (only the check page after it differs).
@@ -16,18 +17,16 @@ export class SummaryLogUploadActions extends Page {
   }
 
   async continue() {
-    await this.page.locator('#main-content button[type=submit]').click()
+    await this.submit(SUBMIT_SELECTOR)
   }
 
   async clickOnReturnToHomePage() {
-    await this.page.locator('a', { hasText: 'Return to home' }).click()
+    await this.returnToHomePage()
   }
 
   async confirmAndCheckDoubleClickPrevented() {
-    await checkDoubleClickPrevented(
-      this.page,
-      '#main-content button[type=submit]',
-      { waitForNavigation: false }
-    )
+    await this.submitAndCheckDoubleClickPrevented(SUBMIT_SELECTOR, {
+      waitForNavigation: false
+    })
   }
 }
