@@ -3,6 +3,19 @@ import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 
 /**
+ * Navigates from wherever the page currently is back to the org's Reports
+ * page, via the registration and "Manage reports" link.
+ * @param {import('@playwright/test').Page} page
+ */
+export async function navigateToReports(page) {
+  const dashboardPage = new DashboardPage(page)
+  const wasteRecordsPage = new WasteRecordsPage(page)
+
+  await dashboardPage.selectTableLink(1, 1)
+  await wasteRecordsPage.manageReportsLink()
+}
+
+/**
  * Uploads the given summary log file from the org's registration page, then
  * navigates through to the Reports page.
  * @param {import('@playwright/test').Page} page
@@ -16,6 +29,5 @@ export async function uploadSummaryLogAndNavigateToReports(page, filePath) {
   await dashboardPage.selectTableLink(1, 1)
   await wasteRecordsPage.submitSummaryLogLink()
   await uploadSummaryLogPage.performUploadAndReturnToHomepage(filePath)
-  await dashboardPage.selectTableLink(1, 1)
-  await wasteRecordsPage.manageReportsLink()
+  await navigateToReports(page)
 }

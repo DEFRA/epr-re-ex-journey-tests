@@ -14,7 +14,10 @@ import {
   updateMigratedOrganisation
 } from '../support/apicalls.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
-import { uploadSummaryLogAndNavigateToReports } from '../support/report-navigation.js'
+import {
+  navigateToReports,
+  uploadSummaryLogAndNavigateToReports
+} from '../support/report-navigation.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude
@@ -106,6 +109,11 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       )
       await checkBodyText(page, '404', 10)
       await checkBodyText(page, 'Page not found', 10)
+
+      // The 404 checks above navigate away via raw page.goto — return to the
+      // reports list so the next test in this shared session starts from the
+      // state it expects.
+      await navigateToReports(page)
     })
 
     test('should navigate back correctly through the registered-only reprocessor flow @registeredOnlyReprocessorBackLinks', async () => {

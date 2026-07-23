@@ -23,7 +23,10 @@ import {
   switchToNewTab
 } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
-import { uploadSummaryLogAndNavigateToReports } from '../support/report-navigation.js'
+import {
+  navigateToReports,
+  uploadSummaryLogAndNavigateToReports
+} from '../support/report-navigation.js'
 
 const REG_NUMBER = 'E25SR500030913PA'
 
@@ -109,6 +112,11 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       )
       await checkBodyText(page, '404', 10)
       await checkBodyText(page, 'Page not found', 10)
+
+      // The 404 checks above navigate away via raw page.goto — return to the
+      // reports list so the next test in this shared session starts from the
+      // state it expects.
+      await navigateToReports(page)
     })
 
     test('should navigate back correctly through the registered-only exporter flow @registeredOnlyExporterBackLinks', async () => {
@@ -213,6 +221,9 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
 
       // Clean up — revert to "Ready to submit" via the backend (there's no UI
       // path back from Submitted), then delete so the period is "Due" again.
+      // We're currently on the submitted-confirmation page (via goBack above),
+      // not the reports list, so navigate there via its own link rather than
+      // reloading in place.
       await unsubmitReport(
         setupResponse.organisationDetails.refNo,
         setupResponse.migrationResponse.registrationIds[0],
@@ -221,7 +232,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
         1,
         1
       )
-      await page.reload()
+      await reportSubmittedPage.returnToReportsLink()
       await reportsPage.selectActiveActionLink(1)
       await monthlyReportDraftDeclarationPage.deleteReport()
       await confirmDeleteReportPage.confirmDeletion()
