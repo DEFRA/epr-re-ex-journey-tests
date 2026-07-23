@@ -6,17 +6,16 @@ import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
 import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
 import { PRNIssuedPage } from 'page-objects/prn.issued.page.js'
 import { PRNViewPage } from 'page-objects/prn.view.page.js'
+import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
   externalAPICancelPrn,
-  updateMigratedOrganisation,
-  uploadAndSubmitSummaryLog
+  updateMigratedOrganisation
 } from '../support/apicalls.js'
 import { checkBodyText } from '../support/checks.js'
-import { defraIdStub } from '../support/defra-id-stub.js'
 import {
   secondTradingName as newTradingName,
   thirdTradingName as updatedTradingName,
@@ -63,7 +62,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
 
     await seedOverseasSites(organisationDetails.refNo)
 
-    const user = await createLinkAndLogin(
+    await createLinkAndLogin(
       currentPage,
       organisationDetails.refNo,
       migrationResponse.email
@@ -73,13 +72,13 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     // Wood
     const expectedWasteBalance = '1,325.09'
 
+    await dashboardPage.selectTableLink(1, 1)
+
+    await wasteRecordsPage.submitSummaryLogLink()
+
     const filePath = `resources/sanity/exporter_${accNumber}_${regNumber}.xlsx`
-    await uploadAndSubmitSummaryLog(
-      organisationDetails.refNo,
-      migrationResponse.registrationIds[0],
-      defraIdStub.authHeader(user.userId),
-      filePath
-    )
+    const uploadSummaryLogPage = new UploadSummaryLogPage(currentPage)
+    await uploadSummaryLogPage.performUploadAndReturnToHomepage(filePath)
 
     await dashboardPage.selectTableLink(1, 1)
 
