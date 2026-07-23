@@ -35,11 +35,23 @@ class DefraIdStubPage {
     // once the chain has settled. A caller that navigates next can otherwise
     // race the chain and hit the app as unauthenticated, which redirects to
     // /logged-out and leaves the test staring at the wrong page.
+    //
+    // The URL settling isn't quite the full story though: epr-frontend fires
+    // a second, asynchronous auth/callback?...&refresh=1 request alongside
+    // the main navigation (visible in the network trace as two near-
+    // simultaneous requests for the same one-time code). If a caller's next
+    // action fires the instant the URL changes, it can race ahead of that
+    // still-in-flight background request and get treated as unauthenticated
+    // (redirected to /logged-out) before the session is actually finalised -
+    // reproduced consistently for a caller that does an immediate page.goto
+    // right after login. Waiting for network idle too gives that background
+    // call a chance to settle before control returns.
     const urlBeforeClick = this.page.url()
     await link.click()
     await this.page.waitForURL((url) => url.toString() !== urlBeforeClick, {
       timeout: 15000
     })
+    await this.page.waitForLoadState('networkidle', { timeout: 15000 })
   }
 }
 
