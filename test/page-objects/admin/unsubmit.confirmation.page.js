@@ -21,10 +21,7 @@ class UnsubmitConfirmationPage extends AdminPage {
 
   async returnToRegistrationOverview() {
     await this.page
-      .getByRole('link', {
-        name: 'Back to registration overview',
-        exact: true
-      })
+      .locator('a', { hasText: /^Back to registration overview$/ })
       .click()
   }
 }

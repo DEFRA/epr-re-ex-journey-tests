@@ -116,7 +116,7 @@ test.describe('Deleting a ready to submit report', () => {
 
     // Confirmation page — go back to reports list
     await checkBodyText(page, 'report created', 30)
-    await page.getByRole('link', { name: 'Go to reports' }).click()
+    await page.locator('a', { hasText: 'Go to reports' }).click()
 
     // Report should now be ready to submit — click into it
     const statusBefore = await reportsPage.getActiveStatusBadge(1)

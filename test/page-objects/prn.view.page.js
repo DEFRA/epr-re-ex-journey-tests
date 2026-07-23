@@ -7,11 +7,11 @@ class PRNViewPage extends Page {
   }
 
   async returnToPRNList() {
-    await this.page.getByRole('link', { name: 'Return to PRN list' }).click()
+    await this.page.locator('a', { hasText: 'Return to PRN list' }).click()
   }
 
   async returnToPERNList() {
-    await this.page.getByRole('link', { name: 'Return to PERN list' }).click()
+    await this.page.locator('a', { hasText: 'Return to PERN list' }).click()
   }
 
   async cancelPRNButton() {

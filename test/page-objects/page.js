@@ -12,7 +12,7 @@ class Page {
   }
 
   async selectBackLink() {
-    await this.page.getByRole('link', { name: 'Back' }).click()
+    await this.page.locator('a', { hasText: 'Back' }).click()
   }
 
   async messageText() {
@@ -55,7 +55,7 @@ class Page {
   }
 
   async signOut() {
-    await this.page.getByRole('link', { name: 'Sign out' }).click()
+    await this.page.locator('a', { hasText: 'Sign out' }).click()
   }
 }
 

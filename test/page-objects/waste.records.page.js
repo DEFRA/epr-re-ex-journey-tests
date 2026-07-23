@@ -6,29 +6,27 @@ class WasteRecordsPage extends Page {
   }
 
   async submitSummaryLogLink() {
-    await this.page
-      .getByRole('link', { name: 'Upload your summary log' })
-      .click()
+    await this.page.locator('a', { hasText: 'Upload your summary log' }).click()
   }
 
   async createNewPRNLink() {
-    await this.page.getByRole('link', { name: 'Create new PRN' }).click()
+    await this.page.locator('a', { hasText: 'Create new PRN' }).click()
   }
 
   async managePRNsLink() {
-    await this.page.getByRole('link', { name: 'Manage PRNs' }).click()
+    await this.page.locator('a', { hasText: 'Manage PRNs' }).click()
   }
 
   async managePERNsLink() {
-    await this.page.getByRole('link', { name: 'Manage PERNs' }).click()
+    await this.page.locator('a', { hasText: 'Manage PERNs' }).click()
   }
 
   async createNewPERNLink() {
-    await this.page.getByRole('link', { name: 'Create new PERN' }).click()
+    await this.page.locator('a', { hasText: 'Create new PERN' }).click()
   }
 
   async manageReportsLink() {
-    await this.page.getByRole('link', { name: 'Manage reports' }).click()
+    await this.page.locator('a', { hasText: 'Manage reports' }).click()
   }
 }
 

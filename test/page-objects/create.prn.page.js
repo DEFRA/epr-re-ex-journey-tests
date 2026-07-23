@@ -33,7 +33,7 @@ class CreatePRNPage {
   }
 
   async enterTonnage(tonnes) {
-    await this.page.locator('#tonnage').fill(tonnes)
+    await this.page.locator('#tonnage').fill(String(tonnes))
   }
 
   async enterValue(producer) {

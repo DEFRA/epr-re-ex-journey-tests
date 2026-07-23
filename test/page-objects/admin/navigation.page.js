@@ -4,7 +4,10 @@ class Navigation {
   }
 
   async clickOnLink(linkText) {
-    await this.page.getByRole('link', { name: linkText, exact: true }).click()
+    const escaped = linkText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    await this.page
+      .locator('#navigation li a', { hasText: new RegExp(`^${escaped}$`) })
+      .click()
   }
 }
 

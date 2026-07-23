@@ -4,11 +4,11 @@ class ConfirmationPage {
   }
 
   async goToReports() {
-    await this.page.getByRole('link', { name: 'Go to reports' }).click()
+    await this.page.locator('a', { hasText: 'Go to reports' }).click()
   }
 
   async viewDraftReport() {
-    await this.page.getByRole('link', { name: 'View draft report' }).click()
+    await this.page.locator('a', { hasText: 'View draft report' }).click()
   }
 }
 

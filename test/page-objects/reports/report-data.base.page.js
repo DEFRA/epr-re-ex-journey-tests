@@ -10,7 +10,7 @@ export class ReportDataBasePage extends Page {
   }
 
   async deleteReportLink() {
-    await this.page.getByRole('link', { name: 'Delete report' }).click()
+    await this.page.locator('a', { hasText: 'Delete report' }).click()
   }
 
   async enterRevenue(value) {

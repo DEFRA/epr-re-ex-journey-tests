@@ -8,15 +8,15 @@ class PRNCancelledPage extends Page {
   }
 
   async returnToHomePage() {
-    await this.page.getByRole('link', { name: 'Return to home' }).click()
+    await this.page.locator('a', { hasText: 'Return to home' }).click()
   }
 
   async pernsPage() {
-    await this.page.getByRole('link', { name: 'PERNs page' }).click()
+    await this.page.locator('a', { hasText: 'PERNs page' }).click()
   }
 
   async prnsPage() {
-    await this.page.getByRole('link', { name: 'PRNs page' }).click()
+    await this.page.locator('a', { hasText: 'PRNs page' }).click()
   }
 }
 

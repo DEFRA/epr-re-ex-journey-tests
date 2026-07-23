@@ -42,7 +42,7 @@ class HomePage extends Page {
    * @param {string} text - The link text
    */
   async getNavigationLinkHref(text) {
-    return this.page.getByRole('link', { name: text }).getAttribute('href')
+    return this.page.locator('a', { hasText: text }).getAttribute('href')
   }
 
   // Phase Banner selector
@@ -76,7 +76,7 @@ class HomePage extends Page {
   }
 
   async homeLink() {
-    await this.page.getByRole('link', { name: 'Home' }).click()
+    await this.page.locator('a', { hasText: 'Home' }).click()
   }
 }
 

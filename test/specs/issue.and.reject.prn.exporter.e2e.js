@@ -30,15 +30,16 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
   test('Should be able to create, issue and reject PRNs for Wood (Exporter) @issueprnexp @smoketest', async ({
     page
   }) => {
-    const homePage = new HomePage(page)
-    const confirmCancelPrnPage = new ConfirmCancelPRNPage(page)
-    const createPRNPage = new CreatePRNPage(page)
-    const prnCreatedPage = new PRNCreatedPage(page)
-    const prnDashboardPage = new PRNDashboardPage(page)
-    const prnIssuedPage = new PRNIssuedPage(page)
-    const prnViewPage = new PRNViewPage(page)
-    const dashboardPage = new DashboardPage(page)
-    const wasteRecordsPage = new WasteRecordsPage(page)
+    let currentPage = page
+    let homePage = new HomePage(currentPage)
+    let confirmCancelPrnPage = new ConfirmCancelPRNPage(currentPage)
+    const createPRNPage = new CreatePRNPage(currentPage)
+    let prnCreatedPage = new PRNCreatedPage(currentPage)
+    let prnDashboardPage = new PRNDashboardPage(currentPage)
+    let prnIssuedPage = new PRNIssuedPage(currentPage)
+    let prnViewPage = new PRNViewPage(currentPage)
+    let dashboardPage = new DashboardPage(currentPage)
+    let wasteRecordsPage = new WasteRecordsPage(currentPage)
 
     const regNumber = 'E25SR500020912WO'
     const accNumber = 'E-ACC12245WO'
@@ -63,7 +64,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     await seedOverseasSites(organisationDetails.refNo)
 
     const user = await createLinkAndLogin(
-      page,
+      currentPage,
       organisationDetails.refNo,
       migrationResponse.email
     )
@@ -90,7 +91,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       `Your waste balance available for creating PERNs is ${originalWasteBalance} tonnes.`
     )
 
-    const prnHelper = new PrnHelper(page, true)
+    let prnHelper = new PrnHelper(currentPage, true)
 
     const pernDetails = createPrnDetails({
       materialDesc,
@@ -101,12 +102,12 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     await prnHelper.createAndCheckPrnDetails(pernDetails)
 
     await checkBodyText(
-      page,
+      currentPage,
       'Your available waste balance has been updated.',
       10
     )
     await checkBodyText(
-      page,
+      currentPage,
       'You can now issue this PERN through your PERNs page.',
       10
     )
@@ -139,7 +140,14 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     await prnHelper.issuePrnAndUpdateDetails(pernDetails, 'EX')
 
     await prnIssuedPage.viewPdfButton()
-    await switchToNewTabAndClosePreviousTab(page)
+    currentPage = await switchToNewTabAndClosePreviousTab(currentPage)
+    prnHelper = new PrnHelper(currentPage, true)
+    prnViewPage = new PRNViewPage(currentPage)
+    prnDashboardPage = new PRNDashboardPage(currentPage)
+    wasteRecordsPage = new WasteRecordsPage(currentPage)
+    prnCreatedPage = new PRNCreatedPage(currentPage)
+    dashboardPage = new DashboardPage(currentPage)
+    prnIssuedPage = new PRNIssuedPage(currentPage)
 
     await prnHelper.checkViewPrnDetails(pernDetails)
 
@@ -198,7 +206,15 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
 
     // Check first Issued PRN details
     await prnDashboardPage.selectIssuedLink(1)
-    await switchToNewTabAndClosePreviousTab(page)
+    currentPage = await switchToNewTabAndClosePreviousTab(currentPage)
+    prnHelper = new PrnHelper(currentPage, true)
+    prnViewPage = new PRNViewPage(currentPage)
+    prnDashboardPage = new PRNDashboardPage(currentPage)
+    wasteRecordsPage = new WasteRecordsPage(currentPage)
+    prnCreatedPage = new PRNCreatedPage(currentPage)
+    dashboardPage = new DashboardPage(currentPage)
+    prnIssuedPage = new PRNIssuedPage(currentPage)
+    confirmCancelPrnPage = new ConfirmCancelPRNPage(currentPage)
 
     // Check Issued PERN details
     await prnHelper.checkViewPrnDetails(pernDetails)
@@ -266,7 +282,13 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     await prnDashboardPage.selectCancelledTab()
     await prnHelper.checkCancelledRows(pernDetails, 1)
     await prnDashboardPage.selectCancelledLink(1)
-    await switchToNewTabAndClosePreviousTab(page)
+    currentPage = await switchToNewTabAndClosePreviousTab(currentPage)
+    prnHelper = new PrnHelper(currentPage, true)
+    prnViewPage = new PRNViewPage(currentPage)
+    prnDashboardPage = new PRNDashboardPage(currentPage)
+    wasteRecordsPage = new WasteRecordsPage(currentPage)
+    dashboardPage = new DashboardPage(currentPage)
+    homePage = new HomePage(currentPage)
 
     await prnHelper.checkViewPrnDetails(pernDetails)
     await prnViewPage.returnToPERNList()
@@ -281,6 +303,6 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     expect(availableWasteBalance).toBe(expectedUpdatedWasteBalance)
 
     await homePage.signOut()
-    await expect(page).toHaveTitle(/Signed out/)
+    await expect(currentPage).toHaveTitle(/Signed out/)
   })
 })

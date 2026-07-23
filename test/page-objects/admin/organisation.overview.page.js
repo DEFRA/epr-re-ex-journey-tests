@@ -37,13 +37,13 @@ class OrganisationOverviewPage extends AdminPage {
   async isUnlinkButtonDisplayed() {
     return (
       (await this.page
-        .getByRole('link', { name: 'Unlink organisation' })
+        .locator('a', { hasText: 'Unlink organisation' })
         .count()) > 0
     )
   }
 
   async clickUnlink() {
-    await this.page.getByRole('link', { name: 'Unlink organisation' }).click()
+    await this.page.locator('a', { hasText: 'Unlink organisation' }).click()
   }
 
   async getNoLinkedOrganisationText() {

@@ -2,15 +2,15 @@ import { Page } from 'page-objects/page'
 
 class PRNCreatedPage extends Page {
   async pernsPageLink() {
-    await this.page.getByRole('link', { name: 'PERNs page' }).click()
+    await this.page.locator('a', { hasText: 'PERNs page' }).click()
   }
 
   async prnsPageLink() {
-    await this.page.getByRole('link', { name: 'PRNs page' }).click()
+    await this.page.locator('a', { hasText: 'PRNs page' }).click()
   }
 
   async returnToRegistrationPage() {
-    await this.page.getByRole('link', { name: 'Return to home' }).click()
+    await this.page.locator('a', { hasText: 'Return to home' }).click()
   }
 }
 

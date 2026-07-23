@@ -16,7 +16,7 @@ class UnlinkOrganisationConfirmationPage extends AdminPage {
   }
 
   async cancel() {
-    await this.page.getByRole('link', { name: 'Cancel' }).click()
+    await this.page.locator('a', { hasText: 'Cancel' }).click()
   }
 }
 

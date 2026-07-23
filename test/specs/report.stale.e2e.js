@@ -78,7 +78,7 @@ async function createDraftReportFromCurrentReportsPage(page) {
   await reportSupportingInformationPage.continue()
   await reportCheckAnswersPage.createReport()
   await checkBodyText(page, 'report created', 30)
-  await page.getByRole('link', { name: 'Go to reports' }).click()
+  await page.locator('a', { hasText: 'Go to reports' }).click()
 }
 
 async function setupAndCreateReport(

@@ -16,7 +16,7 @@ class CheckBeforeCreatingPRNPage extends Page {
 
   async discardAndStartAgain() {
     await this.page
-      .getByRole('link', { name: 'Discard and start again', exact: true })
+      .locator('a', { hasText: /^Discard and start again$/ })
       .click()
   }
 }

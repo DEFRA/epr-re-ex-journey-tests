@@ -44,7 +44,7 @@ class ReportDetailPage extends Page {
 
   async cancelAndReturnToReports() {
     await this.page
-      .getByRole('link', { name: 'Cancel and return to reports', exact: true })
+      .locator('a', { hasText: /^Cancel and return to reports$/ })
       .click()
   }
 

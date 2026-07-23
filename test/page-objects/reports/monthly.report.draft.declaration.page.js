@@ -24,7 +24,7 @@ class MonthlyReportDraftDeclarationPage extends Page {
   }
 
   async deleteReport() {
-    await this.page.getByRole('link', { name: 'Delete report' }).click()
+    await this.page.locator('a', { hasText: 'Delete report' }).click()
   }
 }
 

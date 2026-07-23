@@ -47,10 +47,10 @@ test.describe('Cancelled accreditation @cancelledaccreditation', () => {
     await dashboardPage.selectTableLink(1, 1)
 
     expect(
-      (await page.getByRole('link', { name: 'Create new PERN' }).count()) > 0
+      (await page.locator('a', { hasText: 'Create new PERN' }).count()) > 0
     ).toBe(true)
     expect(
-      (await page.getByRole('link', { name: 'Manage PERNs' }).count()) > 0
+      (await page.locator('a', { hasText: 'Manage PERNs' }).count()) > 0
     ).toBe(true)
 
     // now we cancel the accreditation, PERN links should be gone
@@ -67,10 +67,10 @@ test.describe('Cancelled accreditation @cancelledaccreditation', () => {
     await dashboardPage.selectTableLink(1, 1)
 
     expect(
-      (await page.getByRole('link', { name: 'Create new PERN' }).count()) > 0
+      (await page.locator('a', { hasText: 'Create new PERN' }).count()) > 0
     ).toBe(false)
     expect(
-      (await page.getByRole('link', { name: 'Manage PERNs' }).count()) > 0
+      (await page.locator('a', { hasText: 'Manage PERNs' }).count()) > 0
     ).toBe(false)
 
     // Try to access pern directly -- should get a 404

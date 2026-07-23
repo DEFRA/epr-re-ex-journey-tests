@@ -20,7 +20,7 @@ export class SummaryLogUploadActions extends Page {
   }
 
   async clickOnReturnToHomePage() {
-    await this.page.getByRole('link', { name: 'Return to home' }).click()
+    await this.page.locator('a', { hasText: 'Return to home' }).click()
   }
 
   async confirmAndCheckDoubleClickPrevented() {

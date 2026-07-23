@@ -27,7 +27,7 @@ class MakeChangesPage extends Page {
   }
 
   async cancel() {
-    await this.page.getByRole('link', { name: 'Cancel', exact: true }).click()
+    await this.page.locator('a', { hasText: /^Cancel$/ }).click()
   }
 }
 

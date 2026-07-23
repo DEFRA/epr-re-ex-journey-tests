@@ -12,13 +12,11 @@ class ReportSubmittedPage {
   }
 
   async viewReportLink() {
-    await this.page.getByRole('link', { name: 'View report' }).click()
+    await this.page.locator('a', { hasText: 'View report' }).click()
   }
 
   async returnToReportsLink() {
-    await this.page
-      .getByRole('link', { name: 'Return to your reports' })
-      .click()
+    await this.page.locator('a', { hasText: 'Return to your reports' }).click()
   }
 }
 
