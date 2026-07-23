@@ -32,6 +32,27 @@ import { ReportSubmittedPage } from 'page-objects/reports/report.submitted.page.
 
 const REG_NUMBER = 'R25SR5111050912PA'
 
+async function startAndSubmitReport(page) {
+  const reportsPage = new ReportsPage(page)
+  const reportDetailPage = new ReportDetailPage(page)
+  const tonnesRecycledPage = new TonnesRecycledPage(page)
+  const tonnesNotRecycledPage = new TonnesNotRecycledPage(page)
+  const reportSupportingInformationPage = new ReportSupportingInformationPage(
+    page
+  )
+  const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
+
+  await reportsPage.selectActiveActionLink(1)
+  await reportDetailPage.useThisData()
+  await tonnesRecycledPage.enterTonnage('12.50')
+  await tonnesRecycledPage.continue()
+  await tonnesNotRecycledPage.enterTonnage('7.50')
+  await tonnesNotRecycledPage.continue()
+  await reportSupportingInformationPage.continue()
+  await reportCheckAnswersPage.createReport()
+  await checkBodyText(page, 'report created', 30)
+}
+
 async function uploadAndNavigateToReports(page) {
   await uploadSummaryLogAndNavigateToReports(
     page,
@@ -70,12 +91,17 @@ async function setupRegisteredOnlyReprocessor(page) {
 }
 
 test.describe('Registered-only reprocessor report flow @registeredOnlyReprocessor', () => {
-  // The 4 tests below share one continuous login session/report, the same
+  // These 3 tests share one continuous login session/report, the same
   // pattern used in accredited.reprocessor.report.e2e.js - serial mode + a
   // manually-created page shares setup instead of re-paying org creation,
-  // login, and summary log upload 4 times. Tests that create a report clean
-  // it back up to "Due" so the next test starts fresh; the full-flow test
-  // runs last since it ends in a submitted/unsubmitted state.
+  // login, and summary log upload 3 times. BackLinks cleans its report back
+  // to "Due" so FullFlow (last, since it ends in a submitted/unsubmitted
+  // state) starts fresh.
+  //
+  // CheckAnswersGuard (below, outside this group) leaves a Ready-to-submit
+  // report with no proven-safe way back to "Due" for this registered-only
+  // (no-accreditation) org shape, so it keeps its own independent setup
+  // rather than risk a flaky shared sequence.
   test.describe.serial('registered-only reprocessor with upload', () => {
     /** @type {import('@playwright/test').Page} */
     let page
@@ -164,41 +190,6 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
 
       // Clean up — leave the period "Due" for the next test
       await tonnesNotRecycledPage.deleteReportLink()
-      await confirmDeleteReportPage.confirmDeletion()
-    })
-
-    test('should redirect to reports list when navigating back to check-answers after report is created @registeredOnlyReprocessorCheckAnswersGuard', async () => {
-      const reportsPage = new ReportsPage(page)
-      const reportDetailPage = new ReportDetailPage(page)
-      const tonnesRecycledPage = new TonnesRecycledPage(page)
-      const tonnesNotRecycledPage = new TonnesNotRecycledPage(page)
-      const reportSupportingInformationPage =
-        new ReportSupportingInformationPage(page)
-      const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
-      const monthlyReportDraftDeclarationPage =
-        new MonthlyReportDraftDeclarationPage(page)
-      const confirmDeleteReportPage = new ConfirmDeleteReportPage(page)
-
-      await reportsPage.selectActiveActionLink(1)
-      await reportDetailPage.useThisData()
-      await tonnesRecycledPage.enterTonnage('12.50')
-      await tonnesRecycledPage.continue()
-      await tonnesNotRecycledPage.enterTonnage('7.50')
-      await tonnesNotRecycledPage.continue()
-      await reportSupportingInformationPage.continue()
-      await reportCheckAnswersPage.createReport()
-      await checkBodyText(page, 'report created', 30)
-
-      // Navigate back to check-answers — the guard should redirect to the reports list
-      await page.goBack()
-
-      const reportsHeading = await reportsPage.headingText()
-      expect(reportsHeading).toContain('Reports')
-
-      // Clean up — the report is "Ready to submit"; delete it via the
-      // submit/declaration page so the next test starts from "Due" again.
-      await reportsPage.selectActiveActionLink(1)
-      await monthlyReportDraftDeclarationPage.deleteReport()
       await confirmDeleteReportPage.confirmDeletion()
     })
 
@@ -344,5 +335,25 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       expect(unsubmittedBadge).toBe('Ready to submit')
       expect(unsubmittedColour).toBe('blue')
     })
+  })
+
+  test('should redirect to reports list when navigating back to check-answers after report is created @registeredOnlyReprocessorCheckAnswersGuard', async ({
+    page
+  }) => {
+    const homePage = new HomePage(page)
+    const reportsPage = new ReportsPage(page)
+
+    await setupRegisteredOnlyReprocessor(page)
+    await uploadAndNavigateToReports(page)
+    await startAndSubmitReport(page)
+
+    // Navigate back to check-answers — the guard should redirect to the reports list
+    await page.goBack()
+
+    const reportsHeading = await reportsPage.headingText()
+    expect(reportsHeading).toContain('Reports')
+
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 })
