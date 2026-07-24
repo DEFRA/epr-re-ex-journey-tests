@@ -4,7 +4,7 @@ import {
   epic,
   feature,
   story,
-  ContentType
+  descriptionHtml
 } from 'allure-js-commons'
 import AxeBuilder from '@axe-core/playwright'
 
@@ -113,17 +113,14 @@ export async function scanPageForAccessibilityViolations(page, pageName) {
   return results.violations.map((violation) => ({ ...violation, pageName }))
 }
 
-// Attaches one table covering every violation found across the whole tour
-// (not just Serious/Critical), sorted worst-first, so there's a single
-// glanceable artifact instead of having to open each page's own step to
-// build up the full picture.
-async function attachAccessibilitySummary(violations) {
+// Sets the test's description to one table covering every violation found
+// across the whole tour (not just Serious/Critical), sorted worst-first.
+// Allure renders the description at the top of the test page, above the
+// step list, so this is visible immediately on opening the test rather
+// than requiring a scroll past every page's own scan step to find it.
+async function setAccessibilitySummaryDescription(violations) {
   if (violations.length === 0) {
-    await attachment(
-      'Accessibility summary',
-      '<p>No accessibility violations found.</p>',
-      ContentType.HTML
-    )
+    await descriptionHtml('<p>No accessibility violations found.</p>')
     return
   }
 
@@ -148,28 +145,28 @@ async function attachAccessibilitySummary(violations) {
   const pageCount = new Set(violations.map((violation) => violation.pageName))
     .size
 
-  await attachment(
-    `Accessibility summary (${violations.length} violation(s) across ${pageCount} page(s))`,
-    `<table>
+  await descriptionHtml(
+    `<p><b>${violations.length}</b> violation(s) across <b>${pageCount}</b> page(s):</p>
+    <table>
       <thead>
         <tr><th>Page</th><th>Impact</th><th>Rule</th><th>Description</th><th>Help</th></tr>
       </thead>
       <tbody>${rows}</tbody>
-    </table>`,
-    ContentType.HTML
+    </table>`
   )
 }
 
 /**
- * Attaches a consolidated summary of every violation found, then fails with
- * a single error listing every Serious/Critical violation across all pages
- * scanned, rather than stopping at the first one - so a multi-page tour
- * surfaces every offending page in one run instead of requiring a
- * fix-rerun cycle per page.
+ * Sets a consolidated summary of every violation found as the test's
+ * description, then fails with a single error listing every
+ * Serious/Critical violation across all pages scanned, rather than
+ * stopping at the first one - so a multi-page tour surfaces every
+ * offending page in one run instead of requiring a fix-rerun cycle per
+ * page.
  * @param {Array<{pageName: string, id: string, impact: string, description: string, helpUrl: string}>} violations - accumulated output of scanPageForAccessibilityViolations
  */
 export async function assertNoSeriousOrCriticalViolations(violations) {
-  await attachAccessibilitySummary(violations)
+  await setAccessibilitySummaryDescription(violations)
 
   const severe = violations.filter(
     (violation) =>
