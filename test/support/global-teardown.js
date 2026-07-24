@@ -1,4 +1,5 @@
 import allure from 'allure-commandline'
+import { copyAllureCategories } from './allure-report.js'
 import { defraIdStub } from './defra-id-stub.js'
 
 const oneMinute = 60 * 1000
@@ -15,6 +16,8 @@ export default async function globalTeardown() {
   if (!isLocalDev) {
     return
   }
+
+  await copyAllureCategories()
 
   /** @type {Promise<void>} */
   const reportGenerated = new Promise((resolve, reject) => {
