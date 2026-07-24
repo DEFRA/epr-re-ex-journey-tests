@@ -130,30 +130,46 @@ async function setAccessibilitySummaryDescription(violations) {
       (IMPACT_RANK[b.impact] ?? IMPACT_RANK.minor + 1)
   )
 
-  const rows = sorted
-    .map(
-      (violation) => `<tr>
-        <td>${escapeHtml(violation.pageName)}</td>
-        <td>${escapeHtml(violation.impact ?? 'unknown')}</td>
-        <td>${escapeHtml(violation.id)}</td>
-        <td>${escapeHtml(violation.description)}</td>
-        <td><a href="${violation.helpUrl}" target="_blank">Help</a></td>
-      </tr>`
-    )
-    .join('')
-
   const pageCount = new Set(violations.map((violation) => violation.pageName))
     .size
 
   await descriptionHtml(
     `<p><b>${violations.length}</b> violation(s) across <b>${pageCount}</b> page(s):</p>
-    <table>
-      <thead>
-        <tr><th>Page</th><th>Impact</th><th>Rule</th><th>Description</th><th>Help</th></tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>`
+    <pre>${buildViolationsTable(sorted)}</pre>`
   )
+}
+
+// Allure sanitises descriptionHtml through Jsoup's Safelist.relaxed(),
+// which strips style/class/border attributes entirely (and even <a
+// target>) - there's no way to get a bordered <table> past it. A
+// monospace text table inside <pre> (both allowed, no attributes needed)
+// sidesteps that limitation and reads as a bordered table regardless.
+function buildViolationsTable(violations) {
+  const headers = ['Page', 'Impact', 'Rule', 'Description', 'Help']
+  const rows = violations.map((violation) => [
+    escapeHtml(violation.pageName),
+    escapeHtml(violation.impact ?? 'unknown'),
+    escapeHtml(violation.id),
+    escapeHtml(violation.description),
+    `<a href="${violation.helpUrl}">Help</a>`
+  ])
+
+  // The Help column's visible text is always "Help" regardless of the link
+  // markup around it, so its width is fixed rather than measured.
+  const widths = headers.map((header, col) =>
+    col === 4
+      ? 4
+      : Math.max(header.length, ...rows.map((row) => row[col].length))
+  )
+
+  const formatRow = (cells) =>
+    cells
+      .map((value, col) => (col === 4 ? value : value.padEnd(widths[col])))
+      .join(' | ')
+
+  const separator = widths.map((width) => '-'.repeat(width)).join('-+-')
+
+  return [formatRow(headers), separator, ...rows.map(formatRow)].join('\n')
 }
 
 /**
