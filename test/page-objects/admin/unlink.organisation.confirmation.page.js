@@ -17,6 +17,10 @@ class UnlinkOrganisationConfirmationPage extends AdminPage {
 
   async cancel() {
     await this.page.locator('a', { hasText: 'Cancel' }).click()
+    // Wait for the navigation back to the organisation overview: callers
+    // query that page immediately with non-waiting locators (e.g. count()),
+    // which otherwise race the page load and flake.
+    await this.page.waitForURL(/\/organisations\/[^/]+\/overview$/)
   }
 }
 
