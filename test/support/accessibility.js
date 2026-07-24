@@ -81,7 +81,7 @@ export async function scanPageForAccessibilityViolations(page, pageName) {
  * across all pages scanned, rather than stopping at the first one - so a
  * multi-page tour surfaces every offending page in one run instead of
  * requiring a fix-rerun cycle per page.
- * @param {Array<object>} violations - accumulated output of scanPageForAccessibilityViolations
+ * @param {Array<{pageName: string, id: string, impact: string, description: string}>} violations - accumulated output of scanPageForAccessibilityViolations
  */
 export function assertNoSeriousOrCriticalViolations(violations) {
   const severe = violations.filter(
