@@ -1,5 +1,17 @@
-import { step, attachment } from 'allure-js-commons'
+import {
+  step,
+  attachment,
+  epic,
+  feature,
+  story,
+  ContentType
+} from 'allure-js-commons'
 import AxeBuilder from '@axe-core/playwright'
+
+// Impact isn't always present on a violation (axe-core's `impact` field is
+// optional), so anything unrecognised sorts after the known levels rather
+// than throwing the summary table ordering off.
+const IMPACT_RANK = { critical: 0, serious: 1, moderate: 2, minor: 3 }
 
 function convertHTML(str) {
   const symbols = {
@@ -16,6 +28,31 @@ function convertHTML(str) {
     }
   }
   return str
+}
+
+// Unlike convertHTML above (which only replaces the first special character
+// it finds - fine for the element-markup preview it's used for), this needs
+// to escape every occurrence so free-text table cells can't break the
+// summary table's markup.
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;')
+}
+
+/**
+ * Tags the current test with an Accessibility epic/feature so Allure's
+ * Behaviors tab groups every accessibility scan into its own section,
+ * separate from the rest of the suite.
+ * @param {string} storyName - what this test's tour covers, e.g. "Exporter dashboard, upload and report flow"
+ */
+export async function tagAccessibilityTest(storyName) {
+  await epic('Accessibility')
+  await feature('WCAG Accessibility scans')
+  await story(storyName)
 }
 
 export async function logViolationsToAllure(violations) {
@@ -76,14 +113,64 @@ export async function scanPageForAccessibilityViolations(page, pageName) {
   return results.violations.map((violation) => ({ ...violation, pageName }))
 }
 
+// Attaches one table covering every violation found across the whole tour
+// (not just Serious/Critical), sorted worst-first, so there's a single
+// glanceable artifact instead of having to open each page's own step to
+// build up the full picture.
+async function attachAccessibilitySummary(violations) {
+  if (violations.length === 0) {
+    await attachment(
+      'Accessibility summary',
+      '<p>No accessibility violations found.</p>',
+      ContentType.HTML
+    )
+    return
+  }
+
+  const sorted = [...violations].sort(
+    (a, b) =>
+      (IMPACT_RANK[a.impact] ?? IMPACT_RANK.minor + 1) -
+      (IMPACT_RANK[b.impact] ?? IMPACT_RANK.minor + 1)
+  )
+
+  const rows = sorted
+    .map(
+      (violation) => `<tr>
+        <td>${escapeHtml(violation.pageName)}</td>
+        <td>${escapeHtml(violation.impact ?? 'unknown')}</td>
+        <td>${escapeHtml(violation.id)}</td>
+        <td>${escapeHtml(violation.description)}</td>
+        <td><a href="${violation.helpUrl}" target="_blank">Help</a></td>
+      </tr>`
+    )
+    .join('')
+
+  const pageCount = new Set(violations.map((violation) => violation.pageName))
+    .size
+
+  await attachment(
+    `Accessibility summary (${violations.length} violation(s) across ${pageCount} page(s))`,
+    `<table>
+      <thead>
+        <tr><th>Page</th><th>Impact</th><th>Rule</th><th>Description</th><th>Help</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`,
+    ContentType.HTML
+  )
+}
+
 /**
- * Fails with a single summary error listing every Serious/Critical violation
- * across all pages scanned, rather than stopping at the first one - so a
- * multi-page tour surfaces every offending page in one run instead of
- * requiring a fix-rerun cycle per page.
- * @param {Array<{pageName: string, id: string, impact: string, description: string}>} violations - accumulated output of scanPageForAccessibilityViolations
+ * Attaches a consolidated summary of every violation found, then fails with
+ * a single error listing every Serious/Critical violation across all pages
+ * scanned, rather than stopping at the first one - so a multi-page tour
+ * surfaces every offending page in one run instead of requiring a
+ * fix-rerun cycle per page.
+ * @param {Array<{pageName: string, id: string, impact: string, description: string, helpUrl: string}>} violations - accumulated output of scanPageForAccessibilityViolations
  */
-export function assertNoSeriousOrCriticalViolations(violations) {
+export async function assertNoSeriousOrCriticalViolations(violations) {
+  await attachAccessibilitySummary(violations)
+
   const severe = violations.filter(
     (violation) =>
       violation.impact === 'critical' || violation.impact === 'serious'

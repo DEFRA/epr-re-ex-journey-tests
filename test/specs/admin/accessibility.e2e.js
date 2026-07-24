@@ -18,7 +18,8 @@ import {
 } from '../../support/apicalls.js'
 import {
   assertNoSeriousOrCriticalViolations,
-  scanPageForAccessibilityViolations
+  scanPageForAccessibilityViolations,
+  tagAccessibilityTest
 } from '../../support/accessibility.js'
 
 test.describe('WCAG Accessibility', () => {
@@ -28,12 +29,14 @@ test.describe('WCAG Accessibility', () => {
     const violations = []
     const loginPage = new AdminLoginPage(page)
 
+    await tagAccessibilityTest('Admin sign-in page')
+
     await loginPage.open()
     violations.push(
       ...(await scanPageForAccessibilityViolations(page, 'Sign in'))
     )
 
-    assertNoSeriousOrCriticalViolations(violations)
+    await assertNoSeriousOrCriticalViolations(violations)
   })
 
   test('Should have no Serious/Critical accessibility violations across the main Admin UI pages @accessibility', async ({
@@ -49,6 +52,8 @@ test.describe('WCAG Accessibility', () => {
     const registrationOverviewPage = new RegistrationOverviewPage(page)
     const orsUploadPage = new OrsUploadPage(page)
     const wasteRecordsExportPage = new WasteRecordsExportPage(page)
+
+    await tagAccessibilityTest('Admin UI main pages')
 
     // Seed one organisation with a submitted report so the organisation
     // overview, registration overview and unsubmit confirmation pages have
@@ -170,6 +175,6 @@ test.describe('WCAG Accessibility', () => {
       ...(await scanPageForAccessibilityViolations(page, 'Home (signed out)'))
     )
 
-    assertNoSeriousOrCriticalViolations(violations)
+    await assertNoSeriousOrCriticalViolations(violations)
   })
 })

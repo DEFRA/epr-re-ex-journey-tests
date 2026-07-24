@@ -33,7 +33,8 @@ import {
 } from '../support/apicalls.js'
 import {
   assertNoSeriousOrCriticalViolations,
-  scanPageForAccessibilityViolations
+  scanPageForAccessibilityViolations,
+  tagAccessibilityTest
 } from '../support/accessibility.js'
 import { checkBodyText } from '../support/checks.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -50,6 +51,8 @@ test.describe('WCAG Accessibility', () => {
     const violations = []
     const homePage = new HomePage(page)
 
+    await tagAccessibilityTest('Public entry pages')
+
     await homePage.open()
     violations.push(
       ...(await scanPageForAccessibilityViolations(page, 'Home page'))
@@ -63,7 +66,7 @@ test.describe('WCAG Accessibility', () => {
       ))
     )
 
-    assertNoSeriousOrCriticalViolations(violations)
+    await assertNoSeriousOrCriticalViolations(violations)
   })
 
   test('Should have no Serious/Critical accessibility violations across the exporter dashboard, summary log upload and report flow @accessibility', async ({
@@ -71,6 +74,8 @@ test.describe('WCAG Accessibility', () => {
   }) => {
     const violations = []
     const REG_NUMBER = 'E25SR500030913PA'
+
+    await tagAccessibilityTest('Exporter dashboard, upload and report flow')
 
     const organisationDetails = await createLinkedOrganisation([
       {
@@ -222,7 +227,7 @@ test.describe('WCAG Accessibility', () => {
     await homePage.signOut()
     await expect(page).toHaveTitle(/Signed out/)
 
-    assertNoSeriousOrCriticalViolations(violations)
+    await assertNoSeriousOrCriticalViolations(violations)
   })
 
   test('Should have no Serious/Critical accessibility violations across the accredited reprocessor report and PRN flow @accessibility', async ({
@@ -231,6 +236,8 @@ test.describe('WCAG Accessibility', () => {
     const violations = []
     const REG_NUMBER = 'R25SR500010912PA'
     const ACC_NUMBER = 'R-ACC12145PA'
+
+    await tagAccessibilityTest('Accredited reprocessor report and PRN flow')
 
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
@@ -406,6 +413,6 @@ test.describe('WCAG Accessibility', () => {
     await homePage.signOut()
     await expect(page).toHaveTitle(/Signed out/)
 
-    assertNoSeriousOrCriticalViolations(violations)
+    await assertNoSeriousOrCriticalViolations(violations)
   })
 })
