@@ -58,7 +58,7 @@ test.describe('Unlink organisation from Defra ID', () => {
 
     const statusBeforeUnlink = (await getOrganisation(refNo)).status
 
-    expect(await organisationOverviewPage.isUnlinkButtonDisplayed()).toBe(true)
+    await expect(organisationOverviewPage.unlinkButton).toBeVisible()
     await organisationOverviewPage.clickUnlink()
 
     expect(await unlinkOrganisationConfirmationPage.getHeaderText()).toEqual(
@@ -137,7 +137,7 @@ test.describe('Unlink organisation from Defra ID', () => {
 
     await unlinkOrganisationConfirmationPage.cancel()
 
-    expect(await organisationOverviewPage.isUnlinkButtonDisplayed()).toBe(true)
+    await expect(organisationOverviewPage.unlinkButton).toBeVisible()
     const orgAfterCancel = await getOrganisation(refNo)
     expect(orgAfterCancel.linkedDefraOrganisation).toBeTruthy()
   })
