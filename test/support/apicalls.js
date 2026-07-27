@@ -540,6 +540,54 @@ export async function updateStatus(orgId, newStatus) {
   )
 }
 
+// Updates the first registration's status (updateStatus above targets the
+// accreditation). Cancelling a registration force-cancels its linked
+// accreditation (PAE-1705 Scenario 5) — the backend cascades the change, so
+// callers only set the registration side.
+export async function updateRegistrationStatus(orgId, newStatus) {
+  const authClient = new AuthClient()
+  const baseAPI = new BaseAPI()
+
+  await authClient.authenticate()
+
+  let response = await baseAPI.get(
+    `/v1/organisations/${orgId}`,
+    authClient.authHeader()
+  )
+
+  const data = await assertSuccessResponse(
+    response,
+    `GET /v1/organisations/${orgId}`
+  )
+
+  data.registrations[0].status = newStatus
+  const statusChangeDate = new Date(data.registrations[0].validFrom)
+  statusChangeDate.setDate(statusChangeDate.getDate() + 1)
+  data.registrations[0].statusHistory = [
+    ...(data.registrations[0].statusHistory || []),
+    {
+      status: newStatus,
+      updatedAt: statusChangeDate.toISOString().split('T')[0]
+    }
+  ]
+
+  const payload = {
+    version: Number(data.version),
+    updateFragment: data
+  }
+
+  response = await baseAPI.put(
+    `/v1/organisations/${orgId}`,
+    JSON.stringify(payload),
+    authClient.authHeader()
+  )
+
+  await assertSuccessResponseWithoutBody(
+    response,
+    `PUT /v1/organisations/${orgId}`
+  )
+}
+
 export async function createAndRegisterDefraIdUser(email) {
   const users = new Users()
   const user = await users.userPayload(email)
