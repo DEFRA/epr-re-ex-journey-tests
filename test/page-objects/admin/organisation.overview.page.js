@@ -25,16 +25,12 @@ class OrganisationOverviewPage extends AdminPage {
     return this.page.locator('#main-content .govuk-summary-list').innerText()
   }
 
-  async isUnlinkButtonDisplayed() {
-    return (
-      (await this.page
-        .locator('a', { hasText: 'Unlink organisation' })
-        .count()) > 0
-    )
+  get unlinkButton() {
+    return this.page.locator('a', { hasText: 'Unlink organisation' })
   }
 
   async clickUnlink() {
-    await this.page.locator('a', { hasText: 'Unlink organisation' }).click()
+    await this.unlinkButton.click()
   }
 
   async getNoLinkedOrganisationText() {
