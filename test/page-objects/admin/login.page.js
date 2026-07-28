@@ -1,4 +1,5 @@
 import { AdminPage } from 'page-objects/admin/page'
+import config from '~/test/config/config.js'
 
 class AdminLoginPage extends AdminPage {
   open() {
@@ -13,13 +14,17 @@ class AdminLoginPage extends AdminPage {
   // Deletes cookies first so a stale session from an earlier spec/it block
   // can't skip the login form entirely.
   async loginAsServiceMaintainer(
-    username = 'ea@test.gov.uk',
-    password = 'pass'
+    username = config.auth.username,
+    password = config.auth.password
   ) {
-    await this.page.context().clearCookies()
-    await this.open()
-    await this.enterCredentials(username, password)
-    await this.submitCredentials()
+    if (process.env.ENVIRONMENT === 'test') {
+      this.enterCredentialsMSLogin(username, password)
+    } else {
+      await this.page.context().clearCookies()
+      await this.open()
+      await this.enterCredentials(username, password)
+      await this.submitCredentials()
+    }
   }
 
   async enterCredentialsMSLogin(username, password) {
