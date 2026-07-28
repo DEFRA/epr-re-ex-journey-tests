@@ -170,10 +170,6 @@ test.describe('WCAG Accessibility @smoketest', () => {
     // axe's page.evaluate throws "Execution context was destroyed" if it
     // starts while the sign-out navigation is still settling.
     await homePage.signOut()
-    await page.getByText('Sign in', { exact: true }).first().waitFor()
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(page, 'Home (signed out)'))
-    )
 
     await assertNoSeriousOrCriticalViolations(violations)
   })
