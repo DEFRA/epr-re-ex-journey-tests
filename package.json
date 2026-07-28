@@ -54,7 +54,7 @@
     "lint:types": "tsc -p jsconfig.typecheck.json",
     "postinstall": "npm run setup:husky",
     "setup:husky": "node -e \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module",
-    "report": "allure generate allure-results --single-file --clean",
+    "report": "node bin/prepare-allure-report.js && allure generate allure-results --single-file --clean",
     "report:publish": "npm run report; ./bin/publish-tests.sh"
   },
   "dependencies": {

@@ -1,0 +1,15 @@
+[
+  {
+    "name": "Accessibility violations",
+    "matchedStatuses": ["failed"],
+    "messageRegex": "(?s).*Serious/Critical accessibility violation.*"
+  },
+  {
+    "name": "Product defects",
+    "matchedStatuses": ["failed"]
+  },
+  {
+    "name": "Test defects",
+    "matchedStatuses": ["broken"]
+  }
+]
