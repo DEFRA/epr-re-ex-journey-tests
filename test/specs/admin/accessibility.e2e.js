@@ -22,8 +22,8 @@ import {
   tagAccessibilityTest
 } from '../../support/accessibility.js'
 
-test.describe('WCAG Accessibility', () => {
-  test('Should have no Serious/Critical accessibility violations on the Admin UI sign-in page @smoketest @accessibility', async ({
+test.describe('WCAG Accessibility @smoketest', () => {
+  test('Should have no Serious/Critical accessibility violations on the Admin UI sign-in page @accessibility', async ({
     page
   }) => {
     const violations = []
