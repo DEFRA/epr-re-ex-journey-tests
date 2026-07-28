@@ -52,7 +52,7 @@ test.describe('Summary log upload-completed state transitions @summaryLogTransit
         status: 'approved'
       }
     ])
-    orgId = org.orgId
+    orgId = org.refNo
     registrationId = migrated.registrationIds[0]
   })
 
