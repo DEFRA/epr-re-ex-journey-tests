@@ -6,7 +6,6 @@ import {
 
 import { fakerEN_GB } from '@faker-js/faker'
 import { expect } from 'chai'
-import { request } from 'undici'
 import { randomUUID } from 'crypto'
 import { readFile } from 'node:fs/promises'
 import { BaseAPI } from '../apis/base-api.js'
@@ -18,37 +17,21 @@ import { MATERIALS } from './materials.js'
 import Users from './users.js'
 
 // Entra tokens go through the shared AuthClient above (createSubmittedReport,
-// getOrganisation). Defra ID user tokens use two different flows depending
-// on caller, both proven by passing tests rather than one being a dead
-// duplicate of the other:
-// - createAndRegisterDefraIdUser/linkDefraIdUser (frontend-derived) use the
-//   shared defraIdStub, connecting via config.defraIdUri's hostname
-//   directly - correct when the test runner itself joins the compose
-//   network (e.g. real CI), where that hostname resolves via Docker's own
-//   DNS with no extra setup.
-// - The private getDefraUserToken below (admin-derived) hits localhost and
-//   spoofs the Host header explicitly - correct for a bare-host run (e.g.
-//   wdio.local.conf.js on a laptop) where the compose hostname isn't
-//   resolvable at all without an explicit override.
-// Both need the right issuer header one way or another; which one applies
-// depends on where the test process itself is running, not on which spec
-// is calling it.
+// getOrganisation). Defra ID user tokens all go through the shared
+// defraIdStub, which connects via config.defraIdUri - the local compose
+// hostname or the deployed environment's stub URL, depending on ENVIRONMENT.
+// Connecting directly (rather than hitting localhost with a spoofed Host
+// header) is what makes the stub embed the right JWT issuer for whichever
+// backend is under test.
 
 // Registers a throwaway user with the Defra ID stub and returns a Bearer token
 // with standardUser scope for the given defraOrgId.
-// The Host header is spoofed on every request so the stub embeds
-// http://defra-id-stub:3200/cdp-defra-id-stub as the JWT issuer — which is
-// what the backend is configured to trust.
 async function getDefraUserToken(email, orgId = randomUUID()) {
-  const stubUrl = 'http://localhost:3200'
-  const stubHost = 'defra-id-stub:3200'
   const userId = randomUUID()
   const clientId = '63983fc2-cfff-45bb-8ec2-959e21062b9a'
 
-  await request(`${stubUrl}/cdp-defra-id-stub/API/register`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', host: stubHost },
-    body: JSON.stringify({
+  await defraIdStub.register(
+    JSON.stringify({
       userId,
       email,
       firstName: 'Test',
@@ -58,7 +41,7 @@ async function getDefraUserToken(email, orgId = randomUUID()) {
       enrolmentCount: 1,
       enrolmentRequestCount: 1
     })
-  })
+  )
 
   const relParams = new URLSearchParams({
     csrfToken: randomUUID(),
@@ -72,19 +55,9 @@ async function getDefraUserToken(email, orgId = randomUUID()) {
     // eslint-disable-next-line camelcase
     redirect_uri: 'http://localhost:3000/'
   })
-  await request(
-    `${stubUrl}/cdp-defra-id-stub/register/${userId}/relationship`,
-    {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/x-www-form-urlencoded',
-        host: stubHost
-      },
-      body: relParams.toString()
-    }
-  )
+  await defraIdStub.addRelationship(relParams.toString(), userId)
 
-  const authParams = new URLSearchParams({
+  const authParams = {
     user: email,
     // eslint-disable-next-line camelcase
     client_id: clientId,
@@ -94,26 +67,12 @@ async function getDefraUserToken(email, orgId = randomUUID()) {
     redirect_uri: 'http://0.0.0.0:3001/health',
     state: 'state',
     scope: 'email'
-  })
-  const authResponse = await request(
-    `${stubUrl}/cdp-defra-id-stub/authorize?${authParams.toString()}`,
-    { method: 'GET', headers: { host: stubHost } }
-  )
-  if (authResponse.statusCode !== 302) {
-    const body = await authResponse.body.text()
-    throw new Error(
-      `Defra ID authorize returned ${authResponse.statusCode}: ${body}`
-    )
   }
+  const locationHeader = await defraIdStub.authorise(authParams)
+  const sessionId = locationHeader.split('sessionId=')[1]
 
-  const headers = await authResponse.headers
-  const headersLocation = String(headers.location)
-  const sessionId = headersLocation.split('sessionId=')[1]
-
-  const tokenResponse = await request(`${stubUrl}/cdp-defra-id-stub/token`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', host: stubHost },
-    body: JSON.stringify({
+  const tokenData = await defraIdStub.generateToken(
+    JSON.stringify({
       // eslint-disable-next-line camelcase
       client_id: clientId,
       // eslint-disable-next-line camelcase
@@ -121,17 +80,8 @@ async function getDefraUserToken(email, orgId = randomUUID()) {
       // eslint-disable-next-line camelcase
       grant_type: 'authorization_code',
       code: sessionId
-    })
-  })
-
-  /**
-   * @typedef {Object} AuthResponse
-   * @property {string} access_token
-   * @property {string} token_type
-   * @property {number} expires_in
-   */
-  const tokenData = /** @type {AuthResponse} */ (
-    await tokenResponse.body.json()
+    }),
+    userId
   )
   return tokenData.access_token
 }
@@ -409,17 +359,24 @@ export async function updateMigratedOrganisation(
       data.accreditations[accreditationIndex]
     ) {
       const j = accreditationIndex
+      // accStatus lets the accreditation diverge from the registration's
+      // status (e.g. approved registration with a still-created accreditation,
+      // ready for the admin grant journey). Defaults to the shared status.
+      const accStatus = orgUpdateData.accStatus ?? orgUpdateData.status
       data.registrations[i].accreditationId = data.accreditations[j].id
-      data.accreditations[j].status = orgUpdateData.status
+      data.accreditations[j].status = accStatus
       data.accreditations[j].validFrom = validFrom
       data.accreditations[j].validTo = `${currentYear + 1}-01-01`
-      data.accreditations[j].statusHistory = [
-        ...(data.accreditations[j].statusHistory || []),
-        {
-          status: orgUpdateData.status,
-          updatedAt: data.accreditations[j].validFrom
-        }
-      ]
+      data.accreditations[j].statusHistory =
+        accStatus === 'created'
+          ? data.accreditations[j].statusHistory || []
+          : [
+              ...(data.accreditations[j].statusHistory || []),
+              {
+                status: accStatus,
+                updatedAt: data.accreditations[j].validFrom
+              }
+            ]
       data.accreditations[j].statusHistory = (
         data.accreditations[j].statusHistory || []
       ).map((entry) => {

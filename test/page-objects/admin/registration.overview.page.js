@@ -78,6 +78,29 @@ class RegistrationOverviewPage extends AdminPage {
   async getSummaryLogsContent() {
     return this.page.locator('#summary-logs').innerText()
   }
+
+  accreditationStatusRow() {
+    return this.page.locator('.govuk-summary-list__row', {
+      has: this.page.locator('dt', { hasText: 'Accreditation status' })
+    })
+  }
+
+  async getAccreditationStatus() {
+    const row = this.accreditationStatusRow()
+    await row.waitFor({ state: 'visible', timeout: 10000 })
+    return row.locator('.govuk-summary-list__value').innerText()
+  }
+
+  // Clicks a status-transition action (Approve, Suspend, Reapprove, Cancel,
+  // Reinstate) on the Accreditation status row. Each action's accessible name
+  // ends in the visually hidden word "accreditation".
+  async clickAccreditationAction(actionText) {
+    await this.accreditationStatusRow()
+      .getByRole('link', {
+        name: new RegExp(`^${actionText} accreditation$`, 'i')
+      })
+      .click()
+  }
 }
 
 export { RegistrationOverviewPage }
