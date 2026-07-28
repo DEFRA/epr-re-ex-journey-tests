@@ -12,12 +12,13 @@ import {
 
 // Walks the full accreditation lifecycle through the admin UI transition
 // actions on the registration overview page:
-//   created -> approved (grant) -> suspended -> approved (reapprove)
-//   -> suspended -> cancelled (cancel) -> approved (reinstate after appeal)
+//   created -> rejected (reject) -> created (reopen) -> approved (grant)
+//   -> suspended -> approved (reapprove) -> suspended -> cancelled (cancel)
+//   -> approved (reinstate after appeal)
 // Covering every admin status-transition journey to date (PAE-1617,
-// PAE-1619, PAE-1621, PAE-1622, PAE-1785). Direct approved -> cancelled is
-// deliberately absent (suspend first, PAE-1624) — asserted by checking an
-// approved accreditation offers no Cancel action.
+// PAE-1618, PAE-1619, PAE-1621, PAE-1622, PAE-1623, PAE-1785). Direct
+// approved -> cancelled is deliberately absent (suspend first, PAE-1624) —
+// asserted by checking an approved accreditation offers no Cancel action.
 test.describe('Admin accreditation status transitions', () => {
   test.describe.configure({ timeout: 3 * 60 * 1000 })
 
@@ -26,7 +27,7 @@ test.describe('Admin accreditation status transitions', () => {
     await loginPage.loginAsServiceMaintainer()
   })
 
-  test('grants, suspends, reapproves, cancels and reinstates an accreditation through the admin UI @admin @accreditationtransitions', async ({
+  test('rejects, reopens, grants, suspends, reapproves, cancels and reinstates an accreditation through the admin UI @admin @accreditationtransitions', async ({
     page
   }) => {
     const organisationsPage = new OrganisationsPage(page)
@@ -55,6 +56,24 @@ test.describe('Admin accreditation status transitions', () => {
     await organisationsPage.searchFor(companyName)
     await organisationsPage.viewLink(1)
     await organisationOverviewPage.viewRegistrationLink(1)
+
+    expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
+      'created'
+    )
+
+    // created -> rejected: refuse the application (PAE-1618)
+    await registrationOverviewPage.clickAccreditationAction('Reject')
+    expect(await transitionPage.getHeading()).toBe('Reject accreditation')
+    await transitionPage.confirm('Reject now')
+
+    expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
+      'rejected'
+    )
+
+    // rejected -> created: reopen the application for rework (PAE-1623)
+    await registrationOverviewPage.clickAccreditationAction('Reopen')
+    expect(await transitionPage.getHeading()).toBe('Reopen accreditation')
+    await transitionPage.confirm('Reopen now')
 
     expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
       'created'
