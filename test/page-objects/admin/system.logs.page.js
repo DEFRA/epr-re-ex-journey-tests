@@ -77,6 +77,14 @@ class SystemLogsPage extends AdminPage {
   }
 
   async unlinkLogCard() {
+    // .count() below reads the DOM as-is with no auto-wait, so without this
+    // the search results can be read mid-navigation (searchFor's submit
+    // triggers a full page load) - seen as an intermittent "log not found"
+    // result in CI even when the log exists.
+    await this.page
+      .locator('#referenceNumber')
+      .waitFor({ state: 'visible', timeout: 10000 })
+
     const cards = this.page.locator('#main-content .govuk-summary-card')
     const count = await cards.count()
     for (let i = 0; i < count; i++) {

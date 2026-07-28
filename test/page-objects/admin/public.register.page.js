@@ -5,18 +5,12 @@ class PublicRegisterPage extends AdminPage {
     return super.open('/public-register')
   }
 
-  async downloadPublicRegister() {
-    return this.page
-      .locator('#main-content > div > div > div > form > button')
-      .click()
+  get downloadPublicRegisterButton() {
+    return this.page.locator('#main-content > div > div > div > form > button')
   }
 
-  async downloadPublicRegisterButtonExistence() {
-    return (
-      (await this.page
-        .locator('#main-content > div > div > div > form > button')
-        .count()) > 0
-    )
+  async downloadPublicRegister() {
+    return this.downloadPublicRegisterButton.click()
   }
 
   async fetchCsv() {

@@ -46,8 +46,9 @@ const auth = {
   // Below configuration only applies for the "Test" environment
   clientSecret: process.env.AUTH_CLIENT_SECRET,
   clientId: 'bd06da51-53f6-46d0-a9f0-ac562864c887',
-  username: process.env.AUTH_USERNAME,
-  password: process.env.AUTH_PASSWORD,
+  username:
+    environment === 'test' ? process.env.AUTH_USERNAME : 'ea@test.gov.uk',
+  password: environment === 'test' ? process.env.AUTH_PASSWORD : 'pass',
   scope: 'api://bd06da51-53f6-46d0-a9f0-ac562864c887/.default',
   grantType: 'password'
 }
