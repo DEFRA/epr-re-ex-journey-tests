@@ -18,6 +18,7 @@ class AdminLoginPage extends AdminPage {
     password = config.auth.password
   ) {
     if (process.env.ENVIRONMENT === 'test') {
+      await this.open()
       this.enterCredentialsMSLogin(username, password)
     } else {
       await this.page.context().clearCookies()
