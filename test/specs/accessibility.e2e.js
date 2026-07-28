@@ -44,8 +44,8 @@ import {
 } from '../support/report-navigation.js'
 import { tonnageWordings, tradingName } from '../support/fixtures.js'
 
-test.describe('WCAG Accessibility', () => {
-  test('Should have no Serious/Critical accessibility violations on the public entry pages @smoketest @accessibility', async ({
+test.describe('WCAG Accessibility @smoketest', () => {
+  test('Should have no Serious/Critical accessibility violations on the public entry pages @accessibility', async ({
     page
   }) => {
     const violations = []
