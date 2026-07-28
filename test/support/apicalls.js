@@ -409,17 +409,24 @@ export async function updateMigratedOrganisation(
       data.accreditations[accreditationIndex]
     ) {
       const j = accreditationIndex
+      // accStatus lets the accreditation diverge from the registration's
+      // status (e.g. approved registration with a still-created accreditation,
+      // ready for the admin grant journey). Defaults to the shared status.
+      const accStatus = orgUpdateData.accStatus ?? orgUpdateData.status
       data.registrations[i].accreditationId = data.accreditations[j].id
-      data.accreditations[j].status = orgUpdateData.status
+      data.accreditations[j].status = accStatus
       data.accreditations[j].validFrom = validFrom
       data.accreditations[j].validTo = `${currentYear + 1}-01-01`
-      data.accreditations[j].statusHistory = [
-        ...(data.accreditations[j].statusHistory || []),
-        {
-          status: orgUpdateData.status,
-          updatedAt: data.accreditations[j].validFrom
-        }
-      ]
+      data.accreditations[j].statusHistory =
+        accStatus === 'created'
+          ? data.accreditations[j].statusHistory || []
+          : [
+              ...(data.accreditations[j].statusHistory || []),
+              {
+                status: accStatus,
+                updatedAt: data.accreditations[j].validFrom
+              }
+            ]
       data.accreditations[j].statusHistory = (
         data.accreditations[j].statusHistory || []
       ).map((entry) => {
