@@ -77,7 +77,7 @@ class UploadSummaryLogPage extends SummaryLogUploadActions {
 
   // The "Go to reports" button in the success page's "Further action needed"
   // section. A PAE-1648 addition, shown only when the upload contains
-  // closed-period adjustments (FEATURE_FLAG_CLOSED_PERIOD_ADJUSTMENTS).
+  // closed-period adjustments.
   goToReportsButton() {
     return this.page.locator('a.govuk-button', { hasText: 'Go to reports' })
   }
