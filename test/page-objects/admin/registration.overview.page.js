@@ -104,9 +104,11 @@ class RegistrationOverviewPage extends AdminPage {
 
   // The registration's own status row is labelled just "Status" - anchored
   // regex so it doesn't also match the "Accreditation status" row below it.
+  // Regex hasText matches the raw (untrimmed) text content, and the summary
+  // list macro pads the dt with whitespace, so the anchors must allow it.
   registrationStatusRow() {
     return this.page.locator('.govuk-summary-list__row', {
-      has: this.page.locator('dt', { hasText: /^Status$/ })
+      has: this.page.locator('dt', { hasText: /^\s*Status\s*$/ })
     })
   }
 
