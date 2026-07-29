@@ -64,11 +64,11 @@ test.describe('Registration overview - multiple submissions per period', () => {
       (row) => row.submission === '1',
       'Quarter 1 row for submission 1'
     )
+    // Unsubmit is hidden while the period is flagged: the backend refuses to
+    // unsubmit a report requiring resubmission, so offering the action would
+    // only ever fail (PAE-1775).
     expect(submittedRow.status).toEqual('submitted')
-    expect(submittedRow.links.map((link) => link.text)).toEqual([
-      'View',
-      'Unsubmit'
-    ])
+    expect(submittedRow.links.map((link) => link.text)).toEqual(['View'])
 
     const skeletonRow = findOrThrow(
       quarterOneRows,
