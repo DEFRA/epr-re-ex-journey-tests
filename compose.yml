@@ -225,15 +225,7 @@ services:
       DEFRA_ID_CLIENT_ID: 63983fc2-cfff-45bb-8ec2-959e21062b9a
       DEFRA_ID_OIDC_WELL_KNOWN_URL: http://defra-id-stub:3200/cdp-defra-id-stub/.well-known/openid-configuration
       ENTRA_OIDC_WELL_KNOWN_CONFIGURATION_URL: http://epr-re-ex-entra-stub:3010/.well-known/openid-configuration
-      # Same flag and default as the epr-frontend service below: the backend
-      # gates submit-time resubmission marking on it, so the two must agree.
-      FEATURE_FLAG_CLOSED_PERIOD_ADJUSTMENTS: ${FEATURE_FLAG_CLOSED_PERIOD_ADJUSTMENTS:-true}
       FEATURE_FLAG_DEV_ENDPOINTS: true
-      # On in every deployed environment: the report-detail read derives from
-      # summary-log row states, whose repository is only registered when this
-      # flag is on. Without it, GET report detail 500s.
-      FEATURE_FLAG_SUMMARY_LOG_ROW_STATES: ${FEATURE_FLAG_SUMMARY_LOG_ROW_STATES:-true}
-      FEATURE_FLAG_SUMMARY_LOG_ROW_STATES_BACKFILL: ${FEATURE_FLAG_SUMMARY_LOG_ROW_STATES_BACKFILL:-true}
       GOVUK_NOTIFY_API_KEY: fake-key-for-testing
       LOG_FORMAT: ecs
       MONGO_URI: mongodb://mongodb:27017/
@@ -279,8 +271,6 @@ services:
       DEFRA_ID_OIDC_CONFIGURATION_URL: http://defra-id-stub:3200/cdp-defra-id-stub/.well-known/openid-configuration
       DEFRA_ID_SERVICE_ID: d7d72b79-9c62-ee11-8df0-000d3adf7047
       EPR_BACKEND_URL: http://epr-backend:3001
-      FEATURE_FLAG_CLOSED_PERIOD_ADJUSTMENTS: ${FEATURE_FLAG_CLOSED_PERIOD_ADJUSTMENTS:-true}
-      FEATURE_FLAG_ENHANCED_SUMMARY_LOG_CHECK_PAGES: true
       NODE_ENV: development
       PORT: 3000
       REDIS_HOST: redis
