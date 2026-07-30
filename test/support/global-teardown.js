@@ -6,7 +6,6 @@ const oneMinute = 60 * 1000
 const isLocalDev = !process.env.CI && !process.env.ENVIRONMENT
 
 export default async function globalTeardown() {
-  await defraIdStub.expireAllUsers()
 
   // wdio.local.conf.js's onComplete hook used to do this after every local
   // run; carry it over so `npm run test:local` still auto-opens the report
@@ -14,6 +13,7 @@ export default async function globalTeardown() {
   // Portal runs publish differently (bin/publish-tests.sh), so this stays
   // local-only, matching the original's scoping to wdio.local.conf.js.
   if (!isLocalDev) {
+    await defraIdStub.expireAllUsers()
     return
   }
 
