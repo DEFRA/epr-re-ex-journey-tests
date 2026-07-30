@@ -4,6 +4,7 @@ import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { OrganisationsPage } from 'page-objects/admin/organisations.page'
 import { OrganisationOverviewPage } from 'page-objects/admin/organisation.overview.page'
 import { RegistrationOverviewPage } from 'page-objects/admin/registration.overview.page'
+import { RegistrationTransitionPage } from 'page-objects/admin/registration.transition.page'
 import { AccreditationTransitionPage } from 'page-objects/admin/accreditation.transition.page'
 import {
   createLinkedOrganisation,
@@ -17,7 +18,9 @@ import {
 // Covering every admin status-transition journey to date (PAE-1617, PAE-1618, PAE-1619,
 // PAE-1621, PAE-1622, PAE-1623, PAE-1785). Direct approved -> cancelled is
 // deliberately absent (suspend first, PAE-1624) — asserted by checking an
-// approved accreditation offers no Cancel action.
+// approved accreditation offers no Cancel action. The accreditation also
+// cannot be approved until its own registration is approved (PAE-1800) —
+// asserted before granting the registration through the admin UI.
 test.describe('Admin accreditation status transitions', () => {
   test.describe.configure({ timeout: 3 * 60 * 1000 })
 
@@ -26,28 +29,24 @@ test.describe('Admin accreditation status transitions', () => {
     await loginPage.loginAsServiceMaintainer()
   })
 
-  test('rejects, reopens, grants, suspends, reapproves, cancels and reinstates an accreditation through the admin UI @admin @accreditationtransitions', async ({
+  test('gates approval on the registration, then rejects, reopens, grants, suspends, reapproves, cancels and reinstates an accreditation through the admin UI @admin @accreditationtransitions', async ({
     page
   }) => {
     const organisationsPage = new OrganisationsPage(page)
     const organisationOverviewPage = new OrganisationOverviewPage(page)
     const registrationOverviewPage = new RegistrationOverviewPage(page)
+    const registrationTransitionPage = new RegistrationTransitionPage(page)
     const transitionPage = new AccreditationTransitionPage(page)
 
-    // An approved registration whose linked accreditation is still created,
-    // so the journey starts at the grant step. The grant issues the number.
-    const regNumber = 'E25SR500030916PA'
+    // A registration and its linked accreditation both still created, so the
+    // journey starts by proving the approval gate (PAE-1800) before granting
+    // the registration through the admin UI and continuing to the
+    // accreditation grant step, which issues the accreditation number.
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Aluminium (R4)', wasteProcessingType: 'Exporter' }
     ])
     const orgId = organisationDetails.refNo
-    await updateMigratedOrganisation(orgId, [
-      {
-        regNumber,
-        status: 'approved',
-        accStatus: 'created'
-      }
-    ])
+    await updateMigratedOrganisation(orgId, [{ status: 'created' }])
 
     const companyName = organisationDetails.organisation.companyName
 
@@ -59,6 +58,44 @@ test.describe('Admin accreditation status transitions', () => {
     expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
       'created'
     )
+    expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
+      'created'
+    )
+
+    // No Approve accreditation action while the registration is not approved
+    // (PAE-1800) — Reject is still offered
+    await expect(
+      registrationOverviewPage
+        .accreditationStatusRow()
+        .getByRole('link', { name: /approve accreditation/i })
+    ).toHaveCount(0)
+    await expect(
+      registrationOverviewPage
+        .accreditationStatusRow()
+        .getByRole('link', { name: /reject accreditation/i })
+    ).toHaveCount(1)
+
+    // Granting the registration through the admin UI opens the gate
+    await registrationOverviewPage.clickRegistrationAction('Approve')
+    expect(await registrationTransitionPage.getHeading()).toBe(
+      'Approve registration'
+    )
+    await registrationTransitionPage.fillGrantFields({
+      day: '1',
+      month: '1',
+      year: `${new Date().getFullYear()}`,
+      registrationNumber: 'E25SR500030920PA'
+    })
+    await registrationTransitionPage.confirm('Approve now')
+
+    expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
+      'approved'
+    )
+    await expect(
+      registrationOverviewPage
+        .accreditationStatusRow()
+        .getByRole('link', { name: /approve accreditation/i })
+    ).toHaveCount(1)
 
     // created -> rejected: refuse the application (PAE-1618)
     await registrationOverviewPage.clickAccreditationAction('Reject')

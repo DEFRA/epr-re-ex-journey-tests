@@ -115,7 +115,7 @@ test.describe('Admin registration status transitions', () => {
     )
   })
 
-  test('cancelling a registration cascades cancellation to its linked accreditation @admin @registrationtransitions', async ({
+  test('cancelling a registration cascades cancellation to its linked accreditation and gates its reinstatement @admin @registrationtransitions', async ({
     page
   }) => {
     const organisationsPage = new OrganisationsPage(page)
@@ -124,7 +124,9 @@ test.describe('Admin registration status transitions', () => {
     const transitionPage = new RegistrationTransitionPage(page)
 
     // An approved registration with an approved linked accreditation, so the
-    // cancel cascade (PAE-1615) has a live accreditation to force-cancel.
+    // cancel cascade (PAE-1615) has a live accreditation to force-cancel, and
+    // reinstating the registration can be checked against the accreditation's
+    // own Reinstate action gate (PAE-1800).
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Aluminium (R4)', wasteProcessingType: 'Exporter' }
     ])
@@ -162,5 +164,32 @@ test.describe('Admin registration status transitions', () => {
     expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
       'cancelled'
     )
+
+    // The cascade-cancelled accreditation cannot be reinstated on its own:
+    // no Reinstate action while the registration is cancelled (PAE-1800)
+    await expect(
+      registrationOverviewPage
+        .accreditationStatusRow()
+        .getByRole('link', { name: /reinstate accreditation/i })
+    ).toHaveCount(0)
+
+    // cancelled -> approved: reinstating the registration reopens the gate
+    await registrationOverviewPage.clickRegistrationAction('Reinstate')
+    expect(await transitionPage.getHeading()).toBe('Reinstate registration')
+    await transitionPage.confirm('Reinstate now')
+
+    expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
+      'approved'
+    )
+    // No reverse cascade: the accreditation stays cancelled, but its
+    // Reinstate action is offered again now the registration is approved
+    expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
+      'cancelled'
+    )
+    await expect(
+      registrationOverviewPage
+        .accreditationStatusRow()
+        .getByRole('link', { name: /reinstate accreditation/i })
+    ).toHaveCount(1)
   })
 })
