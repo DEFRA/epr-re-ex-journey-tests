@@ -118,8 +118,8 @@ class RegistrationOverviewPage extends AdminPage {
     return row.locator('.govuk-summary-list__value').innerText()
   }
 
-  // Clicks a status-transition action (currently only Approve) on the
-  // registration's Status row. Each action's accessible name ends in the
+  // Clicks a status-transition action (Approve, Reject, Reopen, Cancel,
+  // Reinstate) on the registration's Status row. Each action's accessible name ends in the
   // visually hidden word "registration".
   async clickRegistrationAction(actionText) {
     await this.registrationStatusRow()
