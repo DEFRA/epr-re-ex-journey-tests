@@ -6,7 +6,6 @@ const oneMinute = 60 * 1000
 const isLocalDev = !process.env.CI && !process.env.ENVIRONMENT
 
 export default async function globalTeardown() {
-
   // wdio.local.conf.js's onComplete hook used to do this after every local
   // run; carry it over so `npm run test:local` still auto-opens the report
   // instead of leaving it for a separate `npm run report` step. CI/CDP
