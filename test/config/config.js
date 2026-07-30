@@ -55,7 +55,7 @@ const auth = {
 
 const defraId = {
   local: 'http://defra-id-stub:3200',
-  env: `https://cdp-defra-id-stub.${environment}.cdp-int.defra.cloud`
+  env: `https://epr-re-ex-defra-id-stub.${environment}.cdp-int.defra.cloud`
 }
 
 // Basic-auth credentials for the external/basic-auth-secured endpoints
