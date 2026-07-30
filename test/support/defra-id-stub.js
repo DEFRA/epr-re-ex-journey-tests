@@ -62,11 +62,14 @@ export class DefraIdStub {
 
   async generateToken(payload, userId) {
     const instanceHeaders = { ...this.defaultHeaders }
-    const response = await request(`${this.baseUrl}/epr-re-ex-defra-id-stub/token`, {
-      method: 'POST',
-      headers: instanceHeaders,
-      body: payload
-    })
+    const response = await request(
+      `${this.baseUrl}/epr-re-ex-defra-id-stub/token`,
+      {
+        method: 'POST',
+        headers: instanceHeaders,
+        body: payload
+      }
+    )
     /**
      * @typedef {Object} AuthResponse
      * @property {string} access_token
