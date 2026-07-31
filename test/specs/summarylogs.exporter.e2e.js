@@ -103,7 +103,7 @@ test.describe('Summary Logs Exporter', () => {
       '2 new loads will be recorded (and will add to your waste balance)'
     )
     expect(stage1SubStates).toContain(
-      '1 new load will be recorded (but will NOT add to your waste balance)'
+      '2 new loads will be recorded (but will NOT add to your waste balance)'
     )
     const stage1BodyText = await page.evaluate(() => document.body.innerText)
     expect(stage1BodyText).toContain(

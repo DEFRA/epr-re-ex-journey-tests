@@ -12,7 +12,7 @@ export class DefraIdStub {
   async register(payload) {
     const instanceHeaders = { ...this.defaultHeaders }
     const response = await request(
-      `${this.baseUrl}/cdp-defra-id-stub/API/register`,
+      `${this.baseUrl}/epr-re-ex-defra-id-stub/API/register`,
       {
         method: 'POST',
         headers: instanceHeaders,
@@ -30,7 +30,7 @@ export class DefraIdStub {
     }
 
     return await request(
-      `${this.baseUrl}/cdp-defra-id-stub/register/${userId}/relationship`,
+      `${this.baseUrl}/epr-re-ex-defra-id-stub/register/${userId}/relationship`,
       {
         method: 'POST',
         headers: instanceHeaders,
@@ -49,7 +49,7 @@ export class DefraIdStub {
 
     const instanceHeaders = { ...this.defaultHeaders }
     const response = await request(
-      `${this.baseUrl}/cdp-defra-id-stub/authorize?${query}`,
+      `${this.baseUrl}/epr-re-ex-defra-id-stub/authorize?${query}`,
       {
         method: 'GET',
         headers: instanceHeaders
@@ -62,11 +62,14 @@ export class DefraIdStub {
 
   async generateToken(payload, userId) {
     const instanceHeaders = { ...this.defaultHeaders }
-    const response = await request(`${this.baseUrl}/cdp-defra-id-stub/token`, {
-      method: 'POST',
-      headers: instanceHeaders,
-      body: payload
-    })
+    const response = await request(
+      `${this.baseUrl}/epr-re-ex-defra-id-stub/token`,
+      {
+        method: 'POST',
+        headers: instanceHeaders,
+        body: payload
+      }
+    )
     /**
      * @typedef {Object} AuthResponse
      * @property {string} access_token
@@ -103,7 +106,7 @@ export class DefraIdStub {
     ])
     for (const userId of userIds) {
       await request(
-        `${this.baseUrl}/cdp-defra-id-stub/API/register/${userId}/expire`,
+        `${this.baseUrl}/epr-re-ex-defra-id-stub/API/register/${userId}/expire`,
         {
           method: 'POST',
           headers: instanceHeaders,

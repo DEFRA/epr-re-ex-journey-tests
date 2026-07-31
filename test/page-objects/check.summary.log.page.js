@@ -35,7 +35,7 @@ class CheckSummaryLogPage {
   }
 
   // The PAE-1648 "Important" notification banner shown when the upload contains
-  // closed-period adjustments. Guarded behind FEATURE_FLAG_CLOSED_PERIOD_ADJUSTMENTS.
+  // closed-period adjustments.
   importantBanner() {
     return this.page.locator('.govuk-notification-banner')
   }
