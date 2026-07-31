@@ -54,7 +54,7 @@ services:
       - '4566:4566'
 
   floci-init:
-    image: amazon/aws-cli:2.36.8@sha256:7e1b11a3c93bc5af81f496de0662f666b2352a4a6666e8ebae904fe102b131b6
+    image: amazon/aws-cli:2.36.9@sha256:00dee8ccaf669721f8163944ea9e6ac13183851b23d5b7a9868a608bc932cfdb
     entrypoint: /bin/sh
     command: /setup/init.sh
     depends_on:
@@ -134,7 +134,7 @@ services:
 
   # Simulates Defra ID sign-in for waste-operator users (epr-frontend journeys).
   defra-id-stub:
-    image: defradigital/epr-re-ex-defra-id-stub:latest
+    image: defradigital/epr-re-ex-defra-id-stub:latest@sha256:e56faa55f3e95cbde699485d956f7dc25f02b1a24816c314141bf4e589e6545e
     ports:
       - '3200:3200'
     depends_on:
