@@ -31,7 +31,7 @@ export default defineConfig({
   testDir: './test/specs',
   testMatch: '**/*.e2e.js',
 
-  fullyParallel: false,
+  fullyParallel: true,
   forbidOnly: isCI,
   maxFailures: isLocalDev ? 1 : 0,
   retries: 1,
