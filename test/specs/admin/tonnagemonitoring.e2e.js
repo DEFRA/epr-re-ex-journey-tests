@@ -35,12 +35,12 @@ test.describe('Tonnage Monitoring page', () => {
 
     const materials = [
       'Aluminium',
-      'Fibre based composite',
+      'Fibre-based composite',
       'Paper and board',
       'Plastic',
       'Steel',
       'Wood',
-      'Glass re-melt',
+      'Glass remelt',
       'Glass other'
     ]
     const types = ['Reprocessor', 'Exporter']
