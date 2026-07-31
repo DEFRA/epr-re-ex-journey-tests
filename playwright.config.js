@@ -35,7 +35,7 @@ export default defineConfig({
   forbidOnly: isCI,
   maxFailures: isLocalDev ? 1 : 0,
   retries: 1,
-  workers: isCI ? 5 : 1,
+  workers: isCI ? 4 : 1,
 
   globalSetup: './test/support/global-setup.js',
   globalTeardown: './test/support/global-teardown.js',
