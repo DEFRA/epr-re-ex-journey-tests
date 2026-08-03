@@ -426,11 +426,21 @@ export async function updateMigratedOrganisation(
 
   const accreditationIds = []
   const registrationIds = []
+  const registrationNumbers = []
+  const accreditationNumbers = []
   // Non-status fields (links, validity windows, types) still go through the
   // organisation PUT; statuses are walked through the transition endpoints
   // afterwards (PAE-1645). Grants issue the numbers and set validFrom to
   // appliesFrom, so neither is written here.
   const transitions = []
+
+  // Grant-issued numbers are unique across organisations (the transition
+  // endpoints enforce it) but specs reuse well-known constants, so suffix
+  // them with per-organisation entropy — every org's numbers are then
+  // distinct within a run. Substring assertions on the base number still
+  // match; the actual numbers are returned for exact assertions.
+  const uniquifyNumber = (number) =>
+    number ? `${number}-${String(orgId).slice(-5)}` : number
 
   for (let i = 0; i < updateDataRows.length; i++) {
     const orgUpdateData = updateDataRows[i]
@@ -475,7 +485,19 @@ export async function updateMigratedOrganisation(
       accreditationIndex++
     }
 
-    transitions.push({ registration, accreditation, orgUpdateData, effectiveFrom })
+    const registrationNumber = uniquifyNumber(orgUpdateData.regNumber)
+    const accreditationNumber = uniquifyNumber(orgUpdateData.accNumber)
+    registrationNumbers.push(registrationNumber)
+    accreditationNumbers.push(accreditationNumber)
+
+    transitions.push({
+      registration,
+      accreditation,
+      orgUpdateData,
+      effectiveFrom,
+      registrationNumber,
+      accreditationNumber
+    })
   }
 
   if (submittedToRegulator) {
@@ -536,7 +558,7 @@ export async function updateMigratedOrganisation(
       regSteps.filter((step) => step.toStatus !== 'cancelled'),
       {
         appliesFrom: t.effectiveFrom,
-        registrationNumber: t.orgUpdateData.regNumber
+        registrationNumber: t.registrationNumber
       }
     )
 
@@ -566,7 +588,7 @@ export async function updateMigratedOrganisation(
         accSteps,
         {
           appliesFrom: t.effectiveFrom,
-          accreditationNumber: t.orgUpdateData.accNumber
+          accreditationNumber: t.accreditationNumber
         }
       )
     }
@@ -607,7 +629,13 @@ export async function updateMigratedOrganisation(
     }
   }
 
-  return { email, registrationIds, accreditationIds }
+  return {
+    email,
+    registrationIds,
+    accreditationIds,
+    registrationNumbers,
+    accreditationNumbers
+  }
 }
 
 // Flips the first accreditation's status via the transition endpoints

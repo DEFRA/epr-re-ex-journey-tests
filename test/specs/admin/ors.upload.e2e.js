@@ -45,16 +45,20 @@ test.describe('ORS upload flow @orsupload', () => {
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
     ])
 
-    const registrationNumber = `FAKE/REG${orgId}/TEST`
-    const accreditationNumber = `FAKE/ACC${orgId}/TEST`
+    let registrationNumber = `FAKE/REG${orgId}/TEST`
+    let accreditationNumber = `FAKE/ACC${orgId}/TEST`
 
-    await updateMigratedOrganisation(refNo, [
+    const migrated = await updateMigratedOrganisation(refNo, [
       {
         regNumber: registrationNumber,
         accNumber: accreditationNumber,
         status: 'approved'
       }
     ])
+    // The fixture uniquifies grant-issued numbers (PAE-1645) — the workbook
+    // metadata and assertions must carry the values actually issued.
+    registrationNumber = migrated.registrationNumbers[0]
+    accreditationNumber = migrated.accreditationNumbers[0]
 
     const workbookPath = path.join(os.tmpdir(), `ors-test-${orgId}.xlsx`)
 
@@ -209,7 +213,7 @@ test.describe('ORS upload flow @orsupload', () => {
       alphaAccreditationNumber = `FAKE/ACC${orgId}/ALPHA`
       betaAccreditationNumber = `FAKE/ACC${orgId}/BETA`
 
-      await updateMigratedOrganisation(refNo, [
+      const migrated = await updateMigratedOrganisation(refNo, [
         {
           regNumber: alphaRegistrationNumber,
           accNumber: alphaAccreditationNumber,
@@ -221,6 +225,12 @@ test.describe('ORS upload flow @orsupload', () => {
           status: 'approved'
         }
       ])
+      // The fixture uniquifies grant-issued numbers (PAE-1645) — the workbook
+      // metadata and assertions must carry the values actually issued.
+      alphaRegistrationNumber = migrated.registrationNumbers[0]
+      betaRegistrationNumber = migrated.registrationNumbers[1]
+      alphaAccreditationNumber = migrated.accreditationNumbers[0]
+      betaAccreditationNumber = migrated.accreditationNumbers[1]
 
       const alphaWorkbookPath = path.join(
         os.tmpdir(),

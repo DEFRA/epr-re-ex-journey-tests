@@ -28,8 +28,8 @@ const MONTH_ABBR = [
 ]
 
 test.describe('Public Register page', () => {
-  const regNumber = 'R25SR500030912PA'
-  const accNumber = 'ACC123456'
+  let regNumber
+  let accNumber
   let orgId
   let orgName
   let report
@@ -41,14 +41,18 @@ test.describe('Public Register page', () => {
     orgId = linkedOrganisation.orgId
     orgName = linkedOrganisation.organisation.companyName
 
-    await updateMigratedOrganisation(linkedOrganisation.refNo, [
+    // The fixture uniquifies the numbers per organisation (grant-issued
+    // numbers are unique, PAE-1645) — assert the actual issued values.
+    const migrated = await updateMigratedOrganisation(linkedOrganisation.refNo, [
       {
         reprocessingType: 'input',
-        regNumber,
-        accNumber,
+        regNumber: 'R25SR500030912PA',
+        accNumber: 'ACC123456',
         status: 'approved'
       }
     ])
+    regNumber = migrated.registrationNumbers[0]
+    accNumber = migrated.accreditationNumbers[0]
 
     report = await createSubmittedReport(linkedOrganisation.refNo)
   })
