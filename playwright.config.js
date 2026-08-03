@@ -52,7 +52,7 @@ export default defineConfig({
   use: {
     baseURL: environment
       ? `https://epr-frontend.${environment}.cdp-int.defra.cloud`
-      : 'http://localhost:3000',
+      : `http://localhost:${process.env.FRONTEND_PORT || 3000}`,
     headless: !debug,
     screenshot: isLocalDev ? 'on' : 'only-on-failure',
     trace: isLocalDev ? 'on' : 'retain-on-failure',
