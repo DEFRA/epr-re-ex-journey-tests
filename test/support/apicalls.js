@@ -270,137 +270,6 @@ export async function createLinkedOrganisation(dataRows) {
   }
 }
 
-// Registration and accreditation statuses cannot be written through
-// PUT /v1/organisations/{id} (PAE-1645) — fixtures walk the same
-// status-history transition endpoints the admin UI uses. Each entry maps
-// `${from}>${to}` to the transition steps that reach it; `grant: true`
-// steps issue the number and set validFrom to appliesFrom.
-const REGISTRATION_TRANSITION_PATHS = {
-  'created>approved': [
-    { fromStatus: 'created', toStatus: 'approved', grant: true }
-  ],
-  'created>rejected': [{ fromStatus: 'created', toStatus: 'rejected' }],
-  'created>cancelled': [
-    { fromStatus: 'created', toStatus: 'approved', grant: true },
-    { fromStatus: 'approved', toStatus: 'cancelled' }
-  ],
-  'approved>cancelled': [{ fromStatus: 'approved', toStatus: 'cancelled' }],
-  'cancelled>approved': [{ fromStatus: 'cancelled', toStatus: 'approved' }],
-  'rejected>created': [{ fromStatus: 'rejected', toStatus: 'created' }]
-}
-
-const ACCREDITATION_TRANSITION_PATHS = {
-  'created>approved': [
-    { fromStatus: 'created', toStatus: 'approved', grant: true }
-  ],
-  'created>rejected': [{ fromStatus: 'created', toStatus: 'rejected' }],
-  'created>suspended': [
-    { fromStatus: 'created', toStatus: 'approved', grant: true },
-    { fromStatus: 'approved', toStatus: 'suspended' }
-  ],
-  'created>cancelled': [
-    { fromStatus: 'created', toStatus: 'approved', grant: true },
-    { fromStatus: 'approved', toStatus: 'suspended' },
-    { fromStatus: 'suspended', toStatus: 'cancelled' }
-  ],
-  'approved>suspended': [{ fromStatus: 'approved', toStatus: 'suspended' }],
-  'approved>cancelled': [
-    { fromStatus: 'approved', toStatus: 'suspended' },
-    { fromStatus: 'suspended', toStatus: 'cancelled' }
-  ],
-  'suspended>approved': [{ fromStatus: 'suspended', toStatus: 'approved' }],
-  'suspended>cancelled': [{ fromStatus: 'suspended', toStatus: 'cancelled' }],
-  'cancelled>approved': [{ fromStatus: 'cancelled', toStatus: 'approved' }],
-  'rejected>created': [{ fromStatus: 'rejected', toStatus: 'created' }]
-}
-
-function statusTransitionSteps(paths, kind, fromStatus, toStatus) {
-  if (!toStatus || fromStatus === toStatus) {
-    return []
-  }
-  const steps = paths[`${fromStatus}>${toStatus}`]
-  if (!steps) {
-    throw new Error(`No ${kind} status path from ${fromStatus} to ${toStatus}`)
-  }
-  return steps
-}
-
-/**
- * @param {BaseAPI} baseAPI
- * @param {ReturnType<AuthClient["authHeader"]>} authHeader
- * @param {string} orgId
- * @param {string} registrationId
- * @param {Array<{fromStatus: string, toStatus: string, grant?: boolean}>} steps
- * @param {{appliesFrom?: string, registrationNumber?: string}} [grantFields]
- */
-async function walkRegistrationTransitions(
-  baseAPI,
-  authHeader,
-  orgId,
-  registrationId,
-  steps,
-  { appliesFrom, registrationNumber } = {}
-) {
-  for (const step of steps) {
-    const payload = step.grant
-      ? {
-          fromStatus: step.fromStatus,
-          toStatus: step.toStatus,
-          appliesFrom,
-          registrationNumber
-        }
-      : { fromStatus: step.fromStatus, toStatus: step.toStatus }
-    const response = await baseAPI.post(
-      `/v1/organisations/${orgId}/registrations/${registrationId}/status-history`,
-      JSON.stringify(payload),
-      authHeader
-    )
-    await assertSuccessResponse(
-      response,
-      `POST registration ${registrationId} ${step.fromStatus} -> ${step.toStatus}`
-    )
-  }
-}
-
-/**
- * @param {BaseAPI} baseAPI
- * @param {ReturnType<AuthClient["authHeader"]>} authHeader
- * @param {string} orgId
- * @param {string} registrationId
- * @param {string} accreditationId
- * @param {Array<{fromStatus: string, toStatus: string, grant?: boolean}>} steps
- * @param {{appliesFrom?: string, accreditationNumber?: string}} [grantFields]
- */
-async function walkAccreditationTransitions(
-  baseAPI,
-  authHeader,
-  orgId,
-  registrationId,
-  accreditationId,
-  steps,
-  { appliesFrom, accreditationNumber } = {}
-) {
-  for (const step of steps) {
-    const payload = step.grant
-      ? {
-          fromStatus: step.fromStatus,
-          toStatus: step.toStatus,
-          appliesFrom,
-          accreditationNumber
-        }
-      : { fromStatus: step.fromStatus, toStatus: step.toStatus }
-    const response = await baseAPI.post(
-      `/v1/organisations/${orgId}/registrations/${registrationId}/accreditations/${accreditationId}/status-history`,
-      JSON.stringify(payload),
-      authHeader
-    )
-    await assertSuccessResponse(
-      response,
-      `POST accreditation ${accreditationId} ${step.fromStatus} -> ${step.toStatus}`
-    )
-  }
-}
-
 // Examples for updateDataRows:
 // [ { reprocessingType: 'input', regNumber: 'R25SR500030912PA', accNumber: 'ACC123456', status: 'approved' }]
 export async function updateMigratedOrganisation(
@@ -443,85 +312,100 @@ export async function updateMigratedOrganisation(
 
   const accreditationIds = []
   const registrationIds = []
-  const registrationNumbers = []
-  const accreditationNumbers = []
-  // Non-status fields (links, validity windows, types) still go through the
-  // organisation PUT; statuses are walked through the transition endpoints
-  // afterwards (PAE-1645). Grants issue the numbers and set validFrom to
-  // appliesFrom, so neither is written here.
-  const transitions = []
-
-  // Grant-issued numbers are unique across every registration and
-  // accreditation (the transition endpoints enforce it) but specs reuse
-  // well-known constants — including the same constant for several rows of
-  // one organisation — so suffix each number with the receiving item's own
-  // id. Substring assertions on the base number still match; the actual
-  // numbers are returned for exact assertions.
-  const uniquifyNumber = (number, itemId) =>
-    number && itemId ? `${number}-${String(itemId).slice(-6)}` : number
 
   for (let i = 0; i < updateDataRows.length; i++) {
     const orgUpdateData = updateDataRows[i]
-    const registration = data.registrations[i]
-    const effectiveFrom = orgUpdateData.validFrom?.trim()
-      ? orgUpdateData.validFrom
-      : validFrom
-    registration.validTo = `${currentYear + 1}-01-01`
+    data.registrations[i].status = orgUpdateData.status
+    data.registrations[i].validFrom = validFrom
+    data.registrations[i].validTo = `${currentYear + 1}-01-01`
+    data.registrations[i].registrationNumber = orgUpdateData.regNumber
+    data.registrations[i].statusHistory = [
+      ...(data.registrations[i].statusHistory || []),
+      {
+        status: orgUpdateData.status,
+        updatedAt: data.registrations[i].validFrom
+      }
+    ]
+    data.registrations[i].statusHistory = (
+      data.registrations[i].statusHistory || []
+    ).map((entry) => {
+      if (entry.status === 'created') {
+        return {
+          ...entry,
+          updatedAt: '2025-12-31'
+        }
+      }
+      return entry
+    })
+    if (orgUpdateData.validFrom?.trim()) {
+      data.registrations[i].validFrom = orgUpdateData.validFrom
+    }
     if (orgUpdateData.reprocessingType?.trim()) {
-      registration.reprocessingType = orgUpdateData.reprocessingType
+      data.registrations[i].reprocessingType = orgUpdateData.reprocessingType
     }
     if (orgUpdateData.glassRecyclingProcess?.trim()) {
-      registration.glassRecyclingProcess = [orgUpdateData.glassRecyclingProcess]
+      data.registrations[i].glassRecyclingProcess = [
+        orgUpdateData.glassRecyclingProcess
+      ]
     }
     if (submittedToRegulator) {
-      registration.submittedToRegulator = submittedToRegulator
+      data.registrations[i].submittedToRegulator = submittedToRegulator
     }
 
-    registrationIds.push(registration.id)
+    registrationIds.push(data.registrations[i].id)
 
-    let accreditation
     if (
       !orgUpdateData.withoutAccreditation &&
       data.accreditations[accreditationIndex]
     ) {
       const j = accreditationIndex
-      accreditation = data.accreditations[j]
-      registration.accreditationId = accreditation.id
-      accreditation.validTo = `${currentYear + 1}-01-01`
+      // accStatus lets the accreditation diverge from the registration's
+      // status (e.g. approved registration with a still-created accreditation,
+      // ready for the admin grant journey). Defaults to the shared status.
+      const accStatus = orgUpdateData.accStatus ?? orgUpdateData.status
+      data.registrations[i].accreditationId = data.accreditations[j].id
+      data.accreditations[j].status = accStatus
+      data.accreditations[j].validFrom = validFrom
+      data.accreditations[j].validTo = `${currentYear + 1}-01-01`
+      data.accreditations[j].statusHistory =
+        accStatus === 'created'
+          ? data.accreditations[j].statusHistory || []
+          : [
+              ...(data.accreditations[j].statusHistory || []),
+              {
+                status: accStatus,
+                updatedAt: data.accreditations[j].validFrom
+              }
+            ]
+      data.accreditations[j].statusHistory = (
+        data.accreditations[j].statusHistory || []
+      ).map((entry) => {
+        if (entry.status === 'created') {
+          return {
+            ...entry,
+            updatedAt: '2025-12-31'
+          }
+        }
+        return entry
+      })
+      if (orgUpdateData.validFrom?.trim()) {
+        data.accreditations[j].validFrom = orgUpdateData.validFrom
+      }
       if (orgUpdateData.reprocessingType?.trim()) {
-        accreditation.reprocessingType = orgUpdateData.reprocessingType
+        data.accreditations[j].reprocessingType = orgUpdateData.reprocessingType
       }
       if (orgUpdateData.glassRecyclingProcess?.trim()) {
-        accreditation.glassRecyclingProcess = [
+        data.accreditations[j].glassRecyclingProcess = [
           orgUpdateData.glassRecyclingProcess
         ]
       }
+      data.accreditations[j].accreditationNumber = orgUpdateData.accNumber
       if (submittedToRegulator) {
-        accreditation.submittedToRegulator = submittedToRegulator
+        data.accreditations[j].submittedToRegulator = submittedToRegulator
       }
-      accreditationIds.push(accreditation.id)
+      accreditationIds.push(data.accreditations[j].id)
       accreditationIndex++
     }
-
-    const registrationNumber = uniquifyNumber(
-      orgUpdateData.regNumber,
-      registration.id
-    )
-    const accreditationNumber = uniquifyNumber(
-      orgUpdateData.accNumber,
-      accreditation?.id
-    )
-    registrationNumbers.push(registrationNumber)
-    accreditationNumbers.push(accreditationNumber)
-
-    transitions.push({
-      registration,
-      accreditation,
-      orgUpdateData,
-      effectiveFrom,
-      registrationNumber,
-      accreditationNumber
-    })
   }
 
   if (submittedToRegulator) {
@@ -539,140 +423,40 @@ export async function updateMigratedOrganisation(
   }
   data.submitterContactDetails.email = email
 
+  data.status = updateDataRows[0].status
+  data.statusHistory = [
+    ...(data.statusHistory || []),
+    {
+      status: updateDataRows[0].status,
+      updatedAt: data.registrations[0].validFrom
+    }
+  ]
   const payload = {
     version: Number(data.version),
     updateFragment: data
   }
 
+  // Statuses and numbers seed through the non-prod twin of the organisation
+  // PUT: the public route rejects status changes (PAE-1645) and the
+  // transition endpoints enforce number uniqueness, which the suite's shared
+  // fixture workbooks cannot follow.
   response = await baseAPI.put(
-    `/v1/organisations/${orgId}`,
+    `/v1/dev/organisations/${orgId}`,
     JSON.stringify(payload),
     authClient.authHeader()
   )
-  await assertSuccessResponse(response, `PUT /v1/organisations/${orgId}`)
+  await assertSuccessResponse(response, `PUT /v1/dev/organisations/${orgId}`)
 
-  const authHeader = authClient.authHeader()
-  for (const t of transitions) {
-    const regTarget = t.orgUpdateData.status
-    // accStatus lets the accreditation diverge from the registration's
-    // status (e.g. approved registration with a still-created accreditation,
-    // ready for the admin grant journey). Defaults to the shared status.
-    const accTarget = t.accreditation
-      ? (t.orgUpdateData.accStatus ?? t.orgUpdateData.status)
-      : undefined
-
-    // The registration is granted before any accreditation step (granting or
-    // reinstating an accreditation requires an approved registration,
-    // PAE-1800) and cancelled after them, so a cancelled-registration target
-    // force-cancels its live accreditation via the backend cascade.
-    const regSteps = statusTransitionSteps(
-      REGISTRATION_TRANSITION_PATHS,
-      'registration',
-      t.registration.status,
-      regTarget
-    )
-    const regCancelSteps = regSteps.filter(
-      (step) => step.toStatus === 'cancelled'
-    )
-    await walkRegistrationTransitions(
-      baseAPI,
-      authHeader,
-      orgId,
-      t.registration.id,
-      regSteps.filter((step) => step.toStatus !== 'cancelled'),
-      {
-        appliesFrom: t.effectiveFrom,
-        registrationNumber: t.registrationNumber
-      }
-    )
-
-    if (accTarget && t.accreditation.status !== accTarget) {
-      const accSteps =
-        regTarget === 'cancelled' && accTarget === 'cancelled'
-          ? // The registration cancel below cascades the cancellation; the
-            // accreditation only needs to be live first.
-            statusTransitionSteps(
-              ACCREDITATION_TRANSITION_PATHS,
-              'accreditation',
-              t.accreditation.status,
-              'approved'
-            )
-          : statusTransitionSteps(
-              ACCREDITATION_TRANSITION_PATHS,
-              'accreditation',
-              t.accreditation.status,
-              accTarget
-            )
-      await walkAccreditationTransitions(
-        baseAPI,
-        authHeader,
-        orgId,
-        t.registration.id,
-        t.accreditation.id,
-        accSteps,
-        {
-          appliesFrom: t.effectiveFrom,
-          accreditationNumber: t.accreditationNumber
-        }
-      )
-    }
-
-    await walkRegistrationTransitions(
-      baseAPI,
-      authHeader,
-      orgId,
-      t.registration.id,
-      regCancelSteps
-    )
-  }
-
-  // The organisation's own status stays editable via the PUT, but approving
-  // it requires an approved registration — so it is set after the item
-  // transitions, against the fresh version.
-  const orgTarget = updateDataRows[0].status
-  if (['approved', 'rejected'].includes(orgTarget)) {
-    response = await baseAPI.get(
-      `/v1/organisations/${orgId}`,
-      authClient.authHeader()
-    )
-    const fresh = await assertSuccessResponse(
-      response,
-      `GET /v1/organisations/${orgId}`
-    )
-    if (fresh.status !== orgTarget) {
-      fresh.status = orgTarget
-      response = await baseAPI.put(
-        `/v1/organisations/${orgId}`,
-        JSON.stringify({
-          version: Number(fresh.version),
-          updateFragment: fresh
-        }),
-        authClient.authHeader()
-      )
-      await assertSuccessResponse(response, `PUT /v1/organisations/${orgId}`)
-    }
-  }
-
-  return {
-    email,
-    registrationIds,
-    accreditationIds,
-    registrationNumbers,
-    accreditationNumbers
-  }
+  return { email, registrationIds, accreditationIds }
 }
 
-// Flips the first accreditation's status via the transition endpoints
-// (PAE-1645). Only works between granted-state statuses — an accreditation
-// still in created must be seeded through updateMigratedOrganisation, which
-// carries the number the grant issues.
 export async function updateStatus(orgId, newStatus) {
   const authClient = new AuthClient()
   const baseAPI = new BaseAPI()
 
   await authClient.authenticate()
 
-  const response = await baseAPI.get(
+  let response = await baseAPI.get(
     `/v1/organisations/${orgId}`,
     authClient.authHeader()
   )
@@ -682,46 +466,49 @@ export async function updateStatus(orgId, newStatus) {
     `GET /v1/organisations/${orgId}`
   )
 
-  const accreditation = data.accreditations[0]
-  const registration = data.registrations.find(
-    (reg) => reg.accreditationId === accreditation.id
-  )
-  const steps = statusTransitionSteps(
-    ACCREDITATION_TRANSITION_PATHS,
-    'accreditation',
-    accreditation.status,
-    newStatus
-  )
-  if (steps.some((step) => step.grant)) {
-    throw new Error(
-      `updateStatus cannot grant an accreditation (from ${accreditation.status}) — seed it via updateMigratedOrganisation`
-    )
+  data.accreditations[0].status = newStatus
+  const statusChangeDate = new Date(data.accreditations[0].validFrom)
+  statusChangeDate.setDate(statusChangeDate.getDate() + 1)
+  data.accreditations[0].statusHistory = [
+    ...(data.accreditations[0].statusHistory || []),
+    {
+      status: newStatus,
+      updatedAt: statusChangeDate.toISOString().split('T')[0]
+    }
+  ]
+
+  const payload = {
+    version: Number(data.version),
+    updateFragment: data
   }
 
-  await walkAccreditationTransitions(
-    baseAPI,
-    authClient.authHeader(),
-    orgId,
-    registration.id,
-    accreditation.id,
-    steps
+  // Statuses and numbers seed through the non-prod twin of the organisation
+  // PUT: the public route rejects status changes (PAE-1645) and the
+  // transition endpoints enforce number uniqueness, which the suite's shared
+  // fixture workbooks cannot follow.
+  response = await baseAPI.put(
+    `/v1/dev/organisations/${orgId}`,
+    JSON.stringify(payload),
+    authClient.authHeader()
+  )
+
+  await assertSuccessResponseWithoutBody(
+    response,
+    `PUT /v1/dev/organisations/${orgId}`
   )
 }
 
-// Updates the first registration's status via the transition endpoints
-// (updateStatus above targets the accreditation). Cancelling a registration
-// force-cancels its linked accreditation (PAE-1705 Scenario 5) — the backend
-// cascades the change, so callers only set the registration side. Only works
-// between granted-state statuses — a created registration must be seeded
-// through updateMigratedOrganisation, which carries the number the grant
-// issues.
+// Updates the first registration's status (updateStatus above targets the
+// accreditation). Cancelling a registration force-cancels its linked
+// accreditation (PAE-1705 Scenario 5) — the backend cascades the change, so
+// callers only set the registration side.
 export async function updateRegistrationStatus(orgId, newStatus) {
   const authClient = new AuthClient()
   const baseAPI = new BaseAPI()
 
   await authClient.authenticate()
 
-  const response = await baseAPI.get(
+  let response = await baseAPI.get(
     `/v1/organisations/${orgId}`,
     authClient.authHeader()
   )
@@ -731,25 +518,35 @@ export async function updateRegistrationStatus(orgId, newStatus) {
     `GET /v1/organisations/${orgId}`
   )
 
-  const registration = data.registrations[0]
-  const steps = statusTransitionSteps(
-    REGISTRATION_TRANSITION_PATHS,
-    'registration',
-    registration.status,
-    newStatus
-  )
-  if (steps.some((step) => step.grant)) {
-    throw new Error(
-      `updateRegistrationStatus cannot grant a registration (from ${registration.status}) — seed it via updateMigratedOrganisation`
-    )
+  data.registrations[0].status = newStatus
+  const statusChangeDate = new Date(data.registrations[0].validFrom)
+  statusChangeDate.setDate(statusChangeDate.getDate() + 1)
+  data.registrations[0].statusHistory = [
+    ...(data.registrations[0].statusHistory || []),
+    {
+      status: newStatus,
+      updatedAt: statusChangeDate.toISOString().split('T')[0]
+    }
+  ]
+
+  const payload = {
+    version: Number(data.version),
+    updateFragment: data
   }
 
-  await walkRegistrationTransitions(
-    baseAPI,
-    authClient.authHeader(),
-    orgId,
-    registration.id,
-    steps
+  // Statuses and numbers seed through the non-prod twin of the organisation
+  // PUT: the public route rejects status changes (PAE-1645) and the
+  // transition endpoints enforce number uniqueness, which the suite's shared
+  // fixture workbooks cannot follow.
+  response = await baseAPI.put(
+    `/v1/dev/organisations/${orgId}`,
+    JSON.stringify(payload),
+    authClient.authHeader()
+  )
+
+  await assertSuccessResponseWithoutBody(
+    response,
+    `PUT /v1/dev/organisations/${orgId}`
   )
 }
 
