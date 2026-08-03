@@ -134,14 +134,14 @@ services:
 
   # Simulates Defra ID sign-in for waste-operator users (epr-frontend journeys).
   defra-id-stub:
-    image: defradigital/epr-re-ex-defra-id-stub:latest@sha256:e56faa55f3e95cbde699485d956f7dc25f02b1a24816c314141bf4e589e6545e
+    image: defradigital/epr-re-ex-defra-id-stub:0.6.0@sha256:a98160ed5fe0c594fc5acfddb46594348624fb768b4e8cf06aa9b3c750981464
     ports:
       - '3200:3200'
     depends_on:
       redis:
         condition: service_healthy
     environment:
-      APP_BASE_URL: http://defra-id-stub:3200
+      APP_BASE_URL: http://localhost:3200
       NODE_ENV: development
       OIDC_BASE_PATH: /epr-re-ex-defra-id-stub
       OIDC_CLIENT_ID: 63983fc2-cfff-45bb-8ec2-959e21062b9a
@@ -150,6 +150,7 @@ services:
       PORT: 3200
       REDIS_HOST: redis
       SESSION_CACHE_ENGINE: redis
+      STUB_INTERNAL_URL: http://defra-id-stub:3200
       USE_SINGLE_INSTANCE_CACHE: true
 
   # Simulates Entra ID (Microsoft) sign-in: used for epr-backend's
