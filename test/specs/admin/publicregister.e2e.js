@@ -43,14 +43,17 @@ test.describe('Public Register page', () => {
 
     // The fixture uniquifies the numbers per organisation (grant-issued
     // numbers are unique, PAE-1645) — assert the actual issued values.
-    const migrated = await updateMigratedOrganisation(linkedOrganisation.refNo, [
-      {
-        reprocessingType: 'input',
-        regNumber: 'R25SR500030912PA',
-        accNumber: 'ACC123456',
-        status: 'approved'
-      }
-    ])
+    const migrated = await updateMigratedOrganisation(
+      linkedOrganisation.refNo,
+      [
+        {
+          reprocessingType: 'input',
+          regNumber: 'R25SR500030912PA',
+          accNumber: 'ACC123456',
+          status: 'approved'
+        }
+      ]
+    )
     regNumber = migrated.registrationNumbers[0]
     accNumber = migrated.accreditationNumbers[0]
 

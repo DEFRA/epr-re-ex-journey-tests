@@ -325,6 +325,14 @@ function statusTransitionSteps(paths, kind, fromStatus, toStatus) {
   return steps
 }
 
+/**
+ * @param {BaseAPI} baseAPI
+ * @param {ReturnType<AuthClient["authHeader"]>} authHeader
+ * @param {string} orgId
+ * @param {string} registrationId
+ * @param {Array<{fromStatus: string, toStatus: string, grant?: boolean}>} steps
+ * @param {{appliesFrom?: string, registrationNumber?: string}} [grantFields]
+ */
 async function walkRegistrationTransitions(
   baseAPI,
   authHeader,
@@ -354,6 +362,15 @@ async function walkRegistrationTransitions(
   }
 }
 
+/**
+ * @param {BaseAPI} baseAPI
+ * @param {ReturnType<AuthClient["authHeader"]>} authHeader
+ * @param {string} orgId
+ * @param {string} registrationId
+ * @param {string} accreditationId
+ * @param {Array<{fromStatus: string, toStatus: string, grant?: boolean}>} steps
+ * @param {{appliesFrom?: string, accreditationNumber?: string}} [grantFields]
+ */
 async function walkAccreditationTransitions(
   baseAPI,
   authHeader,
@@ -434,13 +451,14 @@ export async function updateMigratedOrganisation(
   // appliesFrom, so neither is written here.
   const transitions = []
 
-  // Grant-issued numbers are unique across organisations (the transition
-  // endpoints enforce it) but specs reuse well-known constants, so suffix
-  // them with per-organisation entropy — every org's numbers are then
-  // distinct within a run. Substring assertions on the base number still
-  // match; the actual numbers are returned for exact assertions.
-  const uniquifyNumber = (number) =>
-    number ? `${number}-${String(orgId).slice(-5)}` : number
+  // Grant-issued numbers are unique across every registration and
+  // accreditation (the transition endpoints enforce it) but specs reuse
+  // well-known constants — including the same constant for several rows of
+  // one organisation — so suffix each number with the receiving item's own
+  // id. Substring assertions on the base number still match; the actual
+  // numbers are returned for exact assertions.
+  const uniquifyNumber = (number, itemId) =>
+    number && itemId ? `${number}-${String(itemId).slice(-6)}` : number
 
   for (let i = 0; i < updateDataRows.length; i++) {
     const orgUpdateData = updateDataRows[i]
@@ -485,8 +503,14 @@ export async function updateMigratedOrganisation(
       accreditationIndex++
     }
 
-    const registrationNumber = uniquifyNumber(orgUpdateData.regNumber)
-    const accreditationNumber = uniquifyNumber(orgUpdateData.accNumber)
+    const registrationNumber = uniquifyNumber(
+      orgUpdateData.regNumber,
+      registration.id
+    )
+    const accreditationNumber = uniquifyNumber(
+      orgUpdateData.accNumber,
+      accreditation?.id
+    )
     registrationNumbers.push(registrationNumber)
     accreditationNumbers.push(accreditationNumber)
 
