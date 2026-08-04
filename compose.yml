@@ -298,7 +298,7 @@ services:
       ENTRA_TENANT_ID: tenantId
       ENTRA_CLIENT_ID: clientId
       ENTRA_CLIENT_SECRET: test
-      ENTRA_OIDC_WELL_KNOWN_CONFIGURATION_URL: http://epr-re-ex-entra-stub:3010/.well-known/openid-configuration
+      ENTRA_OIDC_WELL_KNOWN_CONFIGURATION_URL: http://entra-stub:3010/.well-known/openid-configuration
       EPR_BACKEND_URL: http://epr-backend:3001
       FEATURE_FLAG_REGULATOR_ACCESS: true
       NODE_ENV: development
@@ -311,6 +311,8 @@ services:
     depends_on:
       defra-id-stub:
         condition: service_started
+      entra-stub:
+        condition: service_healthy
       floci-init:
         condition: service_completed_successfully
       redis:
