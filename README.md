@@ -70,14 +70,6 @@ Install application dependencies:
 npm install
 ```
 
-### Additional configuration in Linux
-
-For Linux based machines, you will need to add this entry into your `etc/hosts` file for the tests to run locally:
-
-```
-127.0.0.1 defra-id-stub
-```
-
 ### Running local tests
 
 Bring up the three apps under test and their backing services with `docker compose up -d --build` (see [Running on GitHub](#running-on-github) below for what `compose.yml` provides), then:
