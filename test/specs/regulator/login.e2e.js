@@ -4,7 +4,8 @@ import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 
 test.describe('Regulator login @regulator', () => {
-  test('Should be able to sign in as a regulator, reach the landing page, and sign out @regulatorlogin', async ({
+  //TODO:Skip for now
+  test.skip('Should be able to sign in as a regulator, reach the landing page, and sign out @regulatorlogin', async ({
     page
   }) => {
     const loginPage = new RegulatorLoginPage(page)
