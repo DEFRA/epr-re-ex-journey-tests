@@ -117,8 +117,10 @@ async function updateAccreditationStatus(baseAPI, authClient, refNo, status) {
     { status, updatedAt: statusChangeDate.toISOString().split('T')[0] }
   ]
 
+  // Status changes seed through the non-prod twin of the organisation PUT —
+  // the public route rejects them (PAE-1645).
   return baseAPI.put(
-    `/v1/organisations/${refNo}`,
+    `/v1/dev/organisations/${refNo}`,
     JSON.stringify({ version: Number(data.version), updateFragment: data }),
     authClient.authHeader()
   )

@@ -436,12 +436,16 @@ export async function updateMigratedOrganisation(
     updateFragment: data
   }
 
+  // Statuses and numbers seed through the non-prod twin of the organisation
+  // PUT: the public route rejects status changes (PAE-1645) and the
+  // transition endpoints enforce number uniqueness, which the suite's shared
+  // fixture workbooks cannot follow.
   response = await baseAPI.put(
-    `/v1/organisations/${orgId}`,
+    `/v1/dev/organisations/${orgId}`,
     JSON.stringify(payload),
     authClient.authHeader()
   )
-  await assertSuccessResponse(response, `PUT /v1/organisations/${orgId}`)
+  await assertSuccessResponse(response, `PUT /v1/dev/organisations/${orgId}`)
 
   return { email, registrationIds, accreditationIds }
 }
@@ -478,15 +482,19 @@ export async function updateStatus(orgId, newStatus) {
     updateFragment: data
   }
 
+  // Statuses and numbers seed through the non-prod twin of the organisation
+  // PUT: the public route rejects status changes (PAE-1645) and the
+  // transition endpoints enforce number uniqueness, which the suite's shared
+  // fixture workbooks cannot follow.
   response = await baseAPI.put(
-    `/v1/organisations/${orgId}`,
+    `/v1/dev/organisations/${orgId}`,
     JSON.stringify(payload),
     authClient.authHeader()
   )
 
   await assertSuccessResponseWithoutBody(
     response,
-    `PUT /v1/organisations/${orgId}`
+    `PUT /v1/dev/organisations/${orgId}`
   )
 }
 
@@ -526,15 +534,19 @@ export async function updateRegistrationStatus(orgId, newStatus) {
     updateFragment: data
   }
 
+  // Statuses and numbers seed through the non-prod twin of the organisation
+  // PUT: the public route rejects status changes (PAE-1645) and the
+  // transition endpoints enforce number uniqueness, which the suite's shared
+  // fixture workbooks cannot follow.
   response = await baseAPI.put(
-    `/v1/organisations/${orgId}`,
+    `/v1/dev/organisations/${orgId}`,
     JSON.stringify(payload),
     authClient.authHeader()
   )
 
   await assertSuccessResponseWithoutBody(
     response,
-    `PUT /v1/organisations/${orgId}`
+    `PUT /v1/dev/organisations/${orgId}`
   )
 }
 
