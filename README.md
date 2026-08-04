@@ -99,13 +99,11 @@ WDIO_CHROME_VERSION=146.0.7680.154 npm run test:local:grep
 
 ### Running with Proxy
 
-By default, running via a MITM proxy is disabled. To inspect the API traffic these tests generate, first start an [mitmproxy](https://mitmproxy.org/) container **on the same docker network as the backing-services stack** - mitmproxy resolves the target hostname of a proxied request itself, from inside that network, so it needs to be able to see `epr-backend`, `defra-id-stub`, `entra-stub`, and `cognito-stub` by name:
+By default, running via a MITM proxy is disabled. To inspect the API traffic these tests generate, first start an [mitmproxy](https://mitmproxy.org/) container **on the `cdp-tenant` docker network** - mitmproxy resolves the target hostname of a proxied request itself, from inside that network, so it needs to be able to see `epr-backend`, `defra-id-stub`, `entra-stub`, and `cognito-stub` by name. `compose.yml` attaches every backing-services container to `cdp-tenant` for exactly this reason:
 
 ```bash
-docker run --rm -it --name mitm-proxy --network epr-re-ex-journey-tests_default -p 7777:7777 -p 127.0.0.1:8081:8081 mitmproxy/mitmproxy mitmweb --web-host 0.0.0.0 --listen-port 7777 --set block_global=false
+docker run --rm -it --name mitm-proxy --network cdp-tenant -p 7777:7777 -p 127.0.0.1:8081:8081 mitmproxy/mitmproxy mitmweb --web-host 0.0.0.0 --listen-port 7777 --set block_global=false
 ```
-
-`epr-re-ex-journey-tests_default` is the network `docker compose up` creates for this repo's own `compose.yml`; if you're instead running the backing services from a different stack (e.g. `epr-re-ex-service`), pass that stack's network name instead - check with `docker network ls`.
 
 You can now monitor the proxy traffic via <http://localhost:8081/> (use the token from the console output of the command above).
 
