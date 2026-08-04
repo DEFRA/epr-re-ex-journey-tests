@@ -54,7 +54,7 @@ services:
       - '4566:4566'
 
   floci-init:
-    image: amazon/aws-cli:2.36.12@sha256:9961ad6c6bc20d1631fcf76cf4ad14e77735911a78600ffc9b4c0c1bd21a8b4c
+    image: amazon/aws-cli:2.36.14@sha256:72180b996fad939e764434d9a69a9512ed699a061cd5db198feeb2e9533fd750
     entrypoint: /bin/sh
     command: /setup/init.sh
     depends_on:
@@ -81,7 +81,7 @@ services:
       retries: 5
 
   cdp-uploader:
-    image: defradigital/cdp-uploader:1.21.0@sha256:442be6f56b4792be1929a0a43073f2565d756efee3b6c28797db856fa1875de3
+    image: defradigital/cdp-uploader:1.22.0@sha256:437c151fed33f2ed91f0b001bfbe31c090a5dce7a820ac6db02636b254b9eddb
     ports:
       - '7337:7337'
     depends_on:
