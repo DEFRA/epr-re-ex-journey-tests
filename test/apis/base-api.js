@@ -16,7 +16,8 @@ export class BaseAPI {
       body
     } = await request(`${baseUrl}${endpoint}`, {
       method: 'GET',
-      headers: { ...this.defaultHeaders, ...headers }
+      headers: { ...this.defaultHeaders, ...headers },
+      dispatcher: config.undiciAgent
     })
     return { statusCode, responseHeaders, body }
   }
@@ -46,7 +47,8 @@ export class BaseAPI {
     } = await request(`${baseUrl}${endpoint}`, {
       method,
       headers: instanceHeaders,
-      body: data
+      body: data,
+      dispatcher: config.undiciAgent
     })
     return { statusCode, responseHeaders, body }
   }
