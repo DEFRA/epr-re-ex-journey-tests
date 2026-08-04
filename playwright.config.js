@@ -20,13 +20,6 @@ const chromeArgs = [
   '--disable-dev-shm-usage'
 ]
 
-if (!environment) {
-  // epr-frontend redirects the browser to the real Defra ID stub hostname
-  // during sign-in; compose only publishes it on localhost, so map the
-  // internal name there for local/GHA runs against the docker-compose stack.
-  chromeArgs.push('--host-resolver-rules=MAP defra-id-stub:3200 localhost:3200')
-}
-
 export default defineConfig({
   testDir: './test/specs',
   testMatch: '**/*.e2e.js',
@@ -52,7 +45,7 @@ export default defineConfig({
   use: {
     baseURL: environment
       ? `https://epr-frontend.${environment}.cdp-int.defra.cloud`
-      : 'http://localhost:3000',
+      : `http://localhost:${process.env.FRONTEND_PORT || 3000}`,
     headless: !debug,
     screenshot: isLocalDev ? 'on' : 'only-on-failure',
     trace: isLocalDev ? 'on' : 'retain-on-failure',

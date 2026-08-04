@@ -326,14 +326,16 @@ export async function updateOrganisationData(
     updateFragment: data
   }
 
+  // Seeding twin of PUT /v1/organisations/{id}: the public route rejects
+  // registration and accreditation status changes (PAE-1645).
   const patchResponse = await context.baseAPI.put(
-    `/v1/organisations/${referenceNumber}`,
+    `/v1/dev/organisations/${referenceNumber}`,
     JSON.stringify(payload),
     context.authClient.authHeader()
   )
   await assertSuccessResponse(
     patchResponse,
-    `/v1/organisations/${referenceNumber}`
+    `/v1/dev/organisations/${referenceNumber}`
   )
 
   return replacementEmail
