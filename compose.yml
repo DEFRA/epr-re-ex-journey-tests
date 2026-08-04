@@ -9,7 +9,7 @@
 #   - floci (s3, sqs, sns) — AWS emulator
 #   - cognito-stub — external/regulator-facing PRN API auth
 #   - defra-id-stub — operator sign-in
-#   - epr-re-ex-entra-stub — service-to-service + admin-frontend sign-in
+#   - entra-stub — service-to-service + admin-frontend sign-in
 #   - wire-mock — external HTTP APIs (waste-organisations lookup, forms
 #     submission), mirroring epr-re-ex-service's compose/wire-mock mappings
 #
@@ -155,12 +155,12 @@ services:
 
   # Simulates Entra ID (Microsoft) sign-in: used for epr-backend's
   # service-to-service auth and for epr-re-ex-admin-frontend's browser login.
-  epr-re-ex-entra-stub:
+  entra-stub:
     image: defradigital/epr-re-ex-entra-stub:0.102.0@sha256:dd4a5ad46ae7ab1fd7cb8c816803fc29db7a7f83e00c2413f853d571ab8027f4
     ports:
       - 3010:3010
     environment:
-      STUB_INTERNAL_URL: http://epr-re-ex-entra-stub:3010
+      STUB_INTERNAL_URL: http://entra-stub:3010
     healthcheck:
       test: ['CMD', 'curl', 'http://localhost:3010/health']
       interval: 3s
@@ -205,7 +205,7 @@ services:
         condition: service_started
       defra-id-stub:
         condition: service_started
-      epr-re-ex-entra-stub:
+      entra-stub:
         condition: service_healthy
       floci-init:
         condition: service_completed_successfully
@@ -225,7 +225,7 @@ services:
       COMMAND_QUEUE_SQS_ENDPOINT: http://floci:4566
       DEFRA_ID_CLIENT_ID: 63983fc2-cfff-45bb-8ec2-959e21062b9a
       DEFRA_ID_OIDC_WELL_KNOWN_URL: http://defra-id-stub:3200/epr-re-ex-defra-id-stub/.well-known/openid-configuration
-      ENTRA_OIDC_WELL_KNOWN_CONFIGURATION_URL: http://epr-re-ex-entra-stub:3010/.well-known/openid-configuration
+      ENTRA_OIDC_WELL_KNOWN_CONFIGURATION_URL: http://entra-stub:3010/.well-known/openid-configuration
       FEATURE_FLAG_DEV_ENDPOINTS: true
       GOVUK_NOTIFY_API_KEY: fake-key-for-testing
       LOG_FORMAT: ecs
@@ -308,7 +308,7 @@ services:
       ENTRA_TENANT_ID: tenantId
       ENTRA_CLIENT_ID: clientId
       ENTRA_CLIENT_SECRET: test
-      OIDC_WELL_KNOWN_CONFIGURATION_URL: http://epr-re-ex-entra-stub:3010/.well-known/openid-configuration
+      OIDC_WELL_KNOWN_CONFIGURATION_URL: http://entra-stub:3010/.well-known/openid-configuration
       USE_SINGLE_INSTANCE_CACHE: true
       # Unlike epr-frontend above, the admin UI redirects the browser straight
       # to cdp-uploader rather than proxying uploads server-side, so this must
@@ -318,7 +318,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      epr-re-ex-entra-stub:
+      entra-stub:
         condition: service_healthy
       epr-backend:
         condition: service_healthy
