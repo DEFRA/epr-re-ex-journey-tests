@@ -168,6 +168,11 @@ services:
       SESSION_CACHE_ENGINE: redis
       STUB_INTERNAL_URL: http://defra-id-stub:3200
       USE_SINGLE_INSTANCE_CACHE: true
+    healthcheck:
+      test: ['CMD', 'curl', 'http://localhost:3200/health']
+      interval: 3s
+      start_period: 2s
+      retries: 3
 
   # Simulates Entra ID (Microsoft) sign-in: used for epr-backend's
   # service-to-service auth and for epr-re-ex-admin-frontend's browser login.
@@ -226,7 +231,7 @@ services:
       cognito-stub:
         condition: service_started
       defra-id-stub:
-        condition: service_started
+        condition: service_healthy
       entra-stub:
         condition: service_healthy
       floci-init:
@@ -295,7 +300,12 @@ services:
       DEFRA_ID_CLIENT_SECRET: test_value
       DEFRA_ID_OIDC_CONFIGURATION_URL: http://defra-id-stub:3200/epr-re-ex-defra-id-stub/.well-known/openid-configuration
       DEFRA_ID_SERVICE_ID: d7d72b79-9c62-ee11-8df0-000d3adf7047
+      ENTRA_TENANT_ID: tenantId
+      ENTRA_CLIENT_ID: clientId
+      ENTRA_CLIENT_SECRET: test
+      ENTRA_OIDC_WELL_KNOWN_CONFIGURATION_URL: http://entra-stub:3010/.well-known/openid-configuration
       EPR_BACKEND_URL: http://epr-backend:3001
+      FEATURE_FLAG_REGULATOR_ACCESS: true
       NODE_ENV: development
       PORT: 3000
       REDIS_HOST: redis
@@ -305,7 +315,9 @@ services:
       WASTE_ORGANISATIONS_API_PASSWORD: testpassword
     depends_on:
       defra-id-stub:
-        condition: service_started
+        condition: service_healthy
+      entra-stub:
+        condition: service_healthy
       floci-init:
         condition: service_completed_successfully
       redis:

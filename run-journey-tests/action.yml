@@ -171,6 +171,22 @@ runs:
       run: npm ci
       shell: bash
 
+    # The data generators are the hand-seeding path for local and manual
+    # testing; the specs seed from their own fixtures, so nothing else here
+    # exercises them and drift in the backend or in the committed templates
+    # only surfaces when someone runs them by hand. These two smoke steps keep
+    # that drift visible.
+    #
+    # The spreadsheet half needs no stack (pure ExcelJS + faker), so it runs
+    # before the compose bring-up. Each variant reads a different template and
+    # a different worksheet config, so all five run - ~13s for the set.
+    - name: Smoke the spreadsheet generators
+      shell: bash
+      run: |
+        for variant in exporter input output regOnlyExporter regOnlyReprocessor; do
+          npm run "generate:spreadsheet:$variant"
+        done
+
     # Doesn't skip the apt-get portion of --with-deps (OS packages aren't
     # restorable this way on a fresh runner each time) but lets Playwright's
     # own already-installed check skip re-downloading the browser binary
@@ -215,6 +231,16 @@ runs:
           *) npm run test:github ;;
         esac
         npm run report
+
+    # After the specs, not before: generated organisations land in the same
+    # stack the specs assert against. withLinking is the widest variant - it
+    # covers createOrganisation, updateOrganisationData and the Defra ID link
+    # path, and the other API generators share those same primitives. A spec
+    # failure only touches FAILED rather than exiting non-zero, so this still
+    # runs and reports independently.
+    - name: Smoke the API data generators
+      shell: bash
+      run: npm run generatedata:withLinking
 
     - name: debug
       if: always()
