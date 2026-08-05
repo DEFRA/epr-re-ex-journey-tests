@@ -295,7 +295,12 @@ services:
       DEFRA_ID_CLIENT_SECRET: test_value
       DEFRA_ID_OIDC_CONFIGURATION_URL: http://defra-id-stub:3200/epr-re-ex-defra-id-stub/.well-known/openid-configuration
       DEFRA_ID_SERVICE_ID: d7d72b79-9c62-ee11-8df0-000d3adf7047
+      ENTRA_TENANT_ID: tenantId
+      ENTRA_CLIENT_ID: clientId
+      ENTRA_CLIENT_SECRET: test
+      ENTRA_OIDC_WELL_KNOWN_CONFIGURATION_URL: http://entra-stub:3010/.well-known/openid-configuration
       EPR_BACKEND_URL: http://epr-backend:3001
+      FEATURE_FLAG_REGULATOR_ACCESS: true
       NODE_ENV: development
       PORT: 3000
       REDIS_HOST: redis
@@ -306,6 +311,8 @@ services:
     depends_on:
       defra-id-stub:
         condition: service_started
+      entra-stub:
+        condition: service_healthy
       floci-init:
         condition: service_completed_successfully
       redis:
