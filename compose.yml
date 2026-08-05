@@ -9,7 +9,7 @@
 #   - floci (s3, sqs, sns) — AWS emulator
 #   - cognito-stub — external/regulator-facing PRN API auth
 #   - defra-id-stub — operator sign-in
-#   - epr-re-ex-entra-stub — service-to-service + admin-frontend sign-in
+#   - entra-stub — service-to-service + admin-frontend sign-in
 #   - wire-mock — external HTTP APIs (waste-organisations lookup, forms
 #     submission), mirroring epr-re-ex-service's compose/wire-mock mappings
 #
@@ -31,7 +31,9 @@ name: epr-re-ex-journey-tests
 
 services:
   mongodb:
-    image: mongo:8.3.7@sha256:a7f5aa200005611166adcec0192c2f11d0acc3bfd9d5eb68e1a998a990412e41
+    image: mongo:8.3.7@sha256:2f02e2184c6d91c3208e5ab75a0707d1386a05377b20fdaf49a314815774d863
+    networks:
+      - cdp-tenant
     restart: always
     ports:
       - '27017:27017'
@@ -45,6 +47,8 @@ services:
 
   floci:
     image: hectorvent/floci:1.5.5@sha256:c969cb48fcfae0eff3f4a4647b7772cd975e633cae7468e45abaf2d2eae18558
+    networks:
+      - cdp-tenant
     environment:
       FLOCI_HOSTNAME: floci
       FLOCI_DEFAULT_REGION: eu-west-2
@@ -54,9 +58,11 @@ services:
       - '4566:4566'
 
   floci-init:
-    image: amazon/aws-cli:2.36.12@sha256:9961ad6c6bc20d1631fcf76cf4ad14e77735911a78600ffc9b4c0c1bd21a8b4c
+    image: amazon/aws-cli:2.36.14@sha256:72180b996fad939e764434d9a69a9512ed699a061cd5db198feeb2e9533fd750
     entrypoint: /bin/sh
     command: /setup/init.sh
+    networks:
+      - cdp-tenant
     depends_on:
       floci:
         condition: service_started
@@ -71,6 +77,8 @@ services:
 
   redis:
     image: redis:8.0.6-alpine3.21@sha256:5f61955be8ab2ccee9372b84ae4d4da2e2b156f87281e3f218544055e7ee04d4
+    networks:
+      - cdp-tenant
     ports:
       - '6379:6379'
     restart: always
@@ -81,7 +89,9 @@ services:
       retries: 5
 
   cdp-uploader:
-    image: defradigital/cdp-uploader:1.21.0@sha256:442be6f56b4792be1929a0a43073f2565d756efee3b6c28797db856fa1875de3
+    image: defradigital/cdp-uploader:1.22.0@sha256:437c151fed33f2ed91f0b001bfbe31c090a5dce7a820ac6db02636b254b9eddb
+    networks:
+      - cdp-tenant
     ports:
       - '7337:7337'
     depends_on:
@@ -114,6 +124,8 @@ services:
   # Copies cognito seed files into a volume so cognito-stub has its own copies
   cognito-stub-init:
     image: alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+    networks:
+      - cdp-tenant
     volumes:
       - ./compose/cognito-local/clients.json:/seed/clients.json:ro
       - ./compose/cognito-local/local_4D8shcYm.json:/seed/local_4D8shcYm.json:ro
@@ -124,6 +136,8 @@ services:
   # exercised by apicalls.js's externalAPICancelPrn/externalAPIAcceptPrn.
   cognito-stub:
     image: jagregory/cognito-local:5.3.0@sha256:a5ad30d01da5016a38535a717f6e1642d1b37f886a7b17e90b67f6e5ad134831
+    networks:
+      - cdp-tenant
     ports:
       - '9229:9229'
     volumes:
@@ -134,14 +148,16 @@ services:
 
   # Simulates Defra ID sign-in for waste-operator users (epr-frontend journeys).
   defra-id-stub:
-    image: defradigital/epr-re-ex-defra-id-stub:latest@sha256:e56faa55f3e95cbde699485d956f7dc25f02b1a24816c314141bf4e589e6545e
+    image: defradigital/epr-re-ex-defra-id-stub:0.6.0@sha256:a98160ed5fe0c594fc5acfddb46594348624fb768b4e8cf06aa9b3c750981464
+    networks:
+      - cdp-tenant
     ports:
       - '3200:3200'
     depends_on:
       redis:
         condition: service_healthy
     environment:
-      APP_BASE_URL: http://defra-id-stub:3200
+      APP_BASE_URL: http://localhost:3200
       NODE_ENV: development
       OIDC_BASE_PATH: /epr-re-ex-defra-id-stub
       OIDC_CLIENT_ID: 63983fc2-cfff-45bb-8ec2-959e21062b9a
@@ -150,16 +166,19 @@ services:
       PORT: 3200
       REDIS_HOST: redis
       SESSION_CACHE_ENGINE: redis
+      STUB_INTERNAL_URL: http://defra-id-stub:3200
       USE_SINGLE_INSTANCE_CACHE: true
 
   # Simulates Entra ID (Microsoft) sign-in: used for epr-backend's
   # service-to-service auth and for epr-re-ex-admin-frontend's browser login.
-  epr-re-ex-entra-stub:
-    image: defradigital/epr-re-ex-entra-stub:0.92.0@sha256:8b39a2dbaefbe1320c6f28836487d8aa19348dae8f271307fb687a47b1051221
+  entra-stub:
+    image: defradigital/epr-re-ex-entra-stub:0.102.0@sha256:dd4a5ad46ae7ab1fd7cb8c816803fc29db7a7f83e00c2413f853d571ab8027f4
+    networks:
+      - cdp-tenant
     ports:
       - 3010:3010
     environment:
-      STUB_INTERNAL_URL: http://epr-re-ex-entra-stub:3010
+      STUB_INTERNAL_URL: http://entra-stub:3010
     healthcheck:
       test: ['CMD', 'curl', 'http://localhost:3010/health']
       interval: 3s
@@ -175,6 +194,8 @@ services:
   # own external-URL default; harmless, doesn't block startup).
   wire-mock:
     image: wiremock/wiremock:3.13.2@sha256:0d4ecb3e4dc8213fd7a4d37d6a78f6e6b553a6d2e15bd51b0999781282ac61b3
+    networks:
+      - cdp-tenant
     ports:
       - '3100:8080'
     volumes:
@@ -197,6 +218,8 @@ services:
     build:
       context: ../epr-backend
       target: development
+    networks:
+      - cdp-tenant
     ports:
       - '3001:3001'
     depends_on:
@@ -204,7 +227,7 @@ services:
         condition: service_started
       defra-id-stub:
         condition: service_started
-      epr-re-ex-entra-stub:
+      entra-stub:
         condition: service_healthy
       floci-init:
         condition: service_completed_successfully
@@ -224,7 +247,7 @@ services:
       COMMAND_QUEUE_SQS_ENDPOINT: http://floci:4566
       DEFRA_ID_CLIENT_ID: 63983fc2-cfff-45bb-8ec2-959e21062b9a
       DEFRA_ID_OIDC_WELL_KNOWN_URL: http://defra-id-stub:3200/epr-re-ex-defra-id-stub/.well-known/openid-configuration
-      ENTRA_OIDC_WELL_KNOWN_CONFIGURATION_URL: http://epr-re-ex-entra-stub:3010/.well-known/openid-configuration
+      ENTRA_OIDC_WELL_KNOWN_CONFIGURATION_URL: http://entra-stub:3010/.well-known/openid-configuration
       FEATURE_FLAG_DEV_ENDPOINTS: true
       GOVUK_NOTIFY_API_KEY: fake-key-for-testing
       LOG_FORMAT: ecs
@@ -260,6 +283,8 @@ services:
 
   epr-frontend:
     image: defradigital/epr-frontend:${EPR_FRONTEND:-latest}
+    networks:
+      - cdp-tenant
     ports:
       - '3000:3000'
     env_file:
@@ -294,6 +319,8 @@ services:
 
   epr-re-ex-admin-frontend:
     image: defradigital/epr-re-ex-admin-frontend:${EPR_RE_EX_ADMIN_FRONTEND:-latest}
+    networks:
+      - cdp-tenant
     ports:
       - '3002:3002'
     env_file:
@@ -307,7 +334,7 @@ services:
       ENTRA_TENANT_ID: tenantId
       ENTRA_CLIENT_ID: clientId
       ENTRA_CLIENT_SECRET: test
-      OIDC_WELL_KNOWN_CONFIGURATION_URL: http://epr-re-ex-entra-stub:3010/.well-known/openid-configuration
+      OIDC_WELL_KNOWN_CONFIGURATION_URL: http://entra-stub:3010/.well-known/openid-configuration
       USE_SINGLE_INSTANCE_CACHE: true
       # Unlike epr-frontend above, the admin UI redirects the browser straight
       # to cdp-uploader rather than proxying uploads server-side, so this must
@@ -317,7 +344,7 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      epr-re-ex-entra-stub:
+      entra-stub:
         condition: service_healthy
       epr-backend:
         condition: service_healthy
@@ -336,6 +363,10 @@ services:
       interval: 3s
       start_period: 2s
       retries: 3
+
+networks:
+  cdp-tenant:
+    name: cdp-tenant
 
 volumes:
   cognito-db:

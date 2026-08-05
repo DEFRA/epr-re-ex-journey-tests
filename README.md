@@ -13,6 +13,7 @@ separate journey-test repos, one per app.
     - [Mise](#mise)
   - [Setup](#setup)
   - [Running local tests](#running-local-tests)
+  - [Running with Proxy](#running-with-proxy)
   - [Feature flags in journey tests](#feature-flags-in-journey-tests)
   - [Generating test organisation data](#generating-test-organisation-data)
   - [Generating summary-log spreadsheets](#generating-summary-log-spreadsheets)
@@ -70,14 +71,6 @@ Install application dependencies:
 npm install
 ```
 
-### Additional configuration in Linux
-
-For Linux based machines, you will need to add this entry into your `etc/hosts` file for the tests to run locally:
-
-```
-127.0.0.1 defra-id-stub
-```
-
 ### Running local tests
 
 Bring up the three apps under test and their backing services with `docker compose up -d --build` (see [Running on GitHub](#running-on-github) below for what `compose.yml` provides), then:
@@ -102,6 +95,34 @@ is not working for you, then you can specify the Chrome version when running loc
 
 ```sh
 WDIO_CHROME_VERSION=146.0.7680.154 npm run test:local:grep
+```
+
+### Running with Proxy
+
+By default, running via a MITM proxy is disabled. To inspect the API traffic these tests generate, first start an [mitmproxy](https://mitmproxy.org/) container **on the `cdp-tenant` docker network** - mitmproxy resolves the target hostname of a proxied request itself, from inside that network, so it needs to be able to see `epr-backend`, `defra-id-stub`, `entra-stub`, and `cognito-stub` by name. `compose.yml` attaches every backing-services container to `cdp-tenant` for exactly this reason:
+
+```bash
+docker run --rm -it --name mitm-proxy --network cdp-tenant -p 7777:7777 -p 127.0.0.1:8081:8081 mitmproxy/mitmproxy mitmweb --web-host 0.0.0.0 --listen-port 7777 --set block_global=false
+```
+
+You can now monitor the proxy traffic via <http://localhost:8081/> (use the token from the console output of the command above).
+
+If you wish to use a port other than 8081 for the mitmproxy web UI, pass in the following option at the end of the docker command (e.g. port 8082):
+
+```bash
+--web-port 8082
+```
+
+Now, run the tests with:
+
+```bash
+WITH_PROXY=true npm run test:api
+```
+
+The default proxy port is 7777. You can point at a different proxy (e.g. one already running elsewhere) by setting `HTTP_PROXY` instead - no code change needed:
+
+```bash
+WITH_PROXY=true HTTP_PROXY=http://localhost:8888 npm run test:api
 ```
 
 ### Feature flags in journey tests

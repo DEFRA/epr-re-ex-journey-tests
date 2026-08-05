@@ -16,7 +16,8 @@ export class DefraIdStub {
       {
         method: 'POST',
         headers: instanceHeaders,
-        body: payload
+        body: payload,
+        dispatcher: config.undiciAgent
       }
     )
 
@@ -34,7 +35,8 @@ export class DefraIdStub {
       {
         method: 'POST',
         headers: instanceHeaders,
-        body: payload
+        body: payload,
+        dispatcher: config.undiciAgent
       }
     )
   }
@@ -52,7 +54,8 @@ export class DefraIdStub {
       `${this.baseUrl}/epr-re-ex-defra-id-stub/authorize?${query}`,
       {
         method: 'GET',
-        headers: instanceHeaders
+        headers: instanceHeaders,
+        dispatcher: config.undiciAgent
       }
     )
 
@@ -67,7 +70,8 @@ export class DefraIdStub {
       {
         method: 'POST',
         headers: instanceHeaders,
-        body: payload
+        body: payload,
+        dispatcher: config.undiciAgent
       }
     )
     /**
@@ -110,7 +114,8 @@ export class DefraIdStub {
         {
           method: 'POST',
           headers: instanceHeaders,
-          body: ''
+          body: '',
+          dispatcher: config.undiciAgent
         }
       )
     }
