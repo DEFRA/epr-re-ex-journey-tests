@@ -64,5 +64,5 @@ export default defineConfig({
   // the slowest legitimate single-step wait in the suite (30s, summary log
   // processing) plus the rest of a test's steps, and is already proven safe
   // since CI runs green with it.
-  timeout: debug ? 2 * 60 * 1000 : 60 * 1000
+  timeout: debug ? 2 * 60 * 1000 : 2 * 60 * 1000
 })

@@ -61,24 +61,48 @@ async function seedSubmittedRegisteredReprocessor() {
   return { organisationDetails, migrationResponse, regId }
 }
 
-test.describe('Reports - make changes to a submitted report @makeChanges', () => {
-  test('shows the make changes button on the latest submitted report and lets the operator cancel or upload a new summary log without triggering resubmission @makeChangesCancel @makeChangesUploadNewSummaryLog', async ({
-    page
-  }) => {
+// Both tests below share one continuous login session/report (same pattern as
+// registered.exporter.report.e2e.js): the "cancel" test only backs out of the
+// make-changes flow without mutating the report, so it's safe to run first,
+// then the "use this report's summary log" test mutates it into a
+// resubmission draft second, in the same shared org/login.
+test.describe
+  .serial('Reports - make changes to a submitted report @makeChanges', () => {
+  /** @type {import('@playwright/test').Page} */
+  let page
+  let organisationDetails
+  let migrationResponse
+  let regId
+
+  test.beforeAll(async ({ browser }) => {
+    page = await browser.newPage()
+
+    ;({ organisationDetails, migrationResponse, regId } =
+      await seedSubmittedRegisteredReprocessor())
+
     const defraIdStubPage = new DefraIdStubPage(page)
     const homePage = new HomePage(page)
+
+    await homePage.open()
+    await homePage.clickStartNow()
+    await defraIdStubPage.loginViaEmail(migrationResponse.email)
+  })
+
+  test.afterAll(async () => {
+    const homePage = new HomePage(page)
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
+    await page.close()
+  })
+
+  test('shows the make changes button on the latest submitted report and lets the operator cancel or upload a new summary log without triggering resubmission @makeChangesCancel @makeChangesUploadNewSummaryLog', async () => {
     const uploadSummaryLogPage = new UploadSummaryLogPage(page)
     const wasteRecordsPage = new WasteRecordsPage(page)
     const dashboardPage = new DashboardPage(page)
     const reportsPage = new ReportsPage(page)
     const reportViewPage = new ReportViewPage(page)
     const makeChangesPage = new MakeChangesPage(page)
-
-    const { migrationResponse } = await seedSubmittedRegisteredReprocessor()
-
-    await homePage.open()
-    await homePage.clickStartNow()
-    await defraIdStubPage.loginViaEmail(migrationResponse.email)
+    const homePage = new HomePage(page)
 
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.manageReportsLink()
@@ -105,15 +129,9 @@ test.describe('Reports - make changes to a submitted report @makeChanges', () =>
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.manageReportsLink()
     expect(await reportsPage.getSubmittedStatusBadge(1)).toBe('Submitted')
-
-    await homePage.signOut()
-    await expect(page).toHaveTitle(/Signed out/)
   })
 
-  test('creates a resubmission draft from the make changes button @makeChangesUseSummaryLog', async ({
-    page
-  }) => {
-    const defraIdStubPage = new DefraIdStubPage(page)
+  test('creates a resubmission draft from the make changes button @makeChangesUseSummaryLog', async () => {
     const homePage = new HomePage(page)
     const wasteRecordsPage = new WasteRecordsPage(page)
     const dashboardPage = new DashboardPage(page)
@@ -123,13 +141,9 @@ test.describe('Reports - make changes to a submitted report @makeChanges', () =>
     const reportDetailPage = new ReportDetailPage(page)
     const tonnesRecycledPage = new TonnesRecycledPage(page)
 
-    const { organisationDetails, migrationResponse, regId } =
-      await seedSubmittedRegisteredReprocessor()
-
-    await homePage.open()
-    await homePage.clickStartNow()
-    await defraIdStubPage.loginViaEmail(migrationResponse.email)
-
+    // The previous test ends on the reports page (not the dashboard), so
+    // reset to a known starting point before selecting the org link.
+    await homePage.homeLink()
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.manageReportsLink()
 
@@ -155,8 +169,5 @@ test.describe('Reports - make changes to a submitted report @makeChanges', () =>
     )
     expect(await reportViewPage.headingText()).toContain('Report for')
     expect(await reportViewPage.hasMakeChangesLink()).toBe(false)
-
-    await homePage.signOut()
-    await expect(page).toHaveTitle(/Signed out/)
   })
 })
