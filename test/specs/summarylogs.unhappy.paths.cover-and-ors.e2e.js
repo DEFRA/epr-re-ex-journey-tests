@@ -159,7 +159,7 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
 
     await checkSummaryLogPage.upload()
     await checkBodyText(page, 'Your waste records are being updated', 30)
-    await checkBodyText(page, 'Summary log uploaded', 60)
+    await checkBodyText(page, 'Summary log uploaded', 30)
 
     await uploadSummaryLogPage.clickOnReturnToHomePage()
     const availableWasteBalance = await dashboardPage.availableWasteBalance(1)
