@@ -26,8 +26,22 @@ if (environment === 'prod') {
 // epr-re-ex-admin-frontend, and epr-backend itself) share - confirmed by
 // compose.yml, every wdio baseUrl, and the CI wiring all pointing at it
 // consistently. Update if it's ever replaced.
+//
+// WITH_PROXY selects the container-network hostname instead of localhost.
+// This isn't for host-side DNS resolution (that's what the removed
+// /etc/hosts step used to be for, and why STUB_INTERNAL_URL now fixes the
+// JWT issuer regardless of hostname) - it's because mitmproxy forwards a
+// proxied request by resolving the target hostname *itself*, from inside
+// the docker network it's attached to. Given `localhost`, mitmproxy resolves
+// its own loopback (502 Bad Gateway); it can only reach the stubs by their
+// compose network alias. Hostnames confirmed via `docker inspect` against
+// the actual local dev stack (epr-re-ex-service's compose.yml) - note
+// `entra-stub`, not `epr-re-ex-entra-stub` as this repo's own compose.yml
+// (CI-only) names it.
 const api = {
-  local: withProxy ? 'http://epr-backend:3001' : 'http://localhost:3001',
+  local: withProxy
+    ? 'http://epr-backend:3001'
+    : `http://localhost:${process.env.BACKEND_PORT || 3001}`,
   env: `https://epr-backend.${environment}.cdp-int.defra.cloud`,
   envFromLocal: `https://ephemeral-protected.api.${environment}.cdp-int.defra.cloud/epr-backend`,
   headers: xApiKey ? { 'x-api-key': xApiKey } : {}
@@ -37,8 +51,8 @@ const api = {
 // EA/regulator identity rather than as a Defra ID operator user.
 const auth = {
   local: withProxy
-    ? 'http://epr-re-ex-entra-stub:3010'
-    : 'http://localhost:3010',
+    ? 'http://entra-stub:3010'
+    : `http://localhost:${process.env.ENTRA_STUB_PORT || 3010}`,
   env:
     environment === 'test'
       ? 'https://login.microsoftonline.com/6f504113-6b64-43f2-ade9-242e05780007/oauth2/v2.0/token'
@@ -54,7 +68,9 @@ const auth = {
 }
 
 const defraId = {
-  local: 'http://defra-id-stub:3200',
+  local: withProxy
+    ? 'http://defra-id-stub:3200'
+    : `http://localhost:${process.env.DEFRA_ID_STUB_PORT || 3200}`,
   env: `https://epr-re-ex-defra-id-stub.${environment}.cdp-int.defra.cloud`
 }
 
@@ -76,14 +92,16 @@ const basicAuth = {
 // epr-frontend app the global wdio baseUrl points at - admin page objects
 // build absolute URLs from this rather than relying on baseUrl.
 const admin = {
-  local: 'http://localhost:3002',
+  local: `http://localhost:${process.env.ADMIN_PORT || 3002}`,
   env: `https://epr-re-ex-admin-frontend.${environment}.cdp-int.defra.cloud`
 }
 
 // Cognito auth for the external/regulator-facing API (e.g. PRN accept/reject),
 // which sits behind AWS Cognito rather than Defra ID or Entra.
 const cognitoAuthParams = {
-  url: withProxy ? 'http://cognito-stub:9229' : 'http://localhost:9229',
+  url: withProxy
+    ? 'http://cognito-stub:9229'
+    : `http://localhost:${process.env.COGNITO_PORT || 9229}`,
   envUrl: process.env.COGNITO_URL,
   clientId:
     environment === 'test'
@@ -120,7 +138,7 @@ const agent = new Agent({
   bodyTimeout: 30000
 })
 
-const globalUndiciAgent = environment ? proxy : agent
+const globalUndiciAgent = environment || withProxy ? proxy : agent
 
 // `docker logs` is only reachable against the local compose stack - there's
 // no equivalent for a deployed environment, so log/audit-log assertions are

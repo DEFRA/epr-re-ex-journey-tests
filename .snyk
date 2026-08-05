@@ -3,5 +3,5 @@ version: v1.25.0
 ignore:
   'SNYK-JS-INFLIGHT-6095116':
     - '*':
-        reason: 'Transitively pulled in by @wdio/mocha-framework > mocha > glob, and by ExcelJS. Test-only tooling that runs briefly and exits on controlled, local/test inputs; memory-leak impact is not exploitable in this context and there is no upstream fix.'
+        reason: 'Transitively pulled in by ExcelJS, via archiver > archiver-utils > glob and via unzipper > fstream > rimraf > glob, and by eslint > file-entry-cache > flat-cache > rimraf > glob. Test-only tooling that runs briefly and exits on controlled, local/test inputs; memory-leak impact is not exploitable in this context and there is no upstream fix.'
         expires: '2028-01-01T00:00:00.000Z'
