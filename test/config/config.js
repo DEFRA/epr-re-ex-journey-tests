@@ -26,6 +26,18 @@ if (environment === 'prod') {
 // epr-re-ex-admin-frontend, and epr-backend itself) share - confirmed by
 // compose.yml, every wdio baseUrl, and the CI wiring all pointing at it
 // consistently. Update if it's ever replaced.
+//
+// WITH_PROXY selects the container-network hostname instead of localhost.
+// This isn't for host-side DNS resolution (that's what the removed
+// /etc/hosts step used to be for, and why STUB_INTERNAL_URL now fixes the
+// JWT issuer regardless of hostname) - it's because mitmproxy forwards a
+// proxied request by resolving the target hostname *itself*, from inside
+// the docker network it's attached to. Given `localhost`, mitmproxy resolves
+// its own loopback (502 Bad Gateway); it can only reach the stubs by their
+// compose network alias. Hostnames confirmed via `docker inspect` against
+// the actual local dev stack (epr-re-ex-service's compose.yml) - note
+// `entra-stub`, not `epr-re-ex-entra-stub` as this repo's own compose.yml
+// (CI-only) names it.
 const api = {
   local: withProxy
     ? 'http://epr-backend:3001'
@@ -39,7 +51,7 @@ const api = {
 // EA/regulator identity rather than as a Defra ID operator user.
 const auth = {
   local: withProxy
-    ? 'http://epr-re-ex-entra-stub:3010'
+    ? 'http://entra-stub:3010'
     : `http://localhost:${process.env.ENTRA_STUB_PORT || 3010}`,
   env:
     environment === 'test'
@@ -126,7 +138,7 @@ const agent = new Agent({
   bodyTimeout: 30000
 })
 
-const globalUndiciAgent = environment ? proxy : agent
+const globalUndiciAgent = environment || withProxy ? proxy : agent
 
 // `docker logs` is only reachable against the local compose stack - there's
 // no equivalent for a deployed environment, so log/audit-log assertions are
