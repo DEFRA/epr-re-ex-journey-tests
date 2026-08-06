@@ -6,6 +6,8 @@ import {
   WORKSHEET_CONFIG
 } from './spreadsheet-config.js'
 import { fileURLToPath } from 'url'
+import { mkdir } from 'node:fs/promises'
+import { dirname } from 'node:path'
 import pino from 'pino'
 
 function sanitiseFilenameComponent(input) {
@@ -188,6 +190,8 @@ export async function generateSpreadsheetData(options = {}) {
     } else {
       outputFile = `data/${safeType}_${safeReg}${sheetsSuffix}.xlsx`
     }
+    // data/ is gitignored, so it is absent in a fresh clone or worktree.
+    await mkdir(dirname(outputFile), { recursive: true })
     await workbook.xlsx.writeFile(outputFile)
 
     logger.info(`Successfully generated spreadsheet: ${outputFile}`)
