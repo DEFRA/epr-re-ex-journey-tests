@@ -326,14 +326,18 @@ export async function updateOrganisationData(
     updateFragment: data
   }
 
+  // Statuses and numbers seed through the non-prod twin of the organisation
+  // PUT: the public route rejects status changes (PAE-1645) and the
+  // transition endpoints enforce number uniqueness, which the generator's
+  // seeded fixtures cannot follow.
   const patchResponse = await context.baseAPI.put(
-    `/v1/organisations/${referenceNumber}`,
+    `/v1/dev/organisations/${referenceNumber}`,
     JSON.stringify(payload),
     context.authClient.authHeader()
   )
   await assertSuccessResponse(
     patchResponse,
-    `/v1/organisations/${referenceNumber}`
+    `PUT /v1/dev/organisations/${referenceNumber}`
   )
 
   return replacementEmail
