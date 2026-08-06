@@ -5,7 +5,7 @@ import {
   FAKE_ACCREDITATION_NUMBER
 } from '~/test/support/apicalls.js'
 import { DashboardPage } from 'page-objects/dashboard.page.js'
-import { RegistrationPage } from 'page-objects/registration.page.js'
+import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import { test, expect } from '@playwright/test'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
 
@@ -44,7 +44,7 @@ test.describe('Reapply for accreditation link @reapplyaccreditation', () => {
     const dashboardPage = new DashboardPage(page)
     await dashboardPage.selectTableLink(1, 1)
 
-    const registrationPage = new RegistrationPage(page)
+    const registrationPage = new WasteRecordsPage(page)
     const reapplyLink = registrationPage.reapplyAccreditationLink()
     await expect(reapplyLink).toBeVisible()
 
