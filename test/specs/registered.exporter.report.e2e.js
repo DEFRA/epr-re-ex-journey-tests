@@ -75,10 +75,10 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
   // to "Due" so FullFlow (last, since it ends in a submitted/unsubmitted
   // state) starts fresh.
   //
-  // CheckAnswersGuard and SubmitGuard (below, outside this group) each leave
-  // a Ready-to-submit/Submitted report with no proven-safe way back to "Due"
-  // for this registered-only (no-accreditation) org shape, so they keep
-  // their own independent setup rather than risk a flaky shared sequence.
+  // CheckAnswersGuard and SubmitGuard (below, in their own smaller serial
+  // group) share a second session instead of this one: SubmitGuard ends in a
+  // genuinely submitted report with no UI path back to "Due", so it must run
+  // last in a group of its own — it can't sit before FullFlow here.
   test.describe.serial('registered-only exporter with upload', () => {
     /** @type {import('@playwright/test').Page} */
     let page
@@ -288,79 +288,99 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
     })
   })
 
-  test('should redirect to reports list when navigating back to check-answers after report is created @registeredOnlyExporterCheckAnswersGuard', async ({
-    page
-  }) => {
-    const homePage = new HomePage(page)
-    const reportDetailPage = new ReportDetailPage(page)
-    const reportSupportingInformationPage = new ReportSupportingInformationPage(
-      page
-    )
-    const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
-    const reportsPage = new ReportsPage(page)
-    const tonnesNotExportedPage = new TonnesNotExportedPage(page)
+  // CheckAnswersGuard and SubmitGuard share one org/login/upload session too.
+  // CheckAnswersGuard leaves its report "Ready to submit" after the guard
+  // redirect, then explicitly deletes it via the submit page (a proven-safe
+  // path back to "Due" — see delete.report.e2e.js) so SubmitGuard starts its
+  // own fresh report via ordinary forward navigation, exactly as it would
+  // with independent setup. SubmitGuard genuinely submits its report with no
+  // way back to "Due", so it runs last and this group stays separate from
+  // the "with upload" group above.
+  test.describe.serial('registered-only exporter guard checks', () => {
+    /** @type {import('@playwright/test').Page} */
+    let page
 
-    await setupRegisteredOnlyExporter(page)
-    await uploadAndNavigateToReports(page)
+    test.beforeAll(async ({ browser }) => {
+      page = await browser.newPage()
+      await setupRegisteredOnlyExporter(page)
+      await uploadAndNavigateToReports(page)
+    })
 
-    // Complete the full flow through to confirmation
-    await reportsPage.selectActiveActionLink(1)
-    await reportDetailPage.useThisData()
-    await tonnesNotExportedPage.enterTonnage('5.50')
-    await tonnesNotExportedPage.continue()
-    await reportSupportingInformationPage.continue()
-    await reportCheckAnswersPage.createReport()
-    await checkBodyText(page, 'report created', 30)
+    test.afterAll(async () => {
+      const homePage = new HomePage(page)
+      await homePage.signOut()
+      await expect(page).toHaveTitle(/Signed out/)
+      await page.close()
+    })
 
-    // Navigate back to check-answers — the guard should redirect to the reports list
-    await page.goBack()
+    test('should redirect to reports list when navigating back to check-answers after report is created @registeredOnlyExporterCheckAnswersGuard', async () => {
+      const reportDetailPage = new ReportDetailPage(page)
+      const reportSupportingInformationPage =
+        new ReportSupportingInformationPage(page)
+      const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
+      const reportsPage = new ReportsPage(page)
+      const tonnesNotExportedPage = new TonnesNotExportedPage(page)
+      const monthlyReportDraftDeclarationPage =
+        new MonthlyReportDraftDeclarationPage(page)
+      const confirmDeleteReportPage = new ConfirmDeleteReportPage(page)
 
-    const reportsHeading = await reportsPage.headingText()
-    expect(reportsHeading).toContain('Reports')
+      // Complete the full flow through to confirmation
+      await reportsPage.selectActiveActionLink(1)
+      await reportDetailPage.useThisData()
+      await tonnesNotExportedPage.enterTonnage('5.50')
+      await tonnesNotExportedPage.continue()
+      await reportSupportingInformationPage.continue()
+      await reportCheckAnswersPage.createReport()
+      await checkBodyText(page, 'report created', 30)
 
-    await homePage.signOut()
-    await expect(page).toHaveTitle(/Signed out/)
-  })
+      // Navigate back to check-answers — the guard should redirect to the reports list
+      await page.goBack()
 
-  test('should redirect to submitted confirmation page when navigating back to submit after submission @registeredOnlyExporterSubmitGuard', async ({
-    page
-  }) => {
-    const homePage = new HomePage(page)
-    const confirmationPage = new ConfirmationPage(page)
-    const monthlyReportDraftDeclarationPage =
-      new MonthlyReportDraftDeclarationPage(page)
-    const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
-    const reportDetailPage = new ReportDetailPage(page)
-    const reportSubmittedPage = new ReportSubmittedPage(page)
-    const reportSupportingInformationPage = new ReportSupportingInformationPage(
-      page
-    )
-    const reportsPage = new ReportsPage(page)
-    const tonnesNotExportedPage = new TonnesNotExportedPage(page)
+      const reportsHeading = await reportsPage.headingText()
+      expect(reportsHeading).toContain('Reports')
 
-    await setupRegisteredOnlyExporter(page)
-    await uploadAndNavigateToReports(page)
+      // Clean up — delete the Ready-to-submit report via the submit page so
+      // the period is back to "Due" for SubmitGuard below. A reload first:
+      // clicking the action link immediately after the goBack()-triggered
+      // redirect above is unreliable (same issue found and reverted earlier
+      // when these two tests were merged directly) — the reload discards
+      // whatever back/forward-cache state causes that.
+      await page.reload()
+      await reportsPage.selectActiveActionLink(1)
+      await monthlyReportDraftDeclarationPage.deleteReport()
+      await confirmDeleteReportPage.confirmDeletion()
+    })
 
-    // Complete the full flow through to submission
-    await reportsPage.selectActiveActionLink(1)
-    await reportDetailPage.useThisData()
-    await tonnesNotExportedPage.enterTonnage('5.50')
-    await tonnesNotExportedPage.continue()
-    await reportSupportingInformationPage.continue()
-    await reportCheckAnswersPage.createReport()
-    await checkBodyText(page, 'report created', 30)
-    await confirmationPage.goToReports()
-    await reportsPage.selectActiveActionLink(1)
-    await monthlyReportDraftDeclarationPage.confirmAndSubmit()
-    await checkBodyText(page, 'report submitted to regulator', 30)
+    test('should redirect to submitted confirmation page when navigating back to submit after submission @registeredOnlyExporterSubmitGuard', async () => {
+      const confirmationPage = new ConfirmationPage(page)
+      const monthlyReportDraftDeclarationPage =
+        new MonthlyReportDraftDeclarationPage(page)
+      const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
+      const reportDetailPage = new ReportDetailPage(page)
+      const reportSubmittedPage = new ReportSubmittedPage(page)
+      const reportSupportingInformationPage =
+        new ReportSupportingInformationPage(page)
+      const reportsPage = new ReportsPage(page)
+      const tonnesNotExportedPage = new TonnesNotExportedPage(page)
 
-    // Navigate back to the submit page — the guard should redirect back to submitted
-    await page.goBack()
+      // Complete the full flow through to submission
+      await reportsPage.selectActiveActionLink(1)
+      await reportDetailPage.useThisData()
+      await tonnesNotExportedPage.enterTonnage('5.50')
+      await tonnesNotExportedPage.continue()
+      await reportSupportingInformationPage.continue()
+      await reportCheckAnswersPage.createReport()
+      await checkBodyText(page, 'report created', 30)
+      await confirmationPage.goToReports()
+      await reportsPage.selectActiveActionLink(1)
+      await monthlyReportDraftDeclarationPage.confirmAndSubmit()
+      await checkBodyText(page, 'report submitted to regulator', 30)
 
-    const confirmationText = await reportSubmittedPage.confirmationText()
-    expect(confirmationText).toContain('report submitted to regulator')
+      // Navigate back to the submit page — the guard should redirect back to submitted
+      await page.goBack()
 
-    await homePage.signOut()
-    await expect(page).toHaveTitle(/Signed out/)
+      const confirmationText = await reportSubmittedPage.confirmationText()
+      expect(confirmationText).toContain('report submitted to regulator')
+    })
   })
 })

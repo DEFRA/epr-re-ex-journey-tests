@@ -60,9 +60,9 @@ export default defineConfig({
 
   // Same ceiling as CI: 5 minutes locally meant a genuinely hung test (a
   // locator that will never resolve) took 5 minutes to surface, which reads
-  // as a frozen terminal rather than a failure. 2 minutes comfortably covers
-  // the slowest legitimate single-step wait in the suite (60s, summary log
+  // as a frozen terminal rather than a failure. 1 minute covers
+  // the slowest legitimate single-step wait in the suite (30s, summary log
   // processing) plus the rest of a test's steps, and is already proven safe
   // since CI runs green with it.
-  timeout: debug ? 60 * 60 * 1000 : 2 * 60 * 1000
+  timeout: debug ? 2 * 60 * 1000 : 2 * 60 * 1000
 })

@@ -102,12 +102,12 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     )
     await uploadSummaryLogPage.continue()
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 60)
+    await checkBodyText(page, 'Upload your summary log', 30)
     await checkBodyText(page, 'Closed periods: new loads', 30)
 
     await checkSummaryLogPage.upload()
     await checkBodyText(page, 'Your waste records are being updated', 30)
-    await checkBodyText(page, 'Summary log uploaded', 60)
+    await checkBodyText(page, 'Summary log uploaded', 30)
     await uploadSummaryLogPage.clickOnReturnToHomePage()
 
     // The Reports landing page now shows a "Requires resubmission" entry for the

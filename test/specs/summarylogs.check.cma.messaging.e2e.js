@@ -95,7 +95,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 60)
+    await checkBodyText(page, 'Upload your summary log', 30)
 
     // The "Important" banner is shown on the check before you submit page.
     const banner = checkSummaryLogPage.importantBanner()
@@ -119,7 +119,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
     await checkSummaryLogPage.upload()
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
-    await checkBodyText(page, 'Summary log uploaded', 60)
+    await checkBodyText(page, 'Summary log uploaded', 30)
 
     // The "Further action needed" section and "Go to reports" button are shown
     // on the success page, and the button links to the reports page.
