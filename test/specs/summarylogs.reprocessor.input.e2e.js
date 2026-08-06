@@ -100,7 +100,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkBodyText(page, 'Upload your summary log', 60)
+    await checkBodyText(page, 'Upload your summary log', 30)
     await uploadSummaryLogPage.confirmAndCheckDoubleClickPrevented()
 
     await checkBodyText(page, 'Your waste records are being updated', 30)

@@ -12,12 +12,14 @@ import { ReportStaleErrorPage } from 'page-objects/reports/report.stale.error.pa
 import { checkBodyText } from '../support/checks.js'
 import {
   createLinkedOrganisation,
-  updateMigratedOrganisation
+  updateMigratedOrganisation,
+  uploadAndSubmitSummaryLog
 } from '../support/apicalls.js'
 import seedOverseasSites from '~/test/support/apicalls.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
 import { expectActionRequiredStatus } from '../support/report-status.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
-import { uploadSummaryLogAndNavigateToReports } from '../support/report-navigation.js'
+import { navigateToReports } from '../support/report-navigation.js'
 
 const PL_REG = 'R25SR500010912PL'
 const PL_ACC = 'R-ACC12145PL'
@@ -61,7 +63,13 @@ async function setupAccreditedReprocessor(
     }
   ])
 
-  await createLinkAndLogin(page, orgDetails.refNo, migrationResponse.email)
+  const user = await createLinkAndLogin(
+    page,
+    orgDetails.refNo,
+    migrationResponse.email
+  )
+
+  return { orgDetails, migrationResponse, user }
 }
 
 async function createDraftReportFromCurrentReportsPage(page) {
@@ -81,6 +89,10 @@ async function createDraftReportFromCurrentReportsPage(page) {
   await page.locator('a', { hasText: 'Go to reports' }).click()
 }
 
+// Uploading via the API instead of driving the upload wizard through the
+// browser is safe here — staleness is a backend flag on a registration's
+// summary-log version, keyed off the upload event itself, not off whether it
+// happened via UI or API.
 async function setupAndCreateReport(
   page,
   material,
@@ -88,10 +100,20 @@ async function setupAndCreateReport(
   accNumber,
   filePath
 ) {
-  await setupAccreditedReprocessor(page, material, regNumber, accNumber)
+  const { orgDetails, migrationResponse, user } =
+    await setupAccreditedReprocessor(page, material, regNumber, accNumber)
 
-  await uploadSummaryLogAndNavigateToReports(page, filePath)
+  await uploadAndSubmitSummaryLog(
+    orgDetails.refNo,
+    migrationResponse.registrationIds[0],
+    defraIdStub.authHeader(user.userId),
+    filePath
+  )
+  await navigateToReports(page)
+
   await createDraftReportFromCurrentReportsPage(page)
+
+  return { orgDetails, migrationResponse, user }
 }
 
 async function setupRegisteredOnlyExporter(page) {
@@ -114,13 +136,13 @@ async function setupRegisteredOnlyExporter(page) {
     ]
   )
 
-  await createLinkAndLogin(
+  const user = await createLinkAndLogin(
     page,
     organisationDetails.refNo,
     migrationResponse.email
   )
 
-  return { organisationDetails, migrationResponse }
+  return { organisationDetails, migrationResponse, user }
 }
 
 test.describe('Stale report @staleReport', () => {
@@ -131,11 +153,22 @@ test.describe('Stale report @staleReport', () => {
     const reportsPage = new ReportsPage(page)
     const reportStaleErrorPage = new ReportStaleErrorPage(page)
 
-    await setupAndCreateReport(page, 'Plastic (R3)', PL_REG, PL_ACC, PL_FILE)
+    const { orgDetails, migrationResponse, user } = await setupAndCreateReport(
+      page,
+      'Plastic (R3)',
+      PL_REG,
+      PL_ACC,
+      PL_FILE
+    )
 
-    // Re-upload SL to make the existing report stale
-    await homePage.homeLink()
-    await uploadSummaryLogAndNavigateToReports(page, PL_FILE)
+    // Re-upload the same summary log via the API to bump its version and make
+    // the existing report stale.
+    await uploadAndSubmitSummaryLog(
+      orgDetails.refNo,
+      migrationResponse.registrationIds[0],
+      defraIdStub.authHeader(user.userId),
+      PL_FILE
+    )
 
     // Navigating to the report now triggers the stale error page
     // This means we are unable to submit a stale ready-to-submit report
@@ -174,23 +207,38 @@ test.describe('Stale report @staleReport', () => {
     const tonnesRecycledPage = new TonnesRecycledPage(page)
     const reportStaleErrorPage = new ReportStaleErrorPage(page)
 
-    const setupResponse = await setupRegisteredOnlyExporter(page)
+    const { organisationDetails, migrationResponse, user } =
+      await setupRegisteredOnlyExporter(page)
 
     await seedOverseasSites(
-      setupResponse.organisationDetails.refNo,
+      organisationDetails.refNo,
       [0],
       [143, 297, 565, 893]
     )
 
-    await uploadSummaryLogAndNavigateToReports(page, REG_ONLY_FILE)
+    const regId = migrationResponse.registrationIds[0]
+    const authHeader = defraIdStub.authHeader(user.userId)
+
+    await uploadAndSubmitSummaryLog(
+      organisationDetails.refNo,
+      regId,
+      authHeader,
+      REG_ONLY_FILE
+    )
+    await navigateToReports(page)
 
     await reportsPage.selectActiveActionLink(1)
     await reportDetailPage.useThisData()
     await tonnesRecycledPage.saveAndComeBackLater()
 
-    // Re-upload SL to make the existing report stale
-    await homePage.homeLink()
-    await uploadSummaryLogAndNavigateToReports(page, REG_ONLY_FILE)
+    // Re-upload the same summary log via the API to bump its version and make
+    // the existing report stale.
+    await uploadAndSubmitSummaryLog(
+      organisationDetails.refNo,
+      regId,
+      authHeader,
+      REG_ONLY_FILE
+    )
 
     // Navigating to the report now triggers the stale error page
     // This means we are unable to submit a stale in-progress report

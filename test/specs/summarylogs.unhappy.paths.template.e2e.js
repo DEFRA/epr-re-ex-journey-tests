@@ -177,9 +177,9 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkBodyText(page, 'Your summary log cannot be uploaded', 60)
+    await checkBodyText(page, 'Your summary log cannot be uploaded', 30)
 
-    await checkBodyText(page, 'errors in your summary log', 60)
+    await checkBodyText(page, 'errors in your summary log', 30)
     await checkBodyText(
       page,
       "You'll need to fix all of your summary log errors before you can upload this file.",

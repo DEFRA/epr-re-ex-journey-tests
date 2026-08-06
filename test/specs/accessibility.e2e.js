@@ -136,14 +136,14 @@ test.describe('WCAG Accessibility @smoketest', () => {
     await uploadSummaryLogPage.uploadFile('resources/exporter-regonly.xlsx')
     await uploadSummaryLogPage.continue()
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 60)
+    await checkBodyText(page, 'Upload your summary log', 30)
     violations.push(
       ...(await scanPageForAccessibilityViolations(page, 'Check summary log'))
     )
 
     await checkSummaryLogPage.upload()
     await checkBodyText(page, 'Your waste records are being updated', 30)
-    await checkBodyText(page, 'Summary log uploaded', 60)
+    await checkBodyText(page, 'Summary log uploaded', 30)
     violations.push(
       ...(await scanPageForAccessibilityViolations(
         page,

@@ -17,7 +17,6 @@ import {
 import { checkBodyText } from '../support/checks.js'
 import {
   thirdTradingName as newTradingName,
-  thirdTradingName as updatedTradingName,
   createPrnDetails
 } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'
@@ -28,6 +27,12 @@ test.describe('Issuing Packing Recycling Notes', () => {
   test('Should be able to create, issue and reject PRNs for Paper (Reprocessor Input) @issueprnrepro @smoketest', async ({
     page
   }) => {
+    // Trimmed to one full PRN lifecycle (create -> issue -> external cancel
+    // -> UI cancel) plus a second, lighter-touch PRN that only proves the
+    // Issued tab lists multiple rows correctly. The three-PRN scenario
+    // (including two status tables shown simultaneously) still lives in
+    // issue.and.reject.prn.exporter.e2e.js.
+    //
     // switchToNewTabAndClosePreviousTab() closes the page it's given and
     // returns the newly opened tab as the one to keep using — every page
     // object built against the old `page` reference goes stale once that
@@ -146,11 +151,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     expect(selectPRNHeadingText).toBe('Select a PRN')
 
     await prnHelper.checkAwaitingRows(prnDetails, 1)
-
     // End of PRN Dashboard checks
-    await prnDashboardPage.selectAwaitingLink(1)
-    await prnHelper.checkViewPrnDetails(prnDetails)
-    await prnViewPage.returnToPRNList()
 
     // Issue the created PRN
     await prnDashboardPage.selectAwaitingLink(1)
@@ -199,8 +200,6 @@ test.describe('Issuing Packing Recycling Notes', () => {
     await prnHelper.checkAwaitingRows(newPrnDetails, 1)
 
     await prnDashboardPage.selectAwaitingLink(1)
-
-    await prnHelper.checkViewPrnDetails(newPrnDetails)
     await prnHelper.issuePrnAndUpdateDetails(newPrnDetails)
 
     // Both Manage PRNs and Issue another PRN links should point to the same page
@@ -232,43 +231,8 @@ test.describe('Issuing Packing Recycling Notes', () => {
     expect(tableHeading).toBe('PRNs awaiting cancellation')
     await prnHelper.checkAwaitingRows(prnDetails, 1)
 
-    await prnDashboardPage.selectBackLink()
-
-    // Create another new PRN
-    await wasteRecordsPage.createNewPRNLink()
-
-    const updatedTonnageWordings = {
-      integer: 15,
-      word: 'Fifteen'
-    }
-
-    const updatedPrnDetails = createPrnDetails({
-      tonnageWordings: updatedTonnageWordings,
-      tradingName: updatedTradingName,
-      issuerNotes: newIssuerNotes,
-      materialDesc,
-      accNumber,
-      organisationDetails
-    })
-
-    await prnHelper.createAndCheckPrnDetails(updatedPrnDetails)
-
-    // End of new PRN creation
-    await prnCreatedPage.prnsPageLink()
-
-    // See that on the PRN Dashboard page, PRNs awaiting authorisation and cancellation are shown
-    const awaitingAuthHeading = await prnDashboardPage.getTableHeading()
-    expect(awaitingAuthHeading).toBe('PRNs awaiting authorisation')
-
-    await prnHelper.checkAwaitingRows(updatedPrnDetails, 1)
-
-    const awaitingCancellationHeading =
-      await prnDashboardPage.getTableHeading(2)
-    expect(awaitingCancellationHeading).toBe('PRNs awaiting cancellation')
-    await prnHelper.checkAwaitingRows(prnDetails, 1, 2)
-
-    // Select awaiting cancellation PRN
-    await prnDashboardPage.selectAwaitingLink(1, 2)
+    // Select the now awaiting-cancellation PRN
+    await prnDashboardPage.selectAwaitingLink(1)
 
     await prnHelper.checkViewPrnDetails(prnDetails)
 
@@ -297,8 +261,9 @@ test.describe('Issuing Packing Recycling Notes', () => {
     await wasteRecordsPage.selectBackLink()
 
     // Check that the waste balance has been updated from the cancelled PRN
+    // (40,608.86 original - 19 reserved by the still-issued second PRN)
     const availableWasteBalance = await dashboardPage.availableWasteBalance(1)
-    expect(availableWasteBalance).toBe('40,574.86')
+    expect(availableWasteBalance).toBe('40,589.86')
 
     await homePage.signOut()
     await expect(currentPage).toHaveTitle(/Signed out/)
