@@ -9,6 +9,12 @@ if [ "$PROFILE" = "generate" ]; then
     exit 0
 fi
 
+if [ "$PROFILE" = "generateOrgs" ]; then
+    npm run generatedata:allMaterialsMixed
+    echo "Generated organisations without linking"
+    exit 0
+fi
+
 if [ "$PROFILE" = "generateInd" ]; then
     npm run generatedata:withLinking
     echo "Generated 5 orgs"
