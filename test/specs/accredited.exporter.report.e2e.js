@@ -419,7 +419,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       await page.close()
     })
 
-    test('should return 404 when non-accredited exporter tries to access PRN pages @accreditedExporterRouteGuard', async () => {
+    test('should return 404 when non-accredited exporter tries to access PRN pages @accreditedExporterRouteGuard @registeredOnlyExporterRegression', async () => {
       // Try to access prn-summary directly — should get 404
       await page.goto(
         `/organisations/${orgRefNo}/registrations/${registrationId}/reports/2026/monthly/1/submissions/1/prn-summary`
@@ -432,20 +432,6 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
         `/organisations/${orgRefNo}/registrations/${registrationId}/reports/2026/monthly/1/submissions/1/free-perns`
       )
       await checkBodyText(page, '404', 10)
-      await checkBodyText(page, 'Page not found', 10)
-    })
-
-    test('should return 404 when registered-only exporter tries to access PRN pages @registeredOnlyExporterRegression', async () => {
-      // Try to access prn-summary directly — should get 404
-      await page.goto(
-        `/organisations/${orgRefNo}/registrations/${registrationId}/reports/2026/monthly/1/submissions/1/prn-summary`
-      )
-      await checkBodyText(page, 'Page not found', 10)
-
-      // Try to access free-perns directly — should get 404
-      await page.goto(
-        `/organisations/${orgRefNo}/registrations/${registrationId}/reports/2026/monthly/1/submissions/1/free-perns`
-      )
       await checkBodyText(page, 'Page not found', 10)
     })
   })
