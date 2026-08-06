@@ -254,7 +254,7 @@ test.describe('Organisations page', () => {
     let reportsData = await registrationOverviewPage.getReportsTableData()
     const lastRowIdx = reportsData.length - 1
     expect(reportsData.length).toBeGreaterThanOrEqual(1)
-    expect(reportsData[lastRowIdx].status).toEqual('submitted')
+    expect(reportsData[lastRowIdx].status).toEqual('Submitted')
     expect(reportsData[lastRowIdx].actions).toContain('View')
     expect(reportsData[lastRowIdx].actions).toContain('Unsubmit')
 
@@ -273,7 +273,7 @@ test.describe('Organisations page', () => {
 
     reportsData = await registrationOverviewPage.getReportsTableData()
     expect(reportsData.length).toBeGreaterThanOrEqual(1)
-    expect(reportsData[lastRowIdx].status).toEqual('ready_to_submit')
+    expect(reportsData[lastRowIdx].status).toEqual('Ready to submit')
     expect(reportsData[lastRowIdx].actions).not.toContain('Unsubmit')
   })
 })
