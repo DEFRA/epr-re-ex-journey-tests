@@ -111,7 +111,7 @@ test.describe('@registered-only', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkBodyText(page, 'Upload your summary log', 60)
+    await checkBodyText(page, 'Upload your summary log', 30)
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(page, 'new loads will be recorded', 30)
     await checkBodyText(page, 'These have been added to your summary log.', 30)
@@ -186,7 +186,7 @@ test.describe('@registered-only', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkBodyText(page, 'Upload your summary log', 60)
+    await checkBodyText(page, 'Upload your summary log', 30)
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(page, 'new loads will be recorded', 30)
     await checkBodyText(page, 'These have been added to your summary log.', 30)

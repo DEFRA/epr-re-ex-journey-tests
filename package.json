@@ -4,7 +4,7 @@
   "type": "module",
   "description": "",
   "engines": {
-    "node": "^24.18.1"
+    "node": "^24.19.0"
   },
   "author": "Defra DDTS",
   "license": "OGL-UK-3.0",
@@ -31,7 +31,7 @@
     "test:local:grep": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.config.js --grep \"$GREP\"",
     "test:github": "npm run clean && (NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.api.config.js || touch FAILED) && (NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.config.js || touch FAILED)",
     "test:github:admin": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.config.js 'specs/admin/' || touch FAILED",
-    "test:github:frontend": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.config.js 'specs/[^/]+\\.e2e\\.js$' || touch FAILED",
+    "test:github:frontend": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.config.js 'specs/(regulator/)?[^/]+\\.e2e\\.js$' || touch FAILED",
     "test:github:browserstack": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' node_modules/.bin/browserstack-node-sdk playwright test --config=playwright.browserstack.config.js || touch FAILED",
     "test:api": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.api.config.js",
     "test:api:grep": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.api.config.js --grep \"$GREP\"",
