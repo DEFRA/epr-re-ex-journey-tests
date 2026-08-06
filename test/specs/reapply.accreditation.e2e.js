@@ -48,6 +48,12 @@ test.describe('Reapply for accreditation link @reapplyaccreditation', () => {
     const reapplyLink = registrationPage.reapplyAccreditationLink()
     await expect(reapplyLink).toBeVisible()
 
+    // AC 10 is about the year the operator reads, so pin the visible text too:
+    // the POM regex matches any year, leaving only the href to check it.
+    await expect(reapplyLink).toHaveText(
+      `apply for ${currentYear + 1} accreditation`
+    )
+
     // The href reuses the org and registration ids that address this page, and
     // `plastic` is the material slug for the seed's 'Plastic (R3)'. The WS2 host
     // is environment-driven so only the path is pinned; new URL() throws on a
