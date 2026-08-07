@@ -29,12 +29,6 @@ class ReportDetailPage extends Page {
     return this.#sectionTotalByCaption('Total tonnage exported')
   }
 
-  // Accredited exporters only — registered-only exporters caption the same
-  // figure "Total tonnage received but not exported" and type it in by hand.
-  async totalTonnageNotExported() {
-    return this.#sectionTotalByCaption('Total tonnage not exported')
-  }
-
   async useThisDataAndCheckDoubleClickPrevented() {
     await this.submitAndCheckDoubleClickPrevented()
   }
