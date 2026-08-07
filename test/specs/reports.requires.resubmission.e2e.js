@@ -130,7 +130,13 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     expect(explainerHeading).toContain('Why')
     await checkBodyText(
       page,
-      'Your summary log data for this period has been changed',
+      'Your summary log data for this period has been changed since the report was submitted to your regulator.',
+      10
+    )
+    // The operator-initiated copy must not appear on the closed-period branch.
+    await checkBodyTextDoesNotInclude(
+      page,
+      'You started to make changes to the report',
       10
     )
     await checkBodyText(page, 'You need to create a new draft report', 10)
