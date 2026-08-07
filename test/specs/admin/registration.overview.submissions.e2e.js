@@ -64,25 +64,26 @@ test.describe('Registration overview - multiple submissions per period', () => {
       (row) => row.submission === '1',
       'Quarter 1 row for submission 1'
     )
-    expect(submittedRow.status).toEqual('submitted')
-    expect(submittedRow.links.map((link) => link.text)).toEqual([
-      'View',
-      'Unsubmit'
-    ])
+    // Unsubmit is hidden while the period is flagged: the backend refuses to
+    // unsubmit a report requiring resubmission, so offering the action would
+    // only ever fail (PAE-1775).
+    expect(submittedRow.status).toEqual('Submitted')
+    expect(submittedRow.links.map((link) => link.text)).toEqual(['View'])
 
     const skeletonRow = findOrThrow(
       quarterOneRows,
       (row) => row.submission === '',
       'Quarter 1 skeleton row'
     )
-    expect(skeletonRow.status).toEqual('requires_resubmission')
+    expect(skeletonRow.status).toEqual('Requires resubmission')
     expect(skeletonRow.links).toHaveLength(0)
 
-    // Statuses come from the backend periodStatus: an ended period with no
-    // report shows due/overdue (the calendar omits periods still in
-    // progress), with nothing to view and no submission number.
+    // Statuses come from the backend periodStatus, rendered through the admin's
+    // label map: an ended period with no report shows Due/Overdue (the calendar
+    // omits periods still in progress), with nothing to view and no submission
+    // number.
     const outstandingRows = reportsData.filter((row) =>
-      ['due', 'overdue'].includes(row.status)
+      ['Due', 'Overdue'].includes(row.status)
     )
     expect(outstandingRows.length).toBeGreaterThanOrEqual(1)
     for (const row of outstandingRows) {
@@ -105,7 +106,7 @@ test.describe('Registration overview - multiple submissions per period', () => {
     // the frontend renders as-is.
     expect(quarterOneRows.map((row) => row.submission)).toEqual(['1', '2'])
     for (const [index, row] of quarterOneRows.entries()) {
-      expect(row.status).toEqual('submitted')
+      expect(row.status).toEqual('Submitted')
       const viewLink = findOrThrow(
         row.links,
         (link) => link.text === 'View',
