@@ -8,7 +8,9 @@ import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { ReportViewPage } from 'page-objects/reports/report.view.page.js'
 import { MakeChangesPage } from 'page-objects/reports/make.changes.page.js'
 import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
+import { ResubmissionExplainerPage } from 'page-objects/reports/resubmission.explainer.page.js'
 import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js'
+import { checkBodyText } from '../support/checks.js'
 import {
   createAndRegisterDefraIdUser,
   createLinkedOrganisation,
@@ -16,6 +18,7 @@ import {
   updateMigratedOrganisation,
   seedSubmittedReport
 } from '../support/apicalls.js'
+import { loginViaHomePage } from '../support/login-helper.js'
 
 async function seedSubmittedRegisteredReprocessor() {
   const organisationDetails = await createLinkedOrganisation([
@@ -169,5 +172,62 @@ test.describe
     )
     expect(await reportViewPage.headingText()).toContain('Report for')
     expect(await reportViewPage.hasMakeChangesLink()).toBe(false)
+  })
+})
+
+test.describe('Reports - operator-initiated resubmission explainer @operatorResubmissionExplainer', () => {
+  test('shows the operator-initiated copy on the resubmission explainer when changes were started but not resubmitted @makeChangesOperatorExplainer', async ({
+    page
+  }) => {
+    const homePage = new HomePage(page)
+    const dashboardPage = new DashboardPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const reportsPage = new ReportsPage(page)
+    const reportViewPage = new ReportViewPage(page)
+    const makeChangesPage = new MakeChangesPage(page)
+    const reportDetailPage = new ReportDetailPage(page)
+    const resubmissionExplainerPage = new ResubmissionExplainerPage(page)
+
+    const { migrationResponse } = await seedSubmittedRegisteredReprocessor()
+    await loginViaHomePage(page, migrationResponse.email)
+
+    await dashboardPage.selectLink(1)
+    await wasteRecordsPage.manageReportsLink()
+
+    await reportsPage.selectSubmittedActionLink(1)
+    await reportViewPage.makeChangesLink()
+
+    // "Use this report's summary log" flags the submitted report for
+    // resubmission (operator-initiated) and redirects to the new draft's detail
+    // page without creating the draft. Leaving without using the data keeps the
+    // period in a "Requires resubmission" state with no draft in progress.
+    await makeChangesPage.useThisReportsSummaryLog()
+    expect(await reportDetailPage.headingText()).toContain(
+      'Your summary log data'
+    )
+
+    // Back on the reports landing the period requires resubmission with a
+    // "Review and create draft" CTA that leads to the explainer.
+    await homePage.homeLink()
+    await dashboardPage.selectLink(1)
+    await wasteRecordsPage.manageReportsLink()
+    expect(await reportsPage.getActiveStatusBadge(1)).toBe(
+      'Requires resubmission'
+    )
+    await reportsPage.selectActiveActionLinkByText(1, 'Review and create draft')
+
+    // Operator-initiated copy: the heading drops the "Why" prefix and para 1
+    // explains the operator started changes but did not resubmit.
+    const heading = await resubmissionExplainerPage.headingText()
+    expect(heading).toContain('needs to be resubmitted')
+    expect(heading).not.toContain('Why')
+    await checkBodyText(
+      page,
+      'You started to make changes to the report, but did not resubmit the new draft.',
+      10
+    )
+
+    await homePage.signOut()
+    await expect(page).toHaveTitle(/Signed out/)
   })
 })
