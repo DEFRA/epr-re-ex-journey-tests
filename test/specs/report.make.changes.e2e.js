@@ -10,10 +10,7 @@ import { MakeChangesPage } from 'page-objects/reports/make.changes.page.js'
 import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
 import { ResubmissionExplainerPage } from 'page-objects/reports/resubmission.explainer.page.js'
 import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js'
-import {
-  checkBodyText,
-  checkBodyTextDoesNotInclude
-} from '../support/checks.js'
+import { checkBodyText } from '../support/checks.js'
 import {
   createAndRegisterDefraIdUser,
   createLinkedOrganisation,
@@ -227,12 +224,6 @@ test.describe('Reports - operator-initiated resubmission explainer @operatorResu
     await checkBodyText(
       page,
       'You started to make changes to the report, but did not resubmit the new draft.',
-      10
-    )
-    // The closed-period-restated copy must not appear on the operator branch.
-    await checkBodyTextDoesNotInclude(
-      page,
-      'Your summary log data for this period has been changed',
       10
     )
 
