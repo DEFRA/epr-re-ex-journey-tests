@@ -216,11 +216,11 @@ test.describe('Reports - operator-initiated resubmission explainer @operatorResu
     )
     await reportsPage.selectActiveActionLinkByText(1, 'Review and create draft')
 
-    // Operator-initiated copy: the heading drops the "Why" prefix and para 1
-    // explains the operator started changes but did not resubmit.
+    // Operator-initiated copy: the heading drops the "Why" prefix (the
+    // closed-period variant in reports.requires.resubmission.e2e.js keeps it)
+    // and para 1 explains the operator started changes but did not resubmit.
     const heading = await resubmissionExplainerPage.headingText()
-    expect(heading).toContain('needs to be resubmitted')
-    expect(heading).not.toContain('Why')
+    expect(heading).toMatch(/^Your .+ report needs to be resubmitted$/)
     await checkBodyText(
       page,
       'You started to make changes to the report, but did not resubmit the new draft.',

@@ -121,13 +121,14 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     // Clicking the CTA by its label also asserts it reads "Review and create
     // draft" (a wrong label leaves nothing to click).
     await reportsPage.selectActiveActionLinkByText(1, 'Review and create draft')
-    // Closed-period-restated copy: the heading keeps the "Why" prefix and para 1
-    // explains the summary log data changed after the report was submitted. This
-    // distinguishes the branch from the operator-initiated copy (which drops
-    // "Why"), covered in report.make.changes.e2e.js.
+    // Closed-period-restated copy: the heading keeps the "Why" prefix (the
+    // operator-initiated variant in report.make.changes.e2e.js drops it) and
+    // para 1 explains the summary log data changed after the report was
+    // submitted.
     const explainerHeading = await resubmissionExplainerPage.headingText()
-    expect(explainerHeading).toContain('needs to be resubmitted')
-    expect(explainerHeading).toContain('Why')
+    expect(explainerHeading).toMatch(
+      /^Why your .+ report needs to be resubmitted$/
+    )
     await checkBodyText(
       page,
       'Your summary log data for this period has been changed since the report was submitted to your regulator.',
