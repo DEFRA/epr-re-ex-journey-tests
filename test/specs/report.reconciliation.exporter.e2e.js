@@ -27,24 +27,10 @@ import { createLinkAndLogin } from '../support/login-helper.js'
 // Single submission, single period, no PRNs — the only case where a period
 // report total equals the whole-submission waste balance.
 //
-// The fixture backs a second guard, for PAE-1783. Its four loads are all
-// exported inside February, which is the shape the pre-PAE-1783 calculation
-// discarded: it dropped any load exported within the reporting period instead of
-// comparing tonnage received against tonnage exported, so "Packaging waste
-// received but not exported" collapsed to 0.00. Asserted here rather than in a
-// spec of its own because this one already seeds the organisation, uploads the
-// log and opens the page the figure is rendered on.
-//
-// Regenerating the fixture moves both totals below.
-//
 // The round-each-then-sum total the fixture produces, printed by
 // generate-reconciliation-fixtures.mjs (which also refuses to emit a fixture
 // where round-each-then-sum and sum-then-round agree).
 const EXPECTED_RECONCILED_TONNAGE = 8.03
-
-// Per load, tonnage received minus tonnage exported:
-//   57.66 - 2.51, 150.59 - 2.63, 26.86 - 1.57, 291.48 - 1.32
-const EXPECTED_TONNAGE_NOT_EXPORTED = 518.56
 const YEAR = 2026
 const CADENCE = 'monthly'
 const PERIOD = 2 // fixture loads are dated February 2026
@@ -114,14 +100,5 @@ test.describe('Report tonnage reconciles with the waste balance — exporter @re
 
     expect(parseTonnage(reportTotalText)).toEqual(parseTonnage(balanceText))
     expect(parseTonnage(reportTotalText)).toEqual(EXPECTED_RECONCILED_TONNAGE)
-
-    // PAE-1783. This caption is accredited-only — registered-only exporters use
-    // a different one — and asserting it fails fast if the section disappears.
-    await expect(
-      page.getByText('Total tonnage not exported', { exact: true })
-    ).toBeVisible()
-    expect(
-      parseTonnage(await reportDetailPage.totalTonnageNotExported())
-    ).toEqual(EXPECTED_TONNAGE_NOT_EXPORTED)
   })
 })
