@@ -11,18 +11,21 @@ import { createLinkedOrganisation } from '../../support/apicalls.js'
 test.describe('System logs search @searchsystemlogs', () => {
   let linkedOrganisation
 
-  test.beforeAll(async () => {
+  // All tests below share one continuous, already-logged-in session: the
+  // org-ID bump only needs to happen once to produce a searchable system-log
+  // entry, so it's done once here rather than re-walked through the UI per
+  // test. A dedicated Page is created via the `browser` fixture since `page`
+  // isn't available in beforeAll/afterAll.
+  /** @type {import('@playwright/test').Page} */
+  let page
+
+  test.beforeAll(async ({ browser }) => {
     linkedOrganisation = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
-  })
 
-  // Playwright isolates every test in its own browser context, so the
-  // WDIO-era shared-session setup (log in once, bump the org's ID once) has
-  // to re-run per test here instead of once in a describe-level `before`.
-  // Re-running the org-ID bump is a no-op past the first test (it targets
-  // the same already-bumped value each time).
-  test.beforeEach(async ({ page }) => {
+    page = await browser.newPage()
+
     const loginPage = new AdminLoginPage(page)
     const homePage = new HomePage(page)
     const navigation = new Navigation(page)
@@ -48,9 +51,11 @@ test.describe('System logs search @searchsystemlogs', () => {
     expect(successMessage).toEqual('Organisation record updated')
   })
 
-  test('finds system logs by organisation reference number', async ({
-    page
-  }) => {
+  test.afterAll(async () => {
+    await page.close()
+  })
+
+  test('finds system logs by organisation reference number', async () => {
     const navigation = new Navigation(page)
     const systemLogsPage = new SystemLogsPage(page)
 
@@ -62,7 +67,7 @@ test.describe('System logs search @searchsystemlogs', () => {
     ).not.toHaveCount(0)
   })
 
-  test('finds system logs by user ID', async ({ page }) => {
+  test('finds system logs by user ID', async () => {
     const navigation = new Navigation(page)
     const systemLogsPage = new SystemLogsPage(page)
 
@@ -77,7 +82,7 @@ test.describe('System logs search @searchsystemlogs', () => {
     ).not.toHaveCount(0)
   })
 
-  test('shows no results when user ID matches no logs', async ({ page }) => {
+  test('shows no results when user ID matches no logs', async () => {
     const navigation = new Navigation(page)
     const systemLogsPage = new SystemLogsPage(page)
 
@@ -89,7 +94,7 @@ test.describe('System logs search @searchsystemlogs', () => {
     ).toHaveCount(0)
   })
 
-  test('filters by event type alongside user ID', async ({ page }) => {
+  test('filters by event type alongside user ID', async () => {
     const navigation = new Navigation(page)
     const systemLogsPage = new SystemLogsPage(page)
 
@@ -104,7 +109,7 @@ test.describe('System logs search @searchsystemlogs', () => {
     ).not.toHaveCount(0)
   })
 
-  test('clears search and resets the form', async ({ page }) => {
+  test('clears search and resets the form', async () => {
     const navigation = new Navigation(page)
     const systemLogsPage = new SystemLogsPage(page)
 
@@ -132,7 +137,7 @@ test.describe('System logs search @searchsystemlogs', () => {
     ).toHaveCount(0)
   })
 
-  test('shows error when submitting with no filters', async ({ page }) => {
+  test('shows error when submitting with no filters', async () => {
     const navigation = new Navigation(page)
     const systemLogsPage = new SystemLogsPage(page)
 
