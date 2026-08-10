@@ -40,7 +40,7 @@ test.describe('Report Submissions page', () => {
     await loginPage.loginAsServiceMaintainer()
   })
 
-  test('Should be able to download Report Submissions if logged in @reportsubmissions', async ({
+  test('Should be able to download Report Submissions if logged in, with all expected column headers @reportsubmissions', async ({
     page
   }) => {
     const navigation = new Navigation(page)
@@ -68,20 +68,6 @@ test.describe('Report Submissions page', () => {
     expect(orgRow['Submitted Date']).toBeTruthy()
     expect(orgRow['Submitted By']).toBeTruthy()
     expect(orgRow['Tonnage recycled']).toBeTruthy()
-  })
-
-  test('should include all expected column headers in the CSV download @reportsubmissions', async ({
-    page
-  }) => {
-    const navigation = new Navigation(page)
-    const reportSubmissionsPage = new ReportSubmissionsPage(page)
-
-    await navigation.clickOnLink('Report submissions')
-
-    const csv = /** @type {CsvResponse} */ (
-      /** @type {unknown} */ (await reportSubmissionsPage.fetchCsv())
-    )
-    expect(csv.status).toEqual(200)
 
     const rows = csv.body
       .split(/\r?\n/)
