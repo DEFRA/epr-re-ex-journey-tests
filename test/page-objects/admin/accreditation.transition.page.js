@@ -8,9 +8,44 @@ class AccreditationTransitionPage extends AdminPage {
     return this.page.locator('h1').innerText()
   }
 
-  // The approve (grant) confirm page collects the accreditation number and
-  // the dates the accreditation is valid from and valid to (PAE-1814).
-  async fillGrantFields({ validFrom, validTo, accreditationNumber }) {
+  // The reprocessing-type radios, offered only where a reprocessing type
+  // applies - never to an exporter (PAE-1818).
+  reprocessingTypeRadios() {
+    return this.page.locator('input[name="reprocessingType"]')
+  }
+
+  /**
+   * GOV.UK radios hide the native input under a styled circle, so clicking the
+   * input directly fails Playwright's actionability check - click the label it
+   * is bound to instead.
+   *
+   * @param {string} reprocessingType
+   */
+  async selectReprocessingType(reprocessingType) {
+    const radioId = await this.page
+      .locator(`input[name="reprocessingType"][value="${reprocessingType}"]`)
+      .getAttribute('id')
+    await this.page.locator(`label[for="${radioId}"]`).click()
+  }
+
+  /**
+   * The approve (grant) confirm page collects the accreditation number and the
+   * dates the accreditation is valid from and valid to (PAE-1814), plus a
+   * reprocessing type where one applies (PAE-1818).
+   *
+   * @param {{
+   *   validFrom: { day: string, month: string, year: string },
+   *   validTo: { day: string, month: string, year: string },
+   *   accreditationNumber: string,
+   *   reprocessingType?: string
+   * }} grantFields
+   */
+  async fillGrantFields({
+    validFrom,
+    validTo,
+    accreditationNumber,
+    reprocessingType
+  }) {
     await this.page.locator('input[name="validFrom-day"]').fill(validFrom.day)
     await this.page
       .locator('input[name="validFrom-month"]')
@@ -22,6 +57,10 @@ class AccreditationTransitionPage extends AdminPage {
     await this.page
       .locator('input[name="accreditationNumber"]')
       .fill(accreditationNumber)
+
+    if (reprocessingType) {
+      await this.selectReprocessingType(reprocessingType)
+    }
   }
 
   async confirm(buttonText) {
