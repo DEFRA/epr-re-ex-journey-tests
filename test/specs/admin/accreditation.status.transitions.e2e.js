@@ -8,8 +8,19 @@ import { RegistrationTransitionPage } from 'page-objects/admin/registration.tran
 import { AccreditationTransitionPage } from 'page-objects/admin/accreditation.transition.page'
 import {
   createLinkedOrganisation,
+  getOrganisation,
   updateMigratedOrganisation
 } from '../../support/apicalls.js'
+
+const CURRENT_YEAR = new Date().getFullYear()
+// The dates typed into the approve confirm forms (PAE-1814). The valid-to is
+// deliberately not the value updateMigratedOrganisation seeds
+// (SEEDED_VALID_TO), so asserting the granted value proves the grant wrote it.
+const GRANTED_VALID_FROM = { day: '1', month: '1', year: `${CURRENT_YEAR}` }
+const GRANTED_VALID_TO = { day: '31', month: '12', year: `${CURRENT_YEAR}` }
+const GRANTED_VALID_FROM_ISO = `${CURRENT_YEAR}-01-01`
+const GRANTED_VALID_TO_ISO = `${CURRENT_YEAR}-12-31`
+const SEEDED_VALID_TO = `${CURRENT_YEAR + 1}-01-01`
 
 // Walks the full accreditation lifecycle through the admin UI transition
 // actions on the registration overview page:
@@ -81,9 +92,8 @@ test.describe('Admin accreditation status transitions', () => {
       'Approve registration'
     )
     await registrationTransitionPage.fillGrantFields({
-      day: '1',
-      month: '1',
-      year: `${new Date().getFullYear()}`,
+      validFrom: GRANTED_VALID_FROM,
+      validTo: GRANTED_VALID_TO,
       registrationNumber: 'E25SR500030920PA'
     })
     await registrationTransitionPage.confirm('Approve now')
@@ -91,6 +101,14 @@ test.describe('Admin accreditation status transitions', () => {
     expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
       'approved'
     )
+
+    // The registration's granted validity window is persisted exactly as
+    // entered, and the valid-to has replaced the seeded one (PAE-1814)
+    const grantedRegistration = (await getOrganisation(orgId)).registrations[0]
+    expect(grantedRegistration.validFrom).toBe(GRANTED_VALID_FROM_ISO)
+    expect(grantedRegistration.validTo).toBe(GRANTED_VALID_TO_ISO)
+    expect(grantedRegistration.validTo).not.toBe(SEEDED_VALID_TO)
+
     await expect(
       registrationOverviewPage
         .accreditationStatusRow()
@@ -115,13 +133,13 @@ test.describe('Admin accreditation status transitions', () => {
       'created'
     )
 
-    // created -> approved: grant, issuing the accreditation number
+    // created -> approved: grant, issuing the accreditation number and the
+    // validity window typed on the confirm page (PAE-1814)
     await registrationOverviewPage.clickAccreditationAction('Approve')
     expect(await transitionPage.getHeading()).toBe('Approve accreditation')
     await transitionPage.fillGrantFields({
-      day: '1',
-      month: '1',
-      year: `${new Date().getFullYear()}`,
+      validFrom: GRANTED_VALID_FROM,
+      validTo: GRANTED_VALID_TO,
       accreditationNumber: 'ACC234571'
     })
     await transitionPage.confirm('Approve now')
@@ -129,6 +147,14 @@ test.describe('Admin accreditation status transitions', () => {
     expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
       'approved'
     )
+
+    // The accreditation's granted validity window is persisted exactly as
+    // entered, and the valid-to has replaced the seeded one
+    const grantedAccreditation = (await getOrganisation(orgId))
+      .accreditations[0]
+    expect(grantedAccreditation.validFrom).toBe(GRANTED_VALID_FROM_ISO)
+    expect(grantedAccreditation.validTo).toBe(GRANTED_VALID_TO_ISO)
+    expect(grantedAccreditation.validTo).not.toBe(SEEDED_VALID_TO)
 
     // An approved accreditation offers Suspend only — no direct cancel
     // (suspend first, PAE-1624)
