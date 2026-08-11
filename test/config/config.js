@@ -54,15 +54,20 @@ const auth = {
     ? 'http://entra-stub:3010'
     : `http://localhost:${process.env.ENTRA_STUB_PORT || 3010}`,
   env:
-    environment === 'test'
+    environment === 'test' || environment === 'ext-test'
       ? 'https://login.microsoftonline.com/6f504113-6b64-43f2-ade9-242e05780007/oauth2/v2.0/token'
       : `https://epr-re-ex-entra-stub.${environment}.cdp-int.defra.cloud`,
   // Below configuration only applies for the "Test" environment
   clientSecret: process.env.AUTH_CLIENT_SECRET,
   clientId: 'bd06da51-53f6-46d0-a9f0-ac562864c887',
   username:
-    environment === 'test' ? process.env.AUTH_USERNAME : 'ea@test.gov.uk',
-  password: environment === 'test' ? process.env.AUTH_PASSWORD : 'pass',
+    environment === 'test' || environment === 'ext-test'
+      ? process.env.AUTH_USERNAME
+      : 'ea@test.gov.uk',
+  password:
+    environment === 'test' || environment === 'ext-test'
+      ? process.env.AUTH_PASSWORD
+      : 'pass',
   scope: 'api://bd06da51-53f6-46d0-a9f0-ac562864c887/.default',
   grantType: 'password'
 }
