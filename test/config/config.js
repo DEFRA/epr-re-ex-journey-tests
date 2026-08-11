@@ -47,27 +47,29 @@ const api = {
   headers: xApiKey ? { 'x-api-key': xApiKey } : {}
 }
 
+// `test` and `ext-test` authenticate against real Entra; every other
+// environment, and local, uses the Entra stub. The two differ in more than a
+// URL - the token request and the sign-in page have different shapes - so
+// everything that picks between them reads this one constant. Exported for
+// the same reason: `test/support/auth.js` and the admin login page object
+// must make the same choice this file does.
+const usesRealEntra = environment === 'test' || environment === 'ext-test'
+
 // Entra (service-to-service) auth, used for calling the backend as the
 // EA/regulator identity rather than as a Defra ID operator user.
 const auth = {
   local: withProxy
     ? 'http://entra-stub:3010'
     : `http://localhost:${process.env.ENTRA_STUB_PORT || 3010}`,
-  env:
-    environment === 'test' || environment === 'ext-test'
-      ? 'https://login.microsoftonline.com/6f504113-6b64-43f2-ade9-242e05780007/oauth2/v2.0/token'
-      : `https://epr-re-ex-entra-stub.${environment}.cdp-int.defra.cloud`,
-  // Below configuration only applies for the "Test" environment
+  env: usesRealEntra
+    ? 'https://login.microsoftonline.com/6f504113-6b64-43f2-ade9-242e05780007/oauth2/v2.0/token'
+    : `https://epr-re-ex-entra-stub.${environment}.cdp-int.defra.cloud`,
+  // The credentials below come from portal-side secrets against real Entra,
+  // and are the stub's fixed values otherwise.
   clientSecret: process.env.AUTH_CLIENT_SECRET,
   clientId: 'bd06da51-53f6-46d0-a9f0-ac562864c887',
-  username:
-    environment === 'test' || environment === 'ext-test'
-      ? process.env.AUTH_USERNAME
-      : 'ea@test.gov.uk',
-  password:
-    environment === 'test' || environment === 'ext-test'
-      ? process.env.AUTH_PASSWORD
-      : 'pass',
+  username: usesRealEntra ? process.env.AUTH_USERNAME : 'ea@test.gov.uk',
+  password: usesRealEntra ? process.env.AUTH_PASSWORD : 'pass',
   scope: 'api://bd06da51-53f6-46d0-a9f0-ac562864c887/.default',
   grantType: 'password'
 }
@@ -189,5 +191,6 @@ export default {
   defraIdUri,
   dockerLogParser,
   testLogs,
-  undiciAgent: globalUndiciAgent
+  undiciAgent: globalUndiciAgent,
+  usesRealEntra
 }
