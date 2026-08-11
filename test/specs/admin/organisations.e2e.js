@@ -15,6 +15,12 @@ import {
 } from '../../support/apicalls.js'
 import { SystemLogsPage } from 'page-objects/admin/system.logs.page'
 import { UnsubmitConfirmationPage } from 'page-objects/admin/unsubmit.confirmation.page'
+import { randomUUID } from 'crypto'
+
+// The Reg/Acc Numbers column shows one 'registration - accreditation' line per
+// registration, joined by <br> - which innerText() reads back as a newline. A
+// freshly applied organisation has a number on neither side of either line.
+const UNNUMBERED_REG_ACC_PAIRS = 'None - None\nNone - None'
 
 test.describe('Organisations page', () => {
   // Each test logs in independently (Playwright gives every test a fresh,
@@ -51,7 +57,7 @@ test.describe('Organisations page', () => {
       {
         header: organisation.companyName,
         orgId: `${linkedOrganisation.orgId}`,
-        regNo: '',
+        regAccNumbers: UNNUMBERED_REG_ACC_PAIRS,
         regulator: 'EA',
         status: 'created'
       }
@@ -83,7 +89,7 @@ test.describe('Organisations page', () => {
       {
         header: organisation.companyName,
         orgId: `${updatedOrgId}`,
-        regNo: '',
+        regAccNumbers: UNNUMBERED_REG_ACC_PAIRS,
         regulator: 'EA',
         status: 'created'
       }
@@ -141,7 +147,7 @@ test.describe('Organisations page', () => {
       {
         header: organisation.companyName,
         orgId: `${linkedOrganisation.orgId}`,
-        regNo: '',
+        regAccNumbers: UNNUMBERED_REG_ACC_PAIRS,
         regulator: 'EA',
         status: 'created'
       }
@@ -235,7 +241,7 @@ test.describe('Organisations page', () => {
       {
         header: organisation.companyName,
         orgId: `${linkedOrganisation.orgId}`,
-        regNo: '',
+        regAccNumbers: `${FAKE_REGISTRATION_NUMBER} - ${FAKE_ACCREDITATION_NUMBER}`,
         regulator: 'EA',
         status: 'active'
       }
@@ -275,5 +281,182 @@ test.describe('Organisations page', () => {
     expect(reportsData.length).toBeGreaterThanOrEqual(1)
     expect(reportsData[lastRowIdx].status).toEqual('Ready to submit')
     expect(reportsData[lastRowIdx].actions).not.toContain('Unsubmit')
+  })
+
+  // Every field addresses the same organisation, so one seeded organisation
+  // serves all of them. Its numbers carry a random suffix: the backend matches
+  // them whole and case-insensitively, so organisations left behind by earlier
+  // runs would otherwise share a fixed number and turn a single result into
+  // several.
+  test.describe('Searching by each field', () => {
+    /**
+     * @type {{
+     *   companyName: string,
+     *   orgId: string,
+     *   refNo: string,
+     *   registrationNumber: string,
+     *   accreditationNumber: string,
+     *   registrationId: string,
+     *   accreditationId: string
+     * }}
+     */
+    let seeded
+
+    test.beforeAll(async () => {
+      const linkedOrganisation = await createLinkedOrganisation([
+        { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
+      ])
+
+      const unique = randomUUID()
+      const registrationNumber = `FAKE/REG/${unique}`
+      const accreditationNumber = `FAKE/ACC/${unique}`
+
+      // Assigning the numbers also links the accreditation to the
+      // registration, so the two ids below belong to the same pair.
+      const migrated = await updateMigratedOrganisation(
+        linkedOrganisation.refNo,
+        [
+          {
+            regNumber: registrationNumber,
+            accNumber: accreditationNumber,
+            status: 'approved',
+            reprocessingType: 'input'
+          }
+        ]
+      )
+
+      seeded = {
+        companyName: linkedOrganisation.organisation.companyName,
+        orgId: `${linkedOrganisation.orgId}`,
+        refNo: linkedOrganisation.refNo,
+        registrationNumber,
+        accreditationNumber,
+        registrationId: migrated.registrationIds[0],
+        accreditationId: migrated.accreditationIds[0]
+      }
+    })
+
+    test.beforeEach(async ({ page }) => {
+      const organisationsPage = new OrganisationsPage(page)
+      await organisationsPage.open()
+    })
+
+    async function expectOnlySeededOrganisation(organisationsPage) {
+      expect(await organisationsPage.searchResult()).toEqual('1 result found')
+      expect(await organisationsPage.getTableData()).toEqual([
+        {
+          header: seeded.companyName,
+          orgId: seeded.orgId,
+          regAccNumbers: `${seeded.registrationNumber} - ${seeded.accreditationNumber}`,
+          regulator: 'EA',
+          // Approved rather than active: the organisation is never linked to a
+          // Defra ID, which is what makes an approved organisation active.
+          status: 'approved'
+        }
+      ])
+    }
+
+    test('Should find an organisation by its organisation ID @organisations', async ({
+      page
+    }) => {
+      const organisationsPage = new OrganisationsPage(page)
+
+      await organisationsPage.searchBy({ orgId: seeded.orgId })
+
+      await expectOnlySeededOrganisation(organisationsPage)
+    })
+
+    test('Should find an organisation by its reference number @organisations', async ({
+      page
+    }) => {
+      const organisationsPage = new OrganisationsPage(page)
+
+      await organisationsPage.searchBy({ orgId: seeded.refNo })
+
+      await expectOnlySeededOrganisation(organisationsPage)
+    })
+
+    test('Should find an organisation by registration number @organisations', async ({
+      page
+    }) => {
+      const organisationsPage = new OrganisationsPage(page)
+
+      await organisationsPage.searchBy({
+        registrationNumber: seeded.registrationNumber
+      })
+
+      await expectOnlySeededOrganisation(organisationsPage)
+    })
+
+    test('Should find an organisation by registration ID @organisations', async ({
+      page
+    }) => {
+      const organisationsPage = new OrganisationsPage(page)
+
+      await organisationsPage.searchBy({
+        registrationId: seeded.registrationId
+      })
+
+      await expectOnlySeededOrganisation(organisationsPage)
+    })
+
+    test('Should find an organisation by accreditation number @organisations', async ({
+      page
+    }) => {
+      const organisationsPage = new OrganisationsPage(page)
+
+      await organisationsPage.searchBy({
+        accreditationNumber: seeded.accreditationNumber
+      })
+
+      await expectOnlySeededOrganisation(organisationsPage)
+    })
+
+    test('Should find an organisation by accreditation ID @organisations', async ({
+      page
+    }) => {
+      const organisationsPage = new OrganisationsPage(page)
+
+      await organisationsPage.searchBy({
+        accreditationId: seeded.accreditationId
+      })
+
+      await expectOnlySeededOrganisation(organisationsPage)
+    })
+
+    test('Should find nothing when only some of the search fields match @organisations', async ({
+      page
+    }) => {
+      const organisationsPage = new OrganisationsPage(page)
+
+      await organisationsPage.searchBy({
+        registrationNumber: seeded.registrationNumber,
+        accreditationNumber: `FAKE/ACC/${randomUUID()}`
+      })
+
+      expect(await organisationsPage.searchResult()).toEqual('0 results found')
+    })
+
+    test('Should empty every search field and show all organisations when the search is cleared @organisations', async ({
+      page
+    }) => {
+      const organisationsPage = new OrganisationsPage(page)
+
+      await organisationsPage.searchBy({ orgId: seeded.orgId })
+      expect(await organisationsPage.searchResult()).toEqual('1 result found')
+
+      await organisationsPage.clearSearch()
+
+      expect(await organisationsPage.searchFieldValues()).toEqual({
+        search: '',
+        orgId: '',
+        registrationNumber: '',
+        registrationId: '',
+        accreditationNumber: '',
+        accreditationId: ''
+      })
+      expect(await organisationsPage.searchResultExists()).toBe(false)
+      expect(await organisationsPage.getTableRowCount()).toBeGreaterThan(1)
+    })
   })
 })
