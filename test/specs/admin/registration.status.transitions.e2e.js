@@ -7,8 +7,19 @@ import { RegistrationOverviewPage } from 'page-objects/admin/registration.overvi
 import { RegistrationTransitionPage } from 'page-objects/admin/registration.transition.page'
 import {
   createLinkedOrganisation,
+  getOrganisation,
   updateMigratedOrganisation
 } from '../../support/apicalls.js'
+
+const CURRENT_YEAR = new Date().getFullYear()
+// The dates typed into the approve confirm form (PAE-1814). The valid-to is
+// deliberately not the value updateMigratedOrganisation seeds
+// (SEEDED_VALID_TO), so asserting the granted value proves the grant wrote it.
+const GRANTED_VALID_FROM = { day: '1', month: '1', year: `${CURRENT_YEAR}` }
+const GRANTED_VALID_TO = { day: '31', month: '12', year: `${CURRENT_YEAR}` }
+const GRANTED_VALID_FROM_ISO = `${CURRENT_YEAR}-01-01`
+const GRANTED_VALID_TO_ISO = `${CURRENT_YEAR}-12-31`
+const SEEDED_VALID_TO = `${CURRENT_YEAR + 1}-01-01`
 
 // Walks the full registration lifecycle through the admin UI transition
 // actions on the registration overview page:
@@ -75,12 +86,12 @@ test.describe('Admin registration status transitions', () => {
     )
 
     // created -> approved: grant, issuing the registration number (PAE-1599)
+    // and the validity window typed on the confirm page (PAE-1814)
     await registrationOverviewPage.clickRegistrationAction('Approve')
     expect(await transitionPage.getHeading()).toBe('Approve registration')
     await transitionPage.fillGrantFields({
-      day: '1',
-      month: '1',
-      year: `${new Date().getFullYear()}`,
+      validFrom: GRANTED_VALID_FROM,
+      validTo: GRANTED_VALID_TO,
       registrationNumber: 'E25SR500030917PA'
     })
     await transitionPage.confirm('Approve now')
@@ -88,6 +99,14 @@ test.describe('Admin registration status transitions', () => {
     expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
       'approved'
     )
+
+    // The granted validity window is persisted exactly as entered, and the
+    // valid-to has replaced the seeded one
+    const grantedOrganisation = await getOrganisation(orgId)
+    const grantedRegistration = grantedOrganisation.registrations[0]
+    expect(grantedRegistration.validFrom).toBe(GRANTED_VALID_FROM_ISO)
+    expect(grantedRegistration.validTo).toBe(GRANTED_VALID_TO_ISO)
+    expect(grantedRegistration.validTo).not.toBe(SEEDED_VALID_TO)
 
     // approved: grant is a one-way door — no Approve action remains
     await expect(
