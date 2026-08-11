@@ -13,11 +13,25 @@ class OrganisationOverviewPage extends AdminPage {
     })
   }
 
+  // Every row of the registrations table, including the unlinked
+  // accreditation rows appended after the registrations (PAE-1816).
+  registrationRows() {
+    return this.page.locator('table.govuk-table tbody tr')
+  }
+
   async viewRegistrationLink(row) {
     await this.page
       .locator(
         `main table tbody tr:nth-child(${row}) td:nth-child(8) a:nth-of-type(1)`
       )
+      .click()
+  }
+
+  // The only action an unlinked accreditation's row offers (PAE-1816). Orphan
+  // rows are the only rows that carry it, so no row index is needed.
+  async clickAssignToRegistration() {
+    await this.page
+      .getByRole('link', { name: 'Assign to registration' })
       .click()
   }
 
