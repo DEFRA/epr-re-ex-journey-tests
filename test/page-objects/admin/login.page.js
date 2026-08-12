@@ -38,8 +38,20 @@ class AdminLoginPage extends AdminPage {
     await this.page.locator('input[value="Yes"]').click()
   }
 
+  // Waits for the resulting navigation to actually complete before
+  // returning. Needed because the sign-in POST redirects through to the
+  // Home page, and a caller that acts immediately (e.g. an axe scan) can
+  // otherwise run while that navigation is still settling - Playwright's
+  // click() only waits for the click itself, not any follow-on redirect
+  // chain - which surfaces as axe-core's page.evaluate throwing "Execution
+  // context was destroyed, most likely because of a navigation".
   async submitCredentials() {
+    const urlBeforeClick = this.page.url()
     await this.page.locator('button[type=submit]').click()
+    await this.page.waitForURL((url) => url.toString() !== urlBeforeClick, {
+      timeout: 15000
+    })
+    await this.page.waitForLoadState('networkidle', { timeout: 15000 })
   }
 }
 
