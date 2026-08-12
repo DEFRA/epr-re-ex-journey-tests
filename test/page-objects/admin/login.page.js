@@ -35,7 +35,18 @@ class AdminLoginPage extends AdminPage {
     await this.page.locator('#i0118').fill(password)
     await this.page.locator('input[value="Sign in"]').click()
 
+    // As with submitCredentials() below, wait for the final leg of the
+    // redirect chain (login.microsoftonline.com -> app callback -> Home) to
+    // actually settle before returning - real Entra's chain is longer than
+    // the stub's, so a caller that acts immediately (e.g. an axe scan) is
+    // even more likely to hit axe-core's "Execution context was destroyed"
+    // if this click's navigation is still in flight.
+    const urlBeforeClick = this.page.url()
     await this.page.locator('input[value="Yes"]').click()
+    await this.page.waitForURL((url) => url.toString() !== urlBeforeClick, {
+      timeout: 15000
+    })
+    await this.page.waitForLoadState('networkidle', { timeout: 15000 })
   }
 
   // Waits for the resulting navigation to actually complete before
