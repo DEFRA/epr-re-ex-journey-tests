@@ -11,15 +11,15 @@ class AdminLoginPage extends AdminPage {
     await this.page.locator('#password').fill(password)
   }
 
-  // Deletes cookies first so a stale session from an earlier spec/it block
-  // can't skip the login form entirely.
+  // The stub path deletes cookies first so a stale session from an earlier
+  // spec/it block can't skip the login form entirely.
   async loginAsServiceMaintainer(
     username = config.auth.username,
     password = config.auth.password
   ) {
-    if (process.env.ENVIRONMENT === 'test') {
+    if (config.usesRealEntra) {
       await this.open()
-      this.enterCredentialsMSLogin(username, password)
+      await this.enterCredentialsMSLogin(username, password)
     } else {
       await this.page.context().clearCookies()
       await this.open()

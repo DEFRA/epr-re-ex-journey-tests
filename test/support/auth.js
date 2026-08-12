@@ -9,7 +9,7 @@ export class AuthClient {
 
   async authenticate() {
     let payload, urlSuffix
-    if (process.env.ENVIRONMENT === 'test') {
+    if (config.usesRealEntra) {
       payload = new FormData()
       payload.append('client_id', config.auth.clientId)
       payload.append('client_secret', config.auth.clientSecret)
