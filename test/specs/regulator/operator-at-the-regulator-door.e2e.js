@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 
 import { createLinkedOrganisation } from '~/test/support/apicalls.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
+import { requireValue } from '~/test/support/required-value.js'
 
 test.describe('An operator at the regulator door @regulator', () => {
   // Welsh is checked alongside English because every route in the service is
@@ -15,7 +16,11 @@ test.describe('An operator at the regulator door @regulator', () => {
         { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
       ])
 
-      await createLinkAndLogin(page, refNo, organisation.email)
+      await createLinkAndLogin(
+        page,
+        refNo,
+        requireValue(organisation.email, 'EMAIL_ADDRESS')
+      )
 
       await page.goto(`${prefix}/regulators/home`)
 

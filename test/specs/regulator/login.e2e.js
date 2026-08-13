@@ -10,7 +10,7 @@ test.describe('Regulator login @regulator', () => {
     const loginPage = new RegulatorLoginPage(page)
     const homePage = new RegulatorHomePage(page)
 
-    await loginPage.login()
+    await loginPage.loginAsRegulator()
 
     const welcomeText = await homePage.getWelcomeText()
     expect(welcomeText).toBe('Regulators home')
