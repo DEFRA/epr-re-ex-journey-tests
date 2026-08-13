@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
+import { ServiceNavigation } from 'page-objects/service-navigation.page'
 
 test.describe('Regulator login @regulator', () => {
   test('Should be able to sign in as a regulator, reach the landing page, and sign out @regulatorlogin', async ({
@@ -9,11 +10,20 @@ test.describe('Regulator login @regulator', () => {
   }) => {
     const loginPage = new RegulatorLoginPage(page)
     const homePage = new RegulatorHomePage(page)
+    const serviceNavigation = new ServiceNavigation(page)
 
     await loginPage.loginAsRegulator()
 
     const welcomeText = await homePage.getWelcomeText()
     expect(welcomeText).toBe('Regulators home')
+
+    // A regulator reads what operators record and records nothing, so the
+    // service names itself for reading and offers them no operator controls.
+    expect(await serviceNavigation.serviceName()).toBe(
+      'Check reprocessed or exported packaging waste'
+    )
+    expect(await serviceNavigation.serviceUrl()).toBe('/regulators/home')
+    expect(await serviceNavigation.linkTexts()).toEqual(['Home', 'Sign out'])
 
     // Record the landing page URL before signing out, so we can prove the
     // session was actually terminated server-side (not just that the sign

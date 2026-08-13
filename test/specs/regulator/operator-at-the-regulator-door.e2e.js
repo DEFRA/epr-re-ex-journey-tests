@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 import { NoPermissionPage } from 'page-objects/no-permission.page'
+import { ServiceNavigation } from 'page-objects/service-navigation.page'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
@@ -38,6 +39,7 @@ test.describe('An operator at the regulator door @regulator', () => {
       ])
 
       const refusalPage = new NoPermissionPage(page)
+      const serviceNavigation = new ServiceNavigation(page)
 
       await createLinkAndLogin(page, refNo, email)
 
@@ -50,6 +52,18 @@ test.describe('An operator at the regulator door @regulator', () => {
       expect(await refusalPage.getBodyText()).toContain(
         'You cannot use the page you asked for'
       )
+
+      // The operator keeps the operator shell at a regulator address, because
+      // the role decides which shell renders and the route never does.
+      expect(await serviceNavigation.serviceName()).toBe(
+        'Record reprocessed or exported packaging waste'
+      )
+      expect(await serviceNavigation.serviceUrl()).toBe(`${prefix}/start`)
+      expect(await serviceNavigation.linkTexts()).toEqual([
+        'Home',
+        'Manage account',
+        'Sign out'
+      ])
     })
   }
 })
