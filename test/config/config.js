@@ -47,13 +47,57 @@ const api = {
   headers: xApiKey ? { 'x-api-key': xApiKey } : {}
 }
 
-// `test` and `ext-test` authenticate against real Entra; every other
-// environment, and local, uses the Entra stub. The two differ in more than a
-// URL - the token request and the sign-in page have different shapes - so
-// everything that picks between them reads this one constant. Exported for
-// the same reason: `test/support/auth.js` and the admin login page object
-// must make the same choice this file does.
-const usesRealEntra = environment === 'test' || environment === 'ext-test'
+// Each identity provider is stubbed or real independently, and an environment
+// can mix them. The table below records which environments deploy the real
+// provider today. A run against any other combination sets the provider's mode
+// variable to `real` or `stub`, which wins over the table - so the suite does
+// not need a code change to follow an environment that is rewired.
+//
+// A stub and its real provider differ in more than a URL: the token request
+// and the sign-in page have different shapes. Everything that picks between
+// them therefore reads one of these constants rather than testing the
+// environment name again.
+//
+// Defra ID is absent because no real CPDev sign-in path exists in this suite
+// yet, so every environment takes the stub and there is nothing to choose.
+const providers = {
+  entra: { modeVariable: 'ENTRA_MODE', realIn: ['test', 'ext-test'] },
+  basicAuth: { modeVariable: 'BASIC_AUTH_MODE', realIn: ['test'] },
+  cognito: { modeVariable: 'COGNITO_MODE', realIn: ['test'] }
+}
+
+/**
+ * @param {keyof typeof providers} provider
+ * @returns {boolean}
+ */
+function usesRealProvider(provider) {
+  const { modeVariable, realIn } = providers[provider]
+  const mode = process.env[modeVariable]
+
+  if (mode === 'real') {
+    return true
+  }
+
+  if (mode === 'stub') {
+    return false
+  }
+
+  if (mode) {
+    throw new Error(`${modeVariable} must be 'real' or 'stub', not '${mode}'.`)
+  }
+
+  // A local run has no environment, so it takes every stub unless the mode
+  // variable above asks for the real provider.
+  if (!environment) {
+    return false
+  }
+
+  return realIn.includes(environment)
+}
+
+const usesRealEntra = usesRealProvider('entra')
+const usesRealBasicAuth = usesRealProvider('basicAuth')
+const usesRealCognito = usesRealProvider('cognito')
 
 // Entra (service-to-service) auth, used for calling the backend as the
 // EA/regulator identity rather than as a Defra ID operator user.
@@ -104,14 +148,12 @@ const defraId = {
 // (org-by-ID, overseas-sites-by-ID) - matches compose.yml's
 // BASIC_AUTH_USERNAME/PASSWORD on epr-backend.
 const basicAuth = {
-  username:
-    environment === 'test'
-      ? process.env.BASIC_AUTH_USERNAME
-      : 'basicAuthUsername',
-  password:
-    environment === 'test'
-      ? process.env.BASIC_AUTH_PASSWORD
-      : 'basicAuthPassword'
+  username: usesRealBasicAuth
+    ? process.env.BASIC_AUTH_USERNAME
+    : 'basicAuthUsername',
+  password: usesRealBasicAuth
+    ? process.env.BASIC_AUTH_PASSWORD
+    : 'basicAuthPassword'
 }
 
 // epr-re-ex-admin-frontend runs on its own port/host, separate from the
@@ -129,13 +171,11 @@ const cognitoAuthParams = {
     ? 'http://cognito-stub:9229'
     : `http://localhost:${process.env.COGNITO_PORT || 9229}`,
   envUrl: process.env.COGNITO_URL,
-  clientId:
-    environment === 'test'
-      ? process.env.COGNITO_CLIENT_ID
-      : '5357lgchj0h0fuomqyas5r87u',
+  clientId: usesRealCognito
+    ? process.env.COGNITO_CLIENT_ID
+    : '5357lgchj0h0fuomqyas5r87u',
   username: 'hello@example.com',
-  password:
-    environment === 'test' ? process.env.COGNITO_CLIENT_SECRET : 'testPassword'
+  password: usesRealCognito ? process.env.COGNITO_CLIENT_SECRET : 'testPassword'
 }
 
 const cognito = {

@@ -20,6 +20,7 @@ separate journey-test repos, one per app.
   - [Debugging local tests](#debugging-local-tests)
 - [Production](#production)
   - [Running tests with Profile](#running-tests-with-profile)
+  - [Choosing stub or real identity providers](#choosing-stub-or-real-identity-providers)
 - [Requirements of CDP Environment Tests](#requirements-of-cdp-environment-tests)
 - [Running on GitHub](#running-on-github)
 - [BrowserStack](#browserstack)
@@ -306,6 +307,22 @@ afterwards:
 
 - `generate` - runs `npm run generatedata:allMaterialsMixed:withLinking`
 - `generateInd` - runs `npm run generatedata:withLinking`
+
+### Choosing stub or real identity providers
+
+An environment stubs some identity providers and deploys others for real, and the combination differs between environments. `test/config/config.js` holds the default for each environment. Set a provider's mode variable to follow an environment that is wired differently, or that is rewired after the default was written:
+
+| Provider   | Mode variable     | Real by default in | Credentials it then needs                                                                                                                                        |
+| ---------- | ----------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entra      | `ENTRA_MODE`      | `test`, `ext-test` | `AUTH_CLIENT_SECRET`, `AUTH_USERNAME`, `AUTH_PASSWORD`, `REGULATOR_USERNAME`, `REGULATOR_PASSWORD`, `UNRECOGNISED_ENTRA_USERNAME`, `UNRECOGNISED_ENTRA_PASSWORD` |
+| Basic auth | `BASIC_AUTH_MODE` | `test`             | `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD`                                                                                                                     |
+| Cognito    | `COGNITO_MODE`    | `test`             | `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`                                                                                                                     |
+
+Each variable takes `real` or `stub`, and wins over the default. Any other value stops the run. A local run takes every stub unless a mode variable asks otherwise.
+
+A run that reaches a real provider without its credentials fails naming the missing variable, rather than sending a blank one and reporting whatever the provider says about it.
+
+Defra ID has no mode variable. Every environment reaches it through the stub, because the suite holds no real CPDev sign-in path.
 
 ## Requirements of CDP Environment Tests
 

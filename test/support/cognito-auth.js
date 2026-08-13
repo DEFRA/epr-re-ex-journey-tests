@@ -1,5 +1,6 @@
 import { request } from 'undici'
 import config from '../config/config.js'
+import { requireValue } from './required-value.js'
 
 class CognitoAuth {
   constructor(config = {}) {
@@ -14,9 +15,9 @@ class CognitoAuth {
       // eslint-disable-next-line camelcase
       grant_type: 'client_credentials',
       // eslint-disable-next-line camelcase
-      client_id: this.clientId,
+      client_id: requireValue(this.clientId, 'COGNITO_CLIENT_ID'),
       // eslint-disable-next-line camelcase
-      client_secret: this.clientSecret
+      client_secret: requireValue(this.clientSecret, 'COGNITO_CLIENT_SECRET')
     })
 
     const { statusCode, body } = await request(this.url, {
