@@ -74,6 +74,25 @@ const auth = {
   grantType: 'password'
 }
 
+// The two Entra identities that sign in to `epr-frontend` itself, as opposed
+// to the service identity in `auth` above. `epr-frontend` recognises one app
+// role, `Waste.Regulator.Standard`, so the second identity below stands for
+// every internal user who holds no role this service knows - the stub's
+// `EPR.Customer` user serves that purpose locally.
+const regulatorUser = {
+  username: usesRealEntra
+    ? process.env.REGULATOR_USERNAME
+    : 'standard.regulator@test.gov.uk',
+  password: usesRealEntra ? process.env.REGULATOR_PASSWORD : 'pass'
+}
+
+const unrecognisedEntraUser = {
+  username: usesRealEntra
+    ? process.env.UNRECOGNISED_ENTRA_USERNAME
+    : 'customer@test.gov.uk',
+  password: usesRealEntra ? process.env.UNRECOGNISED_ENTRA_PASSWORD : 'pass'
+}
+
 const defraId = {
   local: withProxy
     ? 'http://defra-id-stub:3200'
@@ -190,7 +209,9 @@ export default {
   cognitoAuth,
   defraIdUri,
   dockerLogParser,
+  regulatorUser,
   testLogs,
   undiciAgent: globalUndiciAgent,
+  unrecognisedEntraUser,
   usesRealEntra
 }
