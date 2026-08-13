@@ -13,11 +13,18 @@ test.describe('An Entra user who is not a regulator @regulator', () => {
 
     await loginPage.loginAsUnrecognisedUser()
 
-    // The refusal page's wording changes with the authorisation work, and the
-    // regulator-cannot-change journey asserts the new wording against the
-    // branch that introduces it. What holds either side of that change is that
-    // this user does not reach the regulators area.
-    expect(await notAuthorisedPage.getHeadingText()).not.toBe('Regulators home')
+    // Sign-in is the one point that establishes that an identity holds no role
+    // this service knows, so this is the one refusal entitled to say why. The
+    // body is matched on the instruction rather than the whole sentence: the
+    // reader must be told how to ask for access, and a content designer must
+    // be free to reword the rest without turning this journey red.
+    expect(await notAuthorisedPage.getHeadingText()).toBe(
+      'You do not have access to this service'
+    )
+    expect(await notAuthorisedPage.getBodyText()).toContain(
+      'To ask for access, contact us'
+    )
+    expect(await notAuthorisedPage.getBodyText()).not.toMatch(/entra/i)
 
     // Authenticating and being refused is the easy half. The failure mode is a
     // half-session that lets the user wander, so prove no session was left
