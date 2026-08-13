@@ -1,5 +1,7 @@
 import { AdminPage } from 'page-objects/admin/page'
 import config from '~/test/config/config.js'
+import { signInAtMicrosoft } from '~/test/support/entra-login.js'
+import { requireValue } from '~/test/support/required-value.js'
 
 class AdminLoginPage extends AdminPage {
   open() {
@@ -19,34 +21,17 @@ class AdminLoginPage extends AdminPage {
   ) {
     if (config.usesRealEntra) {
       await this.open()
-      await this.enterCredentialsMSLogin(username, password)
+      await signInAtMicrosoft(
+        this.page,
+        requireValue(username, 'AUTH_USERNAME'),
+        requireValue(password, 'AUTH_PASSWORD')
+      )
     } else {
       await this.page.context().clearCookies()
       await this.open()
       await this.enterCredentials(username, password)
       await this.submitCredentials()
     }
-  }
-
-  async enterCredentialsMSLogin(username, password) {
-    await this.page.locator('#i0116').fill(username)
-    await this.page.locator('#idSIButton9').click()
-
-    await this.page.locator('#i0118').fill(password)
-    await this.page.locator('input[value="Sign in"]').click()
-
-    // As with submitCredentials() below, wait for the final leg of the
-    // redirect chain (login.microsoftonline.com -> app callback -> Home) to
-    // actually settle before returning - real Entra's chain is longer than
-    // the stub's, so a caller that acts immediately (e.g. an axe scan) is
-    // even more likely to hit axe-core's "Execution context was destroyed"
-    // if this click's navigation is still in flight.
-    const urlBeforeClick = this.page.url()
-    await this.page.locator('input[value="Yes"]').click()
-    await this.page.waitForURL((url) => url.toString() !== urlBeforeClick, {
-      timeout: 15000
-    })
-    await this.page.waitForLoadState('networkidle', { timeout: 15000 })
   }
 
   // Waits for the resulting navigation to actually complete before
