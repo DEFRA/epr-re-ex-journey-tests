@@ -31,6 +31,7 @@ test.describe('An operator at the regulator door @regulator', () => {
         {
           regNumber: 'R25SR500060912PA',
           status: 'approved',
+          reprocessingType: 'input',
           withoutAccreditation: true
         }
       ])
