@@ -58,12 +58,26 @@ const api = {
 // them therefore reads one of these constants rather than testing the
 // environment name again.
 //
-// Defra ID is absent because no real CPDev sign-in path exists in this suite
-// yet, so every environment takes the stub and there is nothing to choose.
+// Defra ID is absent because this suite holds no real CPDev sign-in path, so
+// it takes the stub whatever the environment does. That is a gap rather than a
+// fact about the environments: dev, ext-test and prod all point epr-frontend at
+// real CPDev, and only test and perf-test deploy a Defra ID stub.
+//
+// Every entry below comes from the deployed configuration in cdp-app-config,
+// not from which environments the suite has been run against. prod is absent
+// from every list because the check at the top of this file refuses it.
+const deployedEnvironments = ['dev', 'test', 'ext-test', 'perf-test']
+
 const providers = {
+  // dev and perf-test point epr-frontend at the Entra stub; test and ext-test
+  // point it at login.microsoftonline.com.
   entra: { modeVariable: 'ENTRA_MODE', realIn: ['test', 'ext-test'] },
-  basicAuth: { modeVariable: 'BASIC_AUTH_MODE', realIn: ['test'] },
-  cognito: { modeVariable: 'COGNITO_MODE', realIn: ['test'] }
+  // No environment deploys a stub for either of these. The basic-auth
+  // credentials are portal secrets everywhere, and every environment gives
+  // epr-backend a real AWS Cognito user pool for the external PRN API. Both
+  // stubs are local-only, from compose.yml.
+  basicAuth: { modeVariable: 'BASIC_AUTH_MODE', realIn: deployedEnvironments },
+  cognito: { modeVariable: 'COGNITO_MODE', realIn: deployedEnvironments }
 }
 
 /**
