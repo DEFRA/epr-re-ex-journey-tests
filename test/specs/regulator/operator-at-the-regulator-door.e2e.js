@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 
+import { NoPermissionPage } from 'page-objects/no-permission.page'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
@@ -36,12 +37,19 @@ test.describe('An operator at the regulator door @regulator', () => {
         }
       ])
 
+      const refusalPage = new NoPermissionPage(page)
+
       await createLinkAndLogin(page, refNo, email)
 
       await page.goto(`${prefix}/regulators/home`)
 
       await expect(page.locator('main h1')).not.toHaveText('Regulators home')
-      await expect(page.locator('main')).toContainText('Forbidden')
+      expect(await refusalPage.getHeadingText()).toBe(
+        'You do not have permission'
+      )
+      expect(await refusalPage.getBodyText()).toContain(
+        'You cannot use the page you asked for'
+      )
     })
   }
 })

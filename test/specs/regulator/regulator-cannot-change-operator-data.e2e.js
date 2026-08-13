@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
+import { NoPermissionPage } from 'page-objects/no-permission.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
-import { NotAuthorisedPage } from 'page-objects/regulator/not-authorised.page'
 
 /**
  * Reads the cross-site request token the service issued to this browser. A
@@ -27,19 +27,11 @@ async function readRequestToken(page) {
 }
 
 test.describe('A regulator who tries to change operator data @regulator', () => {
-  // Skipped until epr-frontend serves the refusal page this journey reads. The
-  // wording it asserts arrives with the branch that replaces the regulator
-  // refusal copy; against epr-frontend main the wording is still the older
-  // one, so the journey fails on the assertion rather than on the control it
-  // tests.
-  //
-  // To run it, point the suite at that epr-frontend branch and change
-  // `test.skip` to `test`.
-  test.skip('is told they do not have permission @regulatorcannotchange', async ({
+  test('is told they do not have permission @regulatorcannotchange', async ({
     page
   }) => {
     const loginPage = new RegulatorLoginPage(page)
-    const refusalPage = new NotAuthorisedPage(page)
+    const refusalPage = new NoPermissionPage(page)
 
     await loginPage.loginAsRegulator()
 
