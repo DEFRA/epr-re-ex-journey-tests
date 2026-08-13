@@ -13,11 +13,14 @@ test.describe('An Entra user who is not a regulator @regulator', () => {
 
     await loginPage.loginAsUnrecognisedUser()
 
-    // The refusal page's wording changes with the authorisation work, and the
-    // regulator-cannot-change journey asserts the new wording against the
-    // branch that introduces it. What holds either side of that change is that
-    // this user does not reach the regulators area.
-    expect(await notAuthorisedPage.getHeadingText()).not.toBe('Regulators home')
+    // The sign-in refusal states a cause, because the callback establishes one:
+    // this identity holds no role the service knows. That is a different page
+    // from the refusal a signed-in user meets, which knows only that the
+    // backend answered 403.
+    expect(await notAuthorisedPage.getHeadingText()).toBe('User not authorised')
+    expect(await notAuthorisedPage.getBodyText()).toContain(
+      'This Entra user is not configured as a regulator'
+    )
 
     // Authenticating and being refused is the easy half. The failure mode is a
     // half-session that lets the user wander, so prove no session was left
