@@ -14,8 +14,9 @@ test.describe('Regulator login @regulator', () => {
 
     await loginPage.loginAsRegulator()
 
-    const welcomeText = await homePage.getWelcomeText()
-    expect(welcomeText).toBe('Regulators home')
+    // The landing page is the organisation search, which is what the heading
+    // names. The route and the navigation link stay "Home".
+    expect(await homePage.getHeadingText()).toBe('Organisations')
 
     // A regulator reads what operators record and records nothing, so the
     // service names itself for reading and offers them no operator controls.
