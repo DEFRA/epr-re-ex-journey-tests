@@ -45,8 +45,12 @@ class PRNViewPage extends Page {
     return hrefs.map((href) => href.replace(/[0-9a-f]{24}/g, '{id}')).sort()
   }
 
-  // The issue button posts back to this page, so it carries no href of its own
-  // and the routes above cannot see it. Its form is what says it is there.
+  /**
+   * The issue button posts back to this page, so it carries no href of its own
+   * and the routes above cannot see it. Its form is what says it is there.
+   *
+   * @returns {Promise<number>}
+   */
   async formCount() {
     return this.page.locator('#main-content form').count()
   }

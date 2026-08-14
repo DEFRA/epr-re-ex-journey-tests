@@ -115,6 +115,19 @@ async function assertSuccessResponse(response, context) {
   return body
 }
 
+// For an endpoint whose exact status code is part of what the seed relies on -
+// a create that must report 201, a transition that must report 200. A 2xx that
+// is not the expected one is an API change the seed has to see.
+async function assertStatus(response, expectedStatusCode, context) {
+  const body = await response.body.json()
+  if (response.statusCode !== expectedStatusCode) {
+    throw new Error(
+      `${context}: expected ${expectedStatusCode} but got ${response.statusCode}\n${JSON.stringify(body, null, 2)}`
+    )
+  }
+  return body
+}
+
 async function assertSuccessResponseWithoutBody(response, context) {
   if (response.statusCode < 200 || response.statusCode >= 300) {
     const body = await response.body.json()
@@ -748,6 +761,11 @@ export async function seedSubmittedReport(
  * accreditation can draw the tonnage from. The note starts as a draft; the
  * status endpoint moves it on.
  *
+ * @param {string} refNo
+ * @param {string} registrationId
+ * @param {string} accreditationId
+ * @param {{Authorization?: string}} defraAuthHeader
+ * @param {number} tonnage
  * @returns {Promise<{prnId: string, prnPath: string}>}
  */
 export async function createPrn(
@@ -771,11 +789,20 @@ export async function createPrn(
     }),
     defraAuthHeader
   )
-  const body = await assertSuccessResponse(response, `POST ${path}`)
+  const body = await assertStatus(response, 201, `POST ${path}`)
 
   return { prnId: body.id, prnPath: `${path}/${body.id}` }
 }
 
+/**
+ * Moves a PRN along its state machine - draft, awaiting_authorisation,
+ * awaiting_acceptance - and returns the note as it stands after the move.
+ *
+ * @param {string} prnPath
+ * @param {{Authorization?: string}} defraAuthHeader
+ * @param {string} status
+ * @returns {Promise<{prnNumber: string}>}
+ */
 export async function updatePrnStatus(prnPath, defraAuthHeader, status) {
   const baseAPI = new BaseAPI()
   const response = await baseAPI.post(
@@ -784,7 +811,7 @@ export async function updatePrnStatus(prnPath, defraAuthHeader, status) {
     defraAuthHeader
   )
 
-  return assertSuccessResponse(response, `POST ${prnPath}/status (${status})`)
+  return assertStatus(response, 200, `POST ${prnPath}/status (${status})`)
 }
 
 export async function externalAPICancelPrn(prnDetails) {
