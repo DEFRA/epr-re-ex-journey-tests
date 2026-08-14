@@ -119,13 +119,16 @@ async function assertSuccessResponse(response, context) {
 // a create that must report 201, a transition that must report 200. A 2xx that
 // is not the expected one is an API change the seed has to see.
 async function assertStatus(response, expectedStatusCode, context) {
-  const body = await response.body.json()
-  if (response.statusCode !== expectedStatusCode) {
-    throw new Error(
-      `${context}: expected ${expectedStatusCode} but got ${response.statusCode}\n${JSON.stringify(body, null, 2)}`
-    )
+  if (response.statusCode === expectedStatusCode) {
+    return response.body.json()
   }
-  return body
+
+  // Read as text, not JSON: a gateway error or an HTML error page would throw
+  // on parse and take the status code - the thing this helper exists to
+  // report - down with it.
+  throw new Error(
+    `${context}: expected ${expectedStatusCode} but got ${response.statusCode}\n${await response.body.text()}`
+  )
 }
 
 async function assertSuccessResponseWithoutBody(response, context) {

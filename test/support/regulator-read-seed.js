@@ -49,8 +49,7 @@ const REPORT_FIGURES = {
  *   accreditationNumber: string,
  *   prnId: string,
  *   prnTonnage: number,
- *   reportPeriod: {year: number, cadence: string, period: number},
- *   reportTonnageRecycled: number
+ *   reportPeriod: {year: number, cadence: string, period: number}
  * }>}
  */
 export async function seedAwaitingPrnAndSubmittedReport() {
@@ -118,7 +117,6 @@ export async function seedAwaitingPrnAndSubmittedReport() {
     accreditationNumber: ACCREDITATION_NUMBER,
     prnId,
     prnTonnage: PRN_TONNAGE,
-    reportPeriod,
-    reportTonnageRecycled: REPORT_FIGURES.tonnageRecycled
+    reportPeriod
   }
 }

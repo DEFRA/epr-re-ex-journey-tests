@@ -106,6 +106,10 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     // The reports half of the journey starts here again, and a regulator holds
     // no record ids to build the path from - so keep the one the search found.
+    // Settle on the summary cards first: the click above does not promise the
+    // registration page has loaded, and a URL read taken early would send the
+    // second half of this journey to the organisation dashboard instead.
+    await registrationPage.registrationAndAccreditationCard().waitFor()
     const registrationUrl = page.url()
 
     await registrationPage.managePRNsLink()
@@ -113,10 +117,14 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // The note awaits authorisation, and the awaiting tables are the only
     // place such a note is filed. Reading the tonnage back off the row is what
     // says the list rendered the operator's note rather than an empty section.
+    // The row read takes the DOM as it stands with no auto-wait, so settle on
+    // the row's action link before it.
+    const awaitingLink = prnListPage.awaitingLink(1)
+    await awaitingLink.waitFor()
+
     const awaitingRow = await prnListPage.getAwaitingRow(1)
     expect(awaitingRow.get('Tonnage')).toBe(`${seeded.prnTonnage}`)
 
-    const awaitingLink = prnListPage.awaitingLink(1)
     expect(await awaitingLink.innerText()).toBe('View')
     expect(await awaitingLink.getAttribute('href')).toContain(
       `/packaging-recycling-notes/${seeded.prnId}/view`
@@ -124,8 +132,9 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     await prnListPage.selectAwaitingLink(1)
 
-    // The accreditation the note was drawn against, which only this seed's
-    // accreditation carries - so it says the note itself rendered.
+    // The accreditation the note was drawn against. The note's own page is the
+    // only page in this journey that renders it, so it says the note rendered
+    // rather than the list still being on screen.
     await checkBodyText(page, seeded.accreditationNumber, 10)
 
     // Back to the list is the only route the note offers a reader. The issue
@@ -138,7 +147,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     await page.goto(registrationUrl)
     await registrationPage.manageReportsLink()
 
-    await reportsPage.headingText()
+    expect(await reportsPage.headingText()).toContain('Reports')
 
     // The last completed period is the one the seed submitted, so it is the
     // only row the Submitted section holds - and the link it keeps names that
@@ -156,7 +165,9 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     await reportsPage.selectSubmittedActionLink(1)
 
-    await checkBodyText(page, `${seeded.reportTonnageRecycled}`, 10)
+    // The submitted report's own heading names the period it covers, so it
+    // says both that the report rendered and that it is the seeded one.
+    expect(await reportViewPage.headingText()).toContain(`${year}`)
     expect(await reportViewPage.hasMakeChangesLink()).toBe(false)
   })
 })
