@@ -85,7 +85,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     ])
   })
 
-  test('follows both links, reads the note and the report, and is offered nothing to change @regulatorreads', async ({
+  test('follows both links, reads the notes and the report, and is offered nothing to change @regulatorreads', async ({
     page
   }) => {
     const loginPage = new RegulatorLoginPage(page)
@@ -128,6 +128,21 @@ test.describe('A regulator looking up an operator @regulator', () => {
     expect(await awaitingLink.innerText()).toBe('View')
     expect(await awaitingLink.getAttribute('href')).toContain(
       `/packaging-recycling-notes/${seeded.prnId}/view`
+    )
+
+    // The awaiting-cancellation table is the second one in the same tab and is
+    // built by the same code, so it takes the same decision about what a
+    // session may do. A note awaiting cancellation appears nowhere else
+    // either, so an empty cell here would strand it.
+    const cancellationRow = await prnListPage.getAwaitingRow(1, 2)
+    expect(cancellationRow.get('Tonnage')).toBe(
+      `${seeded.cancellationPrnTonnage}`
+    )
+
+    const cancellationLink = prnListPage.awaitingLink(1, 2)
+    expect(await cancellationLink.innerText()).toBe('View')
+    expect(await cancellationLink.getAttribute('href')).toContain(
+      `/packaging-recycling-notes/${seeded.cancellationPrnId}/view`
     )
 
     await prnListPage.selectAwaitingLink(1)
