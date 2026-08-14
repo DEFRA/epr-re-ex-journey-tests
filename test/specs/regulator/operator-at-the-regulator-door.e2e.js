@@ -45,7 +45,7 @@ test.describe('An operator at the regulator door @regulator', () => {
 
       await page.goto(`${prefix}/regulators/home`)
 
-      await expect(page.locator('main h1')).not.toHaveText('Regulators home')
+      await expect(page.locator('main h1')).not.toHaveText('Organisations')
       expect(await refusalPage.getHeadingText()).toBe(
         'You do not have permission'
       )
