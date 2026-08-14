@@ -1,8 +1,12 @@
 import { test, expect } from '@playwright/test'
 
 import { DashboardPage } from 'page-objects/dashboard.page'
+import { PRNDashboardPage } from 'page-objects/prn.dashboard.page'
+import { PRNViewPage } from 'page-objects/prn.view.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
+import { ReportsPage } from 'page-objects/reports/reports.page'
+import { ReportViewPage } from 'page-objects/reports/report.view.page'
 import { WasteRecordsPage } from 'page-objects/waste.records.page'
 import {
   createLinkedOrganisation,
@@ -10,6 +14,8 @@ import {
   FAKE_REGISTRATION_NUMBER,
   updateMigratedOrganisation
 } from '../../support/apicalls.js'
+import { checkBodyText } from '../../support/checks.js'
+import { seedAwaitingPrnAndSubmittedReport } from '../../support/regulator-read-seed.js'
 
 test.describe('A regulator looking up an operator @regulator', () => {
   test('finds an organisation by name, reads it, and is offered nothing to change @regulatorsearch', async ({
@@ -77,5 +83,80 @@ test.describe('A regulator looking up an operator @regulator', () => {
       '/organisations/{id}/registrations/{id}/accreditations/{id}/packaging-recycling-notes',
       '/organisations/{id}/registrations/{id}/reports'
     ])
+  })
+
+  test('follows both links, reads the note and the report, and is offered nothing to change @regulatorreads', async ({
+    page
+  }) => {
+    const loginPage = new RegulatorLoginPage(page)
+    const homePage = new RegulatorHomePage(page)
+    const dashboardPage = new DashboardPage(page)
+    const registrationPage = new WasteRecordsPage(page)
+    const prnListPage = new PRNDashboardPage(page)
+    const prnViewPage = new PRNViewPage(page)
+    const reportsPage = new ReportsPage(page)
+    const reportViewPage = new ReportViewPage(page)
+
+    const seeded = await seedAwaitingPrnAndSubmittedReport()
+
+    await loginPage.loginAsRegulator()
+    await homePage.searchFor(seeded.companyName)
+    await homePage.openOrganisation(1)
+    await dashboardPage.selectLink(1)
+
+    // The reports half of the journey starts here again, and a regulator holds
+    // no record ids to build the path from - so keep the one the search found.
+    const registrationUrl = page.url()
+
+    await registrationPage.managePRNsLink()
+
+    // The note awaits authorisation, and the awaiting tables are the only
+    // place such a note is filed. Reading the tonnage back off the row is what
+    // says the list rendered the operator's note rather than an empty section.
+    const awaitingRow = await prnListPage.getAwaitingRow(1)
+    expect(awaitingRow.get('Tonnage')).toBe(`${seeded.prnTonnage}`)
+
+    const awaitingLink = prnListPage.awaitingLink(1)
+    expect(await awaitingLink.innerText()).toBe('View')
+    expect(await awaitingLink.getAttribute('href')).toContain(
+      `/packaging-recycling-notes/${seeded.prnId}/view`
+    )
+
+    await prnListPage.selectAwaitingLink(1)
+
+    // The accreditation the note was drawn against, which only this seed's
+    // accreditation carries - so it says the note itself rendered.
+    await checkBodyText(page, seeded.accreditationNumber, 10)
+
+    // Back to the list is the only route the note offers a reader. The issue
+    // button posts to this same page, so its form is counted separately.
+    expect(await prnViewPage.offeredRoutes()).toEqual([
+      '/organisations/{id}/registrations/{id}/accreditations/{id}/packaging-recycling-notes'
+    ])
+    expect(await prnViewPage.formCount()).toBe(0)
+
+    await page.goto(registrationUrl)
+    await registrationPage.manageReportsLink()
+
+    await reportsPage.headingText()
+
+    // The last completed period is the one the seed submitted, so it is the
+    // only row the Submitted section holds - and the link it keeps names that
+    // period, which says the calendar rendered the operator's own submission.
+    const { year, cadence, period } = seeded.reportPeriod
+    await reportsPage.expectSubmittedActionLink(1, 'View report')
+    expect(await reportsPage.getSubmittedActionLinkHref(1)).toContain(
+      `/reports/${year}/${cadence}/${period}/submissions/1/view`
+    )
+
+    // Every remaining period still needs a report, so each row's action is a
+    // write one. The rows are there and none of them is a link.
+    expect(await reportsPage.getActiveNumberOfRows()).toBeGreaterThan(0)
+    expect(await reportsPage.getActiveNumberOfActionLinks()).toBe(0)
+
+    await reportsPage.selectSubmittedActionLink(1)
+
+    await checkBodyText(page, `${seeded.reportTonnageRecycled}`, 10)
+    expect(await reportViewPage.hasMakeChangesLink()).toBe(false)
   })
 })

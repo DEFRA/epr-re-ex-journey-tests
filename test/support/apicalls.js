@@ -88,7 +88,7 @@ async function getDefraUserToken(email, orgId = randomUUID()) {
 
 // Returns the most recently completed reporting period for the given cadence.
 // Quarterly: periods 1–4 map to Q1–Q4. Monthly: periods 1–12 map to Jan–Dec.
-function lastCompletedPeriod(cadence) {
+export function lastCompletedPeriod(cadence) {
   const now = new Date()
   const month = now.getUTCMonth() + 1
   const year = now.getUTCFullYear()
@@ -741,6 +741,50 @@ export async function seedSubmittedReport(
     authHeader
   )
   await assertSuccessResponse(submitResponse, `POST ${statusPath} (submitted)`)
+}
+
+/**
+ * Creates a PRN against an accreditation, which needs a waste balance the
+ * accreditation can draw the tonnage from. The note starts as a draft; the
+ * status endpoint moves it on.
+ *
+ * @returns {Promise<{prnId: string, prnPath: string}>}
+ */
+export async function createPrn(
+  refNo,
+  registrationId,
+  accreditationId,
+  defraAuthHeader,
+  tonnage
+) {
+  const baseAPI = new BaseAPI()
+  const path = `/v1/organisations/${refNo}/registrations/${registrationId}/accreditations/${accreditationId}/packaging-recycling-notes`
+  const response = await baseAPI.post(
+    path,
+    JSON.stringify({
+      issuedToOrganisation: {
+        id: 'testId',
+        name: 'Test Organisation Ltd',
+        tradingName: 'Trading Name'
+      },
+      tonnage
+    }),
+    defraAuthHeader
+  )
+  const body = await assertSuccessResponse(response, `POST ${path}`)
+
+  return { prnId: body.id, prnPath: `${path}/${body.id}` }
+}
+
+export async function updatePrnStatus(prnPath, defraAuthHeader, status) {
+  const baseAPI = new BaseAPI()
+  const response = await baseAPI.post(
+    `${prnPath}/status`,
+    JSON.stringify({ status }),
+    defraAuthHeader
+  )
+
+  return assertSuccessResponse(response, `POST ${prnPath}/status (${status})`)
 }
 
 export async function externalAPICancelPrn(prnDetails) {
