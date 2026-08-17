@@ -1,5 +1,6 @@
 import config from '../config/config.js'
 import { FormData, request } from 'undici'
+import { requireValue } from './required-value.js'
 
 export class AuthClient {
   constructor(baseUrl = config.authUri) {
@@ -9,12 +10,21 @@ export class AuthClient {
 
   async authenticate() {
     let payload, urlSuffix
-    if (process.env.ENVIRONMENT === 'test') {
+    if (config.usesRealEntra) {
       payload = new FormData()
       payload.append('client_id', config.auth.clientId)
-      payload.append('client_secret', config.auth.clientSecret)
-      payload.append('username', config.auth.username)
-      payload.append('password', config.auth.password)
+      payload.append(
+        'client_secret',
+        requireValue(config.auth.clientSecret, 'AUTH_CLIENT_SECRET')
+      )
+      payload.append(
+        'username',
+        requireValue(config.auth.username, 'AUTH_USERNAME')
+      )
+      payload.append(
+        'password',
+        requireValue(config.auth.password, 'AUTH_PASSWORD')
+      )
       payload.append('scope', config.auth.scope)
       payload.append('grant_type', config.auth.grantType)
       urlSuffix = ''

@@ -9,11 +9,16 @@ class RegistrationTransitionPage extends AdminPage {
   }
 
   // The approve (grant) confirm page collects the registration number and
-  // the date the approval applies from.
-  async fillGrantFields({ day, month, year, registrationNumber }) {
-    await this.page.locator('input[name="appliesFrom-day"]').fill(day)
-    await this.page.locator('input[name="appliesFrom-month"]').fill(month)
-    await this.page.locator('input[name="appliesFrom-year"]').fill(year)
+  // the dates the registration is valid from and valid to (PAE-1814).
+  async fillGrantFields({ validFrom, validTo, registrationNumber }) {
+    await this.page.locator('input[name="validFrom-day"]').fill(validFrom.day)
+    await this.page
+      .locator('input[name="validFrom-month"]')
+      .fill(validFrom.month)
+    await this.page.locator('input[name="validFrom-year"]').fill(validFrom.year)
+    await this.page.locator('input[name="validTo-day"]').fill(validTo.day)
+    await this.page.locator('input[name="validTo-month"]').fill(validTo.month)
+    await this.page.locator('input[name="validTo-year"]').fill(validTo.year)
     await this.page
       .locator('input[name="registrationNumber"]')
       .fill(registrationNumber)
