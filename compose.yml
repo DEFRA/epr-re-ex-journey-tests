@@ -254,6 +254,7 @@ services:
       DEFRA_ID_OIDC_WELL_KNOWN_URL: http://defra-id-stub:3200/epr-re-ex-defra-id-stub/.well-known/openid-configuration
       ENTRA_OIDC_WELL_KNOWN_CONFIGURATION_URL: http://entra-stub:3010/.well-known/openid-configuration
       FEATURE_FLAG_DEV_ENDPOINTS: true
+      FEATURE_FLAG_REPORT_DATA_VALIDATION: true
       GOVUK_NOTIFY_API_KEY: fake-key-for-testing
       LOG_FORMAT: ecs
       MONGO_URI: mongodb://mongodb:27017/
