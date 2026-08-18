@@ -29,6 +29,31 @@ class WasteRecordsPage extends Page {
     await this.page.locator('a', { hasText: 'Manage reports' }).click()
   }
 
+  /**
+   * The link into the note list, found by where it goes rather than by what it
+   * says. The route is the same for a PRN and a PERN, and the same for every
+   * session, so a journey can follow it and still assert the text the session
+   * was offered.
+   *
+   * @returns {import('@playwright/test').Locator}
+   */
+  notesListLink() {
+    return this.page.locator(
+      '#main-content .govuk-summary-card a[href$="/packaging-recycling-notes"]'
+    )
+  }
+
+  /**
+   * The link into the reports list, on the same terms as the note list above.
+   *
+   * @returns {import('@playwright/test').Locator}
+   */
+  reportsListLink() {
+    return this.page.locator(
+      '#main-content .govuk-summary-card a[href$="/reports"]'
+    )
+  }
+
   // The "Registration and accreditation" summary card. Scoping by its heading
   // keeps the link lookup robust against sibling cards on the same page.
   registrationAndAccreditationCard() {

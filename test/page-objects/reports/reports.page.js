@@ -147,6 +147,17 @@ class ReportsPage extends Page {
   async getActiveNumberOfRows() {
     return this.page.locator(this.#activeTableXPath + '//tbody/tr').count()
   }
+
+  // Every action anchor the Action required section offers. A period in that
+  // section has no report to read, so the action a row carries is always a
+  // write one - and a session that cannot write is offered none of them.
+  async getActiveNumberOfActionLinks() {
+    return this.page
+      .locator(
+        `${this.#activeTableXPath}//tbody//a[contains(@class,'govuk-link')]`
+      )
+      .count()
+  }
 }
 
 export { ReportsPage }

@@ -88,7 +88,7 @@ async function getDefraUserToken(email, orgId = randomUUID()) {
 
 // Returns the most recently completed reporting period for the given cadence.
 // Quarterly: periods 1–4 map to Q1–Q4. Monthly: periods 1–12 map to Jan–Dec.
-function lastCompletedPeriod(cadence) {
+export function lastCompletedPeriod(cadence) {
   const now = new Date()
   const month = now.getUTCMonth() + 1
   const year = now.getUTCFullYear()
@@ -113,6 +113,22 @@ async function assertSuccessResponse(response, context) {
     )
   }
   return body
+}
+
+// For an endpoint whose exact status code is part of what the seed relies on -
+// a create that must report 201, a transition that must report 200. A 2xx that
+// is not the expected one is an API change the seed has to see.
+async function assertStatus(response, expectedStatusCode, context) {
+  if (response.statusCode === expectedStatusCode) {
+    return response.body.json()
+  }
+
+  // Read as text, not JSON: a gateway error or an HTML error page would throw
+  // on parse and take the status code - the thing this helper exists to
+  // report - down with it.
+  throw new Error(
+    `${context}: expected ${expectedStatusCode} but got ${response.statusCode}\n${await response.body.text()}`
+  )
 }
 
 async function assertSuccessResponseWithoutBody(response, context) {
@@ -741,6 +757,64 @@ export async function seedSubmittedReport(
     authHeader
   )
   await assertSuccessResponse(submitResponse, `POST ${statusPath} (submitted)`)
+}
+
+/**
+ * Creates a PRN against an accreditation, which needs a waste balance the
+ * accreditation can draw the tonnage from. The note starts as a draft; the
+ * status endpoint moves it on.
+ *
+ * @param {string} refNo
+ * @param {string} registrationId
+ * @param {string} accreditationId
+ * @param {{Authorization?: string}} defraAuthHeader
+ * @param {number} tonnage
+ * @returns {Promise<{prnId: string, prnPath: string}>}
+ */
+export async function createPrn(
+  refNo,
+  registrationId,
+  accreditationId,
+  defraAuthHeader,
+  tonnage
+) {
+  const baseAPI = new BaseAPI()
+  const path = `/v1/organisations/${refNo}/registrations/${registrationId}/accreditations/${accreditationId}/packaging-recycling-notes`
+  const response = await baseAPI.post(
+    path,
+    JSON.stringify({
+      issuedToOrganisation: {
+        id: 'testId',
+        name: 'Test Organisation Ltd',
+        tradingName: 'Trading Name'
+      },
+      tonnage
+    }),
+    defraAuthHeader
+  )
+  const body = await assertStatus(response, 201, `POST ${path}`)
+
+  return { prnId: body.id, prnPath: `${path}/${body.id}` }
+}
+
+/**
+ * Moves a PRN along its state machine - draft, awaiting_authorisation,
+ * awaiting_acceptance - and returns the note as it stands after the move.
+ *
+ * @param {string} prnPath
+ * @param {{Authorization?: string}} defraAuthHeader
+ * @param {string} status
+ * @returns {Promise<{prnNumber: string}>}
+ */
+export async function updatePrnStatus(prnPath, defraAuthHeader, status) {
+  const baseAPI = new BaseAPI()
+  const response = await baseAPI.post(
+    `${prnPath}/status`,
+    JSON.stringify({ status }),
+    defraAuthHeader
+  )
+
+  return assertStatus(response, 200, `POST ${prnPath}/status (${status})`)
 }
 
 export async function externalAPICancelPrn(prnDetails) {
