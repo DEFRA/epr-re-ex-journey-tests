@@ -1,14 +1,17 @@
 import { Page } from 'page-objects/page'
 
 class PRNDashboardPage extends Page {
+  // The row's action anchor, so a journey can read what the row offers before
+  // it follows it. The action a row offers depends on what the session may do,
+  // so both the text and the target are worth asserting.
+  awaitingLink(index, tableIndex = 1) {
+    return this.page.locator(
+      `#awaiting-action table.govuk-table:nth-of-type(${tableIndex}) tr:nth-child(${index}) a.govuk-link`
+    )
+  }
+
   async selectAwaitingLink(index, tableIndex = 1) {
-    await this.page
-      .locator(
-        `#awaiting-action table.govuk-table:nth-of-type(${tableIndex}) tr:nth-child(` +
-          index +
-          ') a.govuk-link'
-      )
-      .click()
+    await this.awaitingLink(index, tableIndex).click()
   }
 
   async selectIssuedLink(index) {
