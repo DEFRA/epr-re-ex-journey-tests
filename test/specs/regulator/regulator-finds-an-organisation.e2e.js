@@ -8,64 +8,48 @@ import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { ReportsPage } from 'page-objects/reports/reports.page'
 import { ReportViewPage } from 'page-objects/reports/report.view.page'
 import { WasteRecordsPage } from 'page-objects/waste.records.page'
-import {
-  createLinkedOrganisation,
-  FAKE_ACCREDITATION_NUMBER,
-  FAKE_REGISTRATION_NUMBER,
-  updateMigratedOrganisation
-} from '../../support/apicalls.js'
 import { checkBodyText } from '../../support/checks.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/regulator-read-seed.js'
 
 test.describe('A regulator looking up an operator @regulator', () => {
-  test('finds an organisation by name, reads it, and is offered nothing to change @regulatorsearch', async ({
+  test('finds an organisation by name, reads its notes and its reports, and is offered nothing to change @regulatorsearch', async ({
     page
   }) => {
     const loginPage = new RegulatorLoginPage(page)
     const homePage = new RegulatorHomePage(page)
     const dashboardPage = new DashboardPage(page)
     const registrationPage = new WasteRecordsPage(page)
+    const prnListPage = new PRNDashboardPage(page)
+    const prnViewPage = new PRNViewPage(page)
+    const reportsPage = new ReportsPage(page)
+    const reportViewPage = new ReportViewPage(page)
 
-    const linkedOrganisation = await createLinkedOrganisation([
-      { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
-    ])
-
-    // Numbering the registration approves it, which is the state a regulator
-    // has any reason to look at, and is what the Status column reads back.
-    await updateMigratedOrganisation(linkedOrganisation.refNo, [
-      {
-        regNumber: FAKE_REGISTRATION_NUMBER,
-        accNumber: FAKE_ACCREDITATION_NUMBER,
-        status: 'approved',
-        reprocessingType: 'input'
-      }
-    ])
-
-    const { organisation } = linkedOrganisation
+    const seeded = await seedAwaitingPrnAndSubmittedReport()
 
     await loginPage.loginAsRegulator()
 
     // A regulator holds no organisation id, so search is the only way in, and
     // the page they land on is the search itself.
-    await homePage.searchFor(organisation.companyName)
+    await homePage.searchFor(seeded.companyName)
 
     // The seeded company name carries a random suffix, so the whole result set
     // is one row - which asserts the size of it as well as the content.
     expect(await homePage.getTableData()).toEqual([
       {
-        name: organisation.companyName,
-        organisationId: `${linkedOrganisation.orgId}`,
+        name: seeded.companyName,
+        organisationId: `${seeded.orgId}`,
         regulator: 'EA',
-        // Approved rather than active: the organisation is never linked to a
-        // Defra ID, which is what makes an approved organisation active.
-        status: 'approved'
+        // Active rather than approved: the seed links the organisation to a
+        // Defra ID so an operator can write the notes and the report this
+        // journey goes on to read, and linking is what activates it.
+        status: 'active'
       }
     ])
 
     await homePage.openOrganisation(1)
 
     expect(await dashboardPage.dashboardHeaderText()).toContain(
-      organisation.companyName
+      seeded.companyName
     )
     expect(await dashboardPage.getMaterial(1, 1)).toBe('Paper and board')
     expect(await dashboardPage.getRegistrationStatus(1, 1)).toBe('Approved')
@@ -83,36 +67,19 @@ test.describe('A regulator looking up an operator @regulator', () => {
       '/organisations/{id}/registrations/{id}/accreditations/{id}/packaging-recycling-notes',
       '/organisations/{id}/registrations/{id}/reports'
     ])
-  })
-
-  test('follows both links, reads the notes and the report, and is offered nothing to change @regulatorreads', async ({
-    page
-  }) => {
-    const loginPage = new RegulatorLoginPage(page)
-    const homePage = new RegulatorHomePage(page)
-    const dashboardPage = new DashboardPage(page)
-    const registrationPage = new WasteRecordsPage(page)
-    const prnListPage = new PRNDashboardPage(page)
-    const prnViewPage = new PRNViewPage(page)
-    const reportsPage = new ReportsPage(page)
-    const reportViewPage = new ReportViewPage(page)
-
-    const seeded = await seedAwaitingPrnAndSubmittedReport()
-
-    await loginPage.loginAsRegulator()
-    await homePage.searchFor(seeded.companyName)
-    await homePage.openOrganisation(1)
-    await dashboardPage.selectLink(1)
 
     // The reports half of the journey starts here again, and a regulator holds
     // no record ids to build the path from - so keep the one the search found.
-    // Settle on the summary cards first: the click above does not promise the
-    // registration page has loaded, and a URL read taken early would send the
-    // second half of this journey to the organisation dashboard instead.
-    await registrationPage.registrationAndAccreditationCard().waitFor()
+    // offeredRoutes settles on the summary cards, so the page has loaded by
+    // the time this reads the URL.
     const registrationUrl = page.url()
 
-    await registrationPage.managePRNsLink()
+    // Each card names what the session may do with it. An operator is offered
+    // "Manage PRNs" alongside "Create new PRN"; a regulator is offered the one
+    // link, and it reads as the list it is.
+    const viewPRNs = registrationPage.notesListLink()
+    expect(await viewPRNs.innerText()).toBe('View PRNs')
+    await viewPRNs.click()
 
     // The note awaits authorisation, and the awaiting tables are the only
     // place such a note is filed. Reading the tonnage back off the row is what
@@ -160,7 +127,14 @@ test.describe('A regulator looking up an operator @regulator', () => {
     expect(await prnViewPage.formCount()).toBe(0)
 
     await page.goto(registrationUrl)
-    await registrationPage.manageReportsLink()
+
+    // The text read below takes the DOM as it stands with no auto-wait, and
+    // nothing before it has settled this page, so wait on the link first.
+    const viewReports = registrationPage.reportsListLink()
+    await viewReports.waitFor()
+
+    expect(await viewReports.innerText()).toBe('View reports')
+    await viewReports.click()
 
     expect(await reportsPage.headingText()).toContain('Reports')
 
