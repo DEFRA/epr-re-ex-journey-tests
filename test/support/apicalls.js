@@ -15,6 +15,7 @@ import { trackCreatedOrgId } from './cleanup-tracker.js'
 import { defraIdStub } from './defra-id-stub.js'
 import { MATERIALS } from './materials.js'
 import Users from './users.js'
+import { generateRegNumber, generateAccNumber } from './reg-acc-number.js'
 
 // Entra tokens go through the shared AuthClient above (createSubmittedReport,
 // getOrganisation). Defra ID user tokens all go through the shared
@@ -178,14 +179,23 @@ export async function createOrgWithAllWasteProcessingTypeAllMaterials() {
   const updateDataRows = []
   for (let i = 0; i < wasteProcessingTypes.length; i++) {
     for (const material of MATERIALS) {
-      let prefix = 'E'
+      let wasteProcessingType = 'exporter'
       const updateDataRow = {}
       if (wasteProcessingTypes[i].type !== '') {
         updateDataRow.reprocessingType = wasteProcessingTypes[i].type
-        prefix = 'R'
+        wasteProcessingType = 'reprocessor'
       }
-      updateDataRow.regNumber = `${prefix}25SR5000${i}0912${material.suffix}`
-      updateDataRow.accNumber = `${prefix}-ACC12${i}45${material.suffix}`
+      const serial = String(i).padStart(4, '0')
+      updateDataRow.regNumber = generateRegNumber({
+        wasteProcessingType,
+        materialSuffix: material.suffix,
+        serial
+      })
+      updateDataRow.accNumber = generateAccNumber({
+        wasteProcessingType,
+        materialSuffix: material.suffix,
+        serial
+      })
       updateDataRow.status = 'approved'
       updateDataRows.push(updateDataRow)
     }
@@ -1019,7 +1029,12 @@ export async function linkDefraUser(refNo) {
 // only permits them once the period's latest submitted report is marked as
 // requiring resubmission (see uploadAndSubmitSummaryLog).
 // Must match the REGISTRATION_NUMBER meta cell inside the fixture spreadsheet.
-const RESTATED_REGISTRATION_NUMBER = 'R25SR500040912PA'
+const RESTATED_REGISTRATION_NUMBER = generateRegNumber({
+  wasteProcessingType: 'reprocessor',
+  materialSuffix: 'PA',
+  serial: '0004',
+  year: '26'
+})
 const RESTATED_CMA_FIXTURE = 'test/fixtures/reprocessor-output-regonly-cma.xlsx'
 // The period the CMA fixture restates. Consumers render it differently
 // ('Q1 2026' in the CSV, 'Quarter 1' in the admin table), so labels live with
