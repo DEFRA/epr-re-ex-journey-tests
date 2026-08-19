@@ -192,6 +192,10 @@ export class Organisation {
 
     this.companyName = `${fakerEN_GB.company.name()} Limited ${fakerEN_GB.string.alphanumeric(8)}`
 
+    this.companiesHouseNumber =
+      fakerEN_GB.string.alphanumeric({ length: 2, casing: 'upper' }) +
+      fakerEN_GB.string.numeric(6)
+
     this.numberOfNations = Math.floor(Math.random() * nations.length) + 1
   }
 
@@ -272,6 +276,7 @@ export class Organisation {
     payload.data.main.WVADkQ = this.role
     payload.data.main.RUKDyH = this.companyName
     payload.data.main.XcvvZV = this.companyName
+    payload.data.main.VZLTnn = this.companiesHouseNumber
     payload.data.main.VcdRNr = nations.slice(0, this.numberOfNations).join(', ')
     payload.data.main.VATjEi = this.address
 
