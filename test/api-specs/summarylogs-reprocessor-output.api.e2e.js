@@ -33,8 +33,8 @@ test.describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'output',
-        regNumber: 'R25SR500050912PA',
-        accNumber: 'ACC500591',
+        regNumber: 'R26ER5000000005PA',
+        accNumber: 'A26ER5000000003PA',
         status: 'approved',
         validFrom: '2026-01-01'
       }

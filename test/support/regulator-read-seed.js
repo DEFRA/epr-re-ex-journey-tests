@@ -14,8 +14,8 @@ import {
 import { defraIdStub } from './defra-id-stub.js'
 
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
-const REGISTRATION_NUMBER = 'R25SR500030912PA'
-const ACCREDITATION_NUMBER = 'ACC123456'
+const REGISTRATION_NUMBER = 'R26ER5000000003PA'
+const ACCREDITATION_NUMBER = 'A26ER5000000002PA'
 
 // The tonnage each seeded note is worth, and the figures the seeded report
 // carries. A journey asserts these back off the page, so they are the values

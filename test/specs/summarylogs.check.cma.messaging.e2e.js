@@ -58,7 +58,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R25SR500040912PA',
+          regNumber: 'R26ER5000000004PA',
           status: 'approved',
           withoutAccreditation: true
         }

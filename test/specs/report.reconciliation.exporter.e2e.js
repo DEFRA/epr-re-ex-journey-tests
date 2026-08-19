@@ -36,8 +36,8 @@ const CADENCE = 'monthly'
 const PERIOD = 2 // fixture loads are dated February 2026
 
 test.describe('Report tonnage reconciles with the waste balance — exporter @reconciliation', () => {
-  const regNumber = 'E25SR500020912PA'
-  const accNumber = 'E-ACC12245PA'
+  const regNumber = 'R26EX5000000002PA'
+  const accNumber = 'A26EX5000000002PA'
 
   let organisationDetails
   let migrationResponse

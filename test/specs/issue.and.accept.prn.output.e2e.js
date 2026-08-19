@@ -34,8 +34,8 @@ test.describe('Issuing Packing Recycling Notes', () => {
     const dashboardPage = new DashboardPage(currentPage)
     const wasteRecordsPage = new WasteRecordsPage(currentPage)
 
-    const regNumber = 'R25SR500010912PL'
-    const accNumber = 'R-ACC12145PL'
+    const regNumber = 'R26ER5000000001PL'
+    const accNumber = 'A26ER5000000001PL'
 
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Plastic (R3)', wasteProcessingType: 'Reprocessor' }
