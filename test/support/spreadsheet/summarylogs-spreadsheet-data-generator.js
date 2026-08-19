@@ -5,6 +5,10 @@ import {
   PROCESSING_TYPE_CONFIG,
   WORKSHEET_CONFIG
 } from './spreadsheet-config.js'
+import {
+  generateRegNumber as buildRegNumber,
+  generateAccNumber as buildAccNumber
+} from '../reg-acc-number.js'
 import { fileURLToPath } from 'url'
 import { mkdir } from 'node:fs/promises'
 import { dirname } from 'node:path'
@@ -18,19 +22,24 @@ function sanitiseFilenameComponent(input) {
 }
 
 // Generate fake registration/accreditation numbers
-function generateRegNumber(wasteProcessingType, suffix) {
-  const year = new Date().getFullYear().toString().slice(-2)
-  const random = Math.floor(Math.random() * 9000) + 1000
-  let prefix = 'R'
-  if (wasteProcessingType === 'exporter') {
-    prefix = 'E'
-  }
-  return `${prefix}${year}SR500${random}${suffix}`
+function generateRegNumber(wasteProcessingType, suffix, nation, orgId) {
+  return buildRegNumber({
+    wasteProcessingType,
+    materialSuffix: suffix,
+    nation,
+    orgId,
+    serial: faker.string.numeric(4)
+  })
 }
 
-function generateAccNumber(suffix) {
-  const random = Math.floor(Math.random() * 900000) + 100000
-  return `ACC${random}${suffix}`
+function generateAccNumber(wasteProcessingType, suffix, nation, orgId) {
+  return buildAccNumber({
+    wasteProcessingType,
+    materialSuffix: suffix,
+    nation,
+    orgId,
+    serial: faker.string.numeric(4)
+  })
 }
 
 export async function generateSpreadsheetData(options = {}) {
@@ -38,6 +47,8 @@ export async function generateSpreadsheetData(options = {}) {
     wasteProcessingType,
     numberOfRows = 10,
     materialSuffix = null,
+    nation = 'E',
+    orgId = faker.number.int({ min: 500000, max: 599999 }),
     accNumber,
     regNumber,
     sheets = null,
@@ -72,8 +83,11 @@ export async function generateSpreadsheetData(options = {}) {
     }
 
     const registrationNumber =
-      regNumber || generateRegNumber(wasteProcessingType, material.suffix)
-    const accreditationNumber = accNumber || generateAccNumber(material.suffix)
+      regNumber ||
+      generateRegNumber(wasteProcessingType, material.suffix, nation, orgId)
+    const accreditationNumber =
+      accNumber ||
+      generateAccNumber(wasteProcessingType, material.suffix, nation, orgId)
 
     const config = PROCESSING_TYPE_CONFIG[wasteProcessingType]
     if (!config) {
@@ -246,6 +260,10 @@ args.forEach((arg) => {
     options.accNumber = arg.split('=')[1]
   } else if (arg.startsWith('--regNumber=')) {
     options.regNumber = arg.split('=')[1]
+  } else if (arg.startsWith('--orgId=')) {
+    options.orgId = arg.split('=')[1]
+  } else if (arg.startsWith('--nation=')) {
+    options.nation = arg.split('=')[1]
   } else if (arg.startsWith('--sheets=')) {
     options.sheets = arg.split('=')[1].split(',').map(Number)
   } else if (arg.startsWith('--filename=')) {
