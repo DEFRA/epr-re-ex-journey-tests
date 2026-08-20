@@ -43,19 +43,19 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
       [
         {
           reprocessingType: 'input',
-          regNumber: 'R25SR500030912PA',
-          accNumber: 'ACC123456',
+          regNumber: 'R26ER5000000003PA',
+          accNumber: 'A26ER5000000002PA',
           status: 'approved'
         },
         {
-          regNumber: 'E25SR500030913PA',
-          accNumber: 'ACC234567',
+          regNumber: 'R26EX5000000003PA',
+          accNumber: 'A26EX5000000000PA',
           status: 'approved'
         },
         {
           reprocessingType: 'output',
-          regNumber: 'R25SR500050912PA',
-          accNumber: 'ACC500591',
+          regNumber: 'R26ER5000000005PA',
+          accNumber: 'A26ER5000000003PA',
           status: 'approved'
         }
       ],

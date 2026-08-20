@@ -1,6 +1,6 @@
 epr-re-ex-journey-tests
 
-The consolidated WDIO journey-test suite for the Re/Ex service line, exercising
+The consolidated Playwright journey-test suite for the Re/Ex service line, exercising
 `epr-frontend`, `epr-backend`, and `epr-re-ex-admin-frontend` together against
 one shared backing-services stack (mongodb, redis, floci, cognito-stub,
 defra-id-stub, epr-re-ex-entra-stub). This repo replaces three previously
@@ -91,13 +91,6 @@ GREP='@tonnagemonitoring' npm run test:local:grep
 
 - `@smoketest` - broad, high-value specs (real S3/CDP Uploader exercise, wide page traversal across an app variant) worth running everywhere: locally, in GHA, and as the CDP Portal's default profile against a real environment. Reserve it for breadth/infra-relevance, not for re-proving business logic already covered by an ordinary spec - that just slows down every run without adding signal.
 
-If for whatever reason [the stable version of Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/#stable)
-is not working for you, then you can specify the Chrome version when running locally
-
-```sh
-WDIO_CHROME_VERSION=146.0.7680.154 npm run test:local:grep
-```
-
 ### Running with Proxy
 
 By default, running via a MITM proxy is disabled. To inspect the API traffic these tests generate, first start an [mitmproxy](https://mitmproxy.org/) container **on the `cdp-tenant` docker network** - mitmproxy resolves the target hostname of a proxied request itself, from inside that network, so it needs to be able to see `epr-backend`, `defra-id-stub`, `entra-stub`, and `cognito-stub` by name. `compose.yml` attaches every backing-services container to `cdp-tenant` for exactly this reason:
@@ -157,7 +150,7 @@ The plumbing, when a flag earns it: add an action input for the flag, have the
 action's first step write it once to `$GITHUB_ENV`
 (`echo "FEATURE_FLAG_X=${{ inputs.feature-flag-x }}" >> "$GITHUB_ENV"`) so the
 same value reaches both the relevant app container (via `compose.yml`
-interpolation) and the wdio runner (via `process.env`), then pass
+interpolation) and the Playwright runner (via `process.env`), then pass
 `${{ matrix.x || '<default>' }}` from the matrix step. Read the env var in one
 shared `test/support/flags.js` and branch specs on `flags.x`, for example
 letting the flag pick the assertion verb:
@@ -352,8 +345,8 @@ If you want to use the repository exclusively for running docker composed based 
 
 ## BrowserStack
 
-Two wdio configuration files are provided to help run the tests using BrowserStack in both a GitHub workflow (`wdio.github.browserstack.conf.js`) and from the CDP Portal (`wdio.browserstack.conf.js`).
-They can be run from npm using the `npm run test:browserstack` (for running via portal) and `npm run test:github:browserstack` (from GitHib runner).
+A single Playwright configuration, `playwright.browserstack.config.js`, runs the tests against BrowserStack from both a GitHub workflow and the CDP Portal.
+It can be run from npm using `npm run test:browserstack` (for running via portal) and `npm run test:github:browserstack` (from a GitHub runner).
 See the CDP Documentation for more details.
 
 ## Licence

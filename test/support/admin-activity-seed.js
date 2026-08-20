@@ -1,58 +1,17 @@
-import { BaseAPI } from '../apis/base-api.js'
 import {
   createAndRegisterDefraIdUser,
   createLinkedOrganisation,
+  createPrn,
   externalAPIAcceptPrn,
   linkDefraIdUser,
   updateMigratedOrganisation,
+  updatePrnStatus,
   uploadAndSubmitSummaryLog,
   waitForWasteBalance
 } from './apicalls.js'
 import { defraIdStub } from './defra-id-stub.js'
 
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
-
-async function createPrn(
-  baseAPI,
-  refNo,
-  registrationId,
-  accreditationId,
-  authHeader,
-  tonnage
-) {
-  const path = `/v1/organisations/${refNo}/registrations/${registrationId}/accreditations/${accreditationId}/packaging-recycling-notes`
-  const response = await baseAPI.post(
-    path,
-    JSON.stringify({
-      issuedToOrganisation: {
-        id: 'testId',
-        name: 'Test Organisation Ltd',
-        tradingName: 'Trading Name'
-      },
-      tonnage
-    }),
-    authHeader
-  )
-  if (response.statusCode !== 201) {
-    throw new Error(`POST ${path}: expected 201 but got ${response.statusCode}`)
-  }
-  const body = await response.body.json()
-  return { prnId: body.id, prnPath: `${path}/${body.id}` }
-}
-
-async function updatePrnStatus(baseAPI, prnPath, authHeader, status) {
-  const response = await baseAPI.post(
-    `${prnPath}/status`,
-    JSON.stringify({ status }),
-    authHeader
-  )
-  if (response.statusCode !== 200) {
-    throw new Error(
-      `POST ${prnPath}/status (${status}): expected 200 but got ${response.statusCode}`
-    )
-  }
-  return response.body.json()
-}
 
 /**
  * Seeds one accredited reprocessor with real activity that the admin
@@ -75,9 +34,8 @@ async function updatePrnStatus(baseAPI, prnPath, authHeader, status) {
  * }>}
  */
 export async function seedAdminActivityData() {
-  const baseAPI = new BaseAPI()
-  const registrationNumber = 'R25SR500030912PA'
-  const accreditationNumber = 'ACC123456'
+  const registrationNumber = 'R26ER5000000003PA'
+  const accreditationNumber = 'A26ER5000000002PA'
 
   const org = await createLinkedOrganisation([
     { wasteProcessingType: 'Reprocessor' }
@@ -111,16 +69,14 @@ export async function seedAdminActivityData() {
 
   const tonnage = 5
   const { prnPath } = await createPrn(
-    baseAPI,
     org.refNo,
     registrationId,
     accreditationId,
     authHeader,
     tonnage
   )
-  await updatePrnStatus(baseAPI, prnPath, authHeader, 'awaiting_authorisation')
+  await updatePrnStatus(prnPath, authHeader, 'awaiting_authorisation')
   const issued = await updatePrnStatus(
-    baseAPI,
     prnPath,
     authHeader,
     'awaiting_acceptance'

@@ -36,8 +36,8 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
       organisationDetails.refNo,
       [
         {
-          regNumber: 'E25SR500020912PP',
-          accNumber: 'E-ACC12245PP',
+          regNumber: 'R26EX5000000002PP',
+          accNumber: 'A26EX5000000002PP',
           status: 'approved'
         }
       ]
@@ -53,8 +53,8 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
 
     // Single-registration orgs skip the selection list, so the reg/acc
     // numbers render as plain text on the task page, not as links.
-    await checkBodyText(page, 'E25SR500020912PP', 10)
-    await checkBodyText(page, 'E-ACC12245PP', 10)
+    await checkBodyText(page, 'R26EX5000000002PP', 10)
+    await checkBodyText(page, 'A26EX5000000002PP', 10)
 
     await wasteRecordsPage.submitSummaryLogLink()
 
@@ -108,8 +108,8 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
       organisationDetails.refNo,
       [
         {
-          regNumber: 'E25SR500030913PA',
-          accNumber: 'ACC234567',
+          regNumber: 'R26EX5000000003PA',
+          accNumber: 'A26EX5000000000PA',
           status: 'approved',
           // Matches the happy-path exporter setup so the file's rows fall inside
           // the accreditation period and reach the ORS check (rather than being

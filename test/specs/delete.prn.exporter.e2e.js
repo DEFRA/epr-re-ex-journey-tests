@@ -5,8 +5,8 @@ test.describe('Deleting Packing Recycling Notes (Exporter)', () => {
   test('Should be able to create and delete PRN for Fibre (Exporter) @delprnexp', async ({
     page
   }) => {
-    const regNumber = 'E25SR500020912FB'
-    const accNumber = 'E-ACC12245FB'
+    const regNumber = 'R26EX5000000002FB'
+    const accNumber = 'A26EX5000000002FB'
 
     await runDeleteCreatedPrn(page, {
       wasteProcessingType: 'Exporter',
