@@ -163,12 +163,18 @@ class RegulatorHomePage extends Page {
 
   /**
    * The organisation name a row's action link carries for a screen reader.
+   * The span is clipped to a pixel, and innerText answers with what is
+   * rendered, so this reads the text content instead.
    *
    * @param {number} row
    * @returns {Promise<string>}
    */
   async getActionHiddenText(row) {
-    return this.actionLink(row).locator('.govuk-visually-hidden').innerText()
+    const text = await this.actionLink(row)
+      .locator('.govuk-visually-hidden')
+      .textContent()
+
+    return (text ?? '').trim()
   }
 
   /**
