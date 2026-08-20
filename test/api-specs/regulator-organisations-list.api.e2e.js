@@ -24,10 +24,21 @@ const FIELDS_NO_LIST_ITEM_MAY_CARRY = [
   'managementContactDetails'
 ]
 
+/** Every field a list item carries, whoever asks for it. */
+const LIST_ITEM_FIELDS = [
+  'accreditations',
+  'companyDetails',
+  'id',
+  'orgId',
+  'registrations',
+  'status',
+  'submittedToRegulator'
+]
+
 /**
- * A registration line and an accreditation line carry the numbers behind the
- * back office Reg/Acc column and the id that pairs the two. A line omits a key
- * it holds no value for, so these read as "nothing but these", not "exactly
+ * A registration line and an accreditation line carry the numbers the public
+ * register publishes and the id that pairs the two. A line omits a key it
+ * holds no value for, so these read as "nothing but these", not "exactly
  * these".
  */
 const KEYS_A_REGISTRATION_LINE_MAY_CARRY = [
@@ -46,21 +57,20 @@ const keysBeyond = (lines, permitted) =>
     .flatMap((line) => Object.keys(line))
     .filter((key) => !permitted.includes(key))
 
-/** Every field the back office organisations table reads off a list item. */
-const FIELDS_THE_BACK_OFFICE_TABLE_READS = [
-  'id',
-  'orgId',
-  'companyDetails',
-  'status',
-  'submittedToRegulator',
-  'registrations',
-  'accreditations'
-]
-
-test.describe('The organisations list by credential @regulator @organisationsList', () => {
+test.describe('The organisations list @regulator @organisationsList', () => {
   const baseAPI = new BaseAPI()
   const regulator = new AuthClient()
   const admin = new AuthClient()
+
+  /**
+   * Both credentials that reach this route, so each assertion runs for both.
+   *
+   * @type {Array<[string, () => AuthClient]>}
+   */
+  const CREDENTIALS = [
+    ['a regulator', () => regulator],
+    ['an admin', () => admin]
+  ]
 
   /** @type {string} */
   let companyName
@@ -117,73 +127,53 @@ test.describe('The organisations list by credential @regulator @organisationsLis
     return page.items[0]
   }
 
-  test('gives a regulator the four columns its page renders and nothing else @regulatorListShape', async () => {
-    const item = await listOneOrganisationAs(regulator)
+  for (const [label, credential] of CREDENTIALS) {
+    test(`gives ${label} the organisation identity and the published numbers @listShape`, async () => {
+      const item = await listOneOrganisationAs(credential())
 
-    expect(Object.keys(item).sort()).to.deep.equal([
-      'companyDetails',
-      'id',
-      'orgId',
-      'status',
-      'submittedToRegulator'
-    ])
-    expect(item.companyDetails).to.deep.equal({ name: companyName })
-    expect(item.orgId).to.equal(orgId)
-    expect(item.status).to.equal('approved')
-  })
-
-  for (const field of FIELDS_NO_LIST_ITEM_MAY_CARRY) {
-    test(`keeps ${field} out of the regulator's list @regulatorListShape`, async () => {
-      const item = await listOneOrganisationAs(regulator)
-
-      expect(item).to.not.have.property(field)
+      expect(Object.keys(item).sort()).to.deep.equal(LIST_ITEM_FIELDS)
+      expect(item.companyDetails).to.deep.equal({ name: companyName })
+      expect(item.orgId).to.equal(orgId)
+      expect(item.status).to.equal('approved')
+      expect(item.registrations[0].registrationNumber).to.equal(
+        FAKE_REGISTRATION_NUMBER
+      )
+      expect(item.accreditations[0].accreditationNumber).to.equal(
+        FAKE_ACCREDITATION_NUMBER
+      )
+      expect(item.registrations[0].accreditationId).to.equal(
+        item.accreditations[0].id
+      )
     })
-  }
 
-  /**
-   * The Regulator column reads `submittedToRegulator` behind a `?? ''`, so
-   * dropping the field blanks the column rather than failing. This asserts it
-   * by name for that reason.
-   */
-  test('carries the supervising regulator, which the regulator page renders @regulatorListShape', async () => {
-    const item = await listOneOrganisationAs(regulator)
+    test(`keeps ${label}'s registration and accreditation lines down to the published numbers @listShape`, async () => {
+      const item = await listOneOrganisationAs(credential())
 
-    expect(item.submittedToRegulator).to.equal('ea')
-  })
-
-  test('gives the back office every field its organisations table reads @adminListShape', async () => {
-    const item = await listOneOrganisationAs(admin)
-
-    expect(Object.keys(item).sort()).to.deep.equal(
-      [...FIELDS_THE_BACK_OFFICE_TABLE_READS].sort()
-    )
-    expect(item.registrations[0].registrationNumber).to.equal(
-      FAKE_REGISTRATION_NUMBER
-    )
-    expect(item.accreditations[0].accreditationNumber).to.equal(
-      FAKE_ACCREDITATION_NUMBER
-    )
-    expect(item.registrations[0].accreditationId).to.equal(
-      item.accreditations[0].id
-    )
-  })
-
-  test('keeps the registration and accreditation lines down to the numbers the column shows @adminListShape', async () => {
-    const item = await listOneOrganisationAs(admin)
-
-    expect(
-      keysBeyond(item.registrations, KEYS_A_REGISTRATION_LINE_MAY_CARRY)
-    ).to.deep.equal([])
-    expect(
-      keysBeyond(item.accreditations, KEYS_AN_ACCREDITATION_LINE_MAY_CARRY)
-    ).to.deep.equal([])
-  })
-
-  for (const field of FIELDS_NO_LIST_ITEM_MAY_CARRY) {
-    test(`keeps ${field} out of the back office list as well @adminListShape`, async () => {
-      const item = await listOneOrganisationAs(admin)
-
-      expect(item).to.not.have.property(field)
+      expect(
+        keysBeyond(item.registrations, KEYS_A_REGISTRATION_LINE_MAY_CARRY)
+      ).to.deep.equal([])
+      expect(
+        keysBeyond(item.accreditations, KEYS_AN_ACCREDITATION_LINE_MAY_CARRY)
+      ).to.deep.equal([])
     })
+
+    /**
+     * The Regulator column reads `submittedToRegulator` behind a `?? ''`, so
+     * dropping the field blanks the column rather than failing. This asserts it
+     * by name for that reason.
+     */
+    test(`carries the supervising regulator to ${label} @listShape`, async () => {
+      const item = await listOneOrganisationAs(credential())
+
+      expect(item.submittedToRegulator).to.equal('ea')
+    })
+
+    for (const field of FIELDS_NO_LIST_ITEM_MAY_CARRY) {
+      test(`keeps ${field} out of ${label}'s list @listShape`, async () => {
+        const item = await listOneOrganisationAs(credential())
+
+        expect(item).to.not.have.property(field)
+      })
+    }
   }
 })
