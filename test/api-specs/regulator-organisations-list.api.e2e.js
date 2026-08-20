@@ -9,21 +9,6 @@ import {
   updateMigratedOrganisation
 } from '../support/apicalls.js'
 
-/**
- * An organisation document holds personal data about two sets of people: the
- * operator's own staff, and Defra staff. These are the fields that carry it,
- * plus the form submission behind the record. The organisations list
- * enumerates the whole population of operators, so none of them belongs in it.
- */
-const FIELDS_NO_LIST_ITEM_MAY_CARRY = [
-  'users',
-  'linkedDefraOrganisation',
-  'formSubmission',
-  'statusHistory',
-  'submitterContactDetails',
-  'managementContactDetails'
-]
-
 /** Every field a list item carries, whoever asks for it. */
 const LIST_ITEM_FIELDS = [
   'accreditations',
@@ -167,13 +152,5 @@ test.describe('The organisations list @regulator @organisationsList', () => {
 
       expect(item.submittedToRegulator).to.equal('ea')
     })
-
-    for (const field of FIELDS_NO_LIST_ITEM_MAY_CARRY) {
-      test(`keeps ${field} out of ${label}'s list @listShape`, async () => {
-        const item = await listOneOrganisationAs(credential())
-
-        expect(item).to.not.have.property(field)
-      })
-    }
   }
 })

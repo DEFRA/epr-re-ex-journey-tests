@@ -137,6 +137,12 @@ const auth = {
 // role, `Waste.Regulator.Standard`, so the second identity below stands for
 // every internal user who holds no role this service knows - the stub's
 // `EPR.Customer` user serves that purpose locally.
+//
+// `regulatorUser` also reaches the backend directly, through
+// `authenticateAsRegulator()`, which posts it under the same ROPC grant the
+// service identity above uses. No CI path sets ENVIRONMENT, so that call always
+// takes the stub. Against real Entra it needs this user to hold the regulator
+// role on the app registration in `auth.clientId`.
 const regulatorUser = {
   username: usesRealEntra
     ? process.env.REGULATOR_USERNAME
