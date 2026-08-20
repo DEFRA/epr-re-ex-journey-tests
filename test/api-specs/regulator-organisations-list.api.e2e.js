@@ -24,6 +24,28 @@ const FIELDS_NO_LIST_ITEM_MAY_CARRY = [
   'managementContactDetails'
 ]
 
+/**
+ * A registration line and an accreditation line carry the numbers behind the
+ * back office Reg/Acc column and the id that pairs the two. A line omits a key
+ * it holds no value for, so these read as "nothing but these", not "exactly
+ * these".
+ */
+const KEYS_A_REGISTRATION_LINE_MAY_CARRY = [
+  'registrationNumber',
+  'accreditationId'
+]
+const KEYS_AN_ACCREDITATION_LINE_MAY_CARRY = ['id', 'accreditationNumber']
+
+/**
+ * @param {Record<string, any>[]} lines
+ * @param {string[]} permitted
+ * @returns {string[]}
+ */
+const keysBeyond = (lines, permitted) =>
+  lines
+    .flatMap((line) => Object.keys(line))
+    .filter((key) => !permitted.includes(key))
+
 /** Every field the back office organisations table reads off a list item. */
 const FIELDS_THE_BACK_OFFICE_TABLE_READS = [
   'id',
@@ -144,6 +166,17 @@ test.describe('The organisations list by credential @regulator @organisationsLis
     expect(item.registrations[0].accreditationId).to.equal(
       item.accreditations[0].id
     )
+  })
+
+  test('keeps the registration and accreditation lines down to the numbers the column shows @adminListShape', async () => {
+    const item = await listOneOrganisationAs(admin)
+
+    expect(
+      keysBeyond(item.registrations, KEYS_A_REGISTRATION_LINE_MAY_CARRY)
+    ).to.deep.equal([])
+    expect(
+      keysBeyond(item.accreditations, KEYS_AN_ACCREDITATION_LINE_MAY_CARRY)
+    ).to.deep.equal([])
   })
 
   for (const field of FIELDS_NO_LIST_ITEM_MAY_CARRY) {
