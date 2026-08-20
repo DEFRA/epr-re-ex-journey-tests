@@ -31,9 +31,6 @@ separate journey-test repos, one per app.
 
 ### Requirements
 
-Docker Compose is required to run the local application and backing-services
-stack.
-
 #### Node.js
 
 Please install [Node.js](http://nodejs.org/) `>= v20` and [npm](https://nodejs.org/) `>= v9`. You will find it
@@ -82,10 +79,6 @@ Bring up the three apps under test and their backing services with `docker compo
 ```bash
 npm run test:local
 ```
-
-The test command does not require Java. Java is only needed to generate or open
-an Allure HTML report manually with `npm run report`; raw Allure results remain
-available after every local run.
 
 Running tests with a specific tag locally - for example, a frontend PRN spec or an admin spec:
 

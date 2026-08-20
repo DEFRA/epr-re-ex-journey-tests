@@ -31,9 +31,7 @@ name: epr-re-ex-journey-tests
 
 services:
   mongodb:
-    # MongoDB 8.3.7 refuses to start on the Linux 6.19 kernel used by current
-    # local Docker VMs. Keep the journey stack runnable locally and in CI.
-    image: mongo:7.0.24@sha256:4c65244b50910461b9641a76131f84a2dcfd4da487f928298cea626b3842842c
+    image: mongo:8.3.7@sha256:2f02e2184c6d91c3208e5ab75a0707d1386a05377b20fdaf49a314815774d863
     networks:
       - cdp-tenant
     restart: always

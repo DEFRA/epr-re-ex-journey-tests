@@ -1,13 +1,9 @@
 import allure from 'allure-commandline'
-import { spawnSync } from 'node:child_process'
 import { copyAllureCategories } from './allure-report.js'
 import { defraIdStub } from './defra-id-stub.js'
-import logger from './logger.js'
 
 const oneMinute = 60 * 1000
 const isLocalDev = !process.env.CI && !process.env.ENVIRONMENT
-const hasJava = () =>
-  spawnSync('java', ['-version'], { stdio: 'ignore' }).status === 0
 
 export default async function globalTeardown() {
   // wdio.local.conf.js's onComplete hook used to do this after every local
@@ -21,13 +17,6 @@ export default async function globalTeardown() {
   }
 
   await copyAllureCategories()
-
-  if (!hasJava()) {
-    logger.warn(
-      'Skipping the optional local Allure report because Java is not installed. Run `npm run report` after installing Java to generate it.'
-    )
-    return
-  }
 
   /** @type {Promise<void>} */
   const reportGenerated = new Promise((resolve, reject) => {
@@ -47,14 +36,5 @@ export default async function globalTeardown() {
     })
   })
 
-  try {
-    await reportGenerated
-  } catch {
-    // A test result must not be turned into a failure just because the
-    // optional local Allure report cannot be generated (for example, when
-    // Java is not installed). Playwright still reports test failures itself.
-    logger.warn(
-      'Could not generate the local Allure report. Install Java to run `npm run report` manually.'
-    )
-  }
+  await reportGenerated
 }
