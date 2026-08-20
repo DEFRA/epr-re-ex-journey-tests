@@ -58,7 +58,7 @@ async function generate(options = {}) {
 
     const registrationUpdates = MATERIALS.map((mat, j) => ({
       index: j,
-      updateData: generateOrgUpdateData(j, mat.suffix, reprocessingType)
+      updateData: generateOrgUpdateData(j, mat.suffix, reprocessingType, orgId)
     }))
 
     const email = await updateOrganisationData(context, {
