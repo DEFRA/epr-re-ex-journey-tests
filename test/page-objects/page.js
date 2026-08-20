@@ -95,12 +95,20 @@ class Page {
   // column header text.
   async readGovukTableRow(tableSelector, rowIndex) {
     const tableRow = new Map()
-    const headerText = await this.page
-      .locator(`${tableSelector} > thead > tr th`)
-      .allInnerTexts()
-    const rowText = await this.page
-      .locator(`${tableSelector} > tbody > tr:nth-child(${rowIndex}) td`)
-      .allInnerTexts()
+    const headers = this.page.locator(`${tableSelector} > thead > tr th`)
+    const cells = this.page.locator(
+      `${tableSelector} > tbody > tr:nth-child(${rowIndex}) td`
+    )
+
+    // Pages can be queried immediately after a full-page navigation. Wait for
+    // the requested row rather than reading an empty, still-loading table.
+    await headers.first().waitFor({ state: 'visible' })
+    await cells.first().waitFor({ state: 'visible' })
+
+    const [headerText, rowText] = await Promise.all([
+      headers.allInnerTexts(),
+      cells.allInnerTexts()
+    ])
     for (let i = 0; i < headerText.length; i++) {
       tableRow.set(headerText[i], rowText[i])
     }
