@@ -24,7 +24,7 @@ if (environment === 'prod') {
 
 // `epr-backend` is the one Re/Ex API all three apps under test (epr-frontend,
 // epr-re-ex-admin-frontend, and epr-backend itself) share - confirmed by
-// compose.yml, every wdio baseUrl, and the CI wiring all pointing at it
+// compose.yml, every Playwright baseURL, and the CI wiring all pointing at it
 // consistently. Update if it's ever replaced.
 //
 // WITH_PROXY selects the container-network hostname instead of localhost.
@@ -171,7 +171,7 @@ const basicAuth = {
 }
 
 // epr-re-ex-admin-frontend runs on its own port/host, separate from the
-// epr-frontend app the global wdio baseUrl points at - admin page objects
+// epr-frontend app the global Playwright baseURL points at - admin page objects
 // build absolute URLs from this rather than relying on baseUrl.
 const admin = {
   local: `http://localhost:${process.env.ADMIN_PORT || 3002}`,

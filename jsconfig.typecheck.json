@@ -19,8 +19,7 @@
     "types": ["node", "@playwright/test"],
     "paths": {
       "~/*": ["./*"],
-      "page-objects/*": ["./test/page-objects/*"],
-      "components/*": ["./test/components/*"]
+      "page-objects/*": ["./test/page-objects/*"]
     }
   },
   "include": ["test/**/*.js", "global.d.ts"],
