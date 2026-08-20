@@ -43,8 +43,8 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
     test.beforeAll(async ({ browser }) => {
       page = await browser.newPage()
 
-      const regNumber = 'E25SR500020912PA'
-      const accNumber = 'E-ACC12245PA'
+      const regNumber = 'R26EX5000000002PA'
+      const accNumber = 'A26EX5000000002PA'
 
       organisationDetails = await createLinkedOrganisation([
         {
@@ -399,7 +399,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
         organisationDetails.refNo,
         [
           {
-            regNumber: 'E25SR500050912PA',
+            regNumber: 'R26EX5000000005PA',
             status: 'approved',
             withoutAccreditation: true
           }

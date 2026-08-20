@@ -34,8 +34,8 @@ const FIXTURE_PATH = 'resources/summary-log.xlsx'
  * }>}
  */
 export async function seedAdminActivityData() {
-  const registrationNumber = 'R25SR500030912PA'
-  const accreditationNumber = 'ACC123456'
+  const registrationNumber = 'R26ER5000000003PA'
+  const accreditationNumber = 'A26ER5000000002PA'
 
   const org = await createLinkedOrganisation([
     { wasteProcessingType: 'Reprocessor' }

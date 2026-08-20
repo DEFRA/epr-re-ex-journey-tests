@@ -297,7 +297,7 @@ export async function createLinkedOrganisation(dataRows) {
 }
 
 // Examples for updateDataRows:
-// [ { reprocessingType: 'input', regNumber: 'R25SR500030912PA', accNumber: 'ACC123456', status: 'approved' }]
+// [ { reprocessingType: 'input', regNumber: 'R26ER5000000003PA', accNumber: 'A26ER5000000002PA', status: 'approved' }]
 export async function updateMigratedOrganisation(
   orgId,
   updateDataRows,

@@ -30,7 +30,7 @@ import {
 } from '../support/windowtabs.js'
 import { ReportSubmittedPage } from 'page-objects/reports/report.submitted.page.js'
 
-const REG_NUMBER = 'R25SR5111050912PA'
+const REG_NUMBER = 'R26ER5000000002PA'
 
 async function startAndSubmitReport(page) {
   const reportsPage = new ReportsPage(page)

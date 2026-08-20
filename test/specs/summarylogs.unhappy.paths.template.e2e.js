@@ -33,8 +33,8 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R25SR5111050912PA',
-          accNumber: 'ACC123888',
+          regNumber: 'R26ER5000000002PA',
+          accNumber: 'A26ER5000000004PA',
           status: 'approved'
         }
       ]
@@ -72,8 +72,8 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     await uploadSummaryLogPage.returnToSubmissionPage()
     // Single-registration orgs skip the selection list, so the reg/acc
     // numbers render as plain text on the task page, not as links.
-    await checkBodyText(page, 'R25SR5111050912PA', 10)
-    await checkBodyText(page, 'ACC123888', 10)
+    await checkBodyText(page, 'R26ER5000000002PA', 10)
+    await checkBodyText(page, 'A26ER5000000004PA', 10)
 
     await homePage.signOut()
     await expect(page).toHaveTitle(/Signed out/)
@@ -96,8 +96,8 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R25SR5111050912PA',
-          accNumber: 'ACC123456',
+          regNumber: 'R26ER5000000002PA',
+          accNumber: 'A26ER5000000002PA',
           status: 'approved'
         }
       ]
@@ -154,8 +154,8 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
       organisationDetails.refNo,
       [
         {
-          regNumber: 'E25SR500020912PA',
-          accNumber: 'E-ACC12245PA',
+          regNumber: 'R26EX5000000002PA',
+          accNumber: 'A26EX5000000002PA',
           status: 'approved'
         }
       ]
