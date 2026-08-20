@@ -1,27 +1,68 @@
 import { Page } from 'page-objects/page'
 
 /**
- * Where a regulator lands after sign-in. It is the organisation search: a
+ * Where a regulator lands after sign-in. It is the organisation list: a
  * regulator holds no organisation id, so search is the only route they have to
  * an operator, and the service puts it in front of them rather than behind a
  * link. Like the regulator sign-in, epr-frontend serves this itself, so it
  * extends the base Page and relies on the global Playwright baseURL.
  */
 
-// The results columns in order: Name, Organisation ID, Regulator, Status. The
-// name is the row header and carries the link to the organisation, so it sits
-// outside this map.
+// The data columns of a results row, by their position among the row's cells.
+// The name is the row header and so is cell 1, which is why it sits outside
+// this map. Cell 5 is the action, which is a link rather than a value.
 const RESULT_COLUMNS = {
   organisationId: 2,
   regulator: 3,
   status: 4
 }
 
+const ACTION_CELL = 5
+
 const TABLE = '#main-content table.govuk-table'
 
 class RegulatorHomePage extends Page {
   async getHeadingText() {
     return this.page.locator('main h1').innerText()
+  }
+
+  /**
+   * The line under the heading that says what the page is for.
+   * @returns {Promise<string>}
+   */
+  async getDescriptionText() {
+    return this.page.locator('main h1 + p').innerText()
+  }
+
+  /**
+   * Every heading the page puts above a section, in the order it renders them.
+   * Reading the whole set is what says a section is present and named rather
+   * than that one selector happened to match.
+   * @returns {Promise<string[]>}
+   */
+  async getSectionHeadings() {
+    const texts = await this.page.locator('main h2').allInnerTexts()
+    return texts.map((text) => text.trim())
+  }
+
+  /**
+   * The headings of the results table, in column order.
+   * @returns {Promise<string[]>}
+   */
+  async getColumnHeadings() {
+    await this.page.locator(TABLE).waitFor({ state: 'visible' })
+
+    const texts = await this.page.locator(`${TABLE} thead th`).allInnerTexts()
+    return texts.map((text) => text.trim())
+  }
+
+  /**
+   * What the search box currently holds. A search leaves its term behind, so
+   * this is how a journey proves the page came back with the search still on.
+   * @returns {Promise<string>}
+   */
+  async getSearchTerm() {
+    return this.page.locator('#search').inputValue()
   }
 
   /**
@@ -34,6 +75,29 @@ class RegulatorHomePage extends Page {
   async searchFor(organisationName) {
     await this.page.locator('#search').fill(organisationName)
     await this.page.locator('button[type=submit]').click()
+  }
+
+  /**
+   * Every control the search panel offers, by its visible words. The panel
+   * gains a way out of a running search, so the whole set is what says which
+   * state the page is in.
+   * @returns {Promise<string[]>}
+   */
+  async getSearchControls() {
+    const texts = await this.page
+      .locator('.epr-search-panel .govuk-button')
+      .allInnerTexts()
+
+    return texts.map((text) => text.trim())
+  }
+
+  /**
+   * Drops the search term by addressing the unsearched page, which is what
+   * the control does rather than sending an empty search.
+   * @returns {Promise<void>}
+   */
+  async clearSearch() {
+    await this.page.locator('.epr-search-panel a.govuk-button').click()
   }
 
   /**
@@ -69,16 +133,59 @@ class RegulatorHomePage extends Page {
   }
 
   /**
-   * Opens the organisation a results row names. The name is the link, which is
-   * the only thing a regulator can do from a row.
+   * The classes the status cell's tag wears. The colour is what separates one
+   * status from another at a glance, so a journey reads the class rather than
+   * only the word.
+   *
+   * @param {number} row
+   * @returns {Promise<string>}
+   */
+  async getStatusTagClasses(row) {
+    return this.page
+      .locator(
+        `${TABLE} tbody tr:nth-child(${row}) td:nth-child(${RESULT_COLUMNS.status}) .govuk-tag`
+      )
+      .getAttribute('class')
+  }
+
+  /**
+   * The action a results row offers. Every one of them reads the same, so the
+   * hidden half of its name is what tells a reader which organisation it
+   * opens.
+   *
+   * @param {number} row
+   * @returns {import('@playwright/test').Locator}
+   */
+  actionLink(row) {
+    return this.page.locator(
+      `${TABLE} tbody tr:nth-child(${row}) td:nth-child(${ACTION_CELL}) a`
+    )
+  }
+
+  /**
+   * The organisation name a row's action link carries for a screen reader.
+   * The span is clipped to a pixel, and innerText answers with what is
+   * rendered, so this reads the text content instead.
+   *
+   * @param {number} row
+   * @returns {Promise<string>}
+   */
+  async getActionHiddenText(row) {
+    const text = await this.actionLink(row)
+      .locator('.govuk-visually-hidden')
+      .textContent()
+
+    return (text ?? '').trim()
+  }
+
+  /**
+   * Opens the organisation a results row names, through the action it offers.
    *
    * @param {number} row
    * @returns {Promise<void>}
    */
   async openOrganisation(row) {
-    await this.page
-      .locator(`${TABLE} tbody tr:nth-child(${row}) th.govuk-table__header a`)
-      .click()
+    await this.actionLink(row).click()
   }
 }
 

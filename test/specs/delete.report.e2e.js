@@ -22,8 +22,8 @@ import { defraIdStub } from '../support/defra-id-stub.js'
 import { expectActionRequiredStatus } from '../support/report-status.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
-const REG_NUMBER = 'R25SR500010912PL'
-const ACC_NUMBER = 'R-ACC12145PL'
+const REG_NUMBER = 'R26ER5000000001PL'
+const ACC_NUMBER = 'A26ER5000000001PL'
 
 async function setupReprocessor(page) {
   const organisationDetails = await createLinkedOrganisation([

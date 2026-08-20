@@ -30,8 +30,8 @@ test.describe('Summary Logs Reprocessor Output', () => {
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R25SR500050912PA',
-          accNumber: 'ACC500591',
+          regNumber: 'R26ER5000000005PA',
+          accNumber: 'A26ER5000000003PA',
           status: 'approved',
           validFrom: '2026-01-01'
         }
@@ -54,8 +54,8 @@ test.describe('Summary Logs Reprocessor Output', () => {
 
     // Single-registration orgs skip the selection list, so the reg/acc
     // numbers render as plain text on the task page, not as links.
-    await checkBodyText(page, 'R25SR500050912PA', 10)
-    await checkBodyText(page, 'ACC500591', 10)
+    await checkBodyText(page, 'R26ER5000000005PA', 10)
+    await checkBodyText(page, 'A26ER5000000003PA', 10)
 
     await wasteRecordsPage.submitSummaryLogLink()
     await expect(page).toHaveTitle(/Summary log: upload/)

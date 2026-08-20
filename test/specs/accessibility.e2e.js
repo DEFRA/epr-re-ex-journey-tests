@@ -73,7 +73,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
     page
   }) => {
     const violations = []
-    const REG_NUMBER = 'E25SR500030913PA'
+    const REG_NUMBER = 'R26EX5000000003PA'
 
     await tagAccessibilityTest('Exporter dashboard, upload and report flow')
 
@@ -234,8 +234,8 @@ test.describe('WCAG Accessibility @smoketest', () => {
     page
   }) => {
     const violations = []
-    const REG_NUMBER = 'R25SR500010912PA'
-    const ACC_NUMBER = 'R-ACC12145PA'
+    const REG_NUMBER = 'R26ER5000000001PA'
+    const ACC_NUMBER = 'A26ER5000000001PA'
 
     await tagAccessibilityTest('Accredited reprocessor report and PRN flow')
 

@@ -5,8 +5,8 @@ test.describe('Deleting Packing Recycling Notes (Reprocessor Output)', () => {
   test('Should be able to create and delete PRN for Plastic (Reprocessor Output) @delprnoutput', async ({
     page
   }) => {
-    const regNumber = 'R25SR500010912PL'
-    const accNumber = 'R-ACC12145PL'
+    const regNumber = 'R26ER5000000001PL'
+    const accNumber = 'A26ER5000000001PL'
 
     await runDeleteCreatedPrn(page, {
       wasteProcessingType: 'Reprocessor',

@@ -65,8 +65,8 @@ test.describe('Issuing Packing Recycling Notes', () => {
     }
     rebindPageObjects()
 
-    const regNumber = 'R25SR500000912PA'
-    const accNumber = 'R-ACC12045PA'
+    const regNumber = 'R26ER5000000000PA'
+    const accNumber = 'A26ER5000000000PA'
 
     const materialDesc = 'Paper and board'
 
