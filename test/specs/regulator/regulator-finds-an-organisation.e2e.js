@@ -38,13 +38,21 @@ test.describe('A regulator looking up an operator @regulator', () => {
       {
         name: seeded.companyName,
         organisationId: `${seeded.orgId}`,
-        regulator: 'EA',
         // Active rather than approved: the seed links the organisation to a
         // Defra ID so an operator can write the notes and the report this
         // journey goes on to read, and linking is what activates it.
-        status: 'active'
+        status: 'Active'
       }
     ])
+
+    // The design moves the way into an organisation out of its name and into
+    // an Actions column, so the row now carries a second link. Naming it here
+    // is what justifies it: the whole-row compare above no longer sees it, so
+    // without this the new route would arrive unnoticed.
+    expect(await homePage.actionLink(1).innerText()).toContain(
+      'View organisation'
+    )
+    expect(await homePage.getActionHiddenText(1)).toBe(seeded.companyName)
 
     await homePage.openOrganisation(1)
 

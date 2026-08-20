@@ -14,9 +14,9 @@ test.describe('Regulator login @regulator', () => {
 
     await loginPage.loginAsRegulator()
 
-    // The landing page is the organisation search, which is what the heading
-    // names. The route and the navigation link stay "Home".
-    expect(await homePage.getHeadingText()).toBe('Organisations')
+    // The landing page is the organisation list, which is what the heading
+    // names. The route stays "Home".
+    expect(await homePage.getHeadingText()).toBe('All organisations')
 
     // A regulator reads what operators record and records nothing, so the
     // service names itself for reading and offers them no operator controls.
@@ -24,7 +24,13 @@ test.describe('Regulator login @regulator', () => {
       'Check reprocessed or exported packaging waste'
     )
     expect(await serviceNavigation.serviceUrl()).toBe('/regulators/home')
-    expect(await serviceNavigation.linkTexts()).toEqual(['Home', 'Sign out'])
+    // Home and All organisations both address the landing page while it is the
+    // only regulator page there is, so both tabs appear and both lead here.
+    expect(await serviceNavigation.linkTexts()).toEqual([
+      'Home',
+      'All organisations',
+      'Sign out'
+    ])
 
     // Record the landing page URL before signing out, so we can prove the
     // session was actually terminated server-side (not just that the sign
