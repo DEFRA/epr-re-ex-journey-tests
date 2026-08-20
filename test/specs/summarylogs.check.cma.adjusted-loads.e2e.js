@@ -48,13 +48,13 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R25SR5111050912PA',
-          accNumber: 'ACC123456',
+          regNumber: 'R26ER5000000002PA',
+          accNumber: 'A26ER5000000002PA',
           status: 'approved'
         },
         {
-          regNumber: 'E25SR500030913PA',
-          accNumber: 'ACC234567',
+          regNumber: 'R26EX5000000003PA',
+          accNumber: 'A26EX5000000000PA',
           status: 'approved',
           validFrom: '2025-02-02'
         }
@@ -197,7 +197,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R25SR5111050912PA',
+          regNumber: 'R26ER5000000002PA',
           status: 'approved',
           withoutAccreditation: true
         }
@@ -262,8 +262,8 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
       [
         {
           reprocessingType: 'input',
-          regNumber: 'R25SR500030912PA',
-          accNumber: 'ACC123456',
+          regNumber: 'R26ER5000000003PA',
+          accNumber: 'A26ER5000000002PA',
           status: 'approved'
         }
       ]

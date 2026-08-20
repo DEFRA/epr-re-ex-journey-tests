@@ -26,8 +26,8 @@ import { expectActionRequiredStatus } from '../support/report-status.js'
 import { MonthlyReportDraftDeclarationPage } from 'page-objects/reports/monthly.report.draft.declaration.page.js'
 import { ReportSubmittedPage } from 'page-objects/reports/report.submitted.page.js'
 
-const REG_NUMBER = 'R25SR500010912PA'
-const ACC_NUMBER = 'R-ACC12145PA'
+const REG_NUMBER = 'R26ER5000000001PA'
+const ACC_NUMBER = 'A26ER5000000001PA'
 
 async function setupAccreditedReprocessor(page) {
   const organisationDetails = await createLinkedOrganisation([
@@ -464,7 +464,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
         [
           {
             reprocessingType: 'output',
-            regNumber: 'R25SR500030913PA',
+            regNumber: 'R26ER5000000006PA',
             status: 'approved',
             withoutAccreditation: true
           }

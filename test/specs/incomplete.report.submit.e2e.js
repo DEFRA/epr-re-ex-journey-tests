@@ -14,8 +14,8 @@ import {
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { uploadSummaryLogAndNavigateToReports } from '../support/report-navigation.js'
 
-const REG_NUMBER = 'R25SR500010912PA'
-const ACC_NUMBER = 'R-ACC12145PA'
+const REG_NUMBER = 'R26ER5000000001PA'
+const ACC_NUMBER = 'A26ER5000000001PA'
 
 const setupAccreditedReprocessor = async (page) => {
   const organisationDetails = await createLinkedOrganisation([

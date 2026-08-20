@@ -20,7 +20,7 @@ import { checkBodyText } from '../support/checks.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
-const REG_NUMBER = 'R25SR5111050912PA'
+const REG_NUMBER = 'R26ER5000000002PA'
 
 test.describe('Declaration name validation @declarationValidation', () => {
   // All `test`s below build on one continuous, already-logged-in session (the

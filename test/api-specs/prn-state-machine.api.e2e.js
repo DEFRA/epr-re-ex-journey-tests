@@ -35,8 +35,8 @@ async function setUpAccreditedReprocessorWithBalance() {
     [
       {
         reprocessingType: 'input',
-        regNumber: 'R25SR500030912PA',
-        accNumber: 'ACC123456',
+        regNumber: 'R26ER5000000003PA',
+        accNumber: 'A26ER5000000002PA',
         status: 'approved'
       }
     ],

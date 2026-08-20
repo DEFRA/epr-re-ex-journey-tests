@@ -21,12 +21,12 @@ import { expectActionRequiredStatus } from '../support/report-status.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { navigateToReports } from '../support/report-navigation.js'
 
-const PL_REG = 'R25SR500010912PL'
-const PL_ACC = 'R-ACC12145PL'
+const PL_REG = 'R26ER5000000001PL'
+const PL_ACC = 'A26ER5000000001PL'
 const PL_FILE = `resources/sanity/reprocessorOutput_${PL_ACC}_${PL_REG}.xlsx`
 
 const REG_ONLY_FILE = 'resources/exporter-regonly.xlsx'
-const REG_NUMBER = 'E25SR500030913PA'
+const REG_NUMBER = 'R26EX5000000003PA'
 
 async function navigateReprocessorToSupportingInfo(page) {
   const tonnesRecycledPage = new TonnesRecycledPage(page)
