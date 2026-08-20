@@ -71,7 +71,12 @@ async function generate(options = {}) {
     await migrateFormSubmission(context, referenceNumber)
     await generateAuthToken(context)
 
-    const updateData = generateOrgUpdateData(i, suffix, wasteProcessingType)
+    const updateData = generateOrgUpdateData(
+      i,
+      suffix,
+      wasteProcessingType,
+      orgId
+    )
 
     const email = await updateOrganisationData(context, {
       referenceNumber,

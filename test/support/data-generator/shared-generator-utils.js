@@ -155,11 +155,17 @@ export async function generateAuthToken(context) {
   await context.authClient.authenticate()
 }
 
-export function generateOrgUpdateData(index, suffix, registrationType = '') {
+export function generateOrgUpdateData(
+  index,
+  suffix,
+  registrationType = '',
+  orgId
+) {
   const baseData = {
     status: 'approved'
   }
   const serial = String(index).padStart(4, '0')
+  const orgIdOption = orgId ? { orgId: String(orgId).padStart(6, '0') } : {}
 
   if (registrationType === 'input') {
     return {
@@ -167,12 +173,14 @@ export function generateOrgUpdateData(index, suffix, registrationType = '') {
       regNumber: generateRegNumber({
         wasteProcessingType: 'reprocessor',
         materialSuffix: suffix,
-        serial
+        serial,
+        ...orgIdOption
       }),
       accNumber: generateAccNumber({
         wasteProcessingType: 'reprocessor',
         materialSuffix: suffix,
-        serial
+        serial,
+        ...orgIdOption
       }),
       reprocessingType: 'input'
     }
@@ -182,12 +190,14 @@ export function generateOrgUpdateData(index, suffix, registrationType = '') {
       regNumber: generateRegNumber({
         wasteProcessingType: 'reprocessor',
         materialSuffix: suffix,
-        serial
+        serial,
+        ...orgIdOption
       }),
       accNumber: generateAccNumber({
         wasteProcessingType: 'reprocessor',
         materialSuffix: suffix,
-        serial
+        serial,
+        ...orgIdOption
       }),
       reprocessingType: 'output'
     }
@@ -197,12 +207,14 @@ export function generateOrgUpdateData(index, suffix, registrationType = '') {
       regNumber: generateRegNumber({
         wasteProcessingType: 'exporter',
         materialSuffix: suffix,
-        serial
+        serial,
+        ...orgIdOption
       }),
       accNumber: generateAccNumber({
         wasteProcessingType: 'exporter',
         materialSuffix: suffix,
-        serial
+        serial,
+        ...orgIdOption
       })
     }
   } else if (registrationType === 'regOnlyReproc') {
@@ -211,7 +223,8 @@ export function generateOrgUpdateData(index, suffix, registrationType = '') {
       regNumber: generateRegNumber({
         wasteProcessingType: 'reprocessor',
         materialSuffix: suffix,
-        serial
+        serial,
+        ...orgIdOption
       }),
       reprocessingType: 'input'
     }
@@ -221,7 +234,8 @@ export function generateOrgUpdateData(index, suffix, registrationType = '') {
       regNumber: generateRegNumber({
         wasteProcessingType: 'exporter',
         materialSuffix: suffix,
-        serial
+        serial,
+        ...orgIdOption
       })
     }
   }
