@@ -38,6 +38,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
       {
         name: seeded.companyName,
         organisationId: `${seeded.orgId}`,
+        regulator: 'EA',
         // Active rather than approved: the seed links the organisation to a
         // Defra ID so an operator can write the notes and the report this
         // journey goes on to read, and linking is what activates it.

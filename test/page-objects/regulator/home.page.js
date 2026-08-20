@@ -10,13 +10,14 @@ import { Page } from 'page-objects/page'
 
 // The data columns of a results row, by their position among the row's cells.
 // The name is the row header and so is cell 1, which is why it sits outside
-// this map. Cell 4 is the action, which is a link rather than a value.
+// this map. Cell 5 is the action, which is a link rather than a value.
 const RESULT_COLUMNS = {
   organisationId: 2,
-  status: 3
+  regulator: 3,
+  status: 4
 }
 
-const ACTION_CELL = 4
+const ACTION_CELL = 5
 
 const TABLE = '#main-content table.govuk-table'
 

@@ -24,13 +24,8 @@ test.describe('Regulator login @regulator', () => {
       'Check reprocessed or exported packaging waste'
     )
     expect(await serviceNavigation.serviceUrl()).toBe('/regulators/home')
-    // Home and All organisations both address the landing page while it is the
-    // only regulator page there is, so both tabs appear and both lead here.
-    expect(await serviceNavigation.linkTexts()).toEqual([
-      'Home',
-      'All organisations',
-      'Sign out'
-    ])
+    // The landing page is their home, so the navigation names it once.
+    expect(await serviceNavigation.linkTexts()).toEqual(['Home', 'Sign out'])
 
     // Record the landing page URL before signing out, so we can prove the
     // session was actually terminated server-side (not just that the sign

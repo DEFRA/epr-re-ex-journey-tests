@@ -32,13 +32,11 @@ test.describe('A regulator browsing every organisation @regulator', () => {
     expect(await homePage.getDescriptionText()).not.toBe('')
 
     // The service navigation names where a regulator can go, and marks the
-    // page they are on. Reading the whole set says no other tab appeared.
-    expect(await serviceNavigation.linkTexts()).toEqual([
-      'Home',
-      'All organisations',
-      'Sign out'
-    ])
-    expect(await serviceNavigation.currentLinkText()).toBe('All organisations')
+    // page they are on. This page is their home while the list has nowhere
+    // else to live, so it is the one destination the navigation offers, and
+    // reading the whole set says no second tab appeared beside it.
+    expect(await serviceNavigation.linkTexts()).toEqual(['Home', 'Sign out'])
+    expect(await serviceNavigation.currentLinkText()).toBe('Home')
 
     // The page is a search panel and a browse table, each under its own
     // heading. Comparing the whole set is what says a third section has not
@@ -51,6 +49,7 @@ test.describe('A regulator browsing every organisation @regulator', () => {
     expect(await homePage.getColumnHeadings()).toEqual([
       'Name',
       'Organisation ID',
+      'Regulator',
       'Organisation status',
       'Actions'
     ])
@@ -80,6 +79,7 @@ test.describe('A regulator browsing every organisation @regulator', () => {
       {
         name: seeded.companyName,
         organisationId: `${seeded.orgId}`,
+        regulator: 'EA',
         status: 'Active'
       }
     ])
