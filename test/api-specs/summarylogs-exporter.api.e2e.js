@@ -28,8 +28,8 @@ test.describe('Summary Logs - Exporter @summaryLogExporter', () => {
     ])
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
-        regNumber: 'E25SR500030913PA',
-        accNumber: 'ACC234567',
+        regNumber: 'R26EX5000000003PA',
+        accNumber: 'A26EX5000000000PA',
         status: 'approved'
       }
     ])

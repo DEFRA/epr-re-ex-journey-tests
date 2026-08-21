@@ -95,7 +95,8 @@ async function generate(options = {}) {
         updateData: generateOrgUpdateData(
           Math.floor(j / MATERIALS.length),
           suffix,
-          registrationType
+          registrationType,
+          orgId
         )
       })
     }

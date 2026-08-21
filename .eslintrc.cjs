@@ -1,8 +1,7 @@
 module.exports = {
   env: {
     es2022: true,
-    node: true,
-    jest: true
+    node: true
   },
   extends: ['standard', 'prettier', 'eslint:recommended'],
   overrides: [],

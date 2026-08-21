@@ -55,19 +55,19 @@ test.describe('@registered-only', () => {
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R25SR5111050912PA',
+          regNumber: 'R26ER5000000002PA',
           status: 'approved',
           withoutAccreditation: true
         },
         {
-          regNumber: 'E25SR500030913PA',
+          regNumber: 'R26EX5000000003PA',
           status: 'approved',
           withoutAccreditation: true
         },
         {
           reprocessingType: 'output',
-          regNumber: 'R25SR5111050913FB',
-          accNumber: 'ACC1234567',
+          regNumber: 'R26ER5000000002FB',
+          accNumber: 'A26ER5000000002FB',
           status: 'approved'
         },
         {
@@ -96,7 +96,7 @@ test.describe('@registered-only', () => {
 
     await dashboardPage.selectTableLink(1, 1)
 
-    await checkBodyText(page, 'R25SR5111050912PA', 10)
+    await checkBodyText(page, 'R26ER5000000002PA', 10)
     await checkBodyText(page, 'Upload your summary log', 10)
     await checkBodyTextDoesNotInclude(page, 'Available waste balance', 5)
     await checkBodyTextDoesNotInclude(page, 'Accreditation number', 5)
@@ -153,7 +153,7 @@ test.describe('@registered-only', () => {
       organisationDetails.refNo,
       [
         {
-          regNumber: 'E25SR500030913PA',
+          regNumber: 'R26EX5000000003PA',
           status: 'approved',
           withoutAccreditation: true
         }
@@ -176,7 +176,7 @@ test.describe('@registered-only', () => {
     await loginViaHomePage(page, migrationResponse.email)
 
     await dashboardPage.selectTableLink(1, 1)
-    await checkBodyText(page, 'E25SR500030913PA', 10)
+    await checkBodyText(page, 'R26EX5000000003PA', 10)
 
     await wasteRecordsPage.submitSummaryLogLink()
     await expect(page).toHaveTitle(/Summary log: upload/)

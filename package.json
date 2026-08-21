@@ -17,8 +17,7 @@
   },
   "aliases": {
     "~": ".",
-    "page-objects": "test/page-objects",
-    "components": "test/components"
+    "page-objects": "test/page-objects"
   },
   "scripts": {
     "clean": "rm -rf allure-results && rm -rf allure-report",

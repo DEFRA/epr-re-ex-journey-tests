@@ -50,8 +50,8 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R25SR500050912PA',
-          accNumber: 'ACC500591',
+          regNumber: 'R26ER5000000005PA',
+          accNumber: 'A26ER5000000003PA',
           status: 'approved',
           validFrom: '2026-01-01'
         }
@@ -74,7 +74,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
 
     // Single-registration orgs skip the selection list, so the reg number
     // renders as plain text on the task page, not as a link.
-    await checkBodyText(page, 'R25SR500050912PA', 10)
+    await checkBodyText(page, 'R26ER5000000005PA', 10)
 
     await wasteRecordsPage.submitSummaryLogLink()
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
@@ -142,7 +142,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R25SR500040912PA',
+          regNumber: 'R26ER5000000004PA',
           status: 'approved',
           withoutAccreditation: true,
           validFrom: '2025-01-01'
@@ -215,13 +215,13 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R25SR5111050912PA',
-          accNumber: 'ACC123456',
+          regNumber: 'R26ER5000000002PA',
+          accNumber: 'A26ER5000000002PA',
           status: 'approved'
         },
         {
-          regNumber: 'E25SR500030913PA',
-          accNumber: 'ACC234567',
+          regNumber: 'R26EX5000000003PA',
+          accNumber: 'A26EX5000000000PA',
           status: 'approved',
           validFrom: '2025-01-01'
         }

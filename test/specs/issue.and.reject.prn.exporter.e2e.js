@@ -40,8 +40,8 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     let dashboardPage = new DashboardPage(currentPage)
     let wasteRecordsPage = new WasteRecordsPage(currentPage)
 
-    const regNumber = 'E25SR500020912WO'
-    const accNumber = 'E-ACC12245WO'
+    const regNumber = 'R26EX5000000002WO'
+    const accNumber = 'A26EX5000000002WO'
 
     const materialDesc = 'Wood'
 

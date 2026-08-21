@@ -64,7 +64,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R25SR500040912PA',
+          regNumber: 'R26ER5000000004PA',
           status: 'approved',
           withoutAccreditation: true
         }
