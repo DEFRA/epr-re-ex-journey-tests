@@ -1,5 +1,7 @@
 import { AdminPage } from 'page-objects/admin/page'
 import config from '~/test/config/config.js'
+import { signInAtMicrosoft } from '~/test/support/entra-login.js'
+import { requireValue } from '~/test/support/required-value.js'
 
 class AdminLoginPage extends AdminPage {
   open() {
@@ -11,15 +13,19 @@ class AdminLoginPage extends AdminPage {
     await this.page.locator('#password').fill(password)
   }
 
-  // Deletes cookies first so a stale session from an earlier spec/it block
-  // can't skip the login form entirely.
+  // The stub path deletes cookies first so a stale session from an earlier
+  // spec/it block can't skip the login form entirely.
   async loginAsServiceMaintainer(
     username = config.auth.username,
     password = config.auth.password
   ) {
-    if (process.env.ENVIRONMENT === 'test') {
+    if (config.usesRealEntra) {
       await this.open()
-      this.enterCredentialsMSLogin(username, password)
+      await signInAtMicrosoft(
+        this.page,
+        requireValue(username, 'AUTH_USERNAME'),
+        requireValue(password, 'AUTH_PASSWORD')
+      )
     } else {
       await this.page.context().clearCookies()
       await this.open()
@@ -28,18 +34,20 @@ class AdminLoginPage extends AdminPage {
     }
   }
 
-  async enterCredentialsMSLogin(username, password) {
-    await this.page.locator('#i0116').fill(username)
-    await this.page.locator('#idSIButton9').click()
-
-    await this.page.locator('#i0118').fill(password)
-    await this.page.locator('input[value="Sign in"]').click()
-
-    await this.page.locator('input[value="Yes"]').click()
-  }
-
+  // Waits for the resulting navigation to actually complete before
+  // returning. Needed because the sign-in POST redirects through to the
+  // Home page, and a caller that acts immediately (e.g. an axe scan) can
+  // otherwise run while that navigation is still settling - Playwright's
+  // click() only waits for the click itself, not any follow-on redirect
+  // chain - which surfaces as axe-core's page.evaluate throwing "Execution
+  // context was destroyed, most likely because of a navigation".
   async submitCredentials() {
+    const urlBeforeClick = this.page.url()
     await this.page.locator('button[type=submit]').click()
+    await this.page.waitForURL((url) => url.toString() !== urlBeforeClick, {
+      timeout: 15000
+    })
+    await this.page.waitForLoadState('networkidle', { timeout: 15000 })
   }
 }
 

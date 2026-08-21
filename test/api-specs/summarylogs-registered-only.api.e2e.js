@@ -30,7 +30,7 @@ test.describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnl
     ])
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
-        regNumber: 'E25SR500030912PA',
+        regNumber: 'R26EX5000000000PA',
         status: 'approved',
         validFrom: '2025-02-02',
         withoutAccreditation: true
@@ -106,7 +106,7 @@ test.describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnl
     ])
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
-        regNumber: 'E25SR500030912PA',
+        regNumber: 'R26EX5000000000PA',
         status: 'approved',
         validFrom: '2025-02-02',
         withoutAccreditation: true
@@ -201,7 +201,7 @@ test.describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessor
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'input',
-        regNumber: 'R25SR500030912PA',
+        regNumber: 'R26ER5000000003PA',
         status: 'approved',
         validFrom: '2025-02-02',
         withoutAccreditation: true
@@ -283,7 +283,7 @@ test.describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessor
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'input',
-        regNumber: 'R25SR500030912PA',
+        regNumber: 'R26ER5000000003PA',
         status: 'approved',
         validFrom: '2025-02-02',
         withoutAccreditation: true

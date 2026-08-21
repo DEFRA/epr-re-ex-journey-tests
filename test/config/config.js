@@ -24,7 +24,7 @@ if (environment === 'prod') {
 
 // `epr-backend` is the one Re/Ex API all three apps under test (epr-frontend,
 // epr-re-ex-admin-frontend, and epr-backend itself) share - confirmed by
-// compose.yml, every wdio baseUrl, and the CI wiring all pointing at it
+// compose.yml, every Playwright baseURL, and the CI wiring all pointing at it
 // consistently. Update if it's ever replaced.
 //
 // WITH_PROXY selects the container-network hostname instead of localhost.
@@ -47,24 +47,108 @@ const api = {
   headers: xApiKey ? { 'x-api-key': xApiKey } : {}
 }
 
+// Each identity provider is stubbed or real independently, and an environment
+// can mix them. The table below records which environments deploy the real
+// provider today. A run against any other combination sets the provider's mode
+// variable to `real` or `stub`, which wins over the table - so the suite does
+// not need a code change to follow an environment that is rewired.
+//
+// A stub and its real provider differ in more than a URL: the token request
+// and the sign-in page have different shapes. Everything that picks between
+// them therefore reads one of these constants rather than testing the
+// environment name again.
+//
+// Defra ID is absent because this suite holds no real CPDev sign-in path, so
+// it takes the stub whatever the environment does. That is a gap rather than a
+// fact about the environments: dev, ext-test and prod all point epr-frontend at
+// real CPDev, and only test and perf-test deploy a Defra ID stub.
+//
+// Every entry below comes from the deployed configuration in cdp-app-config,
+// not from which environments the suite has been run against. prod is absent
+// from every list because the check at the top of this file refuses it.
+const deployedEnvironments = ['dev', 'test', 'ext-test', 'perf-test']
+
+const providers = {
+  // dev and perf-test point epr-frontend at the Entra stub; test and ext-test
+  // point it at login.microsoftonline.com.
+  entra: { modeVariable: 'ENTRA_MODE', realIn: ['test', 'ext-test'] },
+  // No environment deploys a stub for either of these. The basic-auth
+  // credentials are portal secrets everywhere, and every environment gives
+  // epr-backend a real AWS Cognito user pool for the external PRN API. Both
+  // stubs are local-only, from compose.yml.
+  basicAuth: { modeVariable: 'BASIC_AUTH_MODE', realIn: deployedEnvironments },
+  cognito: { modeVariable: 'COGNITO_MODE', realIn: deployedEnvironments }
+}
+
+/**
+ * @param {keyof typeof providers} provider
+ * @returns {boolean}
+ */
+function usesRealProvider(provider) {
+  const { modeVariable, realIn } = providers[provider]
+  const mode = process.env[modeVariable]
+
+  if (mode === 'real') {
+    return true
+  }
+
+  if (mode === 'stub') {
+    return false
+  }
+
+  if (mode) {
+    throw new Error(`${modeVariable} must be 'real' or 'stub', not '${mode}'.`)
+  }
+
+  // A local run has no environment, so it takes every stub unless the mode
+  // variable above asks for the real provider.
+  if (!environment) {
+    return false
+  }
+
+  return realIn.includes(environment)
+}
+
+const usesRealEntra = usesRealProvider('entra')
+const usesRealBasicAuth = usesRealProvider('basicAuth')
+const usesRealCognito = usesRealProvider('cognito')
+
 // Entra (service-to-service) auth, used for calling the backend as the
 // EA/regulator identity rather than as a Defra ID operator user.
 const auth = {
   local: withProxy
     ? 'http://entra-stub:3010'
     : `http://localhost:${process.env.ENTRA_STUB_PORT || 3010}`,
-  env:
-    environment === 'test'
-      ? 'https://login.microsoftonline.com/6f504113-6b64-43f2-ade9-242e05780007/oauth2/v2.0/token'
-      : `https://epr-re-ex-entra-stub.${environment}.cdp-int.defra.cloud`,
-  // Below configuration only applies for the "Test" environment
+  env: usesRealEntra
+    ? 'https://login.microsoftonline.com/6f504113-6b64-43f2-ade9-242e05780007/oauth2/v2.0/token'
+    : `https://epr-re-ex-entra-stub.${environment}.cdp-int.defra.cloud`,
+  // The credentials below come from portal-side secrets against real Entra,
+  // and are the stub's fixed values otherwise.
   clientSecret: process.env.AUTH_CLIENT_SECRET,
   clientId: 'bd06da51-53f6-46d0-a9f0-ac562864c887',
-  username:
-    environment === 'test' ? process.env.AUTH_USERNAME : 'ea@test.gov.uk',
-  password: environment === 'test' ? process.env.AUTH_PASSWORD : 'pass',
+  username: usesRealEntra ? process.env.AUTH_USERNAME : 'ea@test.gov.uk',
+  password: usesRealEntra ? process.env.AUTH_PASSWORD : 'pass',
   scope: 'api://bd06da51-53f6-46d0-a9f0-ac562864c887/.default',
   grantType: 'password'
+}
+
+// The two Entra identities that sign in to `epr-frontend` itself, as opposed
+// to the service identity in `auth` above. `epr-frontend` recognises one app
+// role, `Waste.Regulator.Standard`, so the second identity below stands for
+// every internal user who holds no role this service knows - the stub's
+// `EPR.Customer` user serves that purpose locally.
+const regulatorUser = {
+  username: usesRealEntra
+    ? process.env.REGULATOR_USERNAME
+    : 'standard.regulator@test.gov.uk',
+  password: usesRealEntra ? process.env.REGULATOR_PASSWORD : 'pass'
+}
+
+const unrecognisedEntraUser = {
+  username: usesRealEntra
+    ? process.env.UNRECOGNISED_ENTRA_USERNAME
+    : 'customer@test.gov.uk',
+  password: usesRealEntra ? process.env.UNRECOGNISED_ENTRA_PASSWORD : 'pass'
 }
 
 const defraId = {
@@ -78,18 +162,16 @@ const defraId = {
 // (org-by-ID, overseas-sites-by-ID) - matches compose.yml's
 // BASIC_AUTH_USERNAME/PASSWORD on epr-backend.
 const basicAuth = {
-  username:
-    environment === 'test'
-      ? process.env.BASIC_AUTH_USERNAME
-      : 'basicAuthUsername',
-  password:
-    environment === 'test'
-      ? process.env.BASIC_AUTH_PASSWORD
-      : 'basicAuthPassword'
+  username: usesRealBasicAuth
+    ? process.env.BASIC_AUTH_USERNAME
+    : 'basicAuthUsername',
+  password: usesRealBasicAuth
+    ? process.env.BASIC_AUTH_PASSWORD
+    : 'basicAuthPassword'
 }
 
 // epr-re-ex-admin-frontend runs on its own port/host, separate from the
-// epr-frontend app the global wdio baseUrl points at - admin page objects
+// epr-frontend app the global Playwright baseURL points at - admin page objects
 // build absolute URLs from this rather than relying on baseUrl.
 const admin = {
   local: `http://localhost:${process.env.ADMIN_PORT || 3002}`,
@@ -103,13 +185,11 @@ const cognitoAuthParams = {
     ? 'http://cognito-stub:9229'
     : `http://localhost:${process.env.COGNITO_PORT || 9229}`,
   envUrl: process.env.COGNITO_URL,
-  clientId:
-    environment === 'test'
-      ? process.env.COGNITO_CLIENT_ID
-      : '5357lgchj0h0fuomqyas5r87u',
+  clientId: usesRealCognito
+    ? process.env.COGNITO_CLIENT_ID
+    : '5357lgchj0h0fuomqyas5r87u',
   username: 'hello@example.com',
-  password:
-    environment === 'test' ? process.env.COGNITO_CLIENT_SECRET : 'testPassword'
+  password: usesRealCognito ? process.env.COGNITO_CLIENT_SECRET : 'testPassword'
 }
 
 const cognito = {
@@ -183,6 +263,9 @@ export default {
   cognitoAuth,
   defraIdUri,
   dockerLogParser,
+  regulatorUser,
   testLogs,
-  undiciAgent: globalUndiciAgent
+  undiciAgent: globalUndiciAgent,
+  unrecognisedEntraUser,
+  usesRealEntra
 }

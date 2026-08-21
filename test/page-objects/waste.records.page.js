@@ -29,6 +29,31 @@ class WasteRecordsPage extends Page {
     await this.page.locator('a', { hasText: 'Manage reports' }).click()
   }
 
+  /**
+   * The link into the note list, found by where it goes rather than by what it
+   * says. The route is the same for a PRN and a PERN, and the same for every
+   * session, so a journey can follow it and still assert the text the session
+   * was offered.
+   *
+   * @returns {import('@playwright/test').Locator}
+   */
+  notesListLink() {
+    return this.page.locator(
+      '#main-content .govuk-summary-card a[href$="/packaging-recycling-notes"]'
+    )
+  }
+
+  /**
+   * The link into the reports list, on the same terms as the note list above.
+   *
+   * @returns {import('@playwright/test').Locator}
+   */
+  reportsListLink() {
+    return this.page.locator(
+      '#main-content .govuk-summary-card a[href$="/reports"]'
+    )
+  }
+
   // The "Registration and accreditation" summary card. Scoping by its heading
   // keeps the link lookup robust against sibling cards on the same page.
   registrationAndAccreditationCard() {
@@ -45,6 +70,30 @@ class WasteRecordsPage extends Page {
     return this.registrationAndAccreditationCard().getByRole('link', {
       name: /^apply for \d{4} accreditation$/
     })
+  }
+
+  /**
+   * Every route the summary cards offer, with the ids taken out of the paths
+   * so a journey can name a route without knowing which record it landed on.
+   * A journey compares the whole set rather than looking for one link: an
+   * empty set fails that comparison, where asking whether one link is absent
+   * is satisfied by a page that never loaded.
+   *
+   * @returns {Promise<string[]>}
+   */
+  async offeredRoutes() {
+    const cards = this.page.locator('#main-content .govuk-summary-card')
+    await cards.first().waitFor({ state: 'visible' })
+
+    const hrefs = await cards
+      .locator('a[href]')
+      .evaluateAll((links) =>
+        links.map((link) => link.getAttribute('href') ?? '')
+      )
+
+    // The cards are ordered by the page, so sort to compare the routes on
+    // offer rather than the order they are laid out in.
+    return hrefs.map((href) => href.replace(/[0-9a-f]{24}/g, '{id}')).sort()
   }
 }
 

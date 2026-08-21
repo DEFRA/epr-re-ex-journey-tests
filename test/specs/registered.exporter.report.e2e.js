@@ -29,7 +29,7 @@ import {
   uploadSummaryLogAndNavigateToReports
 } from '../support/report-navigation.js'
 
-const REG_NUMBER = 'E25SR500030913PA'
+const REG_NUMBER = 'R26EX5000000003PA'
 
 async function uploadAndNavigateToReports(page) {
   await uploadSummaryLogAndNavigateToReports(

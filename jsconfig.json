@@ -4,8 +4,7 @@
     "baseUrl": "./",
     "paths": {
       "~/*": ["./*"],
-      "page-objects/*": ["./test/page-objects/*"],
-      "components/*": ["./test/components/*"]
+      "page-objects/*": ["./test/page-objects/*"]
     }
   },
   "exclude": ["node_modules", "build", "docker"]

@@ -1,6 +1,6 @@
 epr-re-ex-journey-tests
 
-The consolidated WDIO journey-test suite for the Re/Ex service line, exercising
+The consolidated Playwright journey-test suite for the Re/Ex service line, exercising
 `epr-frontend`, `epr-backend`, and `epr-re-ex-admin-frontend` together against
 one shared backing-services stack (mongodb, redis, floci, cognito-stub,
 defra-id-stub, epr-re-ex-entra-stub). This repo replaces three previously
@@ -20,6 +20,7 @@ separate journey-test repos, one per app.
   - [Debugging local tests](#debugging-local-tests)
 - [Production](#production)
   - [Running tests with Profile](#running-tests-with-profile)
+  - [Choosing stub or real identity providers](#choosing-stub-or-real-identity-providers)
 - [Requirements of CDP Environment Tests](#requirements-of-cdp-environment-tests)
 - [Running on GitHub](#running-on-github)
 - [BrowserStack](#browserstack)
@@ -90,13 +91,6 @@ GREP='@tonnagemonitoring' npm run test:local:grep
 
 - `@smoketest` - broad, high-value specs (real S3/CDP Uploader exercise, wide page traversal across an app variant) worth running everywhere: locally, in GHA, and as the CDP Portal's default profile against a real environment. Reserve it for breadth/infra-relevance, not for re-proving business logic already covered by an ordinary spec - that just slows down every run without adding signal.
 
-If for whatever reason [the stable version of Chrome for Testing](https://googlechromelabs.github.io/chrome-for-testing/#stable)
-is not working for you, then you can specify the Chrome version when running locally
-
-```sh
-WDIO_CHROME_VERSION=146.0.7680.154 npm run test:local:grep
-```
-
 ### Running with Proxy
 
 By default, running via a MITM proxy is disabled. To inspect the API traffic these tests generate, first start an [mitmproxy](https://mitmproxy.org/) container **on the `cdp-tenant` docker network** - mitmproxy resolves the target hostname of a proxied request itself, from inside that network, so it needs to be able to see `epr-backend`, `defra-id-stub`, `entra-stub`, and `cognito-stub` by name. `compose.yml` attaches every backing-services container to `cdp-tenant` for exactly this reason:
@@ -156,7 +150,7 @@ The plumbing, when a flag earns it: add an action input for the flag, have the
 action's first step write it once to `$GITHUB_ENV`
 (`echo "FEATURE_FLAG_X=${{ inputs.feature-flag-x }}" >> "$GITHUB_ENV"`) so the
 same value reaches both the relevant app container (via `compose.yml`
-interpolation) and the wdio runner (via `process.env`), then pass
+interpolation) and the Playwright runner (via `process.env`), then pass
 `${{ matrix.x || '<default>' }}` from the matrix step. Read the env var in one
 shared `test/support/flags.js` and branch specs on `flags.x`, for example
 letting the flag pick the assertion verb:
@@ -307,6 +301,22 @@ afterwards:
 - `generate` - runs `npm run generatedata:allMaterialsMixed:withLinking`
 - `generateInd` - runs `npm run generatedata:withLinking`
 
+### Choosing stub or real identity providers
+
+An environment stubs some identity providers and deploys others for real, and the combination differs between environments. `test/config/config.js` holds the default for each environment. Set a provider's mode variable to follow an environment that is wired differently, or that is rewired after the default was written:
+
+| Provider   | Mode variable     | Real by default in | Credentials it then needs                                                                                                                                        |
+| ---------- | ----------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entra      | `ENTRA_MODE`      | `test`, `ext-test` | `AUTH_CLIENT_SECRET`, `AUTH_USERNAME`, `AUTH_PASSWORD`, `REGULATOR_USERNAME`, `REGULATOR_PASSWORD`, `UNRECOGNISED_ENTRA_USERNAME`, `UNRECOGNISED_ENTRA_PASSWORD` |
+| Basic auth | `BASIC_AUTH_MODE` | `test`             | `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD`                                                                                                                     |
+| Cognito    | `COGNITO_MODE`    | `test`             | `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`                                                                                                                     |
+
+Each variable takes `real` or `stub`, and wins over the default. Any other value stops the run. A local run takes every stub unless a mode variable asks otherwise.
+
+A run that reaches a real provider without its credentials fails naming the missing variable, rather than sending a blank one and reporting whatever the provider says about it.
+
+Defra ID has no mode variable. Every environment reaches it through the stub, because the suite holds no real CPDev sign-in path.
+
 ## Requirements of CDP Environment Tests
 
 1. Your service builds as a docker container using the `.github/workflows/publish.yml`
@@ -335,8 +345,8 @@ If you want to use the repository exclusively for running docker composed based 
 
 ## BrowserStack
 
-Two wdio configuration files are provided to help run the tests using BrowserStack in both a GitHub workflow (`wdio.github.browserstack.conf.js`) and from the CDP Portal (`wdio.browserstack.conf.js`).
-They can be run from npm using the `npm run test:browserstack` (for running via portal) and `npm run test:github:browserstack` (from GitHib runner).
+A single Playwright configuration, `playwright.browserstack.config.js`, runs the tests against BrowserStack from both a GitHub workflow and the CDP Portal.
+It can be run from npm using `npm run test:browserstack` (for running via portal) and `npm run test:github:browserstack` (from a GitHub runner).
 See the CDP Documentation for more details.
 
 ## Licence

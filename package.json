@@ -12,13 +12,12 @@
     "undici": "$undici",
     "uuid": "14.0.0",
     "tmp": "0.2.7",
-    "fast-uri": "3.1.4",
-    "ip-address": "10.2.1"
+    "fast-uri": "3.1.5",
+    "ip-address": "10.3.1"
   },
   "aliases": {
     "~": ".",
-    "page-objects": "test/page-objects",
-    "components": "test/components"
+    "page-objects": "test/page-objects"
   },
   "scripts": {
     "clean": "rm -rf allure-results && rm -rf allure-report",

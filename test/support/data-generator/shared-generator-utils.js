@@ -7,6 +7,7 @@ import { setGlobalDispatcher } from 'undici'
 import { AuthClient } from '../auth.js'
 import { MATERIALS } from '../materials.js'
 import { createAndRegisterDefraIdUser, linkDefraIdUser } from '../apicalls.js'
+import { generateRegNumber, generateAccNumber } from '../reg-acc-number.js'
 import { fakerEN_GB } from '@faker-js/faker'
 
 setGlobalDispatcher(config.undiciAgent)
@@ -154,41 +155,88 @@ export async function generateAuthToken(context) {
   await context.authClient.authenticate()
 }
 
-export function generateOrgUpdateData(index, suffix, registrationType = '') {
+export function generateOrgUpdateData(
+  index,
+  suffix,
+  registrationType = '',
+  orgId
+) {
   const baseData = {
     status: 'approved'
   }
+  const serial = String(index).padStart(4, '0')
+  const orgIdOption = orgId ? { orgId: String(orgId).padStart(6, '0') } : {}
 
   if (registrationType === 'input') {
     return {
       ...baseData,
-      regNumber: `R25SR5000${index}0912${suffix}`,
-      accNumber: `R-ACC12${index}45${suffix}`,
+      regNumber: generateRegNumber({
+        wasteProcessingType: 'reprocessor',
+        materialSuffix: suffix,
+        serial,
+        ...orgIdOption
+      }),
+      accNumber: generateAccNumber({
+        wasteProcessingType: 'reprocessor',
+        materialSuffix: suffix,
+        serial,
+        ...orgIdOption
+      }),
       reprocessingType: 'input'
     }
   } else if (registrationType === 'output') {
     return {
       ...baseData,
-      regNumber: `R25SR5000${index}0912${suffix}`,
-      accNumber: `R-ACC12${index}45${suffix}`,
+      regNumber: generateRegNumber({
+        wasteProcessingType: 'reprocessor',
+        materialSuffix: suffix,
+        serial,
+        ...orgIdOption
+      }),
+      accNumber: generateAccNumber({
+        wasteProcessingType: 'reprocessor',
+        materialSuffix: suffix,
+        serial,
+        ...orgIdOption
+      }),
       reprocessingType: 'output'
     }
   } else if (registrationType === 'exporter') {
     return {
       ...baseData,
-      regNumber: `E25SR5000${index}0912${suffix}`,
-      accNumber: `E-ACC12${index}45${suffix}`
+      regNumber: generateRegNumber({
+        wasteProcessingType: 'exporter',
+        materialSuffix: suffix,
+        serial,
+        ...orgIdOption
+      }),
+      accNumber: generateAccNumber({
+        wasteProcessingType: 'exporter',
+        materialSuffix: suffix,
+        serial,
+        ...orgIdOption
+      })
     }
   } else if (registrationType === 'regOnlyReproc') {
     return {
       ...baseData,
-      regNumber: `R25SR5000${index}0912${suffix}`,
+      regNumber: generateRegNumber({
+        wasteProcessingType: 'reprocessor',
+        materialSuffix: suffix,
+        serial,
+        ...orgIdOption
+      }),
       reprocessingType: 'input'
     }
   } else if (registrationType === 'regOnlyExporter') {
     return {
       ...baseData,
-      regNumber: `E25SR5000${index}0912${suffix}`
+      regNumber: generateRegNumber({
+        wasteProcessingType: 'exporter',
+        materialSuffix: suffix,
+        serial,
+        ...orgIdOption
+      })
     }
   }
 }
