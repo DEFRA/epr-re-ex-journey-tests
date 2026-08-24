@@ -110,8 +110,8 @@ class WasteRecordsPage extends Page {
         links.map((link) => link.getAttribute('href') ?? '')
       )
 
-    // The cards are ordered by the page, so sort to compare the routes on
-    // offer rather than the order they are laid out in.
+    // The page decides the order it lays its links out in, so sort to compare
+    // the routes on offer rather than that order.
     return hrefs.map((href) => href.replace(/[0-9a-f]{24}/g, '{id}')).sort()
   }
 }
