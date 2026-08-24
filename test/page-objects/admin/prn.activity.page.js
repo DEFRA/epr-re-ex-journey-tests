@@ -9,6 +9,10 @@ class PrnActivityPage extends AdminPage {
     return this.page.locator('table.govuk-table').innerText()
   }
 
+  cancelLink(prnNumber) {
+    return this.page.getByRole('link', { name: `Cancel PRN ${prnNumber}` })
+  }
+
   // /prn-activity/download is a plain GET link (not the crumb-POST form
   // pattern the other report pages use), so fetch it directly rather than
   // going through AdminPage.fetchCsv.
