@@ -7,9 +7,13 @@ import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { ReportsPage } from 'page-objects/reports/reports.page'
 import { ReportViewPage } from 'page-objects/reports/report.view.page'
+import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page'
 import { WasteRecordsPage } from 'page-objects/waste.records.page'
 import { checkBodyText } from '../../support/checks.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/regulator-read-seed.js'
+
+// A ledger Date and time cell, e.g. "18 August 2026, 5:06pm".
+const LEDGER_TIMESTAMP = /^\d{1,2} \w+ \d{4}, \d{1,2}:\d{2}(am|pm)$/
 
 test.describe('A regulator looking up an operator @regulator', () => {
   test('finds an organisation by name, reads its notes and its reports, and is offered nothing to change @regulatorsearch', async ({
@@ -23,6 +27,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     const prnViewPage = new PRNViewPage(page)
     const reportsPage = new ReportsPage(page)
     const reportViewPage = new ReportViewPage(page)
+    const ledgerPage = new WasteBalanceLedgerPage(page)
 
     const seeded = await seedAwaitingPrnAndSubmittedReport()
 
@@ -68,12 +73,14 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     // The registration is where an operator issues PRNs, reports and reapplies
     // for accreditation. A regulator reads the same page and is offered the
-    // PRNs and the reports to read, and nothing that changes either. Comparing
-    // the whole set is what says "and nothing else" - a route added here later
-    // has to be justified rather than arriving unnoticed.
+    // PRNs, the reports and the waste balance ledger to read, and nothing that
+    // changes any of them. Comparing the whole set is what says "and nothing
+    // else" - a route added here later has to be justified rather than
+    // arriving unnoticed.
     expect(await registrationPage.offeredRoutes()).toEqual([
       '/contact',
       '/organisations/{id}/registrations/{id}/accreditations/{id}/packaging-recycling-notes',
+      '/organisations/{id}/registrations/{id}/accreditations/{id}/waste-balance-ledger',
       '/organisations/{id}/registrations/{id}/reports'
     ])
 
@@ -167,5 +174,60 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // says both that the report rendered and that it is the seeded one.
     expect(await reportViewPage.headingText()).toContain(`${year}`)
     expect(await reportViewPage.hasMakeChangesLink()).toBe(false)
+
+    // The waste balance ledger is the third thing the registration offers a
+    // regulator to read. The seed submitted a summary log and drew two notes
+    // against the balance it credited, so every one of those movements is
+    // filed here.
+    await page.goto(registrationUrl)
+
+    const viewLedger = registrationPage.wasteBalanceLedgerLink()
+    await viewLedger.waitFor()
+
+    expect(await viewLedger.innerText()).toBe('View waste balance ledger')
+    await viewLedger.click()
+
+    expect(await ledgerPage.headingText()).toContain('Waste balance ledger')
+
+    // The caption names the accreditation the balance belongs to, which says
+    // the page rendered the seeded record rather than somebody else's ledger.
+    expect(await ledgerPage.captionText()).toContain(seeded.accreditationNumber)
+
+    const ledgerEvents = await ledgerPage.eventRows()
+
+    // The six columns the ledger states, in the order it states them. The
+    // rows below are keyed by these headings, so naming them here is what
+    // stops a renamed column reading as a missing cell.
+    expect([...ledgerEvents[0].keys()]).toEqual([
+      'Date and time',
+      'Event',
+      'Tonnage',
+      'Balance',
+      'Available',
+      'Who'
+    ])
+
+    const eventNames = ledgerEvents.map((event) => event.get('Event'))
+
+    // Nothing can move a balance before the credit that opens it, and the rows
+    // run newest first, so the last row is the seeded summary log however many
+    // notes came after it.
+    expect(eventNames.at(-1)).toBe('Summary log submitted')
+
+    // The notes the seed drew against that credit are filed here too, under
+    // the name the registration's own note type gives them.
+    expect(eventNames).toContain('PRN created')
+
+    // The page carries no sequence number, so the time is the only thing that
+    // orders two events on the same day - and the seed writes all of its
+    // events within one. Every row has to state one. Collecting the rows that
+    // do not names them in the failure. toStrictEqual rather than toEqual,
+    // because toEqual drops an undefined entry and would read a table with no
+    // such column as a clean pass.
+    const undated = ledgerEvents
+      .map((event) => event.get('Date and time'))
+      .filter((cell) => cell === undefined || !LEDGER_TIMESTAMP.test(cell))
+
+    expect(undated).toStrictEqual([])
   })
 })
