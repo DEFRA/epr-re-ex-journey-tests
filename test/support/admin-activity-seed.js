@@ -22,6 +22,9 @@ const FIXTURE_PATH = 'resources/summary-log.xlsx'
  * 'accepted' (for PRN activity and PRN tonnage). Mirrors
  * prn-state-machine.api.e2e.js's setup, reused here for the admin-side
  * reporting pages rather than the PRN state machine itself.
+ * @param {Object} [options]
+ * @param {boolean} [options.acceptPrn] - Set false to leave the seeded PRN at
+ *   'awaiting_acceptance' rather than driving it to 'accepted' (PAE-1859).
  * @returns {Promise<{
  *   refNo: string,
  *   orgId: number,
@@ -33,7 +36,7 @@ const FIXTURE_PATH = 'resources/summary-log.xlsx'
  *   tonnage: number
  * }>}
  */
-export async function seedAdminActivityData() {
+export async function seedAdminActivityData({ acceptPrn = true } = {}) {
   const registrationNumber = 'R26ER5000000003PA'
   const accreditationNumber = 'A26ER5000000002PA'
 
@@ -81,7 +84,12 @@ export async function seedAdminActivityData() {
     authHeader,
     'awaiting_acceptance'
   )
-  await externalAPIAcceptPrn({ prnNumber: issued.prnNumber, status: 'Issued' })
+  if (acceptPrn) {
+    await externalAPIAcceptPrn({
+      prnNumber: issued.prnNumber,
+      status: 'Issued'
+    })
+  }
 
   return {
     refNo: org.refNo,
