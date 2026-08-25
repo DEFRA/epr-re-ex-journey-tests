@@ -15,10 +15,6 @@ import { seedAwaitingPrnAndSubmittedReport } from '../../support/regulator-read-
 // A ledger Date and time cell, e.g. "18 August 2026, 5:06pm".
 const LEDGER_TIMESTAMP = /^\d{1,2} [A-Z][a-z]+ \d{4}, \d{1,2}:\d{2}(am|pm)$/
 
-// The page that would link the notes, the reports and the waste balance ledger
-// is the accreditation entry page, and it is not built. So this spec addresses
-// those three directly, and what follows the walk proves what each page shows a
-// regulator rather than how a regulator reaches it.
 test.describe('A regulator looking up an operator @regulator', () => {
   test('finds an organisation by name, then reads its notes, its reports and its waste balance ledger, and is offered nothing to change @regulatorsearch', async ({
     page
@@ -76,13 +72,26 @@ test.describe('A regulator looking up an operator @regulator', () => {
     await dashboardPage.selectLink(1)
 
     // What this page shows a regulator is asserted in full by
-    // regulator-reads-a-registration.
+    // regulator-reads-a-registration. What it offers a regulator to read is
+    // asserted here, because reaching those three pages is this journey.
     expect(await detailsPage.headingText()).toContain('Registration details')
 
-    const registrationUrl = page.url()
-    const accreditationPath = `${registrationUrl}/accreditations/${seeded.accreditationId}`
+    // Comparing the whole set is what says "and nothing else" - a route added
+    // here later has to be justified rather than arriving unnoticed.
+    expect(await detailsPage.offeredRoutes()).toEqual([
+      '/organisations/{id}/registrations/{id}/accreditations/{id}',
+      '/organisations/{id}/registrations/{id}/accreditations/{id}/packaging-recycling-notes',
+      '/organisations/{id}/registrations/{id}/accreditations/{id}/waste-balance-ledger',
+      '/organisations/{id}/registrations/{id}/reports'
+    ])
 
-    await page.goto(`${accreditationPath}/packaging-recycling-notes`)
+    // A regulator holds no record ids to build a path from, so keep the one
+    // the search found and come back to it between the three reads.
+    const registrationUrl = page.url()
+
+    const viewPRNs = detailsPage.notesListLink()
+    expect(await viewPRNs.innerText()).toBe('View PRNs')
+    await viewPRNs.click()
 
     // The note awaits authorisation, and the awaiting tables are the only
     // place such a note is filed. Reading the tonnage back off the row is what
@@ -129,7 +138,15 @@ test.describe('A regulator looking up an operator @regulator', () => {
     ])
     expect(await prnViewPage.formCount()).toBe(0)
 
-    await page.goto(`${registrationUrl}/reports`)
+    await page.goto(registrationUrl)
+
+    // The text read below takes the DOM as it stands with no auto-wait, and
+    // nothing before it has settled this page, so wait on the link first.
+    const viewReports = detailsPage.reportsListLink()
+    await viewReports.waitFor()
+
+    expect(await viewReports.innerText()).toBe('View reports')
+    await viewReports.click()
 
     expect(await reportsPage.headingText()).toContain('Reports')
 
@@ -158,7 +175,13 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // regulator to read. The seed submitted a summary log and drew two notes
     // against the balance it credited, so every one of those movements is
     // filed here.
-    await page.goto(`${accreditationPath}/waste-balance-ledger`)
+    await page.goto(registrationUrl)
+
+    const viewLedger = detailsPage.wasteBalanceLedgerLink()
+    await viewLedger.waitFor()
+
+    expect(await viewLedger.innerText()).toBe('View waste balance ledger')
+    await viewLedger.click()
 
     expect(await ledgerPage.headingText()).toContain('Waste balance ledger')
 
