@@ -19,8 +19,6 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     await loginPage.loginAsRegulator()
 
-    // A regulator holds no organisation id, so search is the only way in. The
-    // seeded company name carries a random suffix, so one row comes back.
     await homePage.searchFor(seeded.companyName)
     await homePage.openOrganisation(1)
 
@@ -30,13 +28,8 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     await dashboardPage.selectLink(1)
 
-    // The address is the operator's own registration address. An operator
-    // opening it gets the dashboard they manage the registration from; this
-    // says the regulator got the record of what it covers instead.
     expect(await detailsPage.headingText()).toContain('Registration details')
 
-    // The caption is the only thing on the page that says which registration
-    // this is, so it names both the organisation and the number.
     const caption = await detailsPage.captionText()
     expect(caption).toContain(seeded.companyName)
     expect(caption).toContain(seeded.registrationNumber)
@@ -45,9 +38,6 @@ test.describe('A regulator reading a registration @regulator', () => {
       new RegExp(`${seeded.registrationNumber}: Registration details`)
     )
 
-    // What the registration covers, read back off the page. The seed
-    // registers one input reprocessor of paper and board at a site, so every
-    // value here says the page rendered the seeded record rather than a shell.
     const summary = await detailsPage.summary()
 
     expect(summary.Status).toBe('Approved')
@@ -58,10 +48,6 @@ test.describe('A regulator reading a registration @regulator', () => {
     // to say something rather than to say one particular thing.
     expect(summary.Site).toBeTruthy()
 
-    // Comparing the whole set is what says the page shows these and nothing
-    // else. Overseas sites and the remaining registration data are both drawn
-    // on the design and neither is built, so a row arriving for either has to
-    // be justified rather than appearing unnoticed.
     expect(Object.keys(summary)).toStrictEqual([
       'Status',
       'Processing type',
@@ -69,9 +55,6 @@ test.describe('A regulator reading a registration @regulator', () => {
       'Site'
     ])
 
-    // The accredited periods the registration holds. The seed grants one
-    // accreditation, so one row, and its number is what says the row is the
-    // seeded accreditation rather than any other.
     const periods = await detailsPage.accreditedPeriods()
 
     expect([...periods[0].keys()]).toStrictEqual([
@@ -86,15 +69,10 @@ test.describe('A regulator reading a registration @regulator', () => {
     )
     expect(periods[0].get('Accreditation status')).toBe('Approved')
 
-    // A period runs from a date to a date, or to the present where it is still
-    // running. The seed's accreditation is approved and open, so it reads as
-    // the second of those.
     expect(periods[0].get('Date range')).toMatch(
       /^\d{1,2} [A-Z][a-z]+ \d{4} - (Current|\d{1,2} [A-Z][a-z]+ \d{4})$/
     )
 
-    // Every action link reads the same, so the hidden half of its name is what
-    // tells a reader which accreditation it opens.
     expect(await detailsPage.actionLink(1).innerText()).toContain(
       'View accreditation'
     )
@@ -102,24 +80,16 @@ test.describe('A regulator reading a registration @regulator', () => {
       seeded.accreditationNumber
     )
 
-    // The trail back up the hierarchy. A regulator's home is the organisation
-    // list, so the list is named once rather than twice.
     expect(await detailsPage.breadcrumbs()).toStrictEqual([
       'All organisations',
       seeded.companyName,
       'Registration details'
     ])
 
-    // The action opens the accreditation the row names, at the address the
-    // page hierarchy gives it.
     expect(await detailsPage.actionLink(1).getAttribute('href')).toContain(
       `/accreditations/${seeded.accreditationId}`
     )
 
-    // Everything the page offers a reader, and nothing more. A regulator reads
-    // what an operator recorded and records nothing, so the one route out is
-    // the accreditation the table names. Record ids are masked, so this is the
-    // shape of the routes rather than which records they name.
     expect(await detailsPage.offeredRoutes()).toStrictEqual([
       '/organisations/{id}/registrations/{id}/accreditations/{id}'
     ])

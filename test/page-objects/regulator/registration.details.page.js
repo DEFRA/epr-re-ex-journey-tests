@@ -1,17 +1,9 @@
 import { Page } from 'page-objects/page'
 
-/**
- * One registration, as a regulator reads it. The operator opens the same
- * address and gets the dashboard they manage the registration from, so this
- * page object is the regulator's half of that one address.
- */
-
 const PERIODS_TABLE = '#main-content table.govuk-table'
 
 class RegistrationDetailsPage extends Page {
   /**
-   * The caption above the heading. It names the organisation and the
-   * registration number, so it is what says which registration is on screen.
    * @returns {Promise<string>}
    */
   async captionText() {
@@ -19,7 +11,6 @@ class RegistrationDetailsPage extends Page {
   }
 
   /**
-   * What the registration covers, keyed by the label of each row.
    * @returns {Promise<Record<string, string>>}
    */
   async summary() {
@@ -29,10 +20,6 @@ class RegistrationDetailsPage extends Page {
   }
 
   /**
-   * Every accredited period the registration holds, each row keyed by its
-   * column heading. The first cell is a row header rather than a cell, so it
-   * is read alongside them.
-   *
    * The wait settles on the first row, so a page that rendered none fails here
    * rather than answering with an empty list a caller could read as a pass.
    * @returns {Promise<Map<string, string>[]>}
@@ -64,9 +51,6 @@ class RegistrationDetailsPage extends Page {
   }
 
   /**
-   * The action an accredited period offers. Every one of them reads the same,
-   * so the hidden half of its name is what tells a reader which accreditation
-   * it opens.
    * @param {number} row
    * @returns {import('@playwright/test').Locator}
    */
@@ -77,7 +61,6 @@ class RegistrationDetailsPage extends Page {
   }
 
   /**
-   * The accreditation number a row's action link carries for a screen reader.
    * The span is clipped to a pixel, and innerText answers with what is
    * rendered, so this reads the text content instead.
    * @param {number} row
@@ -92,8 +75,7 @@ class RegistrationDetailsPage extends Page {
   }
 
   /**
-   * The trail back up the hierarchy, in the order the page renders it. The
-   * breadcrumb sits outside the main content, so it is read on its own.
+   * The breadcrumb sits outside the main content, so it is read on its own.
    * @returns {Promise<string[]>}
    */
   async breadcrumbs() {
@@ -105,10 +87,6 @@ class RegistrationDetailsPage extends Page {
   }
 
   /**
-   * Every route the page offers a reader, with record ids masked so the set
-   * can be compared. Reading the whole set is what says the page offers these
-   * and nothing else, so a control added later has to be justified rather than
-   * arriving unnoticed.
    * @returns {Promise<string[]>}
    */
   async offeredRoutes() {
@@ -124,8 +102,6 @@ class RegistrationDetailsPage extends Page {
   }
 
   /**
-   * Every control that would change something. A regulator reads and records
-   * nothing, so this is the set that has to stay empty.
    * @returns {Promise<number>}
    */
   async changeControlCount() {

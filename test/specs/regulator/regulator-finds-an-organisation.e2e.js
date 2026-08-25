@@ -15,12 +15,10 @@ import { seedAwaitingPrnAndSubmittedReport } from '../../support/regulator-read-
 // A ledger Date and time cell, e.g. "18 August 2026, 5:06pm".
 const LEDGER_TIMESTAMP = /^\d{1,2} [A-Z][a-z]+ \d{4}, \d{1,2}:\d{2}(am|pm)$/
 
-// A regulator walks to a registration, and from there this spec addresses the
-// notes, the reports and the waste balance ledger DIRECTLY. That is not a path
-// anybody has: the registration names what it covers and the periods it holds,
-// and the page that links these three is the accreditation entry page, which is
-// not built. So what follows the walk proves what each page shows a regulator,
-// not how they get there.
+// The page that would link the notes, the reports and the waste balance ledger
+// is the accreditation entry page, and it is not built. So this spec addresses
+// those three directly, and what follows the walk proves what each page shows a
+// regulator rather than how a regulator reaches it.
 test.describe('A regulator looking up an operator @regulator', () => {
   test('finds an organisation by name, then reads its notes, its reports and its waste balance ledger, and is offered nothing to change @regulatorsearch', async ({
     page
@@ -77,10 +75,8 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     await dashboardPage.selectLink(1)
 
-    // The registration is where the walk ends. What it shows a regulator is
-    // asserted in full by regulator-reads-a-registration; here it is the point
-    // the three addresses below are built from, because a regulator holds no
-    // record ids of their own.
+    // What this page shows a regulator is asserted in full by
+    // regulator-reads-a-registration.
     expect(await detailsPage.headingText()).toContain('Registration details')
 
     const registrationUrl = page.url()
