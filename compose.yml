@@ -58,7 +58,7 @@ services:
       - '4566:4566'
 
   floci-init:
-    image: amazon/aws-cli:2.36.28@sha256:9e94ede8b677fe5456a152fd6698a6726810160497882123bfd9dd40a5671d74
+    image: amazon/aws-cli:2.36.29@sha256:6a1305a37e63914356f9d1808f3349c06a650cbd6e7c777f5dc4b44d630d6b39
     entrypoint: /bin/sh
     command: /setup/init.sh
     networks:
