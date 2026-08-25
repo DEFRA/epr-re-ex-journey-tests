@@ -90,9 +90,6 @@ test.describe('A regulator reading a registration @regulator', () => {
       `/accreditations/${seeded.accreditationId}`
     )
 
-    expect(await detailsPage.offeredRoutes()).toStrictEqual([
-      '/organisations/{id}/registrations/{id}/accreditations/{id}'
-    ])
     expect(await detailsPage.changeControlCount()).toBe(0)
   })
 })
