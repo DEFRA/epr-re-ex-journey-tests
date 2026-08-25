@@ -11,7 +11,8 @@ import {
   externalAPICancelPrn,
   linkDefraIdUser,
   updateMigratedOrganisation,
-  uploadAndSubmitSummaryLog
+  uploadAndSubmitSummaryLog,
+  waitForWasteBalance
 } from '../support/apicalls.js'
 import { assertAuditLog } from '../support/docker-log-assertions.js'
 
@@ -89,6 +90,38 @@ async function createPrn(
   expect(response.statusCode).to.equal(201)
   const body = /** @type {any} */ (await response.body.json())
   return { prnId: body.id, prnPath: `${path}/${body.id}` }
+}
+
+// The cancelled feed filters on `status.currentStatusAt`, stamped by the backend
+// container. Start the window slightly before the transition so host/container
+// clock skew cannot exclude a note cancelled moments ago.
+const FEED_WINDOW_MS = 60_000
+
+const feedWindowStart = () =>
+  new Date(Date.now() - FEED_WINDOW_MS).toISOString()
+
+// One request to the external, RPD-facing cancelled feed - the endpoint RPD
+// polls on its own schedule - returning the note cancelled within `since`.
+// Fails with a useful message when it is absent rather than a TypeError
+// further down.
+//
+// `since` is a parameter rather than computed here on purpose: the window has to
+// begin *before* the transition, and this runs after it. Folding it inside would
+// still pass - the window is wide enough to cover both - while quietly dropping
+// the guarantee that the note was found by its own cancellation.
+async function fetchCancelledPrn(baseAPI, prnNumber, since) {
+  await config.cognitoAuth.generateToken()
+  const response = await baseAPI.get(
+    `/v1/packaging-recycling-notes?statuses=cancelled&dateFrom=${since}`,
+    config.cognitoAuth.authHeader()
+  )
+  expect(response.statusCode).to.equal(200)
+  const body = /** @type {any} */ (await response.body.json())
+  const found = body.items.find((item) => item.prnNumber === prnNumber)
+  expect(found, `PRN ${prnNumber} missing from the cancelled feed`).to.be.an(
+    'object'
+  )
+  return found
 }
 
 async function updatePrnStatus(baseAPI, prnPath, authHeader, status) {
@@ -351,6 +384,7 @@ test.describe('PRN state machine @prnStateMachine', () => {
     await externalAPICancelPrn(prnDetails)
     expect(prnDetails.status).to.equal('Awaiting cancellation')
 
+    const cancelledFrom = feedWindowStart()
     const cancelResponse = await updatePrnStatus(
       ctx.baseAPI,
       prnPath,
@@ -358,6 +392,17 @@ test.describe('PRN state machine @prnStateMachine', () => {
       'cancelled'
     )
     expect(cancelResponse.statusCode).to.equal(200)
+
+    // A note reaching `cancelled` by this route was rejected, so it must carry a
+    // `rejectedAt`. Without this, a mapper that stopped emitting the field
+    // altogether would still satisfy the admin-cancellation test below.
+    const cancelledNote = await fetchCancelledPrn(
+      ctx.baseAPI,
+      issued.prnNumber,
+      cancelledFrom
+    )
+    expect(cancelledNote.status.rejectedAt).to.be.a('string')
+    expect(cancelledNote.status.acceptedAt).to.equal(undefined)
   })
 
   test('lists PRNs created for the accreditation @prnListing', async () => {
@@ -473,5 +518,93 @@ test.describe('PRN state machine @prnStateMachine', () => {
       5
     )
     expect(prnPath).to.be.a('string')
+  })
+
+  // The admin cancellation path (PAE-1823). Covers the two acceptance criteria
+  // that no other test reaches: AC5/AC6, that the tonnage is credited back and
+  // is visible immediately, and AC8, that a note cancelled from `accepted`
+  // appears in the external cancelled feed carrying `acceptedAt` and no
+  // `rejectedAt`. Both are asserted through public APIs - the waste-balance
+  // endpoint and the external cancelled feed - rather than by reading the ledger.
+  test('cancels an accepted PRN as an admin, crediting the balance back and surfacing it in the external cancelled feed @prnAdminCancelFlow', async () => {
+    const balanceBefore = await waitForWasteBalance(
+      ctx.org.refNo,
+      ctx.accreditationId,
+      ctx.authHeader
+    )
+    const availableBefore = parseFloat(
+      balanceBefore[ctx.accreditationId].availableAmount
+    )
+    const amountBefore = parseFloat(balanceBefore[ctx.accreditationId].amount)
+
+    const tonnage = 5
+    const { prnId, prnPath } = await createPrn(
+      ctx.baseAPI,
+      ctx.org.refNo,
+      ctx.registrationId,
+      ctx.accreditationId,
+      ctx.authHeader,
+      tonnage
+    )
+
+    await updatePrnStatus(
+      ctx.baseAPI,
+      prnPath,
+      ctx.authHeader,
+      'awaiting_authorisation'
+    )
+    const issueResponse = await updatePrnStatus(
+      ctx.baseAPI,
+      prnPath,
+      ctx.authHeader,
+      'awaiting_acceptance'
+    )
+    const issued = /** @type {any} */ (await issueResponse.body.json())
+
+    await externalAPIAcceptPrn({
+      prnNumber: issued.prnNumber,
+      status: 'Issued'
+    })
+
+    const cancelledFrom = feedWindowStart()
+
+    // The admin cancel endpoint takes no payload and is scoped `admin.write`,
+    // which the Entra service identity (ea@test.gov.uk) carries.
+    const cancelResponse = await ctx.baseAPI.post(
+      `/v1/admin/packaging-recycling-notes/${prnId}/cancel`,
+      undefined,
+      ctx.authClient.authHeader()
+    )
+    expect(cancelResponse.statusCode).to.equal(200)
+    const cancelled = /** @type {any} */ (await cancelResponse.body.json())
+    expect(cancelled.status).to.equal('cancelled')
+    expect(cancelled.tonnage).to.equal(tonnage)
+
+    // AC5 and AC6: accepting moves nothing, so cancelling returns both figures
+    // to exactly what they were before the PRN was created, on the next read.
+    const balanceAfter = await waitForWasteBalance(
+      ctx.org.refNo,
+      ctx.accreditationId,
+      ctx.authHeader
+    )
+    expect(
+      parseFloat(balanceAfter[ctx.accreditationId].availableAmount)
+    ).to.equal(availableBefore)
+    expect(parseFloat(balanceAfter[ctx.accreditationId].amount)).to.equal(
+      amountBefore
+    )
+
+    // AC8: the note reaches the external cancelled feed with the acceptance
+    // recorded and no rejection, distinguishing it from the producer-rejection
+    // route that also ends in `cancelled`.
+    const cancelledNote = await fetchCancelledPrn(
+      ctx.baseAPI,
+      issued.prnNumber,
+      cancelledFrom
+    )
+    expect(cancelledNote.status.currentStatus).to.equal('cancelled')
+    expect(cancelledNote.status.acceptedAt).to.be.a('string')
+    expect(cancelledNote.status.rejectedAt).to.equal(undefined)
+    expect(cancelledNote.status.cancelledAt).to.be.a('string')
   })
 })
