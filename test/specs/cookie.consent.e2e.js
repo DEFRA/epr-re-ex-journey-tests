@@ -11,19 +11,11 @@ test.use({ storageState: { cookies: [], origins: [] } })
  */
 const banner = (page) => page.getByRole('region', { name: /cookies on/i })
 
+// What server.inject cannot reach: that the button submits without javascript,
+// that a real browser accepts the cookie with the attributes the service sets,
+// and that it sends it back on the next navigation. The banner's own markup and
+// the route's behaviour are covered in epr-frontend.
 test.describe('Cookie consent @cookieConsent', () => {
-  test('Should ask a first-time visitor', async ({ page }) => {
-    await page.goto('/start')
-
-    await expect(banner(page)).toBeVisible()
-    await expect(
-      banner(page).getByRole('button', { name: 'Accept analytics cookies' })
-    ).toBeVisible()
-    await expect(
-      banner(page).getByRole('button', { name: 'Reject analytics cookies' })
-    ).toBeVisible()
-  })
-
   // Playwright has no it.each equivalent, so the cases are generated.
   const choices = ['Accept analytics cookies', 'Reject analytics cookies']
 
