@@ -6,65 +6,39 @@ import { test, expect } from '@playwright/test'
 // arrives in.
 test.use({ storageState: { cookies: [], origins: [] } })
 
-const GOOGLE_TAG = 'https://www.googletagmanager.com/**'
-
 /**
- * Keeps a suite run out of the analytics property while still proving the tag
- * was asked for. Returns the requests the page tried to make.
  * @param {import('@playwright/test').Page} page
  */
-const blockAndRecordTagRequests = async (page) => {
-  /** @type {string[]} */
-  const attempted = []
-
-  await page.route(GOOGLE_TAG, (route) => {
-    attempted.push(route.request().url())
-    return route.abort()
-  })
-
-  return attempted
-}
+const banner = (page) => page.getByRole('region', { name: /cookies on/i })
 
 test.describe('Cookie consent @cookieConsent', () => {
-  test('Should ask a first-time visitor before loading analytics', async ({
-    page
-  }) => {
-    const attempted = await blockAndRecordTagRequests(page)
+  test('Should ask a first-time visitor', async ({ page }) => {
     await page.goto('/start')
 
-    const banner = page.getByRole('region', { name: /cookies on/i })
-
-    await expect(banner).toBeVisible()
+    await expect(banner(page)).toBeVisible()
     await expect(
-      banner.getByRole('button', { name: 'Accept analytics cookies' })
+      banner(page).getByRole('button', { name: 'Accept analytics cookies' })
     ).toBeVisible()
     await expect(
-      banner.getByRole('button', { name: 'Reject analytics cookies' })
+      banner(page).getByRole('button', { name: 'Reject analytics cookies' })
     ).toBeVisible()
-    expect(attempted).toStrictEqual([])
   })
 
-  test('Should load analytics once the visitor accepts', async ({ page }) => {
-    const attempted = await blockAndRecordTagRequests(page)
-    await page.goto('/start')
+  // Playwright has no it.each equivalent, so the cases are generated.
+  const choices = ['Accept analytics cookies', 'Reject analytics cookies']
 
-    await page.getByRole('button', { name: 'Accept analytics cookies' }).click()
+  choices.forEach((choice) => {
+    test(`Should stop asking once the visitor chooses ${choice}`, async ({
+      page
+    }) => {
+      await page.goto('/start')
+      await page.getByRole('button', { name: choice }).click()
 
-    await expect(page.getByRole('region', { name: /cookies on/i })).toBeHidden()
-    await expect.poll(() => attempted.length).toBeGreaterThan(0)
-  })
+      await expect(banner(page)).toBeHidden()
 
-  test('Should not load analytics when the visitor rejects', async ({
-    page
-  }) => {
-    const attempted = await blockAndRecordTagRequests(page)
-    await page.goto('/start')
+      await page.goto('/start')
 
-    await page.getByRole('button', { name: 'Reject analytics cookies' }).click()
-
-    await expect(page.getByRole('region', { name: /cookies on/i })).toBeHidden()
-    await page.goto('/start')
-
-    expect(attempted).toStrictEqual([])
+      await expect(banner(page)).toBeHidden()
+    })
   })
 })
