@@ -18,10 +18,11 @@ const FIXTURE_PATH = 'resources/summary-log.xlsx'
  * reporting pages (waste balance availability, summary log uploads, PRN
  * activity, PRN tonnage, credited tonnage) surface, entirely via the API —
  * a real summary-log upload+submit (for the waste balance, summary log
- * upload row and credited-tonnage row) plus one PRN taken through to
- * 'accepted' (for PRN activity and PRN tonnage). Mirrors
- * prn-state-machine.api.e2e.js's setup, reused here for the admin-side
- * reporting pages rather than the PRN state machine itself.
+ * upload row and credited-tonnage row) plus one PRN, by default taken
+ * through to 'accepted' (for PRN activity and PRN tonnage); pass
+ * `acceptPrn: false` to leave it at 'awaiting_acceptance' instead
+ * (PAE-1859). Mirrors prn-state-machine.api.e2e.js's setup, reused here for
+ * the admin-side reporting pages rather than the PRN state machine itself.
  * @param {Object} [options]
  * @param {boolean} [options.acceptPrn] - Set false to leave the seeded PRN at
  *   'awaiting_acceptance' rather than driving it to 'accepted' (PAE-1859).
@@ -33,7 +34,8 @@ const FIXTURE_PATH = 'resources/summary-log.xlsx'
  *   accreditationNumber: string,
  *   registrationNumber: string,
  *   prnNumber: string,
- *   tonnage: number
+ *   tonnage: number,
+ *   authHeader: {Authorization?: string}
  * }>}
  */
 export async function seedAdminActivityData({ acceptPrn = true } = {}) {
@@ -99,6 +101,7 @@ export async function seedAdminActivityData({ acceptPrn = true } = {}) {
     accreditationNumber,
     registrationNumber,
     prnNumber: issued.prnNumber,
-    tonnage
+    tonnage,
+    authHeader
   }
 }
