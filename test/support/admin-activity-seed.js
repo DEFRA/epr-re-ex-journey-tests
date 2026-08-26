@@ -18,10 +18,14 @@ const FIXTURE_PATH = 'resources/summary-log.xlsx'
  * reporting pages (waste balance availability, summary log uploads, PRN
  * activity, PRN tonnage, credited tonnage) surface, entirely via the API —
  * a real summary-log upload+submit (for the waste balance, summary log
- * upload row and credited-tonnage row) plus one PRN taken through to
- * 'accepted' (for PRN activity and PRN tonnage). Mirrors
- * prn-state-machine.api.e2e.js's setup, reused here for the admin-side
- * reporting pages rather than the PRN state machine itself.
+ * upload row and credited-tonnage row) plus one PRN, by default taken
+ * through to 'accepted' (for PRN activity and PRN tonnage); pass
+ * `acceptPrn: false` to leave it at 'awaiting_acceptance' instead
+ * (PAE-1859). Mirrors prn-state-machine.api.e2e.js's setup, reused here for
+ * the admin-side reporting pages rather than the PRN state machine itself.
+ * @param {Object} [options]
+ * @param {boolean} [options.acceptPrn] - Set false to leave the seeded PRN at
+ *   'awaiting_acceptance' rather than driving it to 'accepted' (PAE-1859).
  * @returns {Promise<{
  *   refNo: string,
  *   orgId: number,
@@ -30,10 +34,11 @@ const FIXTURE_PATH = 'resources/summary-log.xlsx'
  *   accreditationNumber: string,
  *   registrationNumber: string,
  *   prnNumber: string,
- *   tonnage: number
+ *   tonnage: number,
+ *   authHeader: {Authorization?: string}
  * }>}
  */
-export async function seedAdminActivityData() {
+export async function seedAdminActivityData({ acceptPrn = true } = {}) {
   const registrationNumber = 'R26ER5000000003PA'
   const accreditationNumber = 'A26ER5000000002PA'
 
@@ -81,7 +86,12 @@ export async function seedAdminActivityData() {
     authHeader,
     'awaiting_acceptance'
   )
-  await externalAPIAcceptPrn({ prnNumber: issued.prnNumber, status: 'Issued' })
+  if (acceptPrn) {
+    await externalAPIAcceptPrn({
+      prnNumber: issued.prnNumber,
+      status: 'Issued'
+    })
+  }
 
   return {
     refNo: org.refNo,
@@ -91,6 +101,7 @@ export async function seedAdminActivityData() {
     accreditationNumber,
     registrationNumber,
     prnNumber: issued.prnNumber,
-    tonnage
+    tonnage,
+    authHeader
   }
 }
