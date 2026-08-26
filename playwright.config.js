@@ -5,6 +5,30 @@ const isCI = !!process.env.CI
 const isLocalDev = !isCI && !environment
 const debug = !!process.env.DEBUG
 
+const frontendHost = environment
+  ? `epr-frontend.${environment}.cdp-int.defra.cloud`
+  : 'localhost'
+
+// Answer the cookie banner before any journey starts, so 36 specs do not each
+// have to know it exists. Rejecting rather than accepting: a suite run is not a
+// user, and its traffic would land in the same analytics property the service
+// is measured on. The banner and the accept path are covered by their own spec.
+const analyticsRejected = {
+  cookies: [
+    {
+      name: 'analyticsConsent',
+      value: 'rejected',
+      domain: frontendHost,
+      path: '/',
+      expires: -1,
+      httpOnly: false,
+      secure: !!environment,
+      sameSite: /** @type {const} */ ('Lax')
+    }
+  ],
+  origins: []
+}
+
 const chromeArgs = [
   '--no-sandbox',
   '--disable-infobars',
@@ -44,8 +68,9 @@ export default defineConfig({
 
   use: {
     baseURL: environment
-      ? `https://epr-frontend.${environment}.cdp-int.defra.cloud`
-      : `http://localhost:${process.env.FRONTEND_PORT || 3000}`,
+      ? `https://${frontendHost}`
+      : `http://${frontendHost}:${process.env.FRONTEND_PORT || 3000}`,
+    storageState: analyticsRejected,
     headless: !debug,
     screenshot: isLocalDev ? 'on' : 'only-on-failure',
     trace: isLocalDev ? 'on' : 'retain-on-failure',
