@@ -178,6 +178,15 @@ const admin = {
   env: `https://epr-re-ex-admin-frontend.${environment}.cdp-int.defra.cloud`
 }
 
+// Infrastructure the suite calls directly; no deployed-environment counterpart.
+const uploaderUri = withProxy
+  ? 'http://cdp-uploader:7337'
+  : `http://localhost:${process.env.UPLOADER_PORT || 7337}`
+
+const sqsUri = withProxy
+  ? 'http://floci:4566'
+  : `http://localhost:${process.env.FLOCI_PORT || 4566}`
+
 // Cognito auth for the external/regulator-facing API (e.g. PRN accept/reject),
 // which sits behind AWS Cognito rather than Defra ID or Entra.
 const cognitoAuthParams = {
@@ -264,8 +273,10 @@ export default {
   defraIdUri,
   dockerLogParser,
   regulatorUser,
+  sqsUri,
   testLogs,
   undiciAgent: globalUndiciAgent,
   unrecognisedEntraUser,
+  uploaderUri,
   usesRealEntra
 }
