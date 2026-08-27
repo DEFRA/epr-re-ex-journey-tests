@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test'
 
-import { DashboardPage } from 'page-objects/dashboard.page'
 import { PRNDashboardPage } from 'page-objects/prn.dashboard.page'
 import { PRNViewPage } from 'page-objects/prn.view.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
+import { RegulatorOrganisationPage } from 'page-objects/regulator/organisation.page'
 import { ReportsPage } from 'page-objects/reports/reports.page'
 import { ReportViewPage } from 'page-objects/reports/report.view.page'
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page'
@@ -21,7 +21,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
   }) => {
     const loginPage = new RegulatorLoginPage(page)
     const homePage = new RegulatorHomePage(page)
-    const dashboardPage = new DashboardPage(page)
+    const organisationPage = new RegulatorOrganisationPage(page)
     const detailsPage = new RegistrationDetailsPage(page)
     const prnListPage = new PRNDashboardPage(page)
     const prnViewPage = new PRNViewPage(page)
@@ -62,14 +62,38 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     await homePage.openOrganisation(1)
 
-    expect(await dashboardPage.dashboardHeaderText()).toContain(
-      seeded.companyName
-    )
-    expect(await dashboardPage.getMaterial(1, 1)).toBe('Paper and board')
-    expect(await dashboardPage.getRegistrationStatus(1, 1)).toBe('Approved')
-    expect(await dashboardPage.getAccreditationStatus(1, 1)).toBe('Approved')
+    expect(await organisationPage.captionText()).toBe(seeded.companyName)
 
-    await dashboardPage.selectLink(1)
+    // The record groups registrations under the site they are processed at,
+    // and the seed registers one site - so counting the tables is what says
+    // they were grouped rather than listed.
+    await expect(organisationPage.siteTables()).toHaveCount(1)
+
+    // This organisation reprocesses and does not export, so it is shown what
+    // it has rather than tabs, one of which it would have to leave empty.
+    await expect(organisationPage.tabs()).toHaveCount(0)
+
+    // The whole row, keyed by the column that states it. Comparing all six is
+    // what says the record reads correctly rather than that one cell does, and
+    // it names a renamed or reordered column in the failure.
+    expect(await organisationPage.registrations()).toEqual([
+      new Map([
+        ['Registration number', seeded.registrationNumber],
+        ['Registration status', 'Approved'],
+        ['Material', 'Paper and board'],
+        ['Regulator', 'EA'],
+        ['Accreditation', 'Approved'],
+        ['Actions', 'View registration']
+      ])
+    ])
+
+    // Every row's link reads "View registration", so the hidden half is the
+    // only thing that says which registration this one opens.
+    expect(await organisationPage.getActionHiddenText(1)).toBe(
+      seeded.registrationNumber
+    )
+
+    await organisationPage.actionLink(1).click()
 
     // What this page shows a regulator is asserted in full by
     // regulator-reads-a-registration. What it offers a regulator to read is
