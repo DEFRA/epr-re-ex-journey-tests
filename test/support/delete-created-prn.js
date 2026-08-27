@@ -19,12 +19,16 @@ import { createLinkAndLogin } from './login-helper.js'
 import { tonnageWordings, tradingName } from './fixtures.js'
 
 /**
+ * @import { Page } from '@playwright/test'
+ */
+
+/**
  * Shared "create then delete a PRN/PERN" flow. Reprocessor Output
  * (@delprnoutput) and Exporter (@delprnexp) specs are identical apart from
  * test data, PRN/PERN wording, and the Exporter-only overseas-sites seeding
  * step, so both call this with a different config.
  *
- * @param {import('@playwright/test').Page} page
+ * @param {Page} page
  * @param {object} config
  * @param {string} config.wasteProcessingType - 'Reprocessor' | 'Exporter'
  * @param {string} config.material - material param for createLinkedOrganisation

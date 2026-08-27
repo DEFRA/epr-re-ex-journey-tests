@@ -1,6 +1,10 @@
 import { Page } from 'page-objects/page'
 
 /**
+ * @import { Locator } from '@playwright/test'
+ */
+
+/**
  * Where a regulator lands after sign-in. It is the organisation list: a
  * regulator holds no organisation id, so search is the only route they have to
  * an operator, and the service puts it in front of them rather than behind a
@@ -154,7 +158,7 @@ class RegulatorHomePage extends Page {
    * opens.
    *
    * @param {number} row
-   * @returns {import('@playwright/test').Locator}
+   * @returns {Locator}
    */
   actionLink(row) {
     return this.page.locator(

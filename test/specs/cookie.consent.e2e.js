@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test'
 
+/**
+ * @import { Page } from '@playwright/test'
+ */
+
 const SERVICE_NAME = 'Record reprocessed or exported packaging waste'
 
 const ESSENTIAL_COPY =
@@ -9,13 +13,13 @@ const ANALYTICS_COPY =
   "We'd also like to use analytics cookies so we can understand how you use the service and make improvements."
 
 /**
- * @param {import('@playwright/test').Page} page
+ * @param {Page} page
  */
 const banner = (page) =>
   page.getByRole('region', { name: `Cookies on ${SERVICE_NAME}` })
 
 /**
- * @param {import('@playwright/test').Page} page
+ * @param {Page} page
  */
 const startWithTheBannerAsking = async (page) => {
   await page.goto('/start')
@@ -26,7 +30,7 @@ const startWithTheBannerAsking = async (page) => {
 }
 
 /**
- * @param {import('@playwright/test').Page} page
+ * @param {Page} page
  */
 const expectTheBannerToStayAway = async (page) => {
   await expect(banner(page)).toBeHidden()
