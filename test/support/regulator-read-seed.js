@@ -14,7 +14,7 @@ import {
 import { defraIdStub } from './defra-id-stub.js'
 
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
-const REGISTRATION_NUMBER = 'R26ER5000000003PA'
+export const REGISTRATION_NUMBER = 'R26ER5000000003PA'
 const ACCREDITATION_NUMBER = 'A26ER5000000002PA'
 
 // The tonnage each seeded note is worth, and the figures the seeded report
@@ -47,6 +47,7 @@ const REPORT_FIGURES = {
  * @returns {Promise<{
  *   companyName: string,
  *   refNo: string,
+ *   registrationNumber: string,
  *   orgId: number,
  *   registrationId: string,
  *   accreditationId: string,
@@ -141,6 +142,7 @@ export async function seedAwaitingPrnAndSubmittedReport() {
     refNo: organisation.refNo,
     orgId: organisation.orgId,
     registrationId,
+    registrationNumber: REGISTRATION_NUMBER,
     accreditationId,
     accreditationNumber: ACCREDITATION_NUMBER,
     prnId,

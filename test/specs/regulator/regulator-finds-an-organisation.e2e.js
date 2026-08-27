@@ -7,8 +7,8 @@ import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { ReportsPage } from 'page-objects/reports/reports.page'
 import { ReportViewPage } from 'page-objects/reports/report.view.page'
+import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page'
 import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page'
-import { WasteRecordsPage } from 'page-objects/waste.records.page'
 import { checkBodyText } from '../../support/checks.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/regulator-read-seed.js'
 
@@ -22,7 +22,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     const loginPage = new RegulatorLoginPage(page)
     const homePage = new RegulatorHomePage(page)
     const dashboardPage = new DashboardPage(page)
-    const registrationPage = new WasteRecordsPage(page)
+    const detailsPage = new RegistrationDetailsPage(page)
     const prnListPage = new PRNDashboardPage(page)
     const prnViewPage = new PRNViewPage(page)
     const reportsPage = new ReportsPage(page)
@@ -71,29 +71,25 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     await dashboardPage.selectLink(1)
 
-    // The registration is where an operator issues PRNs, reports and reapplies
-    // for accreditation. A regulator reads the same page and is offered the
-    // PRNs, the reports and the waste balance ledger to read, and nothing that
-    // changes any of them. Comparing the whole set is what says "and nothing
-    // else" - a route added here later has to be justified rather than
-    // arriving unnoticed.
-    expect(await registrationPage.offeredRoutes()).toEqual([
-      '/contact',
+    // What this page shows a regulator is asserted in full by
+    // regulator-reads-a-registration. What it offers a regulator to read is
+    // asserted here, because reaching those three pages is this journey.
+    expect(await detailsPage.headingText()).toContain('Registration details')
+
+    // Comparing the whole set is what says "and nothing else" - a route added
+    // here later has to be justified rather than arriving unnoticed.
+    expect(await detailsPage.offeredRoutes()).toEqual([
+      '/organisations/{id}/registrations/{id}/accreditations/{id}',
       '/organisations/{id}/registrations/{id}/accreditations/{id}/packaging-recycling-notes',
       '/organisations/{id}/registrations/{id}/accreditations/{id}/waste-balance-ledger',
       '/organisations/{id}/registrations/{id}/reports'
     ])
 
-    // The reports half of the journey starts here again, and a regulator holds
-    // no record ids to build the path from - so keep the one the search found.
-    // offeredRoutes settles on the summary cards, so the page has loaded by
-    // the time this reads the URL.
+    // A regulator holds no record ids to build a path from, so keep the one
+    // the search found and come back to it between the three reads.
     const registrationUrl = page.url()
 
-    // Each card names what the session may do with it. An operator is offered
-    // "Manage PRNs" alongside "Create new PRN"; a regulator is offered the one
-    // link, and it reads as the list it is.
-    const viewPRNs = registrationPage.notesListLink()
+    const viewPRNs = detailsPage.notesListLink()
     expect(await viewPRNs.innerText()).toBe('View PRNs')
     await viewPRNs.click()
 
@@ -146,7 +142,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     // The text read below takes the DOM as it stands with no auto-wait, and
     // nothing before it has settled this page, so wait on the link first.
-    const viewReports = registrationPage.reportsListLink()
+    const viewReports = detailsPage.reportsListLink()
     await viewReports.waitFor()
 
     expect(await viewReports.innerText()).toBe('View reports')
@@ -181,7 +177,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // filed here.
     await page.goto(registrationUrl)
 
-    const viewLedger = registrationPage.wasteBalanceLedgerLink()
+    const viewLedger = detailsPage.wasteBalanceLedgerLink()
     await viewLedger.waitFor()
 
     expect(await viewLedger.innerText()).toBe('View waste balance ledger')
