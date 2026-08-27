@@ -1,11 +1,5 @@
 import { test, expect } from '@playwright/test'
 
-// Every other spec runs with consent already answered, seeded in
-// playwright.config.js, so this is the only place the banner is seen. Clearing
-// storage state is what puts a browser back into the state a first-time visitor
-// arrives in.
-test.use({ storageState: { cookies: [], origins: [] } })
-
 /**
  * @param {import('@playwright/test').Page} page
  */
