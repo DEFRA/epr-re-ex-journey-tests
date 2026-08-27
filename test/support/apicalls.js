@@ -576,6 +576,89 @@ export async function updateRegistrationStatus(orgId, newStatus) {
   )
 }
 
+/**
+ * Detaches a registration from its accreditation, leaving an accreditation
+ * that exists but that no registration claims — the unlinked ("orphan") state
+ * PAE-1816's assign journey repairs. "Unlinked" is derived rather than
+ * flagged: it simply means no registration holds this accreditation's id.
+ *
+ * It needs its own write because createLinkedOrganisation's migrate step has
+ * already paired the two by the time any other helper runs; there is no
+ * seeding option that produces them unlinked in the first place.
+ *
+ * Call it *before* seeding a reprocessingType onto the registration. While the
+ * two are still linked, writing one to the registration alone lengthens its
+ * identity key and the pair no longer matches, which every subsequent write
+ * rejects.
+ *
+ * @param {string} orgId - organisation reference number
+ * @param {number} [registrationIndex] - which registration to detach
+ */
+export async function unlinkAccreditation(orgId, registrationIndex = 0) {
+  const authClient = new AuthClient()
+  const baseAPI = new BaseAPI()
+
+  await authClient.authenticate()
+
+  let response = await baseAPI.get(
+    `/v1/organisations/${orgId}`,
+    authClient.authHeader()
+  )
+
+  const data = await assertSuccessResponse(
+    response,
+    `GET /v1/organisations/${orgId}`
+  )
+
+  // Delete the key rather than nulling it — the schema allows the field to be
+  // absent but not explicitly null (as createSubmittedReport also relies on).
+  delete data.registrations[registrationIndex].accreditationId
+
+  const payload = {
+    version: Number(data.version),
+    updateFragment: data
+  }
+
+  response = await baseAPI.put(
+    `/v1/dev/organisations/${orgId}`,
+    JSON.stringify(payload),
+    authClient.authHeader()
+  )
+
+  await assertSuccessResponseWithoutBody(
+    response,
+    `PUT /v1/dev/organisations/${orgId}`
+  )
+}
+
+/**
+ * Writes the organisation back exactly as read. The registration/accreditation
+ * pairing check runs on every write, so a successful no-op rewrite is the
+ * cheapest proof that a pair the admin UI has just linked is consistent and
+ * that the organisation can still be saved.
+ *
+ * @param {string} orgId - organisation reference number
+ */
+export async function rewriteOrganisation(orgId) {
+  const authClient = new AuthClient()
+  const baseAPI = new BaseAPI()
+
+  await authClient.authenticate()
+
+  const data = await getOrganisation(orgId)
+
+  const response = await baseAPI.put(
+    `/v1/dev/organisations/${orgId}`,
+    JSON.stringify({ version: Number(data.version), updateFragment: data }),
+    authClient.authHeader()
+  )
+
+  await assertSuccessResponseWithoutBody(
+    response,
+    `PUT /v1/dev/organisations/${orgId}`
+  )
+}
+
 export async function createAndRegisterDefraIdUser(email) {
   const users = new Users()
   const user = await users.userPayload(email)
