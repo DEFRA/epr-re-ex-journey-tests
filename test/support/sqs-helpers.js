@@ -1,6 +1,7 @@
 import { request } from 'undici'
+import config from '../config/config.js'
 
-const sqsEndpoint = process.env.SQS_ENDPOINT ?? 'http://localhost:4566'
+const sqsEndpoint = config.sqsUri
 
 // Floci uses the SQS JSON API (X-Amz-Target headers), not the legacy query API.
 const dlqQueueUrl = `${sqsEndpoint}/000000000000/epr_backend_commands_dlq`

@@ -1282,37 +1282,30 @@ export async function ingestSummaryLogFixture(
   return { summaryLogId, summaryLogPath, baseAPI }
 }
 
-// Drives the full summary-log pipeline over HTTP without the operator
-// frontend: initiate (backend) → multipart file POST (cdp-uploader) → poll
-// until validated → submit → poll until submitted. On submit the backend
-// flags any restated closed periods as requiring resubmission, which is what
-// unlocks creating submission 2 for those periods.
-export async function uploadAndSubmitSummaryLog(
+// Drives a summary log over HTTP without the operator frontend as far as
+// 'validated': initiate (backend) → multipart file POST (cdp-uploader) → poll.
+export async function uploadAndValidateSummaryLog(
   refNo,
   registrationId,
   defraAuthHeader,
-  filePath
+  filePath,
+  baseAPI = new BaseAPI()
 ) {
-  const baseAPI = new BaseAPI()
-  const jsonHeaders = { ...defraAuthHeader, 'content-type': 'application/json' }
   const summaryLogsPath = `/v1/organisations/${refNo}/registrations/${registrationId}/summary-logs`
 
   const initiateResponse = await baseAPI.post(
     summaryLogsPath,
     JSON.stringify({ redirectUrl: '/' }),
-    jsonHeaders
+    { ...defraAuthHeader, 'content-type': 'application/json' }
   )
   const { summaryLogId, uploadUrl } = await assertSuccessResponse(
     initiateResponse,
     `POST ${summaryLogsPath}`
   )
 
-  // The backend addresses cdp-uploader by its container hostname; from the
-  // test host the same service is published on localhost:7337.
-  const hostUploadUrl = new URL(
-    new URL(uploadUrl).pathname,
-    'http://localhost:7337'
-  )
+  // The backend addresses cdp-uploader by its container hostname; the test
+  // process reaches the same service on the published host port.
+  const hostUploadUrl = new URL(new URL(uploadUrl).pathname, config.uploaderUri)
 
   // The field name must be summaryLogUpload: cdp-uploader echoes the form
   // shape back to the backend callback, whose schema requires that key.
@@ -1342,6 +1335,25 @@ export async function uploadAndSubmitSummaryLog(
     defraAuthHeader,
     'validated'
   )
+
+  return { summaryLogId, summaryLogPath, baseAPI }
+}
+
+// On submit the backend flags any restated closed periods as requiring
+// resubmission, which is what unlocks creating submission 2 for those periods.
+export async function uploadAndSubmitSummaryLog(
+  refNo,
+  registrationId,
+  defraAuthHeader,
+  filePath
+) {
+  const { summaryLogId, summaryLogPath, baseAPI } =
+    await uploadAndValidateSummaryLog(
+      refNo,
+      registrationId,
+      defraAuthHeader,
+      filePath
+    )
 
   const submitResponse = await baseAPI.post(
     `${summaryLogPath}/submit`,
