@@ -6,7 +6,7 @@ class ReportStaleErrorPage extends Page {
   }
 
   async deleteAndStartAgain() {
-    await this.page.locator('button[type=submit]').click()
+    await this.clickButton('Delete and start again')
   }
 }
 
