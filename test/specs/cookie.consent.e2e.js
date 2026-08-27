@@ -21,7 +21,7 @@ const banner = (page) =>
 /**
  * @param {Page} page
  */
-const startWithTheBannerAsking = async (page) => {
+const openStartPageWithBanner = async (page) => {
   await page.goto('/start')
 
   await expect(banner(page)).toBeVisible()
@@ -32,7 +32,7 @@ const startWithTheBannerAsking = async (page) => {
 /**
  * @param {Page} page
  */
-const expectTheBannerToStayAway = async (page) => {
+const expectBannerRemainsHidden = async (page) => {
   await expect(banner(page)).toBeHidden()
 
   await page.goto('/start')
@@ -47,31 +47,31 @@ test.describe('Cookie consent @cookieConsent', () => {
   test('Should stop asking once the visitor accepts analytics cookies', async ({
     page
   }) => {
-    await startWithTheBannerAsking(page)
+    await openStartPageWithBanner(page)
 
     await banner(page)
       .getByRole('button', { name: 'Accept analytics cookies' })
       .click()
 
-    await expectTheBannerToStayAway(page)
+    await expectBannerRemainsHidden(page)
   })
 
   test('Should stop asking once the visitor rejects analytics cookies', async ({
     page
   }) => {
-    await startWithTheBannerAsking(page)
+    await openStartPageWithBanner(page)
 
     await banner(page)
       .getByRole('button', { name: 'Reject analytics cookies' })
       .click()
 
-    await expectTheBannerToStayAway(page)
+    await expectBannerRemainsHidden(page)
   })
 
   test('Should take the visitor to the cookies page from the banner', async ({
     page
   }) => {
-    await startWithTheBannerAsking(page)
+    await openStartPageWithBanner(page)
 
     await banner(page).getByRole('link', { name: 'View cookies' }).click()
 
