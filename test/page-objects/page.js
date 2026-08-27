@@ -60,20 +60,6 @@ class Page {
     await this.page.locator('a', { hasText: 'Sign out' }).click()
   }
 
-  // For journeys that clear cookies and so lose the consent seeded in
-  // playwright.config.js. A no-op wherever no banner renders.
-  async rejectAnalyticsCookies() {
-    await this.page.waitForLoadState('domcontentloaded')
-
-    const reject = this.page.getByRole('button', {
-      name: 'Reject analytics cookies'
-    })
-
-    if (await reject.isVisible()) {
-      await reject.click()
-    }
-  }
-
   async submit(selector = 'button[type=submit]') {
     await this.page.locator(selector).click()
   }
