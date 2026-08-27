@@ -74,7 +74,7 @@ class RegulatorHomePage extends Page {
    */
   async searchFor(organisationName) {
     await this.page.locator('#search').fill(organisationName)
-    await this.page.locator('button[type=submit]').click()
+    await this.page.getByRole('button', { name: 'Search' }).click()
   }
 
   /**
