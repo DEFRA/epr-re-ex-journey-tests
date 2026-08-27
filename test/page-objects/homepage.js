@@ -22,7 +22,7 @@ class HomePage extends Page {
     // clicking the input directly fails Playwright's actionability check —
     // click the label instead.
     await this.page.locator('label[for="organisation-id"]').click()
-    await this.submit()
+    await this.clickButton('Confirm')
   }
 
   async navLinkElements() {

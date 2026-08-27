@@ -11,7 +11,7 @@ class ReportDetailPage extends Page {
   }
 
   async useThisData() {
-    await this.submit()
+    await this.clickButton('Use this data')
   }
 
   // The detail page renders each section total as a `govuk-caption-l` label
@@ -30,7 +30,7 @@ class ReportDetailPage extends Page {
   }
 
   async useThisDataAndCheckDoubleClickPrevented() {
-    await this.submitAndCheckDoubleClickPrevented()
+    await this.clickButtonCheckingDoubleClickPrevented('Use this data')
   }
 
   async uploadNewSummaryLog() {

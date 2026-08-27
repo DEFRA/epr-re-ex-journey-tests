@@ -55,8 +55,6 @@ class RegulatorLoginPage extends Page {
       await this.enterCredentials(username, password)
       await this.submitCredentials()
     }
-
-    await this.rejectAnalyticsCookies()
   }
 
   // Used after sign-out to confirm we're actually looking at the sign-in

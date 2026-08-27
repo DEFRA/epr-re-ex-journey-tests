@@ -64,6 +64,18 @@ class Page {
     await this.page.locator(selector).click()
   }
 
+  async clickButton(name) {
+    await this.page.getByRole('button', { name }).click()
+  }
+
+  async clickButtonCheckingDoubleClickPrevented(name, options) {
+    await checkDoubleClickPrevented(
+      this.page,
+      this.page.getByRole('button', { name }),
+      options
+    )
+  }
+
   async submitAndCheckDoubleClickPrevented(
     selector = 'button[type=submit]',
     options

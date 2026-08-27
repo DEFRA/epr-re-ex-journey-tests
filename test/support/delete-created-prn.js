@@ -157,7 +157,7 @@ export async function runDeleteCreatedPrn(
   expect(confirmDeleteHeadingText).toBe(
     `Are you sure you want to delete this ${wording}?`
   )
-  await confirmDeletePRNPage.deletePrnAndCheckDoubleClickPrevented()
+  await confirmDeletePRNPage.deletePrnAndCheckDoubleClickPrevented(wording)
 
   const noCreatedPrnMessage = await prnDashboardPage.getNoCreatedPrnMessage()
   expect(noCreatedPrnMessage).toBe(`You have not created any ${wording}s.`)
