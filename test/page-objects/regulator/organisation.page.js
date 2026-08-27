@@ -2,6 +2,14 @@ import { Page } from 'page-objects/page'
 
 const SITE_TABLE = '#main-content table.govuk-table'
 
+/**
+ * A cell states one value, and the action cell breaks its visible half from the
+ * name it hides, so the line it breaks on is not part of what it states.
+ * @param {string} text
+ * @returns {string}
+ */
+const collapse = (text) => text.replace(/\s+/g, ' ').trim()
+
 class RegulatorOrganisationPage extends Page {
   /**
    * @returns {Promise<string>}
@@ -26,13 +34,6 @@ class RegulatorOrganisationPage extends Page {
   }
 
   /**
-   * @returns {Promise<string[]>}
-   */
-  async siteNames() {
-    return this.page.locator(`${SITE_TABLE} > caption`).allInnerTexts()
-  }
-
-  /**
    * The wait settles on the first row, so a site that rendered none fails here
    * rather than answering with an empty list a caller could read as a pass.
    * @param {number} site
@@ -51,7 +52,9 @@ class RegulatorOrganisationPage extends Page {
       const cells = await rows.nth(row).locator('th, td').allInnerTexts()
 
       registrations.push(
-        new Map(headings.map((heading, cell) => [heading, cells[cell]]))
+        new Map(
+          headings.map((heading, cell) => [heading, collapse(cells[cell])])
+        )
       )
     }
 
@@ -67,21 +70,6 @@ class RegulatorOrganisationPage extends Page {
     return this.siteTable(site).locator(
       `tbody > tr:nth-child(${row}) td:last-child a`
     )
-  }
-
-  /**
-   * The span is clipped to a pixel, and innerText answers with what is
-   * rendered, so this reads the text content instead.
-   * @param {number} row
-   * @param {number} site
-   * @returns {Promise<string>}
-   */
-  async getActionHiddenText(row, site = 1) {
-    const text = await this.actionLink(row, site)
-      .locator('.govuk-visually-hidden')
-      .textContent()
-
-    return (text ?? '').trim()
   }
 
   /**

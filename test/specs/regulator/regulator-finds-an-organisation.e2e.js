@@ -75,7 +75,9 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     // The whole row, keyed by the column that states it. Comparing all six is
     // what says the record reads correctly rather than that one cell does, and
-    // it names a renamed or reordered column in the failure.
+    // it names a renamed or reordered column in the failure. Every row's link
+    // reads "View registration", so the name it carries after that is the only
+    // thing saying which registration this row opens.
     expect(await organisationPage.registrations()).toEqual([
       new Map([
         ['Registration number', seeded.registrationNumber],
@@ -83,15 +85,9 @@ test.describe('A regulator looking up an operator @regulator', () => {
         ['Material', 'Paper and board'],
         ['Regulator', 'EA'],
         ['Accreditation', 'Approved'],
-        ['Actions', 'View registration']
+        ['Actions', `View registration ${seeded.registrationNumber}`]
       ])
     ])
-
-    // Every row's link reads "View registration", so the hidden half is the
-    // only thing that says which registration this one opens.
-    expect(await organisationPage.getActionHiddenText(1)).toBe(
-      seeded.registrationNumber
-    )
 
     await organisationPage.actionLink(1).click()
 
