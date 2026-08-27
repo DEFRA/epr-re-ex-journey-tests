@@ -1,30 +1,78 @@
 import { test, expect } from '@playwright/test'
 
+const SERVICE_NAME = 'Record reprocessed or exported packaging waste'
+
+const ESSENTIAL_COPY =
+  'We use some essential cookies to make this service work.'
+
+const ANALYTICS_COPY =
+  "We'd also like to use analytics cookies so we can understand how you use the service and make improvements."
+
 /**
  * @param {import('@playwright/test').Page} page
  */
-const banner = (page) => page.getByRole('region', { name: /cookies on/i })
+const banner = (page) =>
+  page.getByRole('region', { name: `Cookies on ${SERVICE_NAME}` })
+
+/**
+ * @param {import('@playwright/test').Page} page
+ */
+const startWithTheBannerAsking = async (page) => {
+  await page.goto('/start')
+
+  await expect(banner(page)).toBeVisible()
+  await expect(banner(page)).toContainText(ESSENTIAL_COPY)
+  await expect(banner(page)).toContainText(ANALYTICS_COPY)
+}
+
+/**
+ * @param {import('@playwright/test').Page} page
+ */
+const expectTheBannerToStayAway = async (page) => {
+  await expect(banner(page)).toBeHidden()
+
+  await page.goto('/start')
+
+  await expect(banner(page)).toBeHidden()
+}
 
 // What server.inject cannot reach: that the button submits without javascript,
 // that a real browser accepts the cookie with the attributes the service sets,
-// and that it sends it back on the next navigation. The banner's own markup and
-// the route's behaviour are covered in epr-frontend.
+// and that it sends it back on the next navigation.
 test.describe('Cookie consent @cookieConsent', () => {
-  // Playwright has no it.each equivalent, so the cases are generated.
-  const choices = ['Accept analytics cookies', 'Reject analytics cookies']
+  test('Should stop asking once the visitor accepts analytics cookies', async ({
+    page
+  }) => {
+    await startWithTheBannerAsking(page)
 
-  choices.forEach((choice) => {
-    test(`Should stop asking once the visitor chooses ${choice}`, async ({
-      page
-    }) => {
-      await page.goto('/start')
-      await page.getByRole('button', { name: choice }).click()
+    await banner(page)
+      .getByRole('button', { name: 'Accept analytics cookies' })
+      .click()
 
-      await expect(banner(page)).toBeHidden()
+    await expectTheBannerToStayAway(page)
+  })
 
-      await page.goto('/start')
+  test('Should stop asking once the visitor rejects analytics cookies', async ({
+    page
+  }) => {
+    await startWithTheBannerAsking(page)
 
-      await expect(banner(page)).toBeHidden()
-    })
+    await banner(page)
+      .getByRole('button', { name: 'Reject analytics cookies' })
+      .click()
+
+    await expectTheBannerToStayAway(page)
+  })
+
+  test('Should take the visitor to the cookies page from the banner', async ({
+    page
+  }) => {
+    await startWithTheBannerAsking(page)
+
+    await banner(page).getByRole('link', { name: 'View cookies' }).click()
+
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Cookies', exact: true })
+    ).toBeVisible()
   })
 })
