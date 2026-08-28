@@ -113,7 +113,7 @@ export async function runDeleteCreatedPrn(
   let wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
   expect(wasteBalanceAmount).toBe(expectedWasteBalance)
 
-  await wasteRecordsPage[createNewLinkName]()
+  await wasteRecordsPage[createNewLinkName]().click()
 
   await createPRNPage.createPrn(tonnageWordings.integer, tradingName, 'Testing')
 
@@ -135,7 +135,7 @@ export async function runDeleteCreatedPrn(
   wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
   expect(wasteBalanceAmount).toBe(expectedDeductedWasteBalance)
 
-  await wasteRecordsPage[manageLinkName]()
+  await wasteRecordsPage[manageLinkName]().click()
 
   // Check No PRNs/PERNs have been issued yet message
   await prnDashboardPage.selectIssuedTab()
@@ -147,7 +147,7 @@ export async function runDeleteCreatedPrn(
   await prnDashboardPage.selectAwaitingLink(1)
 
   // Test the back link on Delete confirmation page first
-  await prnViewPage.deletePRNButton()
+  await prnViewPage.deletePRNButton().click()
 
   let confirmDeleteHeadingText = await confirmDeletePRNPage.headingText()
   expect(confirmDeleteHeadingText).toBe(
@@ -156,7 +156,7 @@ export async function runDeleteCreatedPrn(
   await confirmDeletePRNPage.selectBackLink()
 
   // Now delete the PRN/PERN
-  await prnViewPage.deletePRNButton()
+  await prnViewPage.deletePRNButton().click()
   confirmDeleteHeadingText = await confirmDeletePRNPage.headingText()
   expect(confirmDeleteHeadingText).toBe(
     `Are you sure you want to delete this ${wording}?`

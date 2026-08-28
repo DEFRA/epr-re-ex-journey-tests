@@ -49,7 +49,7 @@ test.describe('Report only shows from accreditation validFrom date — exporter 
     )
 
     await dashboardPage.selectTableLink(1, 1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
 
     // wait for heading text for the page to load
     await reportsPage.headingText()

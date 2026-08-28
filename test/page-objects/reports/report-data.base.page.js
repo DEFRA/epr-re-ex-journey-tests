@@ -9,8 +9,8 @@ export class ReportDataBasePage extends Page {
     await this.page.locator('button[value="save"]').click()
   }
 
-  async deleteReportLink() {
-    await this.page.locator('a', { hasText: 'Delete report' }).click()
+  deleteReportLink() {
+    return this.page.getByRole('link', { name: 'Delete report', exact: true })
   }
 
   async enterRevenue(value) {

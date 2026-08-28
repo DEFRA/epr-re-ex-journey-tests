@@ -87,7 +87,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
 
     await dashboardPage.selectLink(1)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-output-regonly-cma.xlsx'

@@ -26,7 +26,10 @@ class OrganisationOverviewPage extends AdminPage {
   }
 
   get unlinkButton() {
-    return this.page.locator('a', { hasText: 'Unlink organisation' })
+    return this.page.getByRole('button', {
+      name: 'Unlink organisation',
+      exact: true
+    })
   }
 
   async clickUnlink() {
@@ -35,7 +38,7 @@ class OrganisationOverviewPage extends AdminPage {
 
   async getNoLinkedOrganisationText() {
     return this.page
-      .locator('p', { hasText: 'No linked organisation' })
+      .getByText('No linked organisation', { exact: true })
       .innerText()
   }
 

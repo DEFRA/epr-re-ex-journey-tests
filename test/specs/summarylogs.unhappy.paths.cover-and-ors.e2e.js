@@ -56,7 +56,7 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
     await checkBodyText(page, 'R26EX5000000002PP', 10)
     await checkBodyText(page, 'A26EX5000000002PP', 10)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await expect(page).toHaveTitle(/Summary log: upload/)
 
@@ -131,7 +131,7 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
     )
 
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile(
       'resources/exporter-ors-not-found.xlsx'

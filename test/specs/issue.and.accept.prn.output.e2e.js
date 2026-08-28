@@ -64,7 +64,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     // Plastic 56,455.67
     await dashboardPage.selectTableLink(1, 1)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     const filePath = `resources/sanity/reprocessorOutput_${accNumber}_${regNumber}.xlsx`
     const uploadSummaryLogPage = new UploadSummaryLogPage(currentPage)
@@ -72,7 +72,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
 
     await dashboardPage.selectTableLink(1, 1)
 
-    await wasteRecordsPage.createNewPRNLink()
+    await wasteRecordsPage.createNewPRNLink().click()
 
     const originalWasteBalance = '56,455.67'
     const wasteBalanceHint = await createPRNPage.wasteBalanceHint()
@@ -99,7 +99,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
 
     await prnCreatedPage.returnToRegistrationPage()
     await dashboardPage.selectTableLink(1, 1)
-    await wasteRecordsPage.managePRNsLink()
+    await wasteRecordsPage.managePRNsLink().click()
 
     // Issue the created PRN
     await prnDashboardPage.selectAwaitingLink(1)
@@ -108,7 +108,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     })
 
     const prnIssuedPage = new PRNIssuedPage(currentPage)
-    await prnIssuedPage.viewPdfButton()
+    await prnIssuedPage.viewPdfButton().click()
     currentPage = await switchToNewTabAndClosePreviousTab(currentPage)
 
     prnHelper = new PrnHelper(currentPage)
@@ -116,7 +116,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     const prnViewPage = new PRNViewPage(currentPage)
 
     await prnHelper.checkViewPrnDetails(prnDetails)
-    await prnViewPage.returnToPRNList()
+    await prnViewPage.returnToPRNList().click()
 
     await prnDashboardPage.selectBackLink()
 
@@ -124,7 +124,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     await externalAPIAcceptPrn(prnDetails)
 
     const wasteRecordsPageOnNewTab = new WasteRecordsPage(currentPage)
-    await wasteRecordsPageOnNewTab.managePRNsLink()
+    await wasteRecordsPageOnNewTab.managePRNsLink().click()
 
     await prnDashboardPage.selectIssuedTab()
     await prnHelper.checkIssuedRows(prnDetails, 1)

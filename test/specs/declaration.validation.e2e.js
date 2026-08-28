@@ -82,7 +82,7 @@ test.describe('Declaration name validation @declarationValidation', () => {
       'resources/reprocessor-output-regonly.xlsx'
     )
     await dashboardPage.selectTableLink(1, 1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
 
     await reportsPage.selectActiveActionLink(1)
     await reportDetailPage.useThisData()
@@ -94,7 +94,7 @@ test.describe('Declaration name validation @declarationValidation', () => {
     await reportCheckAnswersPage.createReport()
     await checkBodyText(page, 'report created', 30)
 
-    await confirmationPage.goToReports()
+    await confirmationPage.goToReports().click()
     await reportsPage.selectActiveActionLink(1)
   })
 

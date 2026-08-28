@@ -57,7 +57,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
     await checkBodyText(page, 'R26ER5000000005PA', 10)
     await checkBodyText(page, 'A26ER5000000003PA', 10)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
     await uploadSummaryLogPage.uploadFile('resources/reprocessor-output.xlsx')
     await uploadSummaryLogPage.continue()
@@ -89,7 +89,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
 
     expect(wasteBalanceAmount).toBe('3.00 tonnes')
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
     await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-output-adjustments.xlsx'

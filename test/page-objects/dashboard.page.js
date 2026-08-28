@@ -37,8 +37,13 @@ class DashboardPage extends Page {
       .innerText()
   }
 
+  // This ".govuk-tabs" block renders without data-module="govuk-tabs" (see
+  // organisations/index.njk), so the GOV.UK tabs JS never enhances it and the
+  // "Exporting"/"Reprocessing" items stay plain links, not role="tab".
   async selectExportingTab() {
-    await this.page.locator('//a[normalize-space()="Exporting"]').click()
+    await this.page
+      .getByRole('link', { name: 'Exporting', exact: true })
+      .click()
   }
 
   async getTableCell(tableIndex, rowIndex, cellIndex) {

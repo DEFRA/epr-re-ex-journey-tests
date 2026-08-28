@@ -161,7 +161,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       expect(backToTonnesNotExported).toBeTruthy()
 
       // Clean up — leave the period "Due" for the next test
-      await tonnesNotExportedPage.deleteReportLink()
+      await tonnesNotExportedPage.deleteReportLink().click()
       await confirmDeleteReportPage.confirmDeletion()
     })
 
@@ -221,7 +221,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       await checkBodyText(page, 'report created', 30)
 
       // --- View draft report in new tab ---
-      await confirmationPage.viewDraftReport()
+      await confirmationPage.viewDraftReport().click()
       let newTab = await switchToNewTab(page)
 
       // Verify draft report page content
@@ -237,7 +237,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       // Close draft tab and return to confirmation page
       await closeCurrentTabAndReturn(newTab)
 
-      await confirmationPage.goToReports()
+      await confirmationPage.goToReports().click()
       await reportsPage.selectActiveActionLink(1)
 
       // Confirm and submit report
@@ -246,7 +246,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       const confirmationText = await reportSubmittedPage.confirmationText()
       expect(confirmationText).toContain('report submitted to regulator')
 
-      await reportSubmittedPage.viewReportLink()
+      await reportSubmittedPage.viewReportLink().click()
       newTab = await switchToNewTab(page)
 
       await checkBodyText(newTab, 'Report for Quarter', 10)
@@ -261,7 +261,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       // Close report tab and return to submission confirmation page
       await closeCurrentTabAndReturn(newTab)
 
-      await reportSubmittedPage.returnToReportsLink()
+      await reportSubmittedPage.returnToReportsLink().click()
       const submittedBadge = await reportsPage.getSubmittedStatusBadge(1)
       const submittedColour = await reportsPage.getSubmittedStatusColour(1)
 
@@ -348,7 +348,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       // whatever back/forward-cache state causes that.
       await page.reload()
       await reportsPage.selectActiveActionLink(1)
-      await monthlyReportDraftDeclarationPage.deleteReport()
+      await monthlyReportDraftDeclarationPage.deleteReport().click()
       await confirmDeleteReportPage.confirmDeletion()
     })
 
@@ -372,7 +372,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       await reportSupportingInformationPage.continue()
       await reportCheckAnswersPage.createReport()
       await checkBodyText(page, 'report created', 30)
-      await confirmationPage.goToReports()
+      await confirmationPage.goToReports().click()
       await reportsPage.selectActiveActionLink(1)
       await monthlyReportDraftDeclarationPage.confirmAndSubmit()
       await checkBodyText(page, 'report submitted to regulator', 30)

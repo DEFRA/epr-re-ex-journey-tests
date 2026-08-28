@@ -25,8 +25,11 @@ class MonthlyReportDraftDeclarationPage extends Page {
     await super.submitAndCheckDoubleClickPrevented(SUBMIT_SELECTOR)
   }
 
-  async deleteReport() {
-    await this.page.locator('a', { hasText: 'Delete report' }).click()
+  deleteReport() {
+    return this.page.getByRole('button', {
+      name: 'Delete report',
+      exact: true
+    })
   }
 }
 
