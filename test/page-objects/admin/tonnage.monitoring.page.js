@@ -7,7 +7,7 @@ class TonnageMonitoringPage extends AdminPage {
 
   async downloadCsv() {
     return this.page
-      .locator('#main-content > div > div > div > form > button')
+      .getByRole('button', { name: 'Download CSV', exact: true })
       .click()
   }
 

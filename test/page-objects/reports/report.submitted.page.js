@@ -4,19 +4,21 @@ class ReportSubmittedPage {
   }
 
   async confirmationText() {
-    return this.page
-      .locator(
-        '#main-content > div > div > div.govuk-panel.govuk-panel--confirmation > h1'
-      )
-      .innerText()
+    return this.page.locator('.govuk-panel--confirmation h1').innerText()
   }
 
-  async viewReportLink() {
-    await this.page.locator('a', { hasText: 'View report' }).click()
+  viewReportLink() {
+    return this.page.getByRole('link', {
+      name: 'View report (Opens in a new tab)',
+      exact: true
+    })
   }
 
-  async returnToReportsLink() {
-    await this.page.locator('a', { hasText: 'Return to your reports' }).click()
+  returnToReportsLink() {
+    return this.page.getByRole('link', {
+      name: 'Return to your reports',
+      exact: true
+    })
   }
 }
 

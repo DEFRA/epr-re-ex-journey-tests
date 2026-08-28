@@ -162,7 +162,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       expect(backToFreePrns).toBeTruthy()
 
       // Clean up — delete report so next test starts fresh
-      await freePrnsPage.deleteReportLink()
+      await freePrnsPage.deleteReportLink().click()
       await confirmDeleteReportPage.confirmDeletion()
     })
 
@@ -178,7 +178,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await reportDetailPage.useThisData()
 
       // --- Delete from tonnes recycled page ---
-      await tonnesRecycledPage.deleteReportLink()
+      await tonnesRecycledPage.deleteReportLink().click()
 
       const deleteHeading = await confirmDeleteReportPage.headingText()
       expect(deleteHeading).toBe('Confirm deletion of this report')
@@ -189,7 +189,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       expect(backToTonnesRecycled).toBeTruthy()
 
       // Confirm deletion
-      await tonnesRecycledPage.deleteReportLink()
+      await tonnesRecycledPage.deleteReportLink().click()
       await confirmDeleteReportPage.confirmDeletion()
 
       // Should be back on reports list with status reverted to Due
@@ -206,7 +206,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await tonnesNotRecycledPage.enterTonnage('89.31')
       await tonnesNotRecycledPage.continue()
 
-      await reprocessorPrnSummaryPage.deleteReportLink()
+      await reprocessorPrnSummaryPage.deleteReportLink().click()
 
       const deleteHeading2 = await confirmDeleteReportPage.headingText()
       expect(deleteHeading2).toBe('Confirm deletion of this report')
@@ -275,7 +275,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       )
 
       // Clean up — delete the report
-      await reportCheckAnswersPage.deleteAndStartAgainLink()
+      await reportCheckAnswersPage.deleteAndStartAgainLink().click()
       await confirmDeleteReportPage.confirmDeletion()
     })
 
@@ -354,7 +354,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await checkBodyText(page, 'report created', 30)
 
       // --- View draft report in new tab ---
-      await confirmationPage.viewDraftReport()
+      await confirmationPage.viewDraftReport().click()
       let newTab = await switchToNewTab(page)
 
       // Verify draft report page content
@@ -379,7 +379,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       // Close draft tab and return to confirmation page
       await closeCurrentTabAndReturn(newTab)
 
-      await confirmationPage.goToReports()
+      await confirmationPage.goToReports().click()
 
       const reportsHeading = await reportsPage.headingText()
       expect(reportsHeading).toContain('Reports')
@@ -392,7 +392,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       const confirmationText = await reportSubmittedPage.confirmationText()
       expect(confirmationText).toContain('report submitted to regulator')
 
-      await reportSubmittedPage.viewReportLink()
+      await reportSubmittedPage.viewReportLink().click()
       newTab = await switchToNewTab(page)
 
       await checkBodyText(newTab, 'Report for', 10)
@@ -416,7 +416,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       // Close report tab and return to submission confirmation page
       await closeCurrentTabAndReturn(newTab)
 
-      await reportSubmittedPage.returnToReportsLink()
+      await reportSubmittedPage.returnToReportsLink().click()
 
       const submittedBadge = await reportsPage.getSubmittedStatusBadge(1)
       const submittedColour = await reportsPage.getSubmittedStatusColour(1)

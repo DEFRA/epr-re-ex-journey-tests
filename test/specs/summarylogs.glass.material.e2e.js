@@ -86,7 +86,7 @@ test.describe('Summary Logs (Glass Material) @smoketest', () => {
     let dashboardHeaderText = await wasteRecordsPage.dashboardHeaderText()
     expect(dashboardHeaderText).toContain('Glass other')
 
-    await homePage.homeLink()
+    await homePage.homeLink().click()
     await dashboardPage.selectTableLink(1, 1)
 
     dashboardHeaderText = await wasteRecordsPage.dashboardHeaderText()

@@ -173,7 +173,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     await checkBodyText(page, 'draft report created', 30)
     await checkBodyText(page, 'Requires resubmission', 10)
     await checkBodyText(page, 'as soon as possible', 10)
-    await confirmationPage.goToReports()
+    await confirmationPage.goToReports().click()
 
     // --- End state: status unchanged, CTA flips to "Review and submit" and the
     // original submitted report remains visible in the Submitted table. ---
@@ -203,7 +203,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     expect(await reportSubmittedPage.confirmationText()).toContain(
       'report submitted to regulator'
     )
-    await reportSubmittedPage.returnToReportsLink()
+    await reportSubmittedPage.returnToReportsLink().click()
 
     // --- End state: the backend folds the resubmission into a single submitted
     // item, so the period moves into the Submitted table tagged "Resubmitted"

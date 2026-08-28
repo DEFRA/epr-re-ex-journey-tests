@@ -3,12 +3,15 @@ class ConfirmationPage {
     this.page = page
   }
 
-  async goToReports() {
-    await this.page.locator('a', { hasText: 'Go to reports' }).click()
+  goToReports() {
+    return this.page.getByRole('link', { name: 'Go to reports', exact: true })
   }
 
-  async viewDraftReport() {
-    await this.page.locator('a', { hasText: 'View draft report' }).click()
+  viewDraftReport() {
+    return this.page.getByRole('link', {
+      name: 'View draft report (opens in new tab)',
+      exact: true
+    })
   }
 }
 

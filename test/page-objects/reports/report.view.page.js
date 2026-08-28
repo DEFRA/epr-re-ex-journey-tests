@@ -7,18 +7,14 @@ class ReportViewPage extends Page {
     )
   }
 
-  #makeChangesLinkLocator() {
+  makeChangesLink() {
     return this.page.locator('a.govuk-button', {
       hasText: 'Make changes to this report'
     })
   }
 
-  async makeChangesLink() {
-    await this.#makeChangesLinkLocator().click()
-  }
-
   async hasMakeChangesLink() {
-    return (await this.#makeChangesLinkLocator().count()) > 0
+    return (await this.makeChangesLink().count()) > 0
   }
 }
 

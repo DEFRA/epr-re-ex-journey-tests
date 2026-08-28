@@ -172,7 +172,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
 
     // Detour into the delete-report confirmation page and back, so it gets
     // scanned without derailing the create/submit flow below.
-    await tonnesNotExportedPage.deleteReportLink()
+    await tonnesNotExportedPage.deleteReportLink().click()
     violations.push(
       ...(await scanPageForAccessibilityViolations(
         page,
@@ -206,7 +206,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ))
     )
 
-    await confirmationPage.goToReports()
+    await confirmationPage.goToReports().click()
     await reportsPage.selectActiveActionLink(1)
     violations.push(
       ...(await scanPageForAccessibilityViolations(
@@ -223,7 +223,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ))
     )
 
-    await reportSubmittedPage.returnToReportsLink()
+    await reportSubmittedPage.returnToReportsLink().click()
     await homePage.signOut()
     await expect(page).toHaveTitle(/Signed out/)
 

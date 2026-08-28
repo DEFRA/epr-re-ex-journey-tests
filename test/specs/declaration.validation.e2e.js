@@ -94,7 +94,7 @@ test.describe('Declaration name validation @declarationValidation', () => {
     await reportCheckAnswersPage.createReport()
     await checkBodyText(page, 'report created', 30)
 
-    await confirmationPage.goToReports()
+    await confirmationPage.goToReports().click()
     await reportsPage.selectActiveActionLink(1)
   })
 

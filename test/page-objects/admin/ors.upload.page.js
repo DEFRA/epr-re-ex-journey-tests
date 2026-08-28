@@ -223,12 +223,21 @@ class OrsUploadPage extends AdminPage {
   }
 
   async permissionsErrorHeading() {
-    return this.page.locator('#main-content > div > div > h1').innerText()
+    return this.page
+      .getByRole('heading', {
+        level: 1,
+        name: 'You do not have permission',
+        exact: true
+      })
+      .innerText()
   }
 
   async permissionsErrorText() {
     return this.page
-      .locator('#main-content > div > div > p:nth-child(2)')
+      .getByText(
+        'Your account does not have permission to use this page. If you think this is wrong, contact your administrator.',
+        { exact: true }
+      )
       .innerText()
   }
 

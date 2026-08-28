@@ -179,7 +179,7 @@ test.describe('Stale report @staleReport', () => {
     )
 
     // "Return to reports" navigates back to the reports list without deleting
-    await reportStaleErrorPage.returnToReports()
+    await reportStaleErrorPage.returnToReports().click()
     expect(await reportsPage.headingText()).toContain('Reports')
 
     // Report is still present — navigating again shows the error page

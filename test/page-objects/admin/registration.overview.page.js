@@ -41,9 +41,10 @@ class RegistrationOverviewPage extends AdminPage {
 
   async clickOnViewORSLink() {
     await this.page
-      .locator(
-        '#main-content > div > div:nth-child(2) > div > dl > div:nth-child(10) > dd > a'
-      )
+      .locator('.govuk-summary-list__row', {
+        has: this.page.locator('dt', { hasText: 'Overseas sites' })
+      })
+      .getByRole('link', { name: 'View', exact: true })
       .click()
   }
 

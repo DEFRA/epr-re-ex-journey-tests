@@ -147,7 +147,7 @@ export async function runCreatePrnUnhappyPaths(
   // End of Check Create PRN/PERN validation errors
 
   // Check Create a PRN/PERN page is accessible from the PRN/PERN Dashboard button
-  await homePage.homeLink()
+  await homePage.homeLink().click()
   await dashboardPage.selectTableLink(1, 1)
   await wasteRecordsPage[manageLinkName]()
   await prnDashboardPage.createAPrnButton()
