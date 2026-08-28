@@ -307,6 +307,8 @@ services:
       ENTRA_CLIENT_SECRET: test
       ENTRA_OIDC_WELL_KNOWN_CONFIGURATION_URL: http://entra-stub:3010/.well-known/openid-configuration
       EPR_BACKEND_URL: http://epr-backend:3001
+      ANALYTICS_ENABLED: true
+      ANALYTICS_MEASUREMENT_ID: G-TEST000000
       FEATURE_FLAG_REGULATOR_ACCESS: true
       NODE_ENV: development
       PORT: 3000
