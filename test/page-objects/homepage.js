@@ -10,11 +10,15 @@ class HomePage extends Page {
   }
 
   async getStartNowHref() {
-    return this.page.locator('a.govuk-button').getAttribute('href')
+    return this.page
+      .getByRole('button', { name: 'Start now', exact: true })
+      .getAttribute('href')
   }
 
   async clickStartNow() {
-    await this.page.locator('a.govuk-button').click()
+    await this.page
+      .getByRole('button', { name: 'Start now', exact: true })
+      .click()
   }
 
   async linkRegistration() {

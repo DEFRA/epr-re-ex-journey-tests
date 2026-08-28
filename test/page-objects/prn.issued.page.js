@@ -16,7 +16,9 @@ class PRNIssuedPage extends Page {
   }
 
   viewPdfButton() {
-    return this.page.locator('a.govuk-button--secondary')
+    return this.page.getByRole('button', {
+      name: /^View (PRN|PERN) \(opens in a new tab\)$/
+    })
   }
 }
 

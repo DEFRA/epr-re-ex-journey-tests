@@ -8,8 +8,9 @@ class ReportViewPage extends Page {
   }
 
   makeChangesLink() {
-    return this.page.locator('a.govuk-button', {
-      hasText: 'Make changes to this report'
+    return this.page.getByRole('button', {
+      name: 'Make changes to this report',
+      exact: true
     })
   }
 
