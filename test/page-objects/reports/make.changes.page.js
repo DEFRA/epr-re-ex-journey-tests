@@ -20,9 +20,7 @@ class MakeChangesPage extends Page {
 
   async uploadNewSummaryLog() {
     await this.page
-      .locator('a.govuk-button--secondary', {
-        hasText: 'Upload new summary log'
-      })
+      .getByRole('button', { name: 'Upload new summary log', exact: true })
       .click()
   }
 
