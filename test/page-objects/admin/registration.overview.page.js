@@ -79,6 +79,35 @@ class RegistrationOverviewPage extends AdminPage {
     return this.page.locator('#summary-logs').innerText()
   }
 
+  // The summary-logs table Actions cell (3rd column) renders
+  // <a>View data</a><br><a>Download</a>; return both links so a test can
+  // assert on the entry points offered for a log.
+  async getSummaryLogActionLinks(row) {
+    const cell = this.page.locator(
+      `#summary-logs table tbody tr:nth-child(${row}) td:nth-child(3)`
+    )
+    await cell.waitFor({ state: 'visible', timeout: 10000 })
+
+    const links = cell.locator('a')
+    const count = await links.count()
+    const data = []
+    for (let i = 0; i < count; i++) {
+      const link = links.nth(i)
+      data.push({
+        text: await link.innerText(),
+        href: await link.getAttribute('href')
+      })
+    }
+    return data
+  }
+
+  async clickViewSummaryLogData(row) {
+    await this.page
+      .locator(`#summary-logs table tbody tr:nth-child(${row}) td:nth-child(3)`)
+      .getByRole('link', { name: 'View data' })
+      .click()
+  }
+
   accreditationStatusRow() {
     return this.page.locator('.govuk-summary-list__row', {
       has: this.page.locator('dt', { hasText: 'Accreditation status' })
