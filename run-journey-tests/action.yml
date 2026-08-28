@@ -198,7 +198,11 @@ runs:
         key: playwright-browsers-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
     - name: Install Playwright browsers
-      run: npx playwright install --with-deps chromium
+      run: |
+        timeout 600 npx playwright install --with-deps chromium || {
+          echo "::error::Playwright install exceeded 10 minutes - usually an apt mirror stall on the runner. Re-run the job."
+          exit 1
+        }
       shell: bash
 
     # Each EPR_* value below prefers the caller-supplied commit, falls back to
