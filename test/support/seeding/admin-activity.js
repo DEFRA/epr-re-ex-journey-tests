@@ -29,6 +29,7 @@ const FIXTURE_PATH = 'resources/summary-log.xlsx'
  * @returns {Promise<{
  *   refNo: string,
  *   orgId: number,
+ *   companyName: string,
  *   registrationId: string,
  *   accreditationId: string,
  *   accreditationNumber: string,
@@ -96,6 +97,7 @@ export async function seedAdminActivityData({ acceptPrn = true } = {}) {
   return {
     refNo: org.refNo,
     orgId: org.orgId,
+    companyName: org.organisation.companyName,
     registrationId,
     accreditationId,
     accreditationNumber,
