@@ -2,7 +2,7 @@ import { Page } from 'page-objects/page'
 
 class ReportStaleErrorPage extends Page {
   returnToReports() {
-    return this.page.getByRole('link', {
+    return this.page.getByRole('button', {
       name: 'Return to reports',
       exact: true
     })

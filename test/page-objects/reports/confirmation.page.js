@@ -4,11 +4,14 @@ class ConfirmationPage {
   }
 
   goToReports() {
-    return this.page.getByRole('link', { name: 'Go to reports', exact: true })
+    return this.page.getByRole('button', {
+      name: 'Go to reports',
+      exact: true
+    })
   }
 
   viewDraftReport() {
-    return this.page.getByRole('link', {
+    return this.page.getByRole('button', {
       name: 'View draft report (opens in new tab)',
       exact: true
     })

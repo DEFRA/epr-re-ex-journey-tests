@@ -8,7 +8,7 @@ class ReportSubmittedPage {
   }
 
   viewReportLink() {
-    return this.page.getByRole('link', {
+    return this.page.getByRole('button', {
       name: 'View report (Opens in a new tab)',
       exact: true
     })

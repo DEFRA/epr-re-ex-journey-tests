@@ -96,6 +96,10 @@ class SystemLogsPage extends AdminPage {
 
   async logCardField(card, keyText) {
     const rows = card.locator('.govuk-summary-list__row')
+    // .count() below reads the DOM as-is with no auto-wait (unlike .innerText()
+    // elsewhere in this file), so without this a fresh search result can be
+    // read before it has rendered any rows.
+    await rows.first().waitFor({ state: 'visible', timeout: 10000 })
     const count = await rows.count()
     for (let i = 0; i < count; i++) {
       const row = rows.nth(i)

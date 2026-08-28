@@ -26,8 +26,12 @@ class PRNViewPage extends Page {
     return this.page.locator('.govuk-button-group a.govuk-button')
   }
 
+  // Name-matched rather than selected by class: the cookie-consent banner's
+  // Accept/Reject buttons also render as a .govuk-button-group of plain
+  // govuk-buttons, so a class-only locator is ambiguous once that banner is
+  // showing.
   issuePRNButton() {
-    return this.page.locator('.govuk-button-group button.govuk-button')
+    return this.page.getByRole('button', { name: /^Issue (PRN|PERN)$/ })
   }
 
   async issueAndCheckDoubleClickPrevented() {

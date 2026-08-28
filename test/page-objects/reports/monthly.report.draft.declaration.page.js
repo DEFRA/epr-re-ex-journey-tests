@@ -26,7 +26,10 @@ class MonthlyReportDraftDeclarationPage extends Page {
   }
 
   deleteReport() {
-    return this.page.getByRole('link', { name: 'Delete report', exact: true })
+    return this.page.getByRole('button', {
+      name: 'Delete report',
+      exact: true
+    })
   }
 }
 

@@ -113,7 +113,7 @@ export async function runDeleteCreatedPrn(
   let wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
   expect(wasteBalanceAmount).toBe(expectedWasteBalance)
 
-  await wasteRecordsPage[createNewLinkName]()
+  await wasteRecordsPage[createNewLinkName]().click()
 
   await createPRNPage.createPrn(tonnageWordings.integer, tradingName, 'Testing')
 
@@ -135,7 +135,7 @@ export async function runDeleteCreatedPrn(
   wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
   expect(wasteBalanceAmount).toBe(expectedDeductedWasteBalance)
 
-  await wasteRecordsPage[manageLinkName]()
+  await wasteRecordsPage[manageLinkName]().click()
 
   // Check No PRNs/PERNs have been issued yet message
   await prnDashboardPage.selectIssuedTab()
