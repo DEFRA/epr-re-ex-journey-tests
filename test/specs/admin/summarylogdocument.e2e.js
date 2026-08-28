@@ -67,8 +67,12 @@ test.describe('Admin summary log document view', () => {
 
     const loads = document.loadsByReportingPeriod
     expect(loads).toMatchObject({
-      openPeriodLoads: { added: expect.anything() },
-      closedPeriodLoads: expect.anything(),
+      openPeriodLoads: {
+        added: { balanceAffecting: { count: expect.any(Number) } }
+      },
+      closedPeriodLoads: {
+        added: { balanceAffecting: { count: expect.any(Number) } }
+      },
       closedPeriods: expect.any(Array)
     })
     expect(
@@ -83,10 +87,14 @@ test.describe('Admin summary log document view', () => {
 
     // The registration overview URL shares the summary-log URL's prefix; swap
     // /overview for an unknown log so the backend 404 propagates to the
-    // standard not-found page rather than a 500.
-    const notFoundUrl = page
-      .url()
-      .replace(/\/overview$/, '/summary-logs/unknown-summary-log-id')
+    // standard not-found page rather than a 500. Assert the suffix first so a
+    // future route change fails here, not confusingly as a 200 later.
+    const overviewUrl = page.url()
+    expect(overviewUrl).toMatch(/\/overview$/)
+    const notFoundUrl = overviewUrl.replace(
+      /\/overview$/,
+      '/summary-logs/unknown-summary-log-id'
+    )
 
     const response = await page.goto(notFoundUrl)
 
