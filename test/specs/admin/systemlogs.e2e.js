@@ -44,7 +44,7 @@ test.describe('System logs search @searchsystemlogs', () => {
     await organisationsPage.editLink(1)
     await jsonEditor.switchToTreeEditor()
     await jsonEditor.updateOrgId(Number(linkedOrganisation.orgId) + 100000)
-    await jsonEditor.saveChanges()
+    await jsonEditor.saveButton().click()
 
     const successMessage = await organisationsPage.getSuccessMessage()
     expect(successMessage).toEqual('Organisation record updated')
@@ -126,7 +126,7 @@ test.describe('System logs search @searchsystemlogs', () => {
       page.locator('#main-content div.govuk-summary-card')
     ).not.toHaveCount(0)
 
-    await systemLogsPage.clearSearch()
+    await systemLogsPage.clearSearchLink().click()
 
     expect(await systemLogsPage.referenceNumberValue()).toBe('')
     expect(await systemLogsPage.userIdValue()).toBe('')

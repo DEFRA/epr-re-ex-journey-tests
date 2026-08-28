@@ -38,10 +38,8 @@ class SystemLogsPage extends AdminPage {
 
   // Hand-written markup rather than the govukButton macro, so it's a plain
   // link (no role="button") despite the button-styled classes.
-  async clearSearch() {
-    await this.page
-      .getByRole('link', { name: 'Clear search', exact: true })
-      .click()
+  clearSearchLink() {
+    return this.page.getByRole('link', { name: 'Clear search', exact: true })
   }
 
   async referenceNumberValue() {

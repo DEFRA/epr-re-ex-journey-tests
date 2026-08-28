@@ -98,7 +98,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
 
     test.afterAll(async () => {
       const homePage = new HomePage(page)
-      await homePage.signOut()
+      await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
       await page.close()
     })
@@ -142,7 +142,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       await reportDetailPage.useThisData()
 
       // On tonnes-not-exported — back link goes to reports list
-      await tonnesNotExportedPage.selectBackLink()
+      await tonnesNotExportedPage.backLink().click()
       const reportsHeading = await reportsPage.headingText()
       expect(reportsHeading).toContain('Reports')
 
@@ -156,7 +156,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       await tonnesNotExportedPage.continue()
 
       // On supporting-information — back link goes to tonnes-not-exported (not free-perns)
-      await reportSupportingInformationPage.selectBackLink()
+      await reportSupportingInformationPage.backLink().click()
       const backToTonnesNotExported = await tonnesNotExportedPage.headingText()
       expect(backToTonnesNotExported).toBeTruthy()
 
@@ -309,7 +309,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
 
     test.afterAll(async () => {
       const homePage = new HomePage(page)
-      await homePage.signOut()
+      await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
       await page.close()
     })

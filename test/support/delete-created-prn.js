@@ -119,7 +119,7 @@ export async function runDeleteCreatedPrn(
 
   const headingText = await checkBeforeCreatingPrnPage.headingText()
   expect(headingText).toBe(`Check before creating ${wording}`)
-  await checkBeforeCreatingPrnPage.createPRN()
+  await checkBeforeCreatingPrnPage.createPRNButton().click()
 
   const message = await prnCreatedPage.messageText()
 
@@ -138,12 +138,12 @@ export async function runDeleteCreatedPrn(
   await wasteRecordsPage[manageLinkName]().click()
 
   // Check No PRNs/PERNs have been issued yet message
-  await prnDashboardPage.selectIssuedTab()
+  await prnDashboardPage.issuedTab().click()
   const noIssuedPrnMessage = await prnDashboardPage.getNoIssuedPrnMessage()
   expect(noIssuedPrnMessage).toBe(`No ${wording}s have been issued yet.`)
 
   // Return to awaiting authorisation PRNs/PERNs
-  await prnDashboardPage.selectAwaitingActionTab()
+  await prnDashboardPage.awaitingActionTab().click()
   await prnDashboardPage.selectAwaitingLink(1)
 
   // Test the back link on Delete confirmation page first
@@ -153,7 +153,7 @@ export async function runDeleteCreatedPrn(
   expect(confirmDeleteHeadingText).toBe(
     `Are you sure you want to delete this ${wording}?`
   )
-  await confirmDeletePRNPage.selectBackLink()
+  await confirmDeletePRNPage.backLink().click()
 
   // Now delete the PRN/PERN
   await prnViewPage.deletePRNButton().click()
@@ -166,12 +166,12 @@ export async function runDeleteCreatedPrn(
   const noCreatedPrnMessage = await prnDashboardPage.getNoCreatedPrnMessage()
   expect(noCreatedPrnMessage).toBe(`You have not created any ${wording}s.`)
 
-  await prnDashboardPage.selectBackLink()
+  await prnDashboardPage.backLink().click()
 
   // Check waste balance amount is now from the uploaded value and "returned" from the deleted PRN/PERN
   wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
   expect(wasteBalanceAmount).toBe(expectedWasteBalance)
 
-  await homePage.signOut()
+  await homePage.signOutLink().click()
   await expect(page).toHaveTitle(/Signed out/)
 }

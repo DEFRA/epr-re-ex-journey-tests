@@ -116,7 +116,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
 
     // Submit inline (not performUploadAndReturnToHomepage, which would click
     // "Return to home" and skip the success-page assertions below).
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
     await checkBodyText(page, 'Summary log uploaded', 30)
@@ -136,7 +136,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
       `/organisations/${organisationDetails.refNo}/registrations/${regId}/reports`
     )
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 

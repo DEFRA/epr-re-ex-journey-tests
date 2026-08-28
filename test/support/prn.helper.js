@@ -103,7 +103,7 @@ export class PrnHelper {
 
   async createAndCheckPrnDetails(prnDetails) {
     await this.createAndCheckDraftPrn(prnDetails)
-    await this.checkBeforeCreatingPrnPage.createPRN()
+    await this.checkBeforeCreatingPrnPage.createPRNButton().click()
     const message = await this.prnCreatedPage.messageText()
     expect(message).toContain(`${this.prnWording} created`)
     expect(message).toContain('Awaiting authorisation')

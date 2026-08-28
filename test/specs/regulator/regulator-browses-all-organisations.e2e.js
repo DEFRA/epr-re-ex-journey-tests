@@ -105,7 +105,7 @@ test.describe('A regulator browsing every organisation @regulator', () => {
       ))
     )
 
-    await homePage.clearSearch()
+    await homePage.clearSearchLink().click()
 
     // Clearing drops the term and puts the whole list back. Other journeys
     // seed organisations of their own while this one runs, so the list can

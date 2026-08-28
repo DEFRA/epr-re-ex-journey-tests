@@ -73,7 +73,7 @@ test.describe('Organisations page', () => {
     expect(actualOrgValue).toContain(organisation.email)
     await jsonEditor.switchToTreeEditor()
     await jsonEditor.updateOrgId(updatedOrgId)
-    await jsonEditor.saveChanges()
+    await jsonEditor.saveButton().click()
 
     const successMessage = await organisationsPage.getSuccessMessage()
     expect(successMessage).toEqual('Organisation record updated')
@@ -270,12 +270,12 @@ test.describe('Organisations page', () => {
     expect(warningText).toContain(
       "Unsubmitting will move the report back to 'ready to submit'. The operator will need to delete and resubmit it."
     )
-    await unsubmitConfirmationPage.confirmUnsubmit()
+    await unsubmitConfirmationPage.confirmUnsubmitButton().click()
 
     const successMessage = await unsubmitConfirmationPage.getSuccessMessage()
     expect(successMessage).toEqual('Report unsubmitted')
 
-    await unsubmitConfirmationPage.returnToRegistrationOverview()
+    await unsubmitConfirmationPage.returnToRegistrationOverviewLink().click()
 
     reportsData = await registrationOverviewPage.getReportsTableData()
     expect(reportsData.length).toBeGreaterThanOrEqual(1)

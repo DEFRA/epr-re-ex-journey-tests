@@ -35,7 +35,7 @@ test.describe('Cancel an accepted PRN from the admin UI', () => {
     expect(detailsText).toContain(seeded.prnNumber)
     expect(detailsText).toContain(`${seeded.tonnage} tonnes`)
 
-    await prnCancelConfirmationPage.confirmCancel()
+    await prnCancelConfirmationPage.confirmCancelButton().click()
 
     expect(await prnCancelConfirmationPage.getPanelTitle()).toEqual(
       'PRN cancelled'
@@ -88,7 +88,7 @@ test.describe('Cancel an awaiting acceptance PRN from the admin UI', () => {
     expect(detailsText).toContain(seeded.prnNumber)
     expect(detailsText).toContain(`${seeded.tonnage} tonnes`)
 
-    await prnCancelConfirmationPage.confirmCancel()
+    await prnCancelConfirmationPage.confirmCancelButton().click()
 
     expect(await prnCancelConfirmationPage.getPanelTitle()).toEqual(
       'PRN cancelled'

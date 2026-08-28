@@ -90,7 +90,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
 
     test.afterAll(async () => {
       const homePage = new HomePage(page)
-      await homePage.signOut()
+      await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
       await page.close()
     })
@@ -116,7 +116,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       await reportDetailPage.useThisData()
 
       // On prn-summary — back link goes to reports list
-      await prnSummaryPage.selectBackLink()
+      await prnSummaryPage.backLink().click()
       const reportsHeading = await reportsPage.headingText()
       expect(reportsHeading).toContain('Reports')
 
@@ -129,7 +129,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       await prnSummaryPage.continue()
 
       // On free-perns — back link goes to prn-summary
-      await freePernPage.selectBackLink()
+      await freePernPage.backLink().click()
       const backToPrnSummary = await prnSummaryPage.headingText()
       expect(backToPrnSummary).toBeTruthy()
 
@@ -140,7 +140,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       await freePernPage.continue()
 
       // On supporting info — back link goes to free-perns
-      await reportSupportingInformationPage.selectBackLink()
+      await reportSupportingInformationPage.backLink().click()
       const backToFreePern = await freePernPage.headingText()
       expect(backToFreePern).toBeTruthy()
 
@@ -166,7 +166,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       expect(deleteHeading).toBe('Confirm deletion of this report')
 
       // Back link should return to prn-summary
-      await confirmDeleteReportPage.selectBackLink()
+      await confirmDeleteReportPage.backLink().click()
       const backToPrnSummary = await prnSummaryPage.headingText()
       expect(backToPrnSummary).toBeTruthy()
 
@@ -414,7 +414,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
 
     test.afterAll(async () => {
       const homePage = new HomePage(page)
-      await homePage.signOut()
+      await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
       await page.close()
     })

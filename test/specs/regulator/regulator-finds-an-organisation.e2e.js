@@ -59,7 +59,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     )
     expect(await homePage.getActionHiddenText(1)).toBe(seeded.companyName)
 
-    await homePage.openOrganisation(1)
+    await homePage.actionLink(1).click()
 
     expect(await organisationPage.captionText()).toBe(seeded.companyName)
 

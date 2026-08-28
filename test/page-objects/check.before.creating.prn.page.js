@@ -10,14 +10,14 @@ class CheckBeforeCreatingPRNPage extends Page {
     return element.innerText()
   }
 
-  async createPRN() {
-    await this.page.locator('#main-content button[type=submit]').click()
+  createPRNButton() {
+    return this.page.locator('#main-content button[type=submit]')
   }
 
-  async discardAndStartAgain() {
-    await this.page
-      .locator('a', { hasText: /^\s*Discard and start again\s*$/ })
-      .click()
+  discardAndStartAgainLink() {
+    return this.page.locator('a', {
+      hasText: /^\s*Discard and start again\s*$/
+    })
   }
 }
 

@@ -65,7 +65,7 @@ test.describe('Report only shows from accreditation validFrom date — exporter 
       expect(await reportsPage.getActivePeriodLabel(1)).toBe(monthYear)
     }
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

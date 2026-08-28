@@ -35,8 +35,8 @@ class QueueManagementPage extends AdminPage {
     }
   }
 
-  async expandRawMessage() {
-    await this.page.locator('table tbody details summary').click()
+  rawMessageSummary() {
+    return this.page.locator('table tbody details summary')
   }
 
   async getRawMessageBody() {

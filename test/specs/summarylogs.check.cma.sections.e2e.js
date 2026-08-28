@@ -110,7 +110,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       30
     )
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -192,7 +192,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await checkBodyTextDoesNotInclude(page, 'Open periods: new loads', 5)
     await checkBodyTextDoesNotInclude(page, 'Open periods: adjusted loads', 5)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -239,7 +239,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       migrationResponse.email
     )
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
@@ -259,7 +259,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       { prnRevenue: 100, freeTonnage: 0 }
     )
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
@@ -305,7 +305,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await checkBodyTextDoesNotInclude(page, 'Open periods: new loads', 5)
     await checkBodyTextDoesNotInclude(page, 'Open periods: adjusted loads', 5)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })
