@@ -6,9 +6,9 @@ import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
-  updateMigratedOrganisation,
-  uploadAndSubmitSummaryLog
-} from '../support/apicalls.js'
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { parseTonnage } from '../support/tonnage.js'
 import { createLinkAndLogin } from '../support/login-helper.js'

@@ -5,7 +5,7 @@ import { OrganisationsPage } from 'page-objects/admin/organisations.page'
 import { OrganisationOverviewPage } from 'page-objects/admin/organisation.overview.page'
 import { RegistrationOverviewPage } from 'page-objects/admin/registration.overview.page'
 import { SummaryLogDocumentPage } from 'page-objects/admin/summary.log.document.page'
-import { seedAdminActivityData } from '../../support/admin-activity-seed.js'
+import { seedAdminActivityData } from '../../support/seeding/admin-activity.js'
 
 // The shared seed uploads and submits a real reprocessor summary log (so its
 // document carries a populated loadsByReportingPeriod); keep the generous

@@ -6,7 +6,7 @@ import {
   seedOverseasSites,
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
 import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 

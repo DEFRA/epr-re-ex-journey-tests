@@ -11,9 +11,9 @@ import { DashboardPage } from '../page-objects/dashboard.page.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
-  updateMigratedOrganisation,
-  uploadAndSubmitSummaryLog
-} from './apicalls.js'
+  updateMigratedOrganisation
+} from './seeding/organisation.js'
+import { uploadAndSubmitSummaryLog } from './seeding/summary-logs.js'
 import { defraIdStub } from './defra-id-stub.js'
 import { createLinkAndLogin } from './login-helper.js'
 import { tonnageWordings, tradingName } from './fixtures.js'

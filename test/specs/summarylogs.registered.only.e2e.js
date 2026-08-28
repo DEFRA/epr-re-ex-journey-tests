@@ -2,12 +2,15 @@ import { test, expect } from '@playwright/test'
 import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { HomePage } from 'page-objects/homepage.js'
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
-import seedOverseasSites, {
-  createAndRegisterDefraIdUser,
+import {
+  seedOverseasSites,
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
+import {
+  createAndRegisterDefraIdUser,
+  linkDefraIdUser
+} from '../support/defra-id-linking.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude

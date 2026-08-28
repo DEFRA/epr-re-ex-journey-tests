@@ -6,7 +6,11 @@ import config from '../../config/config.js'
 import { setGlobalDispatcher } from 'undici'
 import { AuthClient } from '../auth.js'
 import { MATERIALS } from '../materials.js'
-import { createAndRegisterDefraIdUser, linkDefraIdUser } from '../apicalls.js'
+import { registerAndLinkDefraIdUser } from '../defra-id-linking.js'
+import {
+  assertSuccessResponse,
+  assertSuccessResponseWithoutBody
+} from '../response-assertions.js'
 import { generateRegNumber, generateAccNumber } from '../reg-acc-number.js'
 import { fakerEN_GB } from '@faker-js/faker'
 
@@ -31,7 +35,7 @@ export async function createOrganisation(context, isNonRegistered) {
     '/v1/apply/organisation',
     JSON.stringify(organisationPayload)
   )
-  await assertSuccessResponse(orgResponse, '/v1/apply/organisation')
+  await assertSuccessResponseWithoutBody(orgResponse, '/v1/apply/organisation')
 
   const responseData = await orgResponse.body.json()
   const orgId = `${responseData.orgId}`
@@ -78,7 +82,7 @@ export async function createRegistration(
     '/v1/apply/registration',
     JSON.stringify(registrationPayload)
   )
-  await assertSuccessResponse(regResponse, '/v1/apply/registration')
+  await assertSuccessResponseWithoutBody(regResponse, '/v1/apply/registration')
   return registration
 }
 
@@ -112,7 +116,7 @@ export async function createAccreditation(
     '/v1/apply/accreditation',
     JSON.stringify(accreditationPayload)
   )
-  await assertSuccessResponse(accResponse, '/v1/apply/accreditation')
+  await assertSuccessResponseWithoutBody(accResponse, '/v1/apply/accreditation')
 }
 
 /**
@@ -263,7 +267,7 @@ export async function updateOrganisationData(
     }),
     context.authClient.authHeader()
   )
-  const site = await assertSuccessResponseWithBody(
+  const site = await assertSuccessResponse(
     siteResponse,
     'POST /v1/overseas-sites'
   )
@@ -278,7 +282,7 @@ export async function updateOrganisationData(
     `/v1/organisations/${referenceNumber}`,
     context.authClient.authHeader()
   )
-  await assertSuccessResponse(
+  await assertSuccessResponseWithoutBody(
     getOrgResponse,
     `/v1/organisations/${referenceNumber}`
   )
@@ -381,7 +385,7 @@ export async function updateOrganisationData(
     JSON.stringify(payload),
     context.authClient.authHeader()
   )
-  await assertSuccessResponse(
+  await assertSuccessResponseWithoutBody(
     patchResponse,
     `/v1/dev/organisations/${referenceNumber}`
   )
@@ -390,8 +394,7 @@ export async function updateOrganisationData(
 }
 
 export async function linkUser(context, { referenceNumber, email }) {
-  const user = await createAndRegisterDefraIdUser(email)
-  await linkDefraIdUser(referenceNumber, user.userId, email)
+  await registerAndLinkDefraIdUser(referenceNumber, email)
 }
 
 export async function migrateFormSubmission(context, referenceNumber) {
@@ -399,23 +402,4 @@ export async function migrateFormSubmission(context, referenceNumber) {
     `/v1/dev/form-submissions/${referenceNumber}/migrate`,
     ''
   )
-}
-
-async function assertSuccessResponse(response, context) {
-  if (response.statusCode < 200 || response.statusCode >= 300) {
-    const body = await response.body.json()
-    throw new Error(
-      `${context}: expected 2xx but got ${response.statusCode}\n${JSON.stringify(body, null, 2)}`
-    )
-  }
-}
-
-async function assertSuccessResponseWithBody(response, context) {
-  const body = await response.body.json()
-  if (response.statusCode < 200 || response.statusCode >= 300) {
-    throw new Error(
-      `${context}: expected 2xx but got ${response.statusCode}\n${JSON.stringify(body, null, 2)}`
-    )
-  }
-  return body
 }

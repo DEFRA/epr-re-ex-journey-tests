@@ -28,9 +28,9 @@ import { PRNCancelledPage } from 'page-objects/prn.cancelled.page.js'
 
 import {
   createLinkedOrganisation,
-  externalAPICancelPrn,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
+import { externalAPICancelPrn } from '../support/seeding/prns.js'
 import {
   assertNoSeriousOrCriticalViolations,
   scanPageForAccessibilityViolations,

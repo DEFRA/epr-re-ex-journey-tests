@@ -10,8 +10,7 @@ import { ReportViewPage } from 'page-objects/reports/report.view.page'
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page'
 import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page'
 import { checkBodyText } from '../../support/checks.js'
-import { seedAwaitingPrnAndSubmittedReport } from '../../support/regulator-read-seed.js'
-
+import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
 // A ledger Date and time cell, e.g. "18 August 2026, 5:06pm".
 const LEDGER_TIMESTAMP = /^\d{1,2} [A-Z][a-z]+ \d{4}, \d{1,2}:\d{2}(am|pm)$/
 

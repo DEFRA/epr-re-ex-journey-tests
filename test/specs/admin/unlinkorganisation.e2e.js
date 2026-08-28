@@ -10,10 +10,9 @@ import {
   FAKE_ACCREDITATION_NUMBER,
   FAKE_REGISTRATION_NUMBER,
   getOrganisation,
-  linkOrganisationToDefraId,
   updateMigratedOrganisation
-} from '../../support/apicalls.js'
-
+} from '../../support/seeding/organisation.js'
+import { linkOrganisationToDefraId } from '../../support/defra-id-linking.js'
 test.describe('Unlink organisation from Defra ID', () => {
   test.beforeEach(async ({ page }) => {
     const loginPage = new AdminLoginPage(page)
