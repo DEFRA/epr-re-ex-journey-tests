@@ -1,32 +1,37 @@
 import { Page } from 'page-objects/page'
 
-const ISSUE_BUTTON_SELECTOR = '#main-content > div > div > form > div > button'
-
 class PRNViewPage extends Page {
-  async returnToPRNList() {
-    await this.page.locator('a', { hasText: 'Return to PRN list' }).click()
+  returnToPRNList() {
+    return this.page.getByRole('link', {
+      name: 'Return to PRN list',
+      exact: true
+    })
   }
 
-  async returnToPERNList() {
-    await this.page.locator('a', { hasText: 'Return to PERN list' }).click()
+  returnToPERNList() {
+    return this.page.getByRole('link', {
+      name: 'Return to PERN list',
+      exact: true
+    })
   }
 
-  async cancelPRNButton() {
-    await this.page.locator('#main-content > div > div > a').click()
+  // The only govuk-button on the page carrying the warning modifier -
+  // deletePRNButton is a plain govuk-button, so this class alone identifies
+  // it without depending on note-type-specific button text.
+  cancelPRNButton() {
+    return this.page.locator('a.govuk-button--warning')
   }
 
-  async deletePRNButton() {
-    await this.page
-      .locator('#main-content > div > div > form > div > a')
-      .click()
+  deletePRNButton() {
+    return this.page.locator('.govuk-button-group a.govuk-button')
   }
 
-  async issuePRNButton() {
-    await this.submit(ISSUE_BUTTON_SELECTOR)
+  issuePRNButton() {
+    return this.page.locator('.govuk-button-group button.govuk-button')
   }
 
   async issueAndCheckDoubleClickPrevented() {
-    await this.submitAndCheckDoubleClickPrevented(ISSUE_BUTTON_SELECTOR)
+    await this.submitAndCheckDoubleClickPrevented(this.issuePRNButton())
   }
 
   /**

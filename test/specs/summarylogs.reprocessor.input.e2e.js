@@ -92,7 +92,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
     await checkBodyText(page, 'R26ER5000000003PA', 10)
     await checkBodyText(page, 'A26ER5000000002PA', 10)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
     await uploadSummaryLogPage.uploadFile('resources/summary-log.xlsx')
     await uploadSummaryLogPage.continue()

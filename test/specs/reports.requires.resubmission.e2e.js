@@ -93,7 +93,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     await loginViaHomePage(page, migrationResponse.email)
 
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     // Upload a summary log that restates the closed Q1 2026 period, and confirm
     // it. On submit the backend flags that period's report for resubmission.
@@ -113,7 +113,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     // The Reports landing page now shows a "Requires resubmission" entry for the
     // restated period, with a "Review and create draft" call to action.
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
     expect(await reportsPage.getActiveStatusBadge(1)).toBe(
       'Requires resubmission'
     )

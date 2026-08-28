@@ -76,13 +76,13 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     // renders as plain text on the task page, not as a link.
     await checkBodyText(page, 'R26ER5000000005PA', 10)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
       'resources/reprocessor-output.xlsx'
     )
 
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile('resources/reprocessor-output.xlsx')
     await uploadSummaryLogPage.continue()
 
@@ -172,7 +172,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
 
     await dashboardPage.selectLink(1)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-output-regonly-cma-2025.xlsx'
@@ -242,7 +242,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await dashboardPage.selectExportingTab()
     await dashboardPage.selectLink(1)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
       'resources/exporter-2025.xlsx'
     )
@@ -261,7 +261,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
 
     await dashboardPage.selectExportingTab()
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
       'resources/exporter-adjustments-2025.xlsx'
     )

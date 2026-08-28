@@ -105,7 +105,7 @@ test.describe('@registered-only', () => {
     await checkBodyTextDoesNotInclude(page, 'Accreditation number', 5)
     await checkBodyTextDoesNotInclude(page, 'PRNs', 5)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
     await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-output-regonly.xlsx'
@@ -181,7 +181,7 @@ test.describe('@registered-only', () => {
     await dashboardPage.selectTableLink(1, 1)
     await checkBodyText(page, 'R26EX5000000003PA', 10)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
 
     await uploadSummaryLogPage.uploadFile('resources/exporter-regonly.xlsx')

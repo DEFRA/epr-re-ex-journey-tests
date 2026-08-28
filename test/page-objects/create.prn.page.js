@@ -53,13 +53,11 @@ class CreatePRNPage extends Page {
   }
 
   async materialDetails() {
-    return this.page.locator('#main-content > div > div > form > p').innerText()
+    return this.page.locator('form p.govuk-body').innerText()
   }
 
   async wasteBalanceHint() {
-    return this.page
-      .locator('#main-content > div > div > div.govuk-inset-text')
-      .innerText()
+    return this.page.locator('.govuk-inset-text').innerText()
   }
 
   async errorMessages(expectedAmount) {

@@ -63,7 +63,7 @@ async function setupReprocessor(page) {
   const dashboardPage = new DashboardPage(page)
   const wasteRecordsPage = new WasteRecordsPage(page)
   await dashboardPage.selectTableLink(1, 1)
-  await wasteRecordsPage.manageReportsLink()
+  await wasteRecordsPage.manageReportsLink().click()
 }
 
 async function navigateReprocessorToSupportingInfo(page) {

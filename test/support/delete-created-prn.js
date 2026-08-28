@@ -147,7 +147,7 @@ export async function runDeleteCreatedPrn(
   await prnDashboardPage.selectAwaitingLink(1)
 
   // Test the back link on Delete confirmation page first
-  await prnViewPage.deletePRNButton()
+  await prnViewPage.deletePRNButton().click()
 
   let confirmDeleteHeadingText = await confirmDeletePRNPage.headingText()
   expect(confirmDeleteHeadingText).toBe(
@@ -156,7 +156,7 @@ export async function runDeleteCreatedPrn(
   await confirmDeletePRNPage.selectBackLink()
 
   // Now delete the PRN/PERN
-  await prnViewPage.deletePRNButton()
+  await prnViewPage.deletePRNButton().click()
   confirmDeleteHeadingText = await confirmDeletePRNPage.headingText()
   expect(confirmDeleteHeadingText).toBe(
     `Are you sure you want to delete this ${wording}?`

@@ -110,7 +110,7 @@ test.describe
     const homePage = new HomePage(page)
 
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
 
     expect(await reportsPage.getSubmittedStatusBadge(1)).toBe('Submitted')
     await reportsPage.selectSubmittedActionLink(1)
@@ -132,7 +132,7 @@ test.describe
 
     await homePage.homeLink()
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
     expect(await reportsPage.getSubmittedStatusBadge(1)).toBe('Submitted')
   })
 
@@ -150,7 +150,7 @@ test.describe
     // reset to a known starting point before selecting the org link.
     await homePage.homeLink()
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
 
     await reportsPage.selectSubmittedActionLink(1)
     await reportViewPage.makeChangesLink()
@@ -194,7 +194,7 @@ test.describe('Reports - operator-initiated resubmission explainer @operatorResu
     await loginViaHomePage(page, migrationResponse.email)
 
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
 
     await reportsPage.selectSubmittedActionLink(1)
     await reportViewPage.makeChangesLink()
@@ -212,7 +212,7 @@ test.describe('Reports - operator-initiated resubmission explainer @operatorResu
     // "Review and create draft" CTA that leads to the explainer.
     await homePage.homeLink()
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
     expect(await reportsPage.getActiveStatusBadge(1)).toBe(
       'Requires resubmission'
     )
