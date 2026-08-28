@@ -60,14 +60,23 @@ class Page {
     await this.page.locator('a', { hasText: 'Sign out' }).click()
   }
 
-  async submit(selector = 'button[type=submit]') {
+  async submit(selector) {
     await this.page.locator(selector).click()
   }
 
-  async submitAndCheckDoubleClickPrevented(
-    selector = 'button[type=submit]',
-    options
-  ) {
+  async clickButton(name) {
+    await this.page.getByRole('button', { name }).click()
+  }
+
+  async clickButtonCheckingDoubleClickPrevented(name, options) {
+    await checkDoubleClickPrevented(
+      this.page,
+      this.page.getByRole('button', { name }),
+      options
+    )
+  }
+
+  async submitAndCheckDoubleClickPrevented(selector, options) {
     await checkDoubleClickPrevented(this.page, selector, options)
   }
 

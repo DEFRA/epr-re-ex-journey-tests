@@ -2,11 +2,11 @@ import { Page } from 'page-objects/page'
 
 class ReportCheckAnswersPage extends Page {
   async createReport() {
-    await this.submit()
+    await this.clickButton('Create draft report')
   }
 
   async createReportAndCheckDoubleClickPrevented() {
-    await this.submitAndCheckDoubleClickPrevented()
+    await this.clickButtonCheckingDoubleClickPrevented('Create draft report')
   }
 
   async deleteAndStartAgainLink() {

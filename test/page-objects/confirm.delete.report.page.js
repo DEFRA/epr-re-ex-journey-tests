@@ -6,11 +6,11 @@ class ConfirmDeleteReportPage extends Page {
   }
 
   async confirmDeletion() {
-    await this.submit()
+    await this.clickButton('Confirm deletion')
   }
 
   async confirmDeletionAndCheckDoubleClickPrevented() {
-    await this.submitAndCheckDoubleClickPrevented()
+    await this.clickButtonCheckingDoubleClickPrevented('Confirm deletion')
   }
 }
 
