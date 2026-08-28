@@ -5,28 +5,34 @@ class WasteRecordsPage extends Page {
     return this.page.goto(`/organisations/${orgId}/registrations/${regId}`)
   }
 
-  async submitSummaryLogLink() {
-    await this.page.locator('a', { hasText: 'Upload your summary log' }).click()
+  submitSummaryLogLink() {
+    return this.page.getByRole('link', {
+      name: 'Upload your summary log',
+      exact: true
+    })
   }
 
-  async createNewPRNLink() {
-    await this.page.locator('a', { hasText: 'Create new PRN' }).click()
+  createNewPRNLink() {
+    return this.page.getByRole('link', { name: 'Create new PRN', exact: true })
   }
 
-  async managePRNsLink() {
-    await this.page.locator('a', { hasText: 'Manage PRNs' }).click()
+  managePRNsLink() {
+    return this.page.getByRole('link', { name: 'Manage PRNs', exact: true })
   }
 
-  async managePERNsLink() {
-    await this.page.locator('a', { hasText: 'Manage PERNs' }).click()
+  managePERNsLink() {
+    return this.page.getByRole('link', { name: 'Manage PERNs', exact: true })
   }
 
-  async createNewPERNLink() {
-    await this.page.locator('a', { hasText: 'Create new PERN' }).click()
+  createNewPERNLink() {
+    return this.page.getByRole('link', {
+      name: 'Create new PERN',
+      exact: true
+    })
   }
 
-  async manageReportsLink() {
-    await this.page.locator('a', { hasText: 'Manage reports' }).click()
+  manageReportsLink() {
+    return this.page.getByRole('link', { name: 'Manage reports', exact: true })
   }
 
   /**

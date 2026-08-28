@@ -14,15 +14,15 @@ class Page {
   }
 
   async selectBackLink() {
-    await this.page.locator('a', { hasText: 'Back' }).click()
+    await this.page.locator('.govuk-back-link').click()
   }
 
   async messageText() {
-    return this.page.locator('#main-content > div > div > div').innerText()
+    return this.page.locator('.govuk-panel--confirmation').innerText()
   }
 
   async dashboardHeaderText() {
-    return this.page.locator('#main-content > div > div > div > h1').innerText()
+    return this.page.locator('[data-testid="app-page-body"] h1').innerText()
   }
 
   async wasteBalanceAmount() {
@@ -57,7 +57,7 @@ class Page {
   }
 
   async signOut() {
-    await this.page.locator('a', { hasText: 'Sign out' }).click()
+    await this.page.getByRole('link', { name: 'Sign out', exact: true }).click()
   }
 
   async submit(selector) {
@@ -83,21 +83,25 @@ class Page {
   // Shared by the various GOV.UK "confirmation panel" pages (PRN created /
   // issued / cancelled, summary log upload) which all render this link.
   async returnToHomePage() {
-    await this.page.locator('a', { hasText: 'Return to home' }).click()
+    await this.page
+      .getByRole('link', { name: 'Return to home', exact: true })
+      .click()
   }
 
   async panelDetailText() {
-    return this.page
-      .locator('#main-content > div > div > div > div > strong')
-      .innerText()
+    return this.page.locator('.govuk-panel__body strong').innerText()
   }
 
   async goToPrnsPage() {
-    await this.page.locator('a', { hasText: 'PRNs page' }).click()
+    await this.page
+      .getByRole('link', { name: 'PRNs page', exact: true })
+      .click()
   }
 
   async goToPernsPage() {
-    await this.page.locator('a', { hasText: 'PERNs page' }).click()
+    await this.page
+      .getByRole('link', { name: 'PERNs page', exact: true })
+      .click()
   }
 
   // Reads a single row of a header-driven GOV.UK table into a Map keyed by

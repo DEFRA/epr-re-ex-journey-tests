@@ -6,7 +6,9 @@ class PrnTonnagePage extends AdminPage {
   }
 
   async runReport() {
-    await this.page.locator('a', { hasText: 'Run report' }).click()
+    await this.page
+      .getByRole('button', { name: 'Run report', exact: true })
+      .click()
   }
 
   async fetchCsv() {

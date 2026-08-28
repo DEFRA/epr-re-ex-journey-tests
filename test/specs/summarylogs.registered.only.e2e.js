@@ -2,12 +2,15 @@ import { test, expect } from '@playwright/test'
 import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { HomePage } from 'page-objects/homepage.js'
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
-import seedOverseasSites, {
-  createAndRegisterDefraIdUser,
+import {
+  seedOverseasSites,
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
+import {
+  createAndRegisterDefraIdUser,
+  linkDefraIdUser
+} from '../support/defra-id-linking.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude
@@ -102,7 +105,7 @@ test.describe('@registered-only', () => {
     await checkBodyTextDoesNotInclude(page, 'Accreditation number', 5)
     await checkBodyTextDoesNotInclude(page, 'PRNs', 5)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
     await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-output-regonly.xlsx'
@@ -178,7 +181,7 @@ test.describe('@registered-only', () => {
     await dashboardPage.selectTableLink(1, 1)
     await checkBodyText(page, 'R26EX5000000003PA', 10)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
 
     await uploadSummaryLogPage.uploadFile('resources/exporter-regonly.xlsx')

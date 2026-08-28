@@ -4,11 +4,12 @@ import { BaseAPI } from '../apis/base-api.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import {
   createAndRegisterDefraIdUser,
+  linkDefraIdUser
+} from '../support/defra-id-linking.js'
+import {
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
-
+} from '../support/seeding/organisation.js'
 const YEAR = 2026
 const CADENCE = 'monthly'
 const PERIOD = 1

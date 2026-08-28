@@ -79,7 +79,7 @@ class UploadSummaryLogPage extends SummaryLogUploadActions {
   // section. A PAE-1648 addition, shown only when the upload contains
   // closed-period adjustments.
   goToReportsButton() {
-    return this.page.locator('a.govuk-button', { hasText: 'Go to reports' })
+    return this.page.getByRole('button', { name: 'Go to reports', exact: true })
   }
 }
 

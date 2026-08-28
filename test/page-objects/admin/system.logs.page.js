@@ -52,16 +52,13 @@ class SystemLogsPage extends AdminPage {
     return this.page.locator('#subCategory').inputValue()
   }
 
-  // Reads the "User ID" value (the second summary-list row) from the most
-  // recent system log result card.
+  // Reads the "User ID" value from the most recent system log result card,
+  // matched by its key text rather than position (see logCardField below).
   async firstResultUserId() {
-    const userId = await this.page
-      .locator(
-        '#main-content div.govuk-summary-card__content > dl > div:nth-child(2) > dd'
-      )
+    const card = this.page
+      .locator('#main-content div.govuk-summary-card')
       .first()
-      .innerText()
-    return userId.trim()
+    return this.logCardField(card, 'User ID')
   }
 
   // Reads the "Difference" JSON from the most recent system log result card.
@@ -99,6 +96,10 @@ class SystemLogsPage extends AdminPage {
 
   async logCardField(card, keyText) {
     const rows = card.locator('.govuk-summary-list__row')
+    // .count() below reads the DOM as-is with no auto-wait (unlike .innerText()
+    // elsewhere in this file), so without this a fresh search result can be
+    // read before it has rendered any rows.
+    await rows.first().waitFor({ state: 'visible', timeout: 10000 })
     const count = await rows.count()
     for (let i = 0; i < count; i++) {
       const row = rows.nth(i)

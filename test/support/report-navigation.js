@@ -12,7 +12,7 @@ export async function navigateToReports(page) {
   const wasteRecordsPage = new WasteRecordsPage(page)
 
   await dashboardPage.selectTableLink(1, 1)
-  await wasteRecordsPage.manageReportsLink()
+  await wasteRecordsPage.manageReportsLink().click()
 }
 
 /**
@@ -27,7 +27,7 @@ export async function uploadSummaryLogAndNavigateToReports(page, filePath) {
   const uploadSummaryLogPage = new UploadSummaryLogPage(page)
 
   await dashboardPage.selectTableLink(1, 1)
-  await wasteRecordsPage.submitSummaryLogLink()
+  await wasteRecordsPage.submitSummaryLogLink().click()
   await uploadSummaryLogPage.performUploadAndReturnToHomepage(filePath)
   await navigateToReports(page)
 }

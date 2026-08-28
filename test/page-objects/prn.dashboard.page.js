@@ -30,12 +30,15 @@ class PRNDashboardPage extends Page {
       .click()
   }
 
+  // The GOV.UK tabs component only assigns role="tab" once its JS enhances
+  // the plain anchors on load, so this waits on the enhancement rather than
+  // racing it the way a plain text/XPath match would.
   async selectIssuedTab() {
-    await this.page.locator('//a[normalize-space()="Issued"]').click()
+    await this.page.getByRole('tab', { name: 'Issued', exact: true }).click()
   }
 
   async selectCancelledTab() {
-    await this.page.locator('//a[normalize-space()="Cancelled"]').click()
+    await this.page.getByRole('tab', { name: 'Cancelled', exact: true }).click()
   }
 
   // Index changes depending on whether PRN cancellation / PRN awaiting authorisation exists
@@ -58,7 +61,9 @@ class PRNDashboardPage extends Page {
   }
 
   async selectAwaitingActionTab() {
-    await this.page.locator('//a[normalize-space()="Awaiting action"]').click()
+    await this.page
+      .getByRole('tab', { name: 'Awaiting action', exact: true })
+      .click()
   }
 
   // Depending on whether PRN cancellation / PRN awaiting authorisation exists, the table index might change / shift accordingly
@@ -74,7 +79,9 @@ class PRNDashboardPage extends Page {
   }
 
   async selectPrnHeadingText() {
-    return this.page.locator('#main-content > div > div > h2').innerText()
+    return this.page
+      .getByRole('heading', { level: 2, name: /^Select a (PRN|PERN)$/ })
+      .innerText()
   }
 
   async getNoPrnMessage() {
@@ -86,7 +93,9 @@ class PRNDashboardPage extends Page {
   }
 
   async getNoCreatedPrnMessage() {
-    return this.page.locator('#main-content > div > div > p').innerText()
+    return this.page
+      .getByText(/^You have not created any (PRNs|PERNs)\.$/)
+      .innerText()
   }
 
   async createAPrnButton() {

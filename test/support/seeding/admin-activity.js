@@ -1,15 +1,15 @@
 import {
   createAndRegisterDefraIdUser,
+  linkDefraIdUser
+} from '../defra-id-linking.js'
+import {
   createLinkedOrganisation,
-  createPrn,
-  externalAPIAcceptPrn,
-  linkDefraIdUser,
-  updateMigratedOrganisation,
-  updatePrnStatus,
-  uploadAndSubmitSummaryLog,
-  waitForWasteBalance
-} from './apicalls.js'
-import { defraIdStub } from './defra-id-stub.js'
+  updateMigratedOrganisation
+} from './organisation.js'
+import { createPrn, externalAPIAcceptPrn, updatePrnStatus } from './prns.js'
+import { uploadAndSubmitSummaryLog } from './summary-logs.js'
+import { waitForWasteBalance } from './waiters.js'
+import { defraIdStub } from '../defra-id-stub.js'
 
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
 
@@ -29,6 +29,7 @@ const FIXTURE_PATH = 'resources/summary-log.xlsx'
  * @returns {Promise<{
  *   refNo: string,
  *   orgId: number,
+ *   companyName: string,
  *   registrationId: string,
  *   accreditationId: string,
  *   accreditationNumber: string,
@@ -96,6 +97,7 @@ export async function seedAdminActivityData({ acceptPrn = true } = {}) {
   return {
     refNo: org.refNo,
     orgId: org.orgId,
+    companyName: org.organisation.companyName,
     registrationId,
     accreditationId,
     accreditationNumber,

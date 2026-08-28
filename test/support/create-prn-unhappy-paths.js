@@ -9,7 +9,7 @@ import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from './apicalls.js'
+} from './seeding/organisation.js'
 import { createPrnDetails } from './fixtures.js'
 import { PrnHelper } from './prn.helper.js'
 import { createLinkAndLogin } from './login-helper.js'
@@ -88,7 +88,7 @@ export async function runCreatePrnUnhappyPaths(
 
   await dashboardPage.selectTableLink(1, 1)
 
-  await wasteRecordsPage[createNewLinkName]()
+  await wasteRecordsPage[createNewLinkName]().click()
 
   const prnHelper = new PrnHelper(page, isPern)
 
@@ -147,9 +147,9 @@ export async function runCreatePrnUnhappyPaths(
   // End of Check Create PRN/PERN validation errors
 
   // Check Create a PRN/PERN page is accessible from the PRN/PERN Dashboard button
-  await homePage.homeLink()
+  await homePage.homeLink().click()
   await dashboardPage.selectTableLink(1, 1)
-  await wasteRecordsPage[manageLinkName]()
+  await wasteRecordsPage[manageLinkName]().click()
   await prnDashboardPage.createAPrnButton()
 
   // Check we are on the Create a PRN/PERN Page

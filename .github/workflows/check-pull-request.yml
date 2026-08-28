@@ -79,6 +79,7 @@ jobs:
     name: Run Journey Tests (${{ matrix.name }})
     runs-on: ubuntu-latest
     needs: pr-prep
+    timeout-minutes: 90
     # Named matrix passes (see the README "Feature flags in journey tests").
     # `baseline` is permanent and runs the compose.yml defaults. Most flags
     # never appear here: they live only in compose.yml and the suite asserts

@@ -6,7 +6,10 @@ class PublicRegisterPage extends AdminPage {
   }
 
   get downloadPublicRegisterButton() {
-    return this.page.locator('#main-content > div > div > div > form > button')
+    return this.page.getByRole('button', {
+      name: 'Download public register',
+      exact: true
+    })
   }
 
   async downloadPublicRegister() {

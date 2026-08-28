@@ -29,8 +29,7 @@ const SEARCH_FIELD_IDS = [
 ]
 
 // The "n results found" heading, rendered only when a search was made.
-const SEARCH_RESULT_HEADING =
-  '#main-content > div:nth-child(2) > div > div > h2'
+const SEARCH_RESULT_HEADING = '[data-testid="app-page-body"] h2'
 
 const TABLE_ROWS = 'table.govuk-table tbody tr'
 
@@ -79,7 +78,7 @@ class OrganisationsPage extends AdminPage {
   async editLink(row) {
     await this.page
       .locator(
-        `#main-content > div > div > div > table > tbody > tr:nth-child(${row}) > td:nth-child(6) > a:nth-of-type(2)`
+        `[data-testid="app-page-body"] table tbody tr:nth-child(${row}) td:nth-child(6) a:nth-of-type(2)`
       )
       .click()
   }
@@ -155,7 +154,11 @@ class OrganisationsPage extends AdminPage {
   }
 
   async getPermissionText() {
-    return this.page.locator('#main-content > div > div > p').innerText()
+    return this.page
+      .getByText('You do not have permission to edit this organisation.', {
+        exact: true
+      })
+      .innerText()
   }
 }
 

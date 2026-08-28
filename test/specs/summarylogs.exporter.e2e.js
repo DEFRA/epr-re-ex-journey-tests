@@ -12,7 +12,7 @@ import {
   seedOverseasSites,
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 // PAE-1648 closed-period adjustment messaging copy (en.json
@@ -84,7 +84,7 @@ test.describe('Summary Logs Exporter', () => {
     await checkBodyText(page, 'R26EX5000000003PA', 10)
     await checkBodyText(page, 'A26EX5000000000PA', 10)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile('resources/exporter.xlsx')
     await uploadSummaryLogPage.continue()
@@ -146,7 +146,7 @@ test.describe('Summary Logs Exporter', () => {
 
     expect(wasteBalanceAmount).toBe('30.00 tonnes')
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile('resources/exporter-adjustments.xlsx')
     await uploadSummaryLogPage.continue()

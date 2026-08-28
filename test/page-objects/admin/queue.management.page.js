@@ -45,18 +45,19 @@ class QueueManagementPage extends AdminPage {
       .innerText()
   }
 
+  clearAllMessagesButton() {
+    return this.page.getByRole('button', {
+      name: 'Clear all messages',
+      exact: true
+    })
+  }
+
   async clickClearAllMessages() {
-    await this.page
-      .locator('a.govuk-button--warning, button.govuk-button--warning')
-      .click()
+    await this.clearAllMessagesButton().click()
   }
 
   async clearAllMessagesButtonExists() {
-    return (
-      (await this.page
-        .locator('a.govuk-button--warning, button.govuk-button--warning')
-        .count()) > 0
-    )
+    return (await this.clearAllMessagesButton().count()) > 0
   }
 
   async getConfirmHeading() {

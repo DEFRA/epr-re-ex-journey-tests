@@ -2,12 +2,14 @@ import { test } from '@playwright/test'
 import { expect } from 'chai'
 import {
   createAndRegisterDefraIdUser,
+  linkDefraIdUser
+} from '../support/defra-id-linking.js'
+import {
   createLinkedOrganisation,
-  ingestSummaryLogFixture,
-  linkDefraIdUser,
-  updateMigratedOrganisation,
-  waitForSummaryLogStatus
-} from '../support/apicalls.js'
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import { ingestSummaryLogFixture } from '../support/seeding/summary-logs.js'
+import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import {
   assertLoads,

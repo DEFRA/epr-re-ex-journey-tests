@@ -9,12 +9,10 @@ class ReportCheckAnswersPage extends Page {
     await this.clickButtonCheckingDoubleClickPrevented('Create draft report')
   }
 
-  async deleteAndStartAgainLink() {
-    await this.page
-      .locator('a.govuk-button--warning', {
-        hasText: 'Delete and start again'
-      })
-      .click()
+  deleteAndStartAgainLink() {
+    return this.page.locator('a.govuk-button--warning', {
+      hasText: 'Delete and start again'
+    })
   }
 }
 

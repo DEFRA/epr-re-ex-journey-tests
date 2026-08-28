@@ -52,14 +52,18 @@ class CreatePRNPage extends Page {
     await this.page.locator('#notes').fill(notes)
   }
 
+  // Direct-child combinator: the material paragraph is a direct child of the
+  // form, while the govukDetails help text further down also renders
+  // <p class="govuk-body"> but nested inside .govuk-details__text - and the
+  // cookie-consent banner (outside #main-content, but a plain descendant
+  // selector wouldn't know that) renders two more govuk-body paragraphs of
+  // its own.
   async materialDetails() {
-    return this.page.locator('#main-content > div > div > form > p').innerText()
+    return this.page.locator('#main-content form > p.govuk-body').innerText()
   }
 
   async wasteBalanceHint() {
-    return this.page
-      .locator('#main-content > div > div > div.govuk-inset-text')
-      .innerText()
+    return this.page.locator('#main-content .govuk-inset-text').innerText()
   }
 
   async errorMessages(expectedAmount) {

@@ -7,9 +7,9 @@ import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { checkBodyText } from '../support/checks.js'
 import {
   createLinkedOrganisation,
-  updateMigratedOrganisation,
-  seedSubmittedReport
-} from '../support/apicalls.js'
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import { seedSubmittedReport } from '../support/seeding/reports.js'
 import {
   registerAndLinkDefraIdUser,
   loginViaHomePage
@@ -87,7 +87,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
 
     await dashboardPage.selectLink(1)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-output-regonly-cma.xlsx'

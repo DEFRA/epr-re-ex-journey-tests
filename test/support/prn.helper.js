@@ -175,7 +175,7 @@ export class PrnHelper {
     if (checkDoubleClick) {
       await this.prnViewPage.issueAndCheckDoubleClickPrevented()
     } else {
-      await this.prnViewPage.issuePRNButton()
+      await this.prnViewPage.issuePRNButton().click()
     }
 
     const awaitingAcceptanceStatus = 'Awaiting acceptance'
@@ -195,18 +195,20 @@ export class PrnHelper {
   }
 
   async checkIssuedPageLinks() {
-    const managePRNsElement = await this.prnIssuedPage.managePRNs()
-    const issueAnotherPRNElement = await this.prnIssuedPage.issueAnotherPRN()
-    expect(managePRNsElement.getAttribute('href')).toEqual(
-      issueAnotherPRNElement.getAttribute('href')
-    )
+    const managePRNsHref = await this.prnIssuedPage
+      .managePRNs()
+      .getAttribute('href')
+    const issueAnotherPRNHref = await this.prnIssuedPage
+      .issueAnotherPRN()
+      .getAttribute('href')
+    expect(managePRNsHref).toEqual(issueAnotherPRNHref)
   }
 
   async cancelPRNAndReturnToPRNsDashboard(
     prnDetails,
     { checkDoubleClick = false } = {}
   ) {
-    await this.prnViewPage.cancelPRNButton()
+    await this.prnViewPage.cancelPRNButton().click()
     const confirmCancelHeading = await this.confirmCancelPrnPage.headingText()
     expect(confirmCancelHeading).toBe(
       `Confirm cancellation of this ${this.prnWording}`

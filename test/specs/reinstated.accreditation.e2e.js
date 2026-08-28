@@ -3,7 +3,7 @@ import {
   getOrganisation,
   updateMigratedOrganisation,
   updateStatus
-} from '~/test/support/apicalls.js'
+} from '~/test/support/seeding/organisation.js'
 import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { test, expect } from '@playwright/test'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
