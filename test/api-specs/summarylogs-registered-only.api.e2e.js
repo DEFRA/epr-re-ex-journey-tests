@@ -6,10 +6,10 @@ import {
 } from '../support/defra-id-linking.js'
 import {
   createLinkedOrganisation,
-  ingestSummaryLogFixture,
   updateMigratedOrganisation
-} from '../support/organisation-seeding.js'
-import { waitForSummaryLogStatus } from '../support/seeding-waiters.js'
+} from '../support/seeding/organisation.js'
+import { ingestSummaryLogFixture } from '../support/seeding/summary-logs.js'
+import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import {
   assertLoads,

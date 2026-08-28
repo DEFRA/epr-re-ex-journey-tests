@@ -1,5 +1,5 @@
-import { BaseAPI } from '../apis/base-api.js'
-import { assertSuccessResponse } from './response-assertions.js'
+import { BaseAPI } from '../../apis/base-api.js'
+import { assertSuccessResponse } from '../response-assertions.js'
 
 const SUMMARY_LOG_FAILURE_STATUSES = [
   'invalid',

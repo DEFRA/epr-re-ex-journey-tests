@@ -13,9 +13,9 @@ import { checkBodyText } from '../support/checks.js'
 import {
   createLinkedOrganisation,
   seedOverseasSites,
-  updateMigratedOrganisation,
-  uploadAndSubmitSummaryLog
-} from '../support/organisation-seeding.js'
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { expectActionRequiredStatus } from '../support/report-status.js'
 import { createLinkAndLogin } from '../support/login-helper.js'

@@ -20,9 +20,9 @@ import {
 } from '../support/checks.js'
 import {
   createLinkedOrganisation,
-  updateMigratedOrganisation,
-  seedSubmittedReport
-} from '../support/organisation-seeding.js'
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import { seedSubmittedReport } from '../support/seeding/reports.js'
 import {
   registerAndLinkDefraIdUser,
   loginViaHomePage

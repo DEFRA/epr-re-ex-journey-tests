@@ -1,17 +1,15 @@
 import {
   createAndRegisterDefraIdUser,
   linkDefraIdUser
-} from './defra-id-linking.js'
+} from '../defra-id-linking.js'
 import {
   createLinkedOrganisation,
-  createPrn,
-  externalAPIAcceptPrn,
-  updateMigratedOrganisation,
-  updatePrnStatus,
-  uploadAndSubmitSummaryLog
-} from './organisation-seeding.js'
-import { waitForWasteBalance } from './seeding-waiters.js'
-import { defraIdStub } from './defra-id-stub.js'
+  updateMigratedOrganisation
+} from './organisation.js'
+import { createPrn, externalAPIAcceptPrn, updatePrnStatus } from './prns.js'
+import { uploadAndSubmitSummaryLog } from './summary-logs.js'
+import { waitForWasteBalance } from './waiters.js'
+import { defraIdStub } from '../defra-id-stub.js'
 
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
 

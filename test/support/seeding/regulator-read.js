@@ -1,19 +1,17 @@
 import {
   createAndRegisterDefraIdUser,
   linkDefraIdUser
-} from './defra-id-linking.js'
+} from '../defra-id-linking.js'
 import {
   createLinkedOrganisation,
-  createPrn,
-  externalAPICancelPrn,
   lastCompletedPeriod,
-  seedReportSubmission,
-  updateMigratedOrganisation,
-  updatePrnStatus,
-  uploadAndSubmitSummaryLog
-} from './organisation-seeding.js'
-import { waitForWasteBalance } from './seeding-waiters.js'
-import { defraIdStub } from './defra-id-stub.js'
+  updateMigratedOrganisation
+} from './organisation.js'
+import { createPrn, externalAPICancelPrn, updatePrnStatus } from './prns.js'
+import { seedReportSubmission } from './reports.js'
+import { uploadAndSubmitSummaryLog } from './summary-logs.js'
+import { waitForWasteBalance } from './waiters.js'
+import { defraIdStub } from '../defra-id-stub.js'
 
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
 export const REGISTRATION_NUMBER = 'R26ER5000000003PA'

@@ -6,7 +6,7 @@ import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/organisation-seeding.js'
+} from '../support/seeding/organisation.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude

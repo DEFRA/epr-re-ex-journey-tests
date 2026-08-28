@@ -9,7 +9,7 @@ import { createAndRegisterDefraIdUser } from '../support/defra-id-linking.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/organisation-seeding.js'
+} from '../support/seeding/organisation.js'
 test.describe('Summary Logs Reprocessor Input', () => {
   test('Should be able to link a user to an organisation and submit a spreadsheet @reproInput', async ({
     page

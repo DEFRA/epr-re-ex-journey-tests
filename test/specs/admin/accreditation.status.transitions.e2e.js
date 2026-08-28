@@ -10,7 +10,7 @@ import {
   createLinkedOrganisation,
   getOrganisation,
   updateMigratedOrganisation
-} from '../../support/organisation-seeding.js'
+} from '../../support/seeding/organisation.js'
 const CURRENT_YEAR = new Date().getFullYear()
 // The dates typed into the approve confirm forms (PAE-1814). The valid-to is
 // deliberately not the value updateMigratedOrganisation seeds

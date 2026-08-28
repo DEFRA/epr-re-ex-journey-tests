@@ -8,8 +8,7 @@ import {
   scanPageForAccessibilityViolations,
   tagAccessibilityTest
 } from '../../support/accessibility.js'
-import { seedAwaitingPrnAndSubmittedReport } from '../../support/regulator-read-seed.js'
-
+import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
 test.describe('A regulator browsing every organisation @regulator', () => {
   test('reads the list, narrows it to one organisation, and clears the search again @regulatorbrowse', async ({
     page

@@ -8,7 +8,7 @@ import { checkBodyText } from '../support/checks.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/organisation-seeding.js'
+} from '../support/seeding/organisation.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 test.describe('Summary Logs Reprocessor Output', () => {

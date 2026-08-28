@@ -10,12 +10,14 @@ import {
 } from '../support/defra-id-linking.js'
 import {
   createLinkedOrganisation,
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import {
   externalAPIAcceptPrn,
-  externalAPICancelPrn,
-  updateMigratedOrganisation,
-  uploadAndSubmitSummaryLog
-} from '../support/organisation-seeding.js'
-import { waitForWasteBalance } from '../support/seeding-waiters.js'
+  externalAPICancelPrn
+} from '../support/seeding/prns.js'
+import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
+import { waitForWasteBalance } from '../support/seeding/waiters.js'
 import { assertAuditLog } from '../support/docker-log-assertions.js'
 
 const FIXTURE_PATH = 'resources/summary-log.xlsx'

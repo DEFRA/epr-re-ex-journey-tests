@@ -11,11 +11,11 @@ import { WasteRecordsExportPage } from 'page-objects/admin/waste.records.export.
 
 import {
   createLinkedOrganisation,
-  createSubmittedReport,
   FAKE_ACCREDITATION_NUMBER,
   FAKE_REGISTRATION_NUMBER,
   updateMigratedOrganisation
-} from '../../support/organisation-seeding.js'
+} from '../../support/seeding/organisation.js'
+import { createSubmittedReport } from '../../support/seeding/reports.js'
 import {
   assertNoSeriousOrCriticalViolations,
   scanPageForAccessibilityViolations,

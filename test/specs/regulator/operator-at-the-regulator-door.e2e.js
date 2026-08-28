@@ -5,7 +5,7 @@ import { ServiceNavigation } from 'page-objects/service-navigation.page'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '~/test/support/organisation-seeding.js'
+} from '~/test/support/seeding/organisation.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
 
 test.describe('An operator at the regulator door @regulator', () => {

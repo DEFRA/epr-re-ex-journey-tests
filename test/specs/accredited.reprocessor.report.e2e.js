@@ -11,9 +11,9 @@ import { ReportCheckAnswersPage } from 'page-objects/reports/report.check.answer
 import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.page.js'
 import {
   createLinkedOrganisation,
-  unsubmitReport,
   updateMigratedOrganisation
-} from '../support/organisation-seeding.js'
+} from '../support/seeding/organisation.js'
+import { unsubmitReport } from '../support/seeding/reports.js'
 import { checkBodyText } from '../support/checks.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { uploadSummaryLogAndNavigateToReports } from '../support/report-navigation.js'

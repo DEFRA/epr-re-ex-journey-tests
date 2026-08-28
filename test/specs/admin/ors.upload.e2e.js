@@ -8,7 +8,7 @@ import { OrsUploadPage } from 'page-objects/admin/ors.upload.page'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../../support/organisation-seeding.js'
+} from '../../support/seeding/organisation.js'
 import {
   createOrsSpreadsheet,
   validOrsSites

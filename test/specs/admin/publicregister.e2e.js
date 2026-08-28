@@ -5,9 +5,9 @@ import { Navigation } from 'page-objects/admin/navigation.page'
 import { PublicRegisterPage } from 'page-objects/admin/public.register.page'
 import {
   createLinkedOrganisation,
-  createSubmittedReport,
   updateMigratedOrganisation
-} from '../../support/organisation-seeding.js'
+} from '../../support/seeding/organisation.js'
+import { createSubmittedReport } from '../../support/seeding/reports.js'
 import { parseCsvRows } from '../../support/csv.js'
 
 // Matches the fixed abbreviation list the backend's compliance-reporting-periods

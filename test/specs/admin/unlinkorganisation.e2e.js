@@ -11,7 +11,7 @@ import {
   FAKE_REGISTRATION_NUMBER,
   getOrganisation,
   updateMigratedOrganisation
-} from '../../support/organisation-seeding.js'
+} from '../../support/seeding/organisation.js'
 import { linkOrganisationToDefraId } from '../../support/defra-id-linking.js'
 test.describe('Unlink organisation from Defra ID', () => {
   test.beforeEach(async ({ page }) => {

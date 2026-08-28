@@ -4,9 +4,9 @@ import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { Navigation } from 'page-objects/admin/navigation.page'
 import { PrnActivityPage } from 'page-objects/admin/prn.activity.page'
 import { PrnCancelConfirmationPage } from 'page-objects/admin/prn.cancel.confirmation.page'
-import { seedAdminActivityData } from '../../support/admin-activity-seed.js'
-import { externalAPICancelPrn } from '../../support/organisation-seeding.js'
-import { waitForWasteBalance } from '../../support/seeding-waiters.js'
+import { seedAdminActivityData } from '../../support/seeding/admin-activity.js'
+import { externalAPICancelPrn } from '../../support/seeding/prns.js'
+import { waitForWasteBalance } from '../../support/seeding/waiters.js'
 test.describe('Cancel an accepted PRN from the admin UI', () => {
   test('issues, accepts and cancels a PRN, crediting the balance back @prnactivity @prncancellation', async ({
     page

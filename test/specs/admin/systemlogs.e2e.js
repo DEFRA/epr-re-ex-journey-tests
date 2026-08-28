@@ -6,7 +6,7 @@ import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { Navigation } from 'page-objects/admin/navigation.page'
 import { OrganisationsPage } from 'page-objects/admin/organisations.page'
 import { SystemLogsPage } from 'page-objects/admin/system.logs.page'
-import { createLinkedOrganisation } from '../../support/organisation-seeding.js'
+import { createLinkedOrganisation } from '../../support/seeding/organisation.js'
 test.describe('System logs search @searchsystemlogs', () => {
   let linkedOrganisation
 

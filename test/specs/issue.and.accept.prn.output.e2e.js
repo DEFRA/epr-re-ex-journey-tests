@@ -10,9 +10,9 @@ import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
   createLinkedOrganisation,
-  externalAPIAcceptPrn,
   updateMigratedOrganisation
-} from '../support/organisation-seeding.js'
+} from '../support/seeding/organisation.js'
+import { externalAPIAcceptPrn } from '../support/seeding/prns.js'
 import { checkBodyText } from '../support/checks.js'
 import { createPrnDetails } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'

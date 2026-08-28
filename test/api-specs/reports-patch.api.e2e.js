@@ -9,7 +9,7 @@ import {
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/organisation-seeding.js'
+} from '../support/seeding/organisation.js'
 const YEAR = 2026
 const CADENCE = 'monthly'
 const PERIOD = 1

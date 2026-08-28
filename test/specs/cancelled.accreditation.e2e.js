@@ -2,7 +2,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation,
   updateStatus
-} from '~/test/support/organisation-seeding.js'
+} from '~/test/support/seeding/organisation.js'
 import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { test, expect } from '@playwright/test'
 import { checkBodyText } from '~/test/support/checks.js'

@@ -11,7 +11,7 @@ import {
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/organisation-seeding.js'
+} from '../support/seeding/organisation.js'
 async function setUpApprovedReprocessor() {
   const org = await createLinkedOrganisation([
     { wasteProcessingType: 'Reprocessor' }

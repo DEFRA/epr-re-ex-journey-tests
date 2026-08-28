@@ -11,9 +11,9 @@ import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.p
 import { MonthlyReportDraftDeclarationPage } from 'page-objects/reports/monthly.report.draft.declaration.page.js'
 import {
   createLinkedOrganisation,
-  unsubmitReport,
   updateMigratedOrganisation
-} from '../support/organisation-seeding.js'
+} from '../support/seeding/organisation.js'
+import { unsubmitReport } from '../support/seeding/reports.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import {
   navigateToReports,

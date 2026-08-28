@@ -8,10 +8,10 @@ import {
 } from '../support/defra-id-linking.js'
 import {
   createLinkedOrganisation,
-  updateMigratedOrganisation,
-  uploadAndValidateSummaryLog
-} from '../support/organisation-seeding.js'
-import { waitForSummaryLogStatus } from '../support/seeding-waiters.js'
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import { uploadAndValidateSummaryLog } from '../support/seeding/summary-logs.js'
+import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
 
 test.describe('Summary log staleness detection @summaryLogStaleness', () => {

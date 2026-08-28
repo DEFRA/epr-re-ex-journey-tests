@@ -6,7 +6,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation,
   seedOverseasSites
-} from '../support/organisation-seeding.js'
+} from '../support/seeding/organisation.js'
 async function getOrganisation(baseAPI, authClient, refNo) {
   const response = await baseAPI.get(
     `/v1/organisations/${refNo}`,

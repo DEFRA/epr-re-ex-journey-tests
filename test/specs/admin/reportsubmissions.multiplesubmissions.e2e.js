@@ -8,7 +8,7 @@ import {
   seedDraftSubmission,
   seedRestatedClosedPeriod,
   submitSeededDraft
-} from '../../support/organisation-seeding.js'
+} from '../../support/seeding/reports.js'
 // The admin table renders the same period as 'Quarter 1', so this label is
 // specific to the CSV.
 const PERIOD_LABEL = 'Q1 2026'

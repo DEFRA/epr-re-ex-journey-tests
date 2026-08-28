@@ -4,8 +4,7 @@ import { DashboardPage } from 'page-objects/dashboard.page'
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
-import { seedAwaitingPrnAndSubmittedReport } from '../../support/regulator-read-seed.js'
-
+import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
 test.describe('A regulator reading a registration @regulator', () => {
   test('walks from the organisation list to a registration and reads what it covers and the periods it holds @regulatorregistration', async ({
     page

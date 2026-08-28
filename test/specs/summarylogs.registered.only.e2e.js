@@ -6,7 +6,7 @@ import {
   seedOverseasSites,
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/organisation-seeding.js'
+} from '../support/seeding/organisation.js'
 import {
   createAndRegisterDefraIdUser,
   linkDefraIdUser

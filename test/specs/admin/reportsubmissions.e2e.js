@@ -4,9 +4,9 @@ import { test, expect } from '@playwright/test'
 
 import {
   createLinkedOrganisation,
-  updateMigratedOrganisation,
-  createSubmittedReport
-} from '../../support/organisation-seeding.js'
+  updateMigratedOrganisation
+} from '../../support/seeding/organisation.js'
+import { createSubmittedReport } from '../../support/seeding/reports.js'
 import { parseCsvRows } from '../../support/csv.js'
 import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { Navigation } from 'page-objects/admin/navigation.page'

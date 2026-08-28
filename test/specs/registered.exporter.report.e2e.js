@@ -13,9 +13,9 @@ import { TonnesNotExportedPage } from '../page-objects/reports/tonnes.not.export
 import {
   seedOverseasSites,
   createLinkedOrganisation,
-  unsubmitReport,
   updateMigratedOrganisation
-} from '../support/organisation-seeding.js'
+} from '../support/seeding/organisation.js'
+import { unsubmitReport } from '../support/seeding/reports.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude
