@@ -226,9 +226,9 @@ export class PrnHelper {
     expect(prnStatus).toContain('Cancelled')
     prnDetails.status = 'Cancelled'
     if (!this.isPern) {
-      await this.prnCancelledPage.prnsPage()
+      await this.prnCancelledPage.prnsPage().click()
     } else {
-      await this.prnCancelledPage.pernsPage()
+      await this.prnCancelledPage.pernsPage().click()
     }
   }
 }

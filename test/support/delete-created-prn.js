@@ -128,7 +128,7 @@ export async function runDeleteCreatedPrn(
   expect(message).toContain(`${wording} created`)
   expect(message).toContain(awaitingAuthorisationStatus)
 
-  await prnCreatedPage.returnToRegistrationPage()
+  await prnCreatedPage.returnToRegistrationPage().click()
   await dashboardPage.selectTableLink(1, 1)
 
   // Check waste balance amount is deducted from creation

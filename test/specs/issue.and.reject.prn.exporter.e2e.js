@@ -111,7 +111,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       10
     )
 
-    await prnCreatedPage.returnToRegistrationPage()
+    await prnCreatedPage.returnToRegistrationPage().click()
     await dashboardPage.selectTableLink(1, 1)
     await wasteRecordsPage.managePERNsLink().click()
 
@@ -181,7 +181,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     await prnHelper.createAndCheckPrnDetails(newPernDetails)
     // End of new PERN creation
 
-    await prnCreatedPage.returnToRegistrationPage()
+    await prnCreatedPage.returnToRegistrationPage().click()
     await dashboardPage.selectTableLink(1, 1)
 
     await wasteRecordsPage.managePERNsLink().click()
@@ -250,7 +250,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     await prnHelper.createAndCheckPrnDetails(updatedPernDetails)
     // End of new PERN creation
 
-    await prnCreatedPage.pernsPageLink()
+    await prnCreatedPage.pernsPageLink().click()
 
     // See that on the PRN Dashboard page, PERNs awaiting authorisation and cancellation are shown
     const awaitingAuthHeading = await prnDashboardPage.getTableHeading()

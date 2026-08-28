@@ -97,7 +97,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
       10
     )
 
-    await prnCreatedPage.returnToRegistrationPage()
+    await prnCreatedPage.returnToRegistrationPage().click()
     await dashboardPage.selectTableLink(1, 1)
     await wasteRecordsPage.managePRNsLink().click()
 

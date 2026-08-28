@@ -348,7 +348,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ...(await scanPageForAccessibilityViolations(page, 'PRN created'))
     )
 
-    await prnCreatedPage.returnToRegistrationPage()
+    await prnCreatedPage.returnToRegistrationPage().click()
     await dashboardPage.selectTableLink(1, 1)
     await wasteRecordsPage.managePRNsLink().click()
     violations.push(
@@ -409,7 +409,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ...(await scanPageForAccessibilityViolations(page, 'PRN cancelled'))
     )
 
-    await prnCancelledPage.prnsPage()
+    await prnCancelledPage.prnsPage().click()
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
 
