@@ -12,7 +12,7 @@ import {
   createLinkedOrganisation,
   externalAPIAcceptPrn,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/organisation-seeding.js'
 import { checkBodyText } from '../support/checks.js'
 import { createPrnDetails } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'

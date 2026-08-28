@@ -22,7 +22,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation,
   seedSubmittedReport
-} from '../support/apicalls.js'
+} from '../support/organisation-seeding.js'
 import {
   registerAndLinkDefraIdUser,
   loginViaHomePage

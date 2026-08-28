@@ -10,7 +10,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation,
   seedSubmittedReport
-} from '../support/apicalls.js'
+} from '../support/organisation-seeding.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 // The adjusted-loads accordion splits each balance-affecting load by the

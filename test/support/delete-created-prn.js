@@ -13,7 +13,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation,
   uploadAndSubmitSummaryLog
-} from './apicalls.js'
+} from './organisation-seeding.js'
 import { defraIdStub } from './defra-id-stub.js'
 import { createLinkAndLogin } from './login-helper.js'
 import { tonnageWordings, tradingName } from './fixtures.js'

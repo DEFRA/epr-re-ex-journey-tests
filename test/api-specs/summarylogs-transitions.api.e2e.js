@@ -6,8 +6,7 @@ import { SummaryLog } from '../support/generator.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
-
+} from '../support/organisation-seeding.js'
 // upload-completed returns 202 (accepted for async processing). When the new
 // status is 'validating' (fileStatus 'complete'), the backend also kicks off
 // a real async validation worker against the given organisationId/

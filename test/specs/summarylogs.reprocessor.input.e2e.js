@@ -5,12 +5,11 @@ import { UploadSummaryLogPage } from '../page-objects/upload.summary.log.page.js
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { checkBodyText } from '../support/checks.js'
+import { createAndRegisterDefraIdUser } from '../support/defra-id-linking.js'
 import {
-  createAndRegisterDefraIdUser,
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
-
+} from '../support/organisation-seeding.js'
 test.describe('Summary Logs Reprocessor Input', () => {
   test('Should be able to link a user to an organisation and submit a spreadsheet @reproInput', async ({
     page

@@ -6,11 +6,12 @@ import { defraIdStub } from '../support/defra-id-stub.js'
 import Users from '../support/users.js'
 import {
   createAndRegisterDefraIdUser,
+  linkDefraIdUser
+} from '../support/defra-id-linking.js'
+import {
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
-
+} from '../support/organisation-seeding.js'
 async function setUpApprovedReprocessor() {
   const org = await createLinkedOrganisation([
     { wasteProcessingType: 'Reprocessor' }

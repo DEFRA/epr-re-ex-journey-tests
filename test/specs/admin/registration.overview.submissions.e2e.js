@@ -10,8 +10,7 @@ import {
   RESTATED_PERIOD,
   seedReportSubmission,
   seedRestatedClosedPeriod
-} from '../../support/apicalls.js'
-
+} from '../../support/organisation-seeding.js'
 const isQuarterOne2026 = (row) =>
   row.period === 'Quarter 1' && row.due.startsWith('2026')
 

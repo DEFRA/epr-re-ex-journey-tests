@@ -12,7 +12,7 @@ import {
   seedOverseasSites,
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/organisation-seeding.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 // PAE-1648 closed-period adjustment messaging copy (en.json

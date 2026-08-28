@@ -2,8 +2,7 @@ import { test } from '@playwright/test'
 import { expect } from 'chai'
 import { BaseAPI } from '../apis/base-api.js'
 import { BasicAuth } from '../support/basic-auth.js'
-import { createLinkedOrganisation } from '../support/apicalls.js'
-
+import { createLinkedOrganisation } from '../support/organisation-seeding.js'
 const OVERSEAS_SITES_PATH =
   '/v1/organisations/unknownOrgId/registrations/someRegId/accreditations/someAccId/overseas-sites'
 

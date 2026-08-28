@@ -8,7 +8,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation,
   uploadAndSubmitSummaryLog
-} from '../support/apicalls.js'
+} from '../support/organisation-seeding.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { parseTonnage } from '../support/tonnage.js'
 import { createLinkAndLogin } from '../support/login-helper.js'

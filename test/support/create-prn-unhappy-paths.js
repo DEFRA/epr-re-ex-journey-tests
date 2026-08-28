@@ -9,7 +9,7 @@ import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from './apicalls.js'
+} from './organisation-seeding.js'
 import { createPrnDetails } from './fixtures.js'
 import { PrnHelper } from './prn.helper.js'
 import { createLinkAndLogin } from './login-helper.js'

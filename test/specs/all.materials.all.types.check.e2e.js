@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { createOrgWithAllWasteProcessingTypeAllMaterials } from '../support/apicalls.js'
+import { createOrgWithAllWasteProcessingTypeAllMaterials } from '../support/organisation-seeding.js'
 import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { MATERIALS } from '../support/materials.js'
 import { createLinkAndLogin } from '../support/login-helper.js'

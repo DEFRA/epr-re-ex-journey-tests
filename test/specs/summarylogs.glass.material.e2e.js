@@ -5,7 +5,7 @@ import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/organisation-seeding.js'
 import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { checkBodyText } from '../support/checks.js'
 import { createLinkAndLogin } from '../support/login-helper.js'

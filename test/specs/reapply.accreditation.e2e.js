@@ -3,7 +3,7 @@ import {
   updateMigratedOrganisation,
   FAKE_REGISTRATION_NUMBER,
   FAKE_ACCREDITATION_NUMBER
-} from '~/test/support/apicalls.js'
+} from '~/test/support/organisation-seeding.js'
 import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import { test, expect } from '@playwright/test'

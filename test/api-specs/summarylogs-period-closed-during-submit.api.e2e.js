@@ -4,13 +4,14 @@ import { BaseAPI } from '../apis/base-api.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import {
   createAndRegisterDefraIdUser,
+  linkDefraIdUser
+} from '../support/defra-id-linking.js'
+import {
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation,
-  uploadAndValidateSummaryLog,
-  waitForSummaryLogStatus
-} from '../support/apicalls.js'
-
+  uploadAndValidateSummaryLog
+} from '../support/organisation-seeding.js'
+import { waitForSummaryLogStatus } from '../support/seeding-waiters.js'
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
 const YEAR = 2026
 const CADENCE = 'monthly'

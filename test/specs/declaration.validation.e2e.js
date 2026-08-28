@@ -15,7 +15,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation,
   uploadAndSubmitSummaryLog
-} from '../support/apicalls.js'
+} from '../support/organisation-seeding.js'
 import { checkBodyText } from '../support/checks.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'

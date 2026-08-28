@@ -7,7 +7,7 @@ import {
   createLinkedOrganisation,
   createSubmittedReport,
   updateMigratedOrganisation
-} from '../../support/apicalls.js'
+} from '../../support/organisation-seeding.js'
 import { parseCsvRows } from '../../support/csv.js'
 
 // Matches the fixed abbreviation list the backend's compliance-reporting-periods

@@ -12,7 +12,7 @@ import {
   FAKE_ACCREDITATION_NUMBER,
   FAKE_REGISTRATION_NUMBER,
   updateMigratedOrganisation
-} from '../../support/apicalls.js'
+} from '../../support/organisation-seeding.js'
 import { SystemLogsPage } from 'page-objects/admin/system.logs.page'
 import { UnsubmitConfirmationPage } from 'page-objects/admin/unsubmit.confirmation.page'
 import { randomUUID } from 'crypto'

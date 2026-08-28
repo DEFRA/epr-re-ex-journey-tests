@@ -13,11 +13,13 @@ import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js
 import { checkBodyText } from '../support/checks.js'
 import {
   createAndRegisterDefraIdUser,
+  linkDefraIdUser
+} from '../support/defra-id-linking.js'
+import {
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation,
   seedSubmittedReport
-} from '../support/apicalls.js'
+} from '../support/organisation-seeding.js'
 import { loginViaHomePage } from '../support/login-helper.js'
 
 async function seedSubmittedRegisteredReprocessor() {

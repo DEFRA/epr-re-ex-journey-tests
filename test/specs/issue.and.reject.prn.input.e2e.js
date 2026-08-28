@@ -13,7 +13,7 @@ import {
   createLinkedOrganisation,
   externalAPICancelPrn,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/organisation-seeding.js'
 import { checkBodyText } from '../support/checks.js'
 import {
   thirdTradingName as newTradingName,

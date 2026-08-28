@@ -13,7 +13,7 @@ import {
   createLinkedOrganisation,
   unsubmitReport,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/organisation-seeding.js'
 import { checkBodyText } from '../support/checks.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { uploadSummaryLogAndNavigateToReports } from '../support/report-navigation.js'

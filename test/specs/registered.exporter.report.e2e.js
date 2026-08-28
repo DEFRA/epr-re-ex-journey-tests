@@ -10,11 +10,12 @@ import { ReportSupportingInformationPage } from 'page-objects/reports/report.sup
 import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.page.js'
 import { TonnesNotExportedPage } from '../page-objects/reports/tonnes.not.exported.page.js'
-import seedOverseasSites, {
+import {
+  seedOverseasSites,
   createLinkedOrganisation,
   unsubmitReport,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/organisation-seeding.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude

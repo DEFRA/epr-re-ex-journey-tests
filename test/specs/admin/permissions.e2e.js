@@ -4,7 +4,7 @@ import {
   FAKE_ACCREDITATION_NUMBER,
   FAKE_REGISTRATION_NUMBER,
   updateMigratedOrganisation
-} from '~/test/support/apicalls.js'
+} from '~/test/support/organisation-seeding.js'
 import { OrganisationsPage } from 'page-objects/admin/organisations.page'
 import { test, expect } from '@playwright/test'
 import { HomePage } from 'page-objects/admin/home.page'

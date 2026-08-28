@@ -14,78 +14,20 @@ import { AuthClient } from './auth.js'
 import { trackCreatedOrgId } from './cleanup-tracker.js'
 import { defraIdStub } from './defra-id-stub.js'
 import { MATERIALS } from './materials.js'
-import Users from './users.js'
 import { generateRegNumber, generateAccNumber } from './reg-acc-number.js'
-
-// Entra tokens go through the shared AuthClient above (createSubmittedReport,
-// getOrganisation). Defra ID user tokens all go through the shared
-// defraIdStub, which connects via config.defraIdUri - the local compose
-// hostname or the deployed environment's stub URL, depending on ENVIRONMENT.
-// Connecting directly (rather than hitting localhost with a spoofed Host
-// header) is what makes the stub embed the right JWT issuer for whichever
-// backend is under test.
-
-// Registers a throwaway user with the Defra ID stub and returns a Bearer token
-// with standardUser scope for the given defraOrgId.
-async function getDefraUserToken(email, orgId = randomUUID()) {
-  const userId = randomUUID()
-  const clientId = '63983fc2-cfff-45bb-8ec2-959e21062b9a'
-
-  await defraIdStub.register(
-    JSON.stringify({
-      userId,
-      email,
-      firstName: 'Test',
-      lastName: 'User',
-      loa: '1',
-      aal: '1',
-      enrolmentCount: 1,
-      enrolmentRequestCount: 1
-    })
-  )
-
-  const relParams = new URLSearchParams({
-    csrfToken: randomUUID(),
-    userId,
-    relationshipId: 'relId1',
-    organisationId: orgId,
-    organisationName: 'Test Organisation',
-    relationshipRole: 'role',
-    roleName: 'User',
-    roleStatus: 'Status',
-    // eslint-disable-next-line camelcase
-    redirect_uri: 'http://localhost:3000/'
-  })
-  await defraIdStub.addRelationship(relParams.toString(), userId)
-
-  const authParams = {
-    user: email,
-    // eslint-disable-next-line camelcase
-    client_id: clientId,
-    // eslint-disable-next-line camelcase
-    response_type: 'code',
-    // eslint-disable-next-line camelcase
-    redirect_uri: 'http://0.0.0.0:3001/health',
-    state: 'state',
-    scope: 'email'
-  }
-  const locationHeader = await defraIdStub.authorise(authParams)
-  const sessionId = locationHeader.split('sessionId=')[1]
-
-  const tokenData = await defraIdStub.generateToken(
-    JSON.stringify({
-      // eslint-disable-next-line camelcase
-      client_id: clientId,
-      // eslint-disable-next-line camelcase
-      client_secret: 'test_value',
-      // eslint-disable-next-line camelcase
-      grant_type: 'authorization_code',
-      code: sessionId
-    }),
-    userId
-  )
-  return tokenData.access_token
-}
+import {
+  assertSuccessResponse,
+  assertStatus,
+  assertSuccessResponseWithoutBody
+} from './response-assertions.js'
+import {
+  getDefraUserToken,
+  registerAndLinkDefraIdUser
+} from './defra-id-linking.js'
+import {
+  waitForReportingPeriodStatus,
+  waitForSummaryLogStatus
+} from './seeding-waiters.js'
 
 // Returns the most recently completed reporting period for the given cadence.
 // Quarterly: periods 1–4 map to Q1–Q4. Monthly: periods 1–12 map to Jan–Dec.
@@ -104,41 +46,6 @@ export function lastCompletedPeriod(cadence) {
   return currentQuarter === 1
     ? { year: year - 1, period: 4 }
     : { year, period: currentQuarter - 1 }
-}
-
-async function assertSuccessResponse(response, context) {
-  const body = await response.body.json()
-  if (response.statusCode < 200 || response.statusCode >= 300) {
-    throw new Error(
-      `${context}: expected 2xx but got ${response.statusCode}\n${JSON.stringify(body, null, 2)}`
-    )
-  }
-  return body
-}
-
-// For an endpoint whose exact status code is part of what the seed relies on -
-// a create that must report 201, a transition that must report 200. A 2xx that
-// is not the expected one is an API change the seed has to see.
-async function assertStatus(response, expectedStatusCode, context) {
-  if (response.statusCode === expectedStatusCode) {
-    return response.body.json()
-  }
-
-  // Read as text, not JSON: a gateway error or an HTML error page would throw
-  // on parse and take the status code - the thing this helper exists to
-  // report - down with it.
-  throw new Error(
-    `${context}: expected ${expectedStatusCode} but got ${response.statusCode}\n${await response.body.text()}`
-  )
-}
-
-async function assertSuccessResponseWithoutBody(response, context) {
-  if (response.statusCode < 200 || response.statusCode >= 300) {
-    const body = await response.body.json()
-    throw new Error(
-      `${context}: expected 2xx but got ${response.statusCode}\n${JSON.stringify(body, null, 2)}`
-    )
-  }
 }
 
 // Filler regNumber/accNumber for specs that need updateMigratedOrganisation
@@ -576,39 +483,6 @@ export async function updateRegistrationStatus(orgId, newStatus) {
   )
 }
 
-export async function createAndRegisterDefraIdUser(email) {
-  const users = new Users()
-  const user = await users.userPayload(email)
-  await defraIdStub.register(JSON.stringify(user))
-
-  return user
-}
-
-export async function linkDefraIdUser(organisationId, userId, email) {
-  const baseAPI = new BaseAPI()
-  const users = new Users()
-
-  const payload = await users.authorisationPayload(email)
-  const response = await defraIdStub.authorise(payload)
-  if (!response) {
-    throw new Error(
-      `DefraID stub authorise returned no location header for ${email}`
-    )
-  }
-  const sessionId = response.split('sessionId=')[1]
-
-  const tokenPayload = await users.tokenPayload(sessionId)
-  await defraIdStub.generateToken(JSON.stringify(tokenPayload), userId)
-
-  const linkResponse = await baseAPI.post(
-    `/v1/organisations/${organisationId}/link`,
-    '',
-    defraIdStub.authHeader(userId)
-  )
-
-  expect(linkResponse.statusCode).to.equal(200)
-}
-
 /**
  * Seeds overseas site records and links them to an exporter registration.
  * Creates a single approved overseas site, then maps a 3-digit ORS key
@@ -679,8 +553,6 @@ export async function seedOverseasSites(
 
   await assertSuccessResponse(putResponse, `PUT /v1/organisations/${orgRefNo}`)
 }
-
-export default seedOverseasSites
 
 export async function unsubmitReport(
   organisationId,
@@ -997,30 +869,6 @@ export async function getOrganisation(refNo) {
   return await assertSuccessResponse(orgResponse, `/v1/organisations/${refNo}`)
 }
 
-// Registers a Defra ID user for the organisation's submitter contact email
-// and links it, returning the bearer header the operator-facing report and
-// summary-log endpoints require (the service maintainer token 403s on them).
-export async function linkDefraUser(refNo) {
-  const baseAPI = new BaseAPI()
-  const orgData = await getOrganisation(refNo)
-  const email = orgData.submitterContactDetails.email
-
-  const defraToken = await getDefraUserToken(email)
-  const defraAuthHeader = { Authorization: `Bearer ${defraToken}` }
-
-  const linkResponse = await baseAPI.post(
-    `/v1/organisations/${refNo}/link`,
-    '',
-    defraAuthHeader
-  )
-  await assertSuccessResponse(
-    linkResponse,
-    `POST /v1/organisations/${refNo}/link`
-  )
-
-  return { defraAuthHeader, email }
-}
-
 // Creates and submits a specific report submission for a period, driving the
 // create → patch → ready_to_submit → submitted state machine. Unlike
 // createSubmittedReport this targets an explicit year/cadence/period, so it
@@ -1050,7 +898,7 @@ export const RESTATED_PERIOD = { year: 2026, cadence: 'quarterly', period: 1 }
  * summary log, which is why a real fixture is uploaded here.
  *
  * @param {{ tonnageRecycled?: number }} [options]
- * @returns {Promise<{ refNo: string, companyName: string, registrationId: string, defraAuthHeader: Record<string, string> }>}
+ * @returns {Promise<{ refNo: string, companyName: string, registrationId: string, defraAuthHeader: {Authorization?: string} }>}
  */
 export async function seedRestatedClosedPeriod({ tonnageRecycled = 100 } = {}) {
   const linkedOrganisation = await createLinkedOrganisation([
@@ -1074,7 +922,13 @@ export async function seedRestatedClosedPeriod({ tonnageRecycled = 100 } = {}) {
   // accreditationIds } (this repo's merged version), not the raw org record
   // upstream's simpler version returns - use the id array it actually gives.
   const registrationId = migrated.registrationIds[0]
-  const { defraAuthHeader } = await linkDefraUser(refNo)
+
+  const orgData = await getOrganisation(refNo)
+  const user = await registerAndLinkDefraIdUser(
+    refNo,
+    orgData.submitterContactDetails.email
+  )
+  const defraAuthHeader = defraIdStub.authHeader(user.userId)
 
   await seedReportSubmission(
     refNo,
@@ -1185,49 +1039,6 @@ export async function seedReportSubmission(
     defraAuthHeader,
     periodSubmission,
     version
-  )
-}
-
-const SUMMARY_LOG_FAILURE_STATUSES = [
-  'invalid',
-  'rejected',
-  'validation_failed',
-  'submission_failed'
-]
-
-export async function waitForSummaryLogStatus(
-  baseAPI,
-  summaryLogPath,
-  defraAuthHeader,
-  targetStatus
-) {
-  const timeoutMs = 90000
-  const startTime = Date.now()
-  let status
-  let responseData
-
-  while (Date.now() - startTime < timeoutMs) {
-    const response = await baseAPI.get(summaryLogPath, defraAuthHeader)
-    responseData = await assertSuccessResponse(
-      response,
-      `GET ${summaryLogPath}`
-    )
-    ;({ status } = responseData)
-    if (status === targetStatus) {
-      return responseData
-    }
-    if (SUMMARY_LOG_FAILURE_STATUSES.includes(status)) {
-      throw new Error(
-        `Summary log reached '${status}' while waiting for '${targetStatus}'`
-      )
-    }
-    // Matches wdio's waitforInterval (wdio.github.conf.js) so this polls no
-    // coarser than the UI's own checkBodyText waits.
-    await new Promise((resolve) => setTimeout(resolve, 200))
-  }
-
-  throw new Error(
-    `Timed out waiting for summary log status '${targetStatus}' (last seen: '${status}')`
   )
 }
 
@@ -1370,85 +1181,4 @@ export async function uploadAndSubmitSummaryLog(
   )
 
   return summaryLogId
-}
-
-// Polls the waste-balances endpoint until it returns a non-empty body - the
-// balance is computed asynchronously by the same worker that validates/
-// submits the summary log, so it can lag slightly behind 'submitted'.
-export async function waitForWasteBalance(
-  orgId,
-  accreditationId,
-  defraAuthHeader,
-  timeoutMs = 30000
-) {
-  const baseAPI = new BaseAPI()
-  const path = `/v1/organisations/${orgId}/waste-balances?accreditationIds=${accreditationId}`
-  const startTime = Date.now()
-
-  while (Date.now() - startTime < timeoutMs) {
-    const response = await baseAPI.get(path, defraAuthHeader)
-    const body = await assertSuccessResponse(response, `GET ${path}`)
-    if (Object.keys(body).length > 0) {
-      return body
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-  }
-
-  throw new Error(`Timed out waiting for a waste balance at ${path}`)
-}
-
-// Polls the reports calendar until some reporting period carries the given
-// periodStatus. The resubmission flag is written by the backend's summary-log
-// submit worker, so it can land shortly after the log reaches 'submitted'.
-export async function waitForReportingPeriodStatus(
-  refNo,
-  registrationId,
-  defraAuthHeader,
-  periodStatus
-) {
-  const baseAPI = new BaseAPI()
-  const calendarPath = `/v1/organisations/${refNo}/registrations/${registrationId}/reports/calendar`
-  const timeoutMs = 30000
-  const startTime = Date.now()
-  let lastSeen = []
-
-  while (Date.now() - startTime < timeoutMs) {
-    const response = await baseAPI.get(calendarPath, defraAuthHeader)
-    const { reportingPeriods } = await assertSuccessResponse(
-      response,
-      `GET ${calendarPath}`
-    )
-    if (reportingPeriods.some((rp) => rp.periodStatus === periodStatus)) {
-      return
-    }
-    lastSeen = reportingPeriods.map(
-      (rp) =>
-        `${rp.year}/${rp.period}#${rp.submissionNumber}:${rp.periodStatus}`
-    )
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-  }
-
-  throw new Error(
-    `Timed out waiting for a reporting period with status '${periodStatus}' (last seen: ${lastSeen.join(', ')})`
-  )
-}
-
-export async function linkOrganisationToDefraId(refNo, email) {
-  const baseAPI = new BaseAPI()
-
-  const orgId = randomUUID()
-  const defraToken = await getDefraUserToken(email, orgId)
-  const defraAuthHeader = { Authorization: `Bearer ${defraToken}` }
-
-  const linkResponse = await baseAPI.post(
-    `/v1/organisations/${refNo}/link`,
-    '',
-    defraAuthHeader
-  )
-
-  await assertSuccessResponse(
-    linkResponse,
-    `POST /v1/organisations/${refNo}/link`
-  )
-  return { defraOrgId: orgId, defraOrgName: 'Test Organisation' }
 }

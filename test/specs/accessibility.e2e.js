@@ -30,7 +30,7 @@ import {
   createLinkedOrganisation,
   externalAPICancelPrn,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/organisation-seeding.js'
 import {
   assertNoSeriousOrCriticalViolations,
   scanPageForAccessibilityViolations,

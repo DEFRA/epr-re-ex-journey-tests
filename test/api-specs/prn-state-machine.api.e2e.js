@@ -6,14 +6,16 @@ import config from '../config/config.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import {
   createAndRegisterDefraIdUser,
+  linkDefraIdUser
+} from '../support/defra-id-linking.js'
+import {
   createLinkedOrganisation,
   externalAPIAcceptPrn,
   externalAPICancelPrn,
-  linkDefraIdUser,
   updateMigratedOrganisation,
-  uploadAndSubmitSummaryLog,
-  waitForWasteBalance
-} from '../support/apicalls.js'
+  uploadAndSubmitSummaryLog
+} from '../support/organisation-seeding.js'
+import { waitForWasteBalance } from '../support/seeding-waiters.js'
 import { assertAuditLog } from '../support/docker-log-assertions.js'
 
 const FIXTURE_PATH = 'resources/summary-log.xlsx'

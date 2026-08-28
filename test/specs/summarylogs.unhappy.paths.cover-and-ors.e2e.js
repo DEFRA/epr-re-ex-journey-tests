@@ -12,7 +12,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation,
   seedOverseasSites
-} from '../support/apicalls.js'
+} from '../support/organisation-seeding.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 // Split from summarylogs.unhappy.paths.e2e.js (PAE-1405 CI runtime work) so
