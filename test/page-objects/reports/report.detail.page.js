@@ -49,18 +49,18 @@ class ReportDetailPage extends Page {
   }
 
   async verifyDetailPageButtons() {
-    expect(await this.headingText()).toContain('Your summary log data')
+    await expect(this.heading()).toContainText('Your summary log data')
 
     await this.uploadNewSummaryLog()
     const uploadSummaryLogPage = new UploadSummaryLogPage(this.page)
-    expect(await uploadSummaryLogPage.headingText()).toContain(
+    await expect(uploadSummaryLogPage.heading()).toContainText(
       'Upload your summary log'
     )
 
     await this.page.goBack()
     await this.cancelAndReturnToReports()
     const reportsPage = new ReportsPage(this.page)
-    expect(await reportsPage.headingText()).toContain('Reports')
+    await expect(reportsPage.heading()).toContainText('Reports')
   }
 }
 
