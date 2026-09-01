@@ -105,10 +105,10 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     await checkBodyText(page, 'Upload your summary log', 30)
     await checkBodyText(page, 'Closed periods: new loads', 30)
 
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
     await checkBodyText(page, 'Your waste records are being updated', 30)
     await checkBodyText(page, 'Summary log uploaded', 30)
-    await uploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
     // The Reports landing page now shows a "Requires resubmission" entry for the
     // restated period, with a "Review and create draft" call to action.
@@ -149,7 +149,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     // --- Intermediate stage: revisit the landing before submitting ---
     // The draft now exists but is not yet ready to submit, so the period keeps
     // its "Requires resubmission" status and the CTA becomes "Continue".
-    await tonnesRecycledPage.selectBackLink()
+    await tonnesRecycledPage.backLink().click()
     expect(await reportsPage.getActiveStatusBadge(1)).toBe(
       'Requires resubmission'
     )
@@ -227,7 +227,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     expect(activeTableText).not.toContain('Ready to submit')
     expect(activeTableText).not.toContain('Quarter 1')
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

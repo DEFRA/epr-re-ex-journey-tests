@@ -9,20 +9,21 @@ class UnsubmitConfirmationPage extends AdminPage {
     return this.page.locator('#main-content').innerText()
   }
 
-  async confirmUnsubmit() {
-    await this.page
-      .getByRole('button', { name: 'Yes, unsubmit this report', exact: true })
-      .click()
+  confirmUnsubmitButton() {
+    return this.page.getByRole('button', {
+      name: 'Yes, unsubmit this report',
+      exact: true
+    })
   }
 
   async getSuccessMessage() {
     return this.page.locator('.govuk-panel__title').innerText()
   }
 
-  async returnToRegistrationOverview() {
-    await this.page
-      .locator('a', { hasText: /^\s*Back to registration overview\s*$/ })
-      .click()
+  returnToRegistrationOverviewLink() {
+    return this.page.locator('a', {
+      hasText: /^\s*Back to registration overview\s*$/
+    })
   }
 }
 

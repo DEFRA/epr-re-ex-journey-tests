@@ -5,10 +5,8 @@ class PrnTonnagePage extends AdminPage {
     return super.open('/prn-tonnage')
   }
 
-  async runReport() {
-    await this.page
-      .getByRole('button', { name: 'Run report', exact: true })
-      .click()
+  runReportButton() {
+    return this.page.getByRole('button', { name: 'Run report', exact: true })
   }
 
   async fetchCsv() {

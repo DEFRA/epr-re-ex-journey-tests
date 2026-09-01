@@ -20,8 +20,8 @@ export class SummaryLogUploadActions extends Page {
     await this.submit(SUBMIT_SELECTOR)
   }
 
-  async clickOnReturnToHomePage() {
-    await this.returnToHomePage()
+  returnToHomePageLink() {
+    return this.returnToHomeLink()
   }
 
   async confirmAndCheckDoubleClickPrevented() {

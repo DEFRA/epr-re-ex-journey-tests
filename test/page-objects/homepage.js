@@ -9,16 +9,12 @@ class HomePage extends Page {
     return this.page.goto(lang + '/start')
   }
 
-  async getStartNowHref() {
-    return this.page
-      .getByRole('button', { name: 'Start now', exact: true })
-      .getAttribute('href')
+  startNowButton() {
+    return this.page.getByRole('button', { name: 'Start now', exact: true })
   }
 
-  async clickStartNow() {
-    await this.page
-      .getByRole('button', { name: 'Start now', exact: true })
-      .click()
+  async getStartNowHref() {
+    return this.startNowButton().getAttribute('href')
   }
 
   async linkRegistration() {

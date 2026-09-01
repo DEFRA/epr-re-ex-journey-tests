@@ -89,13 +89,13 @@ test.describe
     const homePage = new HomePage(page)
 
     await homePage.open()
-    await homePage.clickStartNow()
+    await homePage.startNowButton().click()
     await defraIdStubPage.loginViaEmail(migrationResponse.email)
   })
 
   test.afterAll(async () => {
     const homePage = new HomePage(page)
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
     await page.close()
   })
@@ -229,7 +229,7 @@ test.describe('Reports - operator-initiated resubmission explainer @operatorResu
       10
     )
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

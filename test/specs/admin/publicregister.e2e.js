@@ -67,7 +67,7 @@ test.describe('Public Register page', () => {
 
     await navigation.clickOnLink('Public register')
     await expect(publicRegisterPage.downloadPublicRegisterButton).toBeVisible()
-    await publicRegisterPage.downloadPublicRegister()
+    await publicRegisterPage.downloadPublicRegisterButton.click()
 
     const csv = await publicRegisterPage.fetchCsv()
     expect(csv.status).toEqual(200)

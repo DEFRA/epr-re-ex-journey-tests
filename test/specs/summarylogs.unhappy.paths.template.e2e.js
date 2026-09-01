@@ -75,7 +75,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     await checkBodyText(page, 'R26ER5000000002PA', 10)
     await checkBodyText(page, 'A26ER5000000004PA', 10)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -134,7 +134,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
       60
     )
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -378,7 +378,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
 
     expect(validationErrors).toEqual(expectedErrors)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

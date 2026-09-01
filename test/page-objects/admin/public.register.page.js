@@ -12,10 +12,6 @@ class PublicRegisterPage extends AdminPage {
     })
   }
 
-  async downloadPublicRegister() {
-    return this.downloadPublicRegisterButton.click()
-  }
-
   async fetchCsv() {
     return super.fetchCsv('/public-register')
   }

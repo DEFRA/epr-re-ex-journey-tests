@@ -23,7 +23,7 @@ test.describe('All materials and all waste processing types @allMaterials @smoke
       expect(material).toBe(MATERIALS[i].name)
     }
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
 
     // Sanity check Exporter materials
     for (let i = 0; i < MATERIALS.length; i++) {

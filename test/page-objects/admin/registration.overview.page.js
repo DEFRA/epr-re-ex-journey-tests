@@ -39,13 +39,12 @@ class RegistrationOverviewPage extends AdminPage {
     return data
   }
 
-  async clickOnViewORSLink() {
-    await this.page
+  viewORSLink() {
+    return this.page
       .locator('.govuk-summary-list__row', {
         has: this.page.locator('dt', { hasText: 'Overseas sites' })
       })
       .getByRole('link', { name: 'View', exact: true })
-      .click()
   }
 
   // The actions cell renders <a>View</a><br><a>Unsubmit</a>, so the nth-child

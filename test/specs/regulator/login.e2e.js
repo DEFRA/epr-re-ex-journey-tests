@@ -32,7 +32,7 @@ test.describe('Regulator login @regulator', () => {
     // out link was clicked) by trying to revisit it afterwards.
     const landingPageUrl = page.url()
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
 
     // Attempting to access the landing page again should result in a redirection

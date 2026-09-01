@@ -31,14 +31,14 @@ class PRNDashboardPage extends Page {
   }
 
   // The GOV.UK tabs component only assigns role="tab" once its JS enhances
-  // the plain anchors on load, so this waits on the enhancement rather than
-  // racing it the way a plain text/XPath match would.
-  async selectIssuedTab() {
-    await this.page.getByRole('tab', { name: 'Issued', exact: true }).click()
+  // the plain anchors on load, so getByRole here waits on the enhancement
+  // rather than racing it the way a plain text/XPath match would.
+  issuedTab() {
+    return this.page.getByRole('tab', { name: 'Issued', exact: true })
   }
 
-  async selectCancelledTab() {
-    await this.page.getByRole('tab', { name: 'Cancelled', exact: true }).click()
+  cancelledTab() {
+    return this.page.getByRole('tab', { name: 'Cancelled', exact: true })
   }
 
   // Index changes depending on whether PRN cancellation / PRN awaiting authorisation exists
@@ -60,10 +60,8 @@ class PRNDashboardPage extends Page {
     return this.getTableRow('#issued', rowIndex)
   }
 
-  async selectAwaitingActionTab() {
-    await this.page
-      .getByRole('tab', { name: 'Awaiting action', exact: true })
-      .click()
+  awaitingActionTab() {
+    return this.page.getByRole('tab', { name: 'Awaiting action', exact: true })
   }
 
   // Depending on whether PRN cancellation / PRN awaiting authorisation exists, the table index might change / shift accordingly
@@ -98,12 +96,10 @@ class PRNDashboardPage extends Page {
       .innerText()
   }
 
-  async createAPrnButton() {
-    await this.page
-      .locator(
-        '#main-content div.epr-heading-with-action > a[data-module="govuk-button"]'
-      )
-      .click()
+  createAPrnButton() {
+    return this.page.locator(
+      '#main-content div.epr-heading-with-action > a[data-module="govuk-button"]'
+    )
   }
 }
 

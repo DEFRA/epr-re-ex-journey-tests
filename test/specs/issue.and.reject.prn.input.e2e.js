@@ -134,7 +134,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
       10
     )
 
-    await prnCreatedPage.returnToRegistrationPage()
+    await prnCreatedPage.returnToRegistrationPage().click()
     await dashboardPage.selectTableLink(1, 1)
     await wasteRecordsPage.managePRNsLink().click()
 
@@ -166,7 +166,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     const noPrnMessage = await prnDashboardPage.getNoPrnMessage()
     expect(noPrnMessage).toBe('No PRNs or PERNs have been created yet.')
 
-    await prnDashboardPage.selectBackLink()
+    await prnDashboardPage.backLink().click()
 
     wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
     expect(wasteBalanceAmount).toBe(expectedWasteBalance + ' tonnes')
@@ -192,7 +192,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     await prnHelper.createAndCheckPrnDetails(newPrnDetails)
     // End of new PRN creation
 
-    await prnCreatedPage.returnToRegistrationPage()
+    await prnCreatedPage.returnToRegistrationPage().click()
     await dashboardPage.selectTableLink(1, 1)
 
     await wasteRecordsPage.managePRNsLink().click()
@@ -205,11 +205,11 @@ test.describe('Issuing Packing Recycling Notes', () => {
     // Both Manage PRNs and Issue another PRN links should point to the same page
     await prnHelper.checkIssuedPageLinks()
 
-    await prnIssuedPage.returnToHomePage()
+    await prnIssuedPage.returnToHomeLink().click()
     await wasteRecordsPage.managePRNsLink().click()
 
     // Check issued PRNs
-    await prnDashboardPage.selectIssuedTab()
+    await prnDashboardPage.issuedTab().click()
     await prnHelper.checkIssuedRows(prnDetails, 1)
     await prnHelper.checkIssuedRows(newPrnDetails, 2)
 
@@ -241,14 +241,14 @@ test.describe('Issuing Packing Recycling Notes', () => {
 
     const confirmCancelHeading = await confirmCancelPrnPage.headingText()
     expect(confirmCancelHeading).toBe('Confirm cancellation of this PRN')
-    await confirmCancelPrnPage.selectBackLink()
+    await confirmCancelPrnPage.backLink().click()
 
     // Now cancel the PRN and return to PRN Dashboard page
     await prnHelper.cancelPRNAndReturnToPRNsDashboard(prnDetails, {
       checkDoubleClick: true
     })
 
-    await prnDashboardPage.selectCancelledTab()
+    await prnDashboardPage.cancelledTab().click()
     await prnHelper.checkCancelledRows(prnDetails, 1)
     await prnDashboardPage.selectCancelledLink(1)
     currentPage = await switchToNewTabAndClosePreviousTab(currentPage)
@@ -257,15 +257,15 @@ test.describe('Issuing Packing Recycling Notes', () => {
     await prnHelper.checkViewPrnDetails(prnDetails)
     await prnViewPage.returnToPRNList().click()
 
-    await prnDashboardPage.selectBackLink()
-    await wasteRecordsPage.selectBackLink()
+    await prnDashboardPage.backLink().click()
+    await wasteRecordsPage.backLink().click()
 
     // Check that the waste balance has been updated from the cancelled PRN
     // (40,608.86 original - 19 reserved by the still-issued second PRN)
     const availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe('40,589.86')
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(currentPage).toHaveTitle(/Signed out/)
   })
 })
