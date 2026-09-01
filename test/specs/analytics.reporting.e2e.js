@@ -3,7 +3,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation,
   FAKE_REGISTRATION_NUMBER
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 /**
