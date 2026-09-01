@@ -62,20 +62,20 @@ test.describe('A regulator reading an accreditation @regulator', () => {
     expect(summary['Accreditation status']).toBe('Approved')
     expect(summary['Accreditation number']).toBe(seeded.accreditationNumber)
 
-    // The seeded organisation has a submitted summary log and notes drawn
-    // against it, so both balances are real tonnages. Their exact values belong
-    // to the fixture rather than to this page, so the format is what is pinned.
-    const tonnage = /^\d{1,3}(,\d{3})*\.\d{2}$/
-    expect(summary['Waste balance (tonnes)']).toMatch(tonnage)
-    expect(summary['Waste balance available (tonnes)']).toMatch(tonnage)
+    // The seeded organisation has a submitted summary log with notes drawn
+    // against it, so the balance is a real tonnage. Its value belongs to the
+    // fixture rather than to this page, so the format is what is pinned.
+    expect(summary['Waste balance available (tonnes)']).toMatch(
+      /^\d{1,3}(,\d{3})*\.\d{2}$/
+    )
 
-    // Comparing the whole set is what says "and nothing else". The design shows
-    // no further rows, so one arriving here has to be justified rather than
+    // Comparing the whole set is what says "and nothing else". The total the
+    // accreditation has ever held is deliberately not shown beside the
+    // available figure, so it arriving here has to be justified rather than
     // pass unnoticed.
     expect(Object.keys(summary)).toStrictEqual([
       'Accreditation status',
       'Accreditation number',
-      'Waste balance (tonnes)',
       'Waste balance available (tonnes)'
     ])
 
