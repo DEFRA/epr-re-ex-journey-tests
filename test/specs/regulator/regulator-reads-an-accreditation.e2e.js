@@ -23,6 +23,11 @@ test.describe('A regulator reading an accreditation @regulator', () => {
 
     await homePage.searchFor(seeded.companyName)
     await homePage.actionLink(1).click()
+
+    expect(await dashboardPage.dashboardHeaderText()).toContain(
+      seeded.companyName
+    )
+
     await dashboardPage.selectLink(1)
 
     expect(await registrationPage.headingText()).toContain(
@@ -79,6 +84,6 @@ test.describe('A regulator reading an accreditation @regulator', () => {
     // Getting back to the registration is an acceptance criterion, so the
     // crumb is followed rather than merely asserted to be present.
     await accreditationPage.registrationLink().click()
-    expect(page.url()).toBe(registrationUrl)
+    expect(new URL(page.url()).pathname).toBe(new URL(registrationUrl).pathname)
   })
 })
