@@ -9,8 +9,12 @@ class Page {
     return this.page.goto(path)
   }
 
+  heading() {
+    return this.page.locator('h1.govuk-heading-xl')
+  }
+
   async headingText() {
-    return this.page.locator('h1.govuk-heading-xl').innerText()
+    return this.heading().innerText()
   }
 
   backLink() {
