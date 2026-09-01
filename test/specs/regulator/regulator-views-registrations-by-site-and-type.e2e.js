@@ -85,9 +85,9 @@ test.describe('A regulator viewing registrations grouped by site and by type @re
     // the grouping a reprocessor gets is not offered here, and that absence
     // is itself part of what "shown apart" means.
     await expect(organisationPage.siteTables()).toHaveCount(1)
-    await expect(
-      organisationPage.siteTable(1).locator('caption')
-    ).toHaveCount(0)
+    await expect(organisationPage.siteTable(1).locator('caption')).toHaveCount(
+      0
+    )
 
     expect(await organisationPage.registrations(1)).toEqual([
       new Map([
