@@ -52,12 +52,12 @@ class JsonEditor {
     await this.page.keyboard.press('Tab')
   }
 
-  async saveChanges() {
-    await this.page.locator('#jsoneditor-save-button').click()
+  saveButton() {
+    return this.page.locator('#jsoneditor-save-button')
   }
 
   async saveButtonExists() {
-    return (await this.page.locator('#jsoneditor-save-button').count()) > 0
+    return (await this.saveButton().count()) > 0
   }
 }
 

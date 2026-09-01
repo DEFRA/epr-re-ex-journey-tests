@@ -11,8 +11,8 @@ class UnlinkOrganisationConfirmationPage extends AdminPage {
       .innerText()
   }
 
-  async confirmUnlink() {
-    await this.page.locator('#main-content form button').click()
+  confirmUnlinkButton() {
+    return this.page.locator('#main-content form button')
   }
 
   async cancel() {

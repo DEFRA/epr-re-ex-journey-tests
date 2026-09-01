@@ -48,7 +48,7 @@ test.describe('Reinstated accreditation @reinstatedaccreditation', () => {
     expect(
       (await page.locator('a', { hasText: 'Create new PERN' }).count()) > 0
     ).toBe(true)
-    await dashboardPage.selectBackLink()
+    await dashboardPage.backLink().click()
 
     // approved -> suspended -> cancelled: cancellation is only reachable via
     // suspended, after which the operator is no longer accredited

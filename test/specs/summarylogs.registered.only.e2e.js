@@ -118,20 +118,20 @@ test.describe('@registered-only', () => {
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(page, 'new loads will be recorded', 30)
     await checkBodyText(page, 'These have been added to your summary log.', 30)
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
 
     await checkBodyText(page, 'Summary log uploaded', 30)
     await checkBodyTextDoesNotInclude(page, 'Your updated waste balance', 10)
-    await uploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
     const exportRow = await dashboardPage.getTableRow(1, 1)
     expect(exportRow.get('Accreditation')).toBe('Not accredited')
     expect(exportRow.get('Available waste balance (tonnes)')).toBe(
       'Not applicable'
     )
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -193,13 +193,13 @@ test.describe('@registered-only', () => {
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(page, 'new loads will be recorded', 30)
     await checkBodyText(page, 'These have been added to your summary log.', 30)
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
 
     await checkBodyText(page, 'Summary log uploaded', 30)
     await checkBodyTextDoesNotInclude(page, 'Your updated waste balance', 10)
-    await uploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

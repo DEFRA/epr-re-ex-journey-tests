@@ -19,7 +19,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     await loginPage.loginAsRegulator()
 
     await homePage.searchFor(seeded.companyName)
-    await homePage.openOrganisation(1)
+    await homePage.actionLink(1).click()
 
     expect(await dashboardPage.dashboardHeaderText()).toContain(
       seeded.companyName

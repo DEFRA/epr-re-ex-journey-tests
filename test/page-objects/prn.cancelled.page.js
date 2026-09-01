@@ -5,12 +5,12 @@ class PRNCancelledPage extends Page {
     return this.panelDetailText()
   }
 
-  async pernsPage() {
-    await this.goToPernsPage()
+  pernsPage() {
+    return this.pernsPageLink()
   }
 
-  async prnsPage() {
-    await this.goToPrnsPage()
+  prnsPage() {
+    return this.prnsPageLink()
   }
 }
 

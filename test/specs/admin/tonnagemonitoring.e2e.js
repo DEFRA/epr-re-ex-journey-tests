@@ -66,6 +66,6 @@ test.describe('Tonnage Monitoring page', () => {
       }
     }
 
-    await tonnageMonitoringPage.downloadCsv()
+    await tonnageMonitoringPage.downloadCsvButton().click()
   })
 })

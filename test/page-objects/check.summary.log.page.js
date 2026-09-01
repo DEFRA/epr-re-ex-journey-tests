@@ -30,8 +30,8 @@ class CheckSummaryLogPage {
     return texts.join(' | ')
   }
 
-  async upload() {
-    await this.page.locator('#main-content button[type=submit]').click()
+  uploadButton() {
+    return this.page.locator('#main-content button[type=submit]')
   }
 
   // The PAE-1648 "Important" notification banner shown when the upload contains

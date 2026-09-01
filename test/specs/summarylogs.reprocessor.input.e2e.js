@@ -59,7 +59,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
 
     // PAE-743: End of Site Furniture checks
 
-    await homePage.clickStartNow()
+    await homePage.startNowButton().click()
 
     await defraIdStubPage.loginViaEmail(migrationResponse.email)
 
@@ -108,7 +108,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '391.62 tonnes', 10)
 
-    await uploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
     const availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe('391.62')
@@ -119,7 +119,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
     expect(wasteBalanceAmount).toBe('391.62 tonnes')
 
     // PAE-743: Sign out link is visible, hence able to sign out
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
 
     navigationLinks = await homePage.navLinkElements()

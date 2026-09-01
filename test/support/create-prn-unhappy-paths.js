@@ -105,7 +105,7 @@ export async function runCreatePrnUnhappyPaths(
   await prnHelper.createAndCheckDraftPrn(prnDetails)
 
   // Discard the first attempt
-  await checkBeforeCreatingPrnPage.discardAndStartAgain()
+  await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
   const discardHeading = await confirmDiscardPRNPage.headingText()
   expect(discardHeading).toBe(
     `Are you sure you want to discard this ${wording}?`
@@ -116,10 +116,10 @@ export async function runCreatePrnUnhappyPaths(
   await prnHelper.createAndCheckDraftPrn(prnDetails)
 
   // This time we go to the discard page, and check the back link works
-  await checkBeforeCreatingPrnPage.discardAndStartAgain()
-  await confirmDiscardPRNPage.selectBackLink()
+  await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
+  await confirmDiscardPRNPage.backLink().click()
 
-  await checkBeforeCreatingPrnPage.createPRN()
+  await checkBeforeCreatingPrnPage.createPRNButton().click()
 
   // Check Create PRN/PERN validation errors
   let createAPrnPageHeading = await createPRNPage.headingText()
@@ -137,7 +137,7 @@ export async function runCreatePrnUnhappyPaths(
 
   await prnHelper.createAndCheckDraftPrn(prnDetails)
 
-  await checkBeforeCreatingPrnPage.createPRN()
+  await checkBeforeCreatingPrnPage.createPRNButton().click()
 
   // Now we see an error message related to tonnage exceeding waste balance
   errorMessages = await createPRNPage.errorMessages(1)
@@ -150,7 +150,7 @@ export async function runCreatePrnUnhappyPaths(
   await homePage.homeLink().click()
   await dashboardPage.selectTableLink(1, 1)
   await wasteRecordsPage[manageLinkName]().click()
-  await prnDashboardPage.createAPrnButton()
+  await prnDashboardPage.createAPrnButton().click()
 
   // Check we are on the Create a PRN/PERN Page
   createAPrnPageHeading = await createPRNPage.headingText()
@@ -158,6 +158,6 @@ export async function runCreatePrnUnhappyPaths(
   materialDetails = await createPRNPage.materialDetails()
   expect(materialDetails).toBe(`Material: ${materialDesc}`)
 
-  await homePage.signOut()
+  await homePage.signOutLink().click()
   await expect(page).toHaveTitle(/Signed out/)
 }

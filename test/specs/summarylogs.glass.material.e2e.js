@@ -72,7 +72,7 @@ test.describe('Summary Logs (Glass Material) @smoketest', () => {
     const secondGlassMaterial = await dashboardPage.getMaterial(2, 1)
     expect(secondGlassMaterial).toBe('Glass other')
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
     const glassMaterial = await dashboardPage.getMaterial(1, 1)
     expect(glassMaterial).toBe('Glass other')
 
@@ -98,7 +98,7 @@ test.describe('Summary Logs (Glass Material) @smoketest', () => {
     await checkBodyText(page, 'Page not found', 10)
     // End of PAE-913 verification
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

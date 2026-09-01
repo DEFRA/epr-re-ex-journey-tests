@@ -97,7 +97,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
       10
     )
 
-    await prnCreatedPage.returnToRegistrationPage()
+    await prnCreatedPage.returnToRegistrationPage().click()
     await dashboardPage.selectTableLink(1, 1)
     await wasteRecordsPage.managePRNsLink().click()
 
@@ -118,7 +118,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     await prnHelper.checkViewPrnDetails(prnDetails)
     await prnViewPage.returnToPRNList().click()
 
-    await prnDashboardPage.selectBackLink()
+    await prnDashboardPage.backLink().click()
 
     // RPD accepts the PRN
     await externalAPIAcceptPrn(prnDetails)
@@ -126,7 +126,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     const wasteRecordsPageOnNewTab = new WasteRecordsPage(currentPage)
     await wasteRecordsPageOnNewTab.managePRNsLink().click()
 
-    await prnDashboardPage.selectIssuedTab()
+    await prnDashboardPage.issuedTab().click()
     await prnHelper.checkIssuedRows(prnDetails, 1)
 
     await prnDashboardPage.selectIssuedLink(1)
@@ -136,7 +136,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     await prnHelper.checkViewPrnDetails(prnDetails)
 
     const homePageOnFinalTab = new HomePage(currentPage)
-    await homePageOnFinalTab.signOut()
+    await homePageOnFinalTab.signOutLink().click()
     await expect(currentPage).toHaveTitle(/Signed out/)
   })
 })

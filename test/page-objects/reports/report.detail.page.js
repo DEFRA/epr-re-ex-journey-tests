@@ -35,15 +35,16 @@ class ReportDetailPage extends Page {
 
   async uploadNewSummaryLog() {
     await this.page
-      .locator('a.govuk-button--secondary', {
-        hasText: 'Upload new summary log'
-      })
+      .getByRole('button', { name: 'Upload new summary log', exact: true })
       .click()
   }
 
   async cancelAndReturnToReports() {
     await this.page
-      .locator('a', { hasText: /^\s*Cancel and return to reports\s*$/ })
+      .getByRole('link', {
+        name: 'Cancel and return to reports',
+        exact: true
+      })
       .click()
   }
 
