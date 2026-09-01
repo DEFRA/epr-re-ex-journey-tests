@@ -72,7 +72,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
       migrationResponse.email
     )
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
@@ -92,7 +92,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
       { prnRevenue: 100, freeTonnage: 0 }
     )
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile('resources/exporter-adjustments.xlsx')
@@ -164,7 +164,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     const detailsText = await checkSummaryLogPage.loadDetailsText()
     expect(detailsText).toContain(ADJUSTED_ADDED_HEADING)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -234,7 +234,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     expect(subStates).toContain('1 adjusted load will be recorded')
     await checkBodyText(page, 'These have been added to your summary log.', 30)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -315,7 +315,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     )
     expect(bodyText).not.toContain(MISSING_DATA_HEADING)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

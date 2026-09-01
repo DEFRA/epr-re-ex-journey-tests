@@ -36,8 +36,10 @@ class SystemLogsPage extends AdminPage {
     await this.page.locator('button[type=submit]').click()
   }
 
-  async clearSearch() {
-    await this.page.locator('a.govuk-button--inverse').click()
+  // Hand-written markup rather than the govukButton macro, so it's a plain
+  // link (no role="button") despite the button-styled classes.
+  clearSearchLink() {
+    return this.page.getByRole('link', { name: 'Clear search', exact: true })
   }
 
   async referenceNumberValue() {

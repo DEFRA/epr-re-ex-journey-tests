@@ -169,7 +169,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
     // (rendered only once signed out) so the scan doesn't run mid-redirect -
     // axe's page.evaluate throws "Execution context was destroyed" if it
     // starts while the sign-out navigation is still settling.
-    await homePage.signOut()
+    await homePage.signOutLink().click()
 
     await assertNoSeriousOrCriticalViolations(violations)
   })

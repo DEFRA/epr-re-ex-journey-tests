@@ -15,7 +15,7 @@ export async function loginViaHomePage(page, email) {
   const defraIdStubPage = new DefraIdStubPage(page)
 
   await homePage.openStart()
-  await homePage.clickStartNow()
+  await homePage.startNowButton().click()
   await defraIdStubPage.loginViaEmail(email)
 }
 

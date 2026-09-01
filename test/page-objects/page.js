@@ -13,8 +13,8 @@ class Page {
     return this.page.locator('h1.govuk-heading-xl').innerText()
   }
 
-  async selectBackLink() {
-    await this.page.locator('.govuk-back-link').click()
+  backLink() {
+    return this.page.locator('.govuk-back-link')
   }
 
   async messageText() {
@@ -56,8 +56,8 @@ class Page {
     return dataMap
   }
 
-  async signOut() {
-    await this.page.getByRole('link', { name: 'Sign out', exact: true }).click()
+  signOutLink() {
+    return this.page.getByRole('link', { name: 'Sign out', exact: true })
   }
 
   async submit(selector) {
@@ -82,26 +82,20 @@ class Page {
 
   // Shared by the various GOV.UK "confirmation panel" pages (PRN created /
   // issued / cancelled, summary log upload) which all render this link.
-  async returnToHomePage() {
-    await this.page
-      .getByRole('link', { name: 'Return to home', exact: true })
-      .click()
+  returnToHomeLink() {
+    return this.page.getByRole('link', { name: 'Return to home', exact: true })
   }
 
   async panelDetailText() {
     return this.page.locator('.govuk-panel__body strong').innerText()
   }
 
-  async goToPrnsPage() {
-    await this.page
-      .getByRole('link', { name: 'PRNs page', exact: true })
-      .click()
+  prnsPageLink() {
+    return this.page.getByRole('link', { name: 'PRNs page', exact: true })
   }
 
-  async goToPernsPage() {
-    await this.page
-      .getByRole('link', { name: 'PERNs page', exact: true })
-      .click()
+  pernsPageLink() {
+    return this.page.getByRole('link', { name: 'PERNs page', exact: true })
   }
 
   // Reads a single row of a header-driven GOV.UK table into a Map keyed by

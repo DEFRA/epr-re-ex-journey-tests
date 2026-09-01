@@ -32,10 +32,6 @@ class OrganisationOverviewPage extends AdminPage {
     })
   }
 
-  async clickUnlink() {
-    await this.unlinkButton.click()
-  }
-
   async getNoLinkedOrganisationText() {
     return this.page
       .getByText('No linked organisation', { exact: true })

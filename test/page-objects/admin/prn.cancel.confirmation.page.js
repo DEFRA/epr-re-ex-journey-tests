@@ -5,10 +5,11 @@ class PrnCancelConfirmationPage extends AdminPage {
     return this.page.locator('#main-content').innerText()
   }
 
-  async confirmCancel() {
-    await this.page
-      .getByRole('button', { name: 'Yes, cancel this PRN', exact: true })
-      .click()
+  confirmCancelButton() {
+    return this.page.getByRole('button', {
+      name: 'Yes, cancel this PRN',
+      exact: true
+    })
   }
 
   getPanelTitle() {

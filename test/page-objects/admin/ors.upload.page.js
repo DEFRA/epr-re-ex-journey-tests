@@ -188,10 +188,8 @@ class OrsUploadPage extends AdminPage {
       .innerText()
   }
 
-  async clickNextPage() {
-    await this.page
-      .locator('nav.govuk-pagination .govuk-pagination__next a')
-      .click()
+  nextPageLink() {
+    return this.page.locator('nav.govuk-pagination .govuk-pagination__next a')
   }
 
   async clickPageNumber(pageNumber) {
@@ -214,8 +212,10 @@ class OrsUploadPage extends AdminPage {
     return this.registrationNumberInput.inputValue()
   }
 
-  async clearRegistrationNumberFilter() {
-    await this.page.locator('form.app-filters a.govuk-button--inverse').click()
+  // Hand-written markup rather than the govukButton macro, so it's a plain
+  // link (no role="button") despite the button-styled classes.
+  clearRegistrationNumberFilterLink() {
+    return this.page.locator('form.app-filters a.govuk-button--inverse')
   }
 
   async getInsetText() {

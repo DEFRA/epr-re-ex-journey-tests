@@ -73,7 +73,7 @@ test.describe('Report tonnage reconciles with the waste balance — exporter @re
 
   test.afterEach(async ({ page }) => {
     const homePage = new HomePage(page)
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 

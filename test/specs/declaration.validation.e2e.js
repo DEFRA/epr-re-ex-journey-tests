@@ -100,7 +100,7 @@ test.describe('Declaration name validation @declarationValidation', () => {
 
   test.afterAll(async () => {
     const homePage = new HomePage(page)
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
     await page.close()
   })

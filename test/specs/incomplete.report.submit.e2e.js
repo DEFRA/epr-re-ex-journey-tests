@@ -83,7 +83,7 @@ test.describe('Incomplete report submit @incompleteReportBlock', () => {
     await checkBodyText(page, 'Bad request', 10)
     await checkBodyTextDoesNotInclude(page, 'report created', 10)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

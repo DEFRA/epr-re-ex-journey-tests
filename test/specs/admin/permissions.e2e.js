@@ -34,7 +34,7 @@ users.forEach(({ username, scopes }) => {
 
     test.afterEach(async ({ page }) => {
       const homePage = new HomePage(page)
-      await homePage.signOut()
+      await homePage.signOutLink().click()
     })
 
     test('Should not be able to update an organisation @permissions @organisationpermissions', async ({
@@ -130,7 +130,7 @@ test.describe('Permissions flow for a support user only', () => {
 
   test.afterEach(async ({ page }) => {
     const homePage = new HomePage(page)
-    await homePage.signOut()
+    await homePage.signOutLink().click()
   })
 
   const testMessage = {
