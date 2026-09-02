@@ -87,29 +87,6 @@ class RegistrationDetailsPage extends Page {
   }
 
   /**
-   * @returns {import('@playwright/test').Locator}
-   */
-  notesListLink() {
-    return this.page.locator(
-      '#main-content a[href$="/packaging-recycling-notes"]'
-    )
-  }
-
-  /**
-   * @returns {import('@playwright/test').Locator}
-   */
-  reportsListLink() {
-    return this.page.locator('#main-content a[href$="/reports"]')
-  }
-
-  /**
-   * @returns {import('@playwright/test').Locator}
-   */
-  wasteBalanceLedgerLink() {
-    return this.page.locator('#main-content a[href$="/waste-balance-ledger"]')
-  }
-
-  /**
    * @returns {Promise<string[]>}
    */
   async offeredRoutes() {
