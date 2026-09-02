@@ -96,21 +96,23 @@ test.describe('A regulator looking up an operator @regulator', () => {
     expect(await detailsPage.headingText()).toContain('Registration details')
 
     // Comparing the whole set is what says "and nothing else" - a route added
-    // here later has to be justified rather than arriving unnoticed.
+    // here later has to be justified rather than arriving unnoticed. The note
+    // list, the reports and the ledger are reached by their own routes below:
+    // the design offers a regulator none of them from this page.
     expect(await detailsPage.offeredRoutes()).toEqual([
-      '/organisations/{id}/registrations/{id}/accreditations/{id}',
-      '/organisations/{id}/registrations/{id}/accreditations/{id}/packaging-recycling-notes',
-      '/organisations/{id}/registrations/{id}/accreditations/{id}/waste-balance-ledger',
-      '/organisations/{id}/registrations/{id}/reports'
+      '/organisations/{id}/registrations/{id}/accreditations/{id}'
     ])
 
-    // A regulator holds no record ids to build a path from, so keep the one
-    // the search found and come back to it between the three reads.
+    // A regulator holds no record ids to build a path from, so take the two
+    // the journey has reached - the registration it is on and the
+    // accreditation it names - and come back to them between the three reads.
     const registrationUrl = page.url()
+    const accreditationUrl = new URL(
+      (await detailsPage.actionLink(1).getAttribute('href')) ?? '',
+      registrationUrl
+    ).toString()
 
-    const viewPRNs = detailsPage.notesListLink()
-    expect(await viewPRNs.innerText()).toBe('View PRNs')
-    await viewPRNs.click()
+    await page.goto(`${accreditationUrl}/packaging-recycling-notes`)
 
     // The note awaits authorisation, and the awaiting tables are the only
     // place such a note is filed. Reading the tonnage back off the row is what
@@ -157,15 +159,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     ])
     expect(await prnViewPage.formCount()).toBe(0)
 
-    await page.goto(registrationUrl)
-
-    // The text read below takes the DOM as it stands with no auto-wait, and
-    // nothing before it has settled this page, so wait on the link first.
-    const viewReports = detailsPage.reportsListLink()
-    await viewReports.waitFor()
-
-    expect(await viewReports.innerText()).toBe('View reports')
-    await viewReports.click()
+    await page.goto(`${registrationUrl}/reports`)
 
     expect(await reportsPage.headingText()).toContain('Reports')
 
@@ -190,17 +184,11 @@ test.describe('A regulator looking up an operator @regulator', () => {
     expect(await reportViewPage.headingText()).toContain(`${year}`)
     expect(await reportViewPage.hasMakeChangesLink()).toBe(false)
 
-    // The waste balance ledger is the third thing the registration offers a
-    // regulator to read. The seed submitted a summary log and drew two notes
+    // The waste balance ledger is the third thing a regulator reads of this
+    // registration. The seed submitted a summary log and drew two notes
     // against the balance it credited, so every one of those movements is
     // filed here.
-    await page.goto(registrationUrl)
-
-    const viewLedger = detailsPage.wasteBalanceLedgerLink()
-    await viewLedger.waitFor()
-
-    expect(await viewLedger.innerText()).toBe('View waste balance ledger')
-    await viewLedger.click()
+    await page.goto(`${accreditationUrl}/waste-balance-ledger`)
 
     expect(await ledgerPage.headingText()).toContain('Waste balance ledger')
 
