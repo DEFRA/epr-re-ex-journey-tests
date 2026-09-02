@@ -2,10 +2,11 @@ import { Page } from 'page-objects/page'
 
 class AccreditationDetailsPage extends Page {
   /**
+   * The caption's size is the design's to choose, so any size is read.
    * @returns {Promise<string>}
    */
   async captionText() {
-    return this.page.locator('h1 .govuk-caption-xl').innerText()
+    return this.page.locator('h1 [class^="govuk-caption-"]').innerText()
   }
 
   /**
