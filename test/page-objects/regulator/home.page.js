@@ -96,12 +96,12 @@ class RegulatorHomePage extends Page {
   }
 
   /**
-   * Drops the search term by addressing the unsearched page, which is what
-   * the control does rather than sending an empty search.
-   * @returns {Promise<void>}
+   * The link that drops the search term by addressing the unsearched page,
+   * rather than sending an empty search.
+   * @returns {Locator}
    */
-  async clearSearch() {
-    await this.page.locator('.epr-search-panel a.govuk-button').click()
+  clearSearchLink() {
+    return this.page.locator('.epr-search-panel a.govuk-button')
   }
 
   /**
@@ -180,16 +180,6 @@ class RegulatorHomePage extends Page {
       .textContent()
 
     return (text ?? '').trim()
-  }
-
-  /**
-   * Opens the organisation a results row names, through the action it offers.
-   *
-   * @param {number} row
-   * @returns {Promise<void>}
-   */
-  async openOrganisation(row) {
-    await this.actionLink(row).click()
   }
 }
 

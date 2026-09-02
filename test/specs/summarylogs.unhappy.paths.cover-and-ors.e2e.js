@@ -87,7 +87,7 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
       60
     )
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -157,15 +157,15 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
       10
     )
 
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
     await checkBodyText(page, 'Your waste records are being updated', 30)
     await checkBodyText(page, 'Summary log uploaded', 30)
 
-    await uploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
     const availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe('0.00')
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

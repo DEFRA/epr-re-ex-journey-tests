@@ -99,7 +99,7 @@ test.describe.serial('Deleting reports', () => {
 
   test.afterAll(async () => {
     const homePage = new HomePage(page)
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
     await page.close()
   })
@@ -135,7 +135,7 @@ test.describe.serial('Deleting reports', () => {
     expect(warningText).toContain('This action cannot be undone')
 
     // Test back link
-    await confirmDeleteReportPage.selectBackLink()
+    await confirmDeleteReportPage.backLink().click()
     const backHeading = await reportSupportingInformationPage.headingText()
     expect(backHeading).toBe(
       'Add supporting information for your regulator (optional)'
@@ -182,7 +182,7 @@ test.describe.serial('Deleting reports', () => {
     const deleteHeading = await confirmDeleteReportPage.headingText()
     expect(deleteHeading).toBe('Confirm deletion of this report')
 
-    await confirmDeleteReportPage.selectBackLink()
+    await confirmDeleteReportPage.backLink().click()
     const backToCheckAnswers = await reportCheckAnswersPage.headingText()
     expect(backToCheckAnswers).toBe(
       'Check your answers before you create this draft report'

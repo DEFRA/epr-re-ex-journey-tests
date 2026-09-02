@@ -115,7 +115,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
 
     test.afterAll(async () => {
       const homePage = new HomePage(page)
-      await homePage.signOut()
+      await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
       await page.close()
     })
@@ -160,7 +160,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       await reportDetailPage.useThisData()
 
       // On tonnes-recycled — back link goes to reports list
-      await tonnesRecycledPage.selectBackLink()
+      await tonnesRecycledPage.backLink().click()
       const reportsHeading = await reportsPage.headingText()
       expect(reportsHeading).toContain('Reports')
 
@@ -173,7 +173,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       await tonnesRecycledPage.continue()
 
       // On tonnes-not-recycled — back link goes to tonnes-recycled
-      await tonnesNotRecycledPage.selectBackLink()
+      await tonnesNotRecycledPage.backLink().click()
       const backToTonnesRecycled = await tonnesRecycledPage.headingText()
       expect(backToTonnesRecycled).toBeTruthy()
 
@@ -184,7 +184,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       await tonnesNotRecycledPage.continue()
 
       // On supporting-information — back link goes to tonnes-not-recycled (not free-prns)
-      await reportSupportingInformationPage.selectBackLink()
+      await reportSupportingInformationPage.backLink().click()
       const backToTonnesNotRecycled = await tonnesNotRecycledPage.headingText()
       expect(backToTonnesNotRecycled).toBeTruthy()
 
@@ -353,7 +353,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
     const reportsHeading = await reportsPage.headingText()
     expect(reportsHeading).toContain('Reports')
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

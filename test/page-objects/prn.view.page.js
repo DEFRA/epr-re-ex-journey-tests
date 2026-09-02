@@ -15,11 +15,8 @@ class PRNViewPage extends Page {
     })
   }
 
-  // The only govuk-button on the page carrying the warning modifier -
-  // deletePRNButton is a plain govuk-button, so this class alone identifies
-  // it without depending on note-type-specific button text.
   cancelPRNButton() {
-    return this.page.locator('a.govuk-button--warning')
+    return this.page.getByRole('button', { name: /^Cancel (PRN|PERN)$/ })
   }
 
   deletePRNButton() {

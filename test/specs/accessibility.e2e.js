@@ -141,7 +141,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ...(await scanPageForAccessibilityViolations(page, 'Check summary log'))
     )
 
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
     await checkBodyText(page, 'Your waste records are being updated', 30)
     await checkBodyText(page, 'Summary log uploaded', 30)
     violations.push(
@@ -151,7 +151,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ))
     )
 
-    await uploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
     await navigateToReports(page)
     violations.push(
       ...(await scanPageForAccessibilityViolations(page, 'Reports list'))
@@ -224,7 +224,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
     )
 
     await reportSubmittedPage.returnToReportsLink().click()
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
 
     await assertNoSeriousOrCriticalViolations(violations)
@@ -343,12 +343,12 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ))
     )
 
-    await checkBeforeCreatingPRNPage.createPRN()
+    await checkBeforeCreatingPRNPage.createPRNButton().click()
     violations.push(
       ...(await scanPageForAccessibilityViolations(page, 'PRN created'))
     )
 
-    await prnCreatedPage.returnToRegistrationPage()
+    await prnCreatedPage.returnToRegistrationPage().click()
     await dashboardPage.selectTableLink(1, 1)
     await wasteRecordsPage.managePRNsLink().click()
     violations.push(
@@ -371,7 +371,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
     violations.push(
       ...(await scanPageForAccessibilityViolations(page, 'Confirm delete PRN'))
     )
-    await confirmDeletePRNPage.selectBackLink()
+    await confirmDeletePRNPage.backLink().click()
 
     // --- Issue the PRN, then have the recipient (RPD) reject it so the
     // cancellation confirmation pages can be scanned too ---
@@ -409,8 +409,8 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ...(await scanPageForAccessibilityViolations(page, 'PRN cancelled'))
     )
 
-    await prnCancelledPage.prnsPage()
-    await homePage.signOut()
+    await prnCancelledPage.prnsPage().click()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
 
     await assertNoSeriousOrCriticalViolations(violations)

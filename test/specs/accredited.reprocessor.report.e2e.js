@@ -83,7 +83,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
 
     test.afterAll(async () => {
       const homePage = new HomePage(page)
-      await homePage.signOut()
+      await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
       await page.close()
     })
@@ -111,7 +111,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await reportDetailPage.useThisData()
 
       // On tonnes-recycled — back link goes to reports list
-      await tonnesRecycledPage.selectBackLink()
+      await tonnesRecycledPage.backLink().click()
       const reportsHeading = await reportsPage.headingText()
       expect(reportsHeading).toContain('Reports')
 
@@ -124,7 +124,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await tonnesRecycledPage.continue()
 
       // On tonnes-not-recycled — back link goes to tonnes-recycled
-      await tonnesNotRecycledPage.selectBackLink()
+      await tonnesNotRecycledPage.backLink().click()
       const backToTonnesRecycled = await tonnesRecycledPage.headingText()
       expect(backToTonnesRecycled).toBeTruthy()
 
@@ -135,7 +135,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await tonnesNotRecycledPage.continue()
 
       // On prn-summary — back link goes to tonnes-not-recycled
-      await reprocessorPrnSummaryPage.selectBackLink()
+      await reprocessorPrnSummaryPage.backLink().click()
       const backToTonnesNotRecycled = await tonnesNotRecycledPage.headingText()
       expect(backToTonnesNotRecycled).toBeTruthy()
 
@@ -146,7 +146,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await reprocessorPrnSummaryPage.continue()
 
       // On free-prns — back link goes to prn-summary
-      await freePrnsPage.selectBackLink()
+      await freePrnsPage.backLink().click()
       const backToPrnSummary = await reprocessorPrnSummaryPage.headingText()
       expect(backToPrnSummary).toBeTruthy()
 
@@ -157,7 +157,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await freePrnsPage.continue()
 
       // On supporting info — back link goes to free-prns
-      await reportSupportingInformationPage.selectBackLink()
+      await reportSupportingInformationPage.backLink().click()
       const backToFreePrns = await freePrnsPage.headingText()
       expect(backToFreePrns).toBeTruthy()
 
@@ -184,7 +184,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       expect(deleteHeading).toBe('Confirm deletion of this report')
 
       // Back link should return to tonnes-recycled
-      await confirmDeleteReportPage.selectBackLink()
+      await confirmDeleteReportPage.backLink().click()
       const backToTonnesRecycled = await tonnesRecycledPage.headingText()
       expect(backToTonnesRecycled).toBeTruthy()
 
@@ -491,7 +491,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await checkBodyText(page, '404', 10)
       await checkBodyText(page, 'Page not found', 10)
 
-      await homePage.signOut()
+      await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
     })
   })

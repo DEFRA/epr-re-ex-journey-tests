@@ -28,7 +28,7 @@ test.describe('PRN tonnage page', () => {
     const landingHeading = await prnTonnagePage.getHeaderText()
     expect(landingHeading).toBe('PRN tonnage')
 
-    await prnTonnagePage.runReport()
+    await prnTonnagePage.runReportButton().click()
 
     const tableText = await prnTonnagePage.tableText()
     expect(tableText).toContain(seeded.accreditationNumber)

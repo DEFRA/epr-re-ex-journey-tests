@@ -56,7 +56,7 @@ test.describe('Cancelled accreditation @cancelledaccreditation', () => {
     // now we cancel the accreditation, PERN links should be gone
     await updateStatus(orgId, 'cancelled')
 
-    await dashboardPage.selectBackLink()
+    await dashboardPage.backLink().click()
 
     accStatus = await dashboardPage.getAccreditationStatus(1, 1)
     expect(accStatus).toBe('Not accredited')

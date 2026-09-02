@@ -163,7 +163,7 @@ test.describe('Registration overview - multiple submissions per period', () => {
     expect(await unsubmitConfirmationPage.getDetailsText()).toContain(
       'Submission: 2'
     )
-    await unsubmitConfirmationPage.confirmUnsubmit()
+    await unsubmitConfirmationPage.confirmUnsubmitButton().click()
     expect(await unsubmitConfirmationPage.getSuccessMessage()).toEqual(
       'Report unsubmitted'
     )

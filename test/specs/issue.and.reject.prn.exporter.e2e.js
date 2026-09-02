@@ -111,7 +111,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       10
     )
 
-    await prnCreatedPage.returnToRegistrationPage()
+    await prnCreatedPage.returnToRegistrationPage().click()
     await dashboardPage.selectTableLink(1, 1)
     await wasteRecordsPage.managePERNsLink().click()
 
@@ -155,7 +155,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     const noPrnMessage = await prnDashboardPage.getNoPrnMessage()
     expect(noPrnMessage).toBe('No PRNs or PERNs have been created yet.')
 
-    await prnDashboardPage.selectBackLink()
+    await prnDashboardPage.backLink().click()
 
     wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
     expect(wasteBalanceAmount).toBe(expectedWasteBalance + ' tonnes')
@@ -181,7 +181,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     await prnHelper.createAndCheckPrnDetails(newPernDetails)
     // End of new PERN creation
 
-    await prnCreatedPage.returnToRegistrationPage()
+    await prnCreatedPage.returnToRegistrationPage().click()
     await dashboardPage.selectTableLink(1, 1)
 
     await wasteRecordsPage.managePERNsLink().click()
@@ -195,11 +195,11 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     await prnHelper.issuePrnAndUpdateDetails(newPernDetails, 'EX')
     await prnHelper.checkIssuedPageLinks()
 
-    await prnIssuedPage.returnToHomePage()
+    await prnIssuedPage.returnToHomeLink().click()
     await wasteRecordsPage.managePERNsLink().click()
 
     // Check issued PERNs
-    await prnDashboardPage.selectIssuedTab()
+    await prnDashboardPage.issuedTab().click()
     await prnHelper.checkIssuedRows(pernDetails, 1)
     await prnHelper.checkIssuedRows(newPernDetails, 2)
 
@@ -228,7 +228,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     expect(tableHeading).toBe('PERNs awaiting cancellation')
     await prnHelper.checkAwaitingRows(pernDetails, 1)
 
-    await prnDashboardPage.selectBackLink()
+    await prnDashboardPage.backLink().click()
 
     // Create another new PERN
     await wasteRecordsPage.createNewPERNLink().click()
@@ -250,7 +250,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     await prnHelper.createAndCheckPrnDetails(updatedPernDetails)
     // End of new PERN creation
 
-    await prnCreatedPage.pernsPageLink()
+    await prnCreatedPage.pernsPageLink().click()
 
     // See that on the PRN Dashboard page, PERNs awaiting authorisation and cancellation are shown
     const awaitingAuthHeading = await prnDashboardPage.getTableHeading()
@@ -273,12 +273,12 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
 
     const confirmCancelHeading = await confirmCancelPrnPage.headingText()
     expect(confirmCancelHeading).toBe('Confirm cancellation of this PERN')
-    await confirmCancelPrnPage.selectBackLink()
+    await confirmCancelPrnPage.backLink().click()
 
     // Now cancel the PRN and return to PRN Dashboard page
     await prnHelper.cancelPRNAndReturnToPRNsDashboard(pernDetails)
 
-    await prnDashboardPage.selectCancelledTab()
+    await prnDashboardPage.cancelledTab().click()
     await prnHelper.checkCancelledRows(pernDetails, 1)
     await prnDashboardPage.selectCancelledLink(1)
     currentPage = await switchToNewTabAndClosePreviousTab(currentPage)
@@ -293,15 +293,15 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     await prnViewPage.returnToPERNList().click()
     // End of PERN cancellation test
 
-    await prnDashboardPage.selectBackLink()
-    await wasteRecordsPage.selectBackLink()
+    await prnDashboardPage.backLink().click()
+    await wasteRecordsPage.backLink().click()
 
     // Check that the waste balance has been updated from the cancelled PRN
     const expectedUpdatedWasteBalance = '1,494.09'
     const availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe(expectedUpdatedWasteBalance)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(currentPage).toHaveTitle(/Signed out/)
   })
 })

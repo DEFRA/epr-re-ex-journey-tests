@@ -10,8 +10,9 @@ class ReportCheckAnswersPage extends Page {
   }
 
   deleteAndStartAgainLink() {
-    return this.page.locator('a.govuk-button--warning', {
-      hasText: 'Delete and start again'
+    return this.page.getByRole('button', {
+      name: 'Delete and start again',
+      exact: true
     })
   }
 }

@@ -35,31 +35,43 @@ class ReportDetailPage extends Page {
 
   async uploadNewSummaryLog() {
     await this.page
-      .locator('a.govuk-button--secondary', {
-        hasText: 'Upload new summary log'
-      })
+      .getByRole('button', { name: 'Upload new summary log', exact: true })
       .click()
   }
 
   async cancelAndReturnToReports() {
     await this.page
-      .locator('a', { hasText: /^\s*Cancel and return to reports\s*$/ })
+      .getByRole('link', {
+        name: 'Cancel and return to reports',
+        exact: true
+      })
       .click()
   }
 
+  // expect(locator) defaults to a 5s timeout, well under this suite's usual
+  // navigation margin (the value-form reads these replaced waited on the
+  // much longer test timeout via innerText()'s actionability check) - so
+  // each heading assertion here gets the same 10s margin used elsewhere in
+  // this codebase for a heading that settles after navigation (e.g.
+  // CreatePRNPage.headingText()'s expect.poll).
   async verifyDetailPageButtons() {
-    expect(await this.headingText()).toContain('Your summary log data')
+    await expect(this.heading()).toContainText('Your summary log data', {
+      timeout: 10000
+    })
 
     await this.uploadNewSummaryLog()
     const uploadSummaryLogPage = new UploadSummaryLogPage(this.page)
-    expect(await uploadSummaryLogPage.headingText()).toContain(
-      'Upload your summary log'
+    await expect(uploadSummaryLogPage.heading()).toContainText(
+      'Upload your summary log',
+      { timeout: 10000 }
     )
 
     await this.page.goBack()
     await this.cancelAndReturnToReports()
     const reportsPage = new ReportsPage(this.page)
-    expect(await reportsPage.headingText()).toContain('Reports')
+    await expect(reportsPage.heading()).toContainText('Reports', {
+      timeout: 10000
+    })
   }
 }
 

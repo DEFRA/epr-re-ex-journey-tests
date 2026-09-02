@@ -194,7 +194,7 @@ test.describe('Stale report @staleReport', () => {
     expect(await reportsPage.headingText()).toContain('Reports')
     await expectActionRequiredStatus(page, 1)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -254,7 +254,7 @@ test.describe('Stale report @staleReport', () => {
     expect(await reportsPage.headingText()).toContain('Reports')
     await expectActionRequiredStatus(page, 1)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

@@ -51,7 +51,7 @@ test.describe('Queue management page', () => {
     expect(row.commandType).toBe('PROCESS_SUMMARY_LOG')
 
     // Expand and verify raw message body
-    await queueManagementPage.expandRawMessage()
+    await queueManagementPage.rawMessageSummary().click()
     const rawBody = await queueManagementPage.getRawMessageBody()
     expect(rawBody).toContain('"type": "PROCESS_SUMMARY_LOG"')
 
