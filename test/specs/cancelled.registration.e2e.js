@@ -8,8 +8,8 @@ import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { test, expect } from '@playwright/test'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
 
-test.describe('Cancelled registration @cancelledregistration', () => {
-  test('Cancelling a registration also cancels the linked accreditation @cancelledregistrationcascade', async ({
+test.describe('Cancelled registration @cancelledRegistration', () => {
+  test('Cancelling a registration also cancels the linked accreditation @cancelledRegistrationCascade', async ({
     page
   }) => {
     const dashboardPage = new DashboardPage(page)

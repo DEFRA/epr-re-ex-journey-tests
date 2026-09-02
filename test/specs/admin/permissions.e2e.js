@@ -37,7 +37,7 @@ users.forEach(({ username, scopes }) => {
       await homePage.signOutLink().click()
     })
 
-    test('Should not be able to update an organisation @permissions @organisationpermissions', async ({
+    test('Should not be able to update an organisation @permissions @organisationPermissions', async ({
       page
     }) => {
       const navigation = new Navigation(page)
@@ -67,7 +67,7 @@ users.forEach(({ username, scopes }) => {
       expect(saveButtonExists).toBeFalsy()
     })
 
-    test('Should not be able to upload ORS file @permissions @orspermissions', async ({
+    test('Should not be able to upload ORS file @permissions @orsPermissions', async ({
       page
     }) => {
       const navigation = new Navigation(page)
@@ -85,7 +85,7 @@ users.forEach(({ username, scopes }) => {
       )
     })
 
-    test('Should not be able to unsubmit a report @permissions @unsubmitpermissions', async ({
+    test('Should not be able to unsubmit a report @permissions @unsubmitPermissions', async ({
       page
     }) => {
       const organisationsPage = new OrganisationsPage(page)
@@ -141,7 +141,7 @@ test.describe('Permissions flow for a support user only', () => {
     }
   }
 
-  test('Should not be able to purge the DLQ from the UI @permissions @dlqpermissions', async ({
+  test('Should not be able to purge the DLQ from the UI @permissions @dlqPermissions', async ({
     page
   }) => {
     const navigation = new Navigation(page)

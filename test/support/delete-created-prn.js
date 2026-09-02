@@ -24,7 +24,7 @@ import { tonnageWordings, tradingName } from './fixtures.js'
 
 /**
  * Shared "create then delete a PRN/PERN" flow. Reprocessor Output
- * (@delprnoutput) and Exporter (@delprnexp) specs are identical apart from
+ * (@delPRNOutput) and Exporter (@delPRNExp) specs are identical apart from
  * test data, PRN/PERN wording, and the Exporter-only overseas-sites seeding
  * step, so both call this with a different config.
  *

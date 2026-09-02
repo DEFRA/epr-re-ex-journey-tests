@@ -37,7 +37,7 @@ test.describe('Admin summary log document view', () => {
     return registrationOverviewPage
   }
 
-  test('An admin opens a submitted summary log as pretty-printed JSON from the registration overview @summarylogdocument', async ({
+  test('An admin opens a submitted summary log as pretty-printed JSON from the registration overview @summaryLogDocument', async ({
     page
   }) => {
     const registrationOverviewPage = await openRegistrationOverview(page)
@@ -80,7 +80,7 @@ test.describe('Admin summary log document view', () => {
     ).toBeGreaterThan(0)
   })
 
-  test('An unknown summary log id falls through to the standard Page not found @summarylogdocument', async ({
+  test('An unknown summary log id falls through to the standard Page not found @summaryLogDocument', async ({
     page
   }) => {
     await openRegistrationOverview(page)

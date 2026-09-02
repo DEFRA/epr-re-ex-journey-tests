@@ -18,8 +18,8 @@ import { createLinkAndLogin } from './login-helper.js'
  * Shared "unhappy paths" flow for creating a PRN/PERN: create a draft, discard
  * it twice (once via double-click-prevented button, once via the back link),
  * then exercise the Create page's validation errors, and confirm the Create
- * page is reachable from the PRN/PERN dashboard. Reprocessor (@createprn) and
- * Exporter (@prnexporter) specs are identical apart from test data and
+ * page is reachable from the PRN/PERN dashboard. Reprocessor (@createPRN) and
+ * Exporter (@prnExporter) specs are identical apart from test data and
  * PRN/PERN wording, so both call this with a different config.
  *
  * @param {import('@playwright/test').Page} page

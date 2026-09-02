@@ -11,7 +11,7 @@ test.describe('Credited tonnage page', () => {
     seeded = await seedAdminActivityData()
   })
 
-  test('Should report tonnage credited to the waste balance by accreditation and month, and allow a CSV download @creditedtonnage', async ({
+  test('Should report tonnage credited to the waste balance by accreditation and month, and allow a CSV download @creditedTonnage', async ({
     page
   }) => {
     const loginPage = new AdminLoginPage(page)

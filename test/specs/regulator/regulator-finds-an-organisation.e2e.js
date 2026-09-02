@@ -15,7 +15,7 @@ import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulat
 const LEDGER_TIMESTAMP = /^\d{1,2} [A-Z][a-z]+ \d{4}, \d{1,2}:\d{2}(am|pm)$/
 
 test.describe('A regulator looking up an operator @regulator', () => {
-  test('finds an organisation by name, reads its notes, its reports and its waste balance ledger, and is offered nothing to change @regulatorsearch', async ({
+  test('finds an organisation by name, reads its notes, its reports and its waste balance ledger, and is offered nothing to change @regulatorSearch', async ({
     page
   }) => {
     const loginPage = new RegulatorLoginPage(page)

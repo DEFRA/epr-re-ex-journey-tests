@@ -26,7 +26,7 @@ import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
-  test('Should be able to create, issue and reject PRNs for Wood (Exporter) @issueprnexp @smoketest', async ({
+  test('Should be able to create, issue and reject PRNs for Wood (Exporter) @issuePRNExp @smoketest', async ({
     page
   }) => {
     let currentPage = page

@@ -24,7 +24,7 @@ import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 test.describe('Issuing Packing Recycling Notes', () => {
-  test('Should be able to create, issue and reject PRNs for Paper (Reprocessor Input) @issueprnrepro @smoketest', async ({
+  test('Should be able to create, issue and reject PRNs for Paper (Reprocessor Input) @issuePRNRepro @smoketest', async ({
     page
   }) => {
     // Trimmed to one full PRN lifecycle (create -> issue -> external cancel

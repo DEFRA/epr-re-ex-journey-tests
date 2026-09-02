@@ -14,7 +14,7 @@ const testMessage = {
 }
 
 test.describe('Queue management page', () => {
-  test('Should display DLQ messages and clear them @queuemanagement', async ({
+  test('Should display DLQ messages and clear them @queueManagement', async ({
     page
   }) => {
     const loginPage = new AdminLoginPage(page)

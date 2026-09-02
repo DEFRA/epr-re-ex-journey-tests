@@ -27,7 +27,7 @@ async function readRequestToken(page) {
 }
 
 test.describe('A regulator who tries to change operator data @regulator', () => {
-  test('is told they do not have permission @regulatorcannotchange', async ({
+  test('is told they do not have permission @regulatorCannotChange', async ({
     page
   }) => {
     const loginPage = new RegulatorLoginPage(page)
