@@ -103,12 +103,13 @@ class Page {
   }
 
   // Reads a single row of a header-driven GOV.UK table into a Map keyed by
-  // column header text.
+  // column header text. A row whose first cell heads it (firstCellIsHeader)
+  // holds that cell as a th, so the row is read as th and td alike.
   async readGovukTableRow(tableSelector, rowIndex) {
     const tableRow = new Map()
     const headers = this.page.locator(`${tableSelector} > thead > tr th`)
     const cells = this.page.locator(
-      `${tableSelector} > tbody > tr:nth-child(${rowIndex}) td`
+      `${tableSelector} > tbody > tr:nth-child(${rowIndex}) :is(th, td)`
     )
 
     // Pages can be queried immediately after a full-page navigation. Wait for
