@@ -7,7 +7,7 @@ import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
 test.describe('A regulator reading a registration @regulator', () => {
-  test('walks from the organisation list to a registration, reads what it covers and the periods it holds, then opens one and comes back @regulatorregistration @regulatoraccreditation', async ({
+  test('walks from the organisation list to a registration, reads what it covers and the periods it holds, then opens one and comes back @regulatorRegistration @regulatorAccreditation', async ({
     page
   }) => {
     const loginPage = new RegulatorLoginPage(page)

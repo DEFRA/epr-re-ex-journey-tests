@@ -11,7 +11,7 @@ test.describe('Summary log uploads report page', () => {
     seeded = await seedAdminActivityData()
   })
 
-  test('Should list summary log upload activity for a registration and allow a CSV download @summarylogsuploadsreport', async ({
+  test('Should list summary log upload activity for a registration and allow a CSV download @summaryLogsUploadsReport', async ({
     page
   }) => {
     const loginPage = new AdminLoginPage(page)

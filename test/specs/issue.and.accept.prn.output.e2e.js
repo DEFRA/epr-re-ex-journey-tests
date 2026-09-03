@@ -20,7 +20,7 @@ import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 test.describe('Issuing Packing Recycling Notes', () => {
-  test('Should be able to create, issue and accept PRNs for Plastic (Reprocessor Output) @issueprnoutput @smoketest', async ({
+  test('Should be able to create, issue and accept PRNs for Plastic (Reprocessor Output) @issuePRNOutput @smoketest', async ({
     page
   }) => {
     // Reassigned after each switchToNewTabAndClosePreviousTab call, since

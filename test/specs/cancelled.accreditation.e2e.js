@@ -8,8 +8,8 @@ import { test, expect } from '@playwright/test'
 import { checkBodyText } from '~/test/support/checks.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
 
-test.describe('Cancelled accreditation @cancelledaccreditation', () => {
-  test('Should not be able to access PERNs when an accreditation is cancelled @cancelledprn', async ({
+test.describe('Cancelled accreditation @cancelledAccreditation', () => {
+  test('Should not be able to access PERNs when an accreditation is cancelled @cancelledPRN', async ({
     page
   }) => {
     const dashboardPage = new DashboardPage(page)

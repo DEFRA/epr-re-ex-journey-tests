@@ -9,7 +9,7 @@ import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import { test, expect } from '@playwright/test'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
 
-test.describe('Reapply for accreditation link @reapplyaccreditation', () => {
+test.describe('Reapply for accreditation link @reapplyAccreditation', () => {
   test('renders on the registration card pointing at the WS2 renewal host', async ({
     page
   }) => {

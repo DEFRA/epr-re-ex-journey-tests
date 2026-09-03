@@ -10,7 +10,7 @@ import {
 } from '../../support/accessibility.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
 test.describe('A regulator browsing every organisation @regulator', () => {
-  test('reads the list, narrows it to one organisation, and clears the search again @regulatorbrowse', async ({
+  test('reads the list, narrows it to one organisation, and clears the search again @regulatorBrowse', async ({
     page
   }) => {
     const homePage = new RegulatorHomePage(page)

@@ -13,7 +13,7 @@ test.describe('An operator at the regulator door @regulator', () => {
   // doubled under a /cy prefix. A guard that holds on one prefix and not the
   // other is a way in, and nothing else in the suite looks for it.
   for (const prefix of ['', '/cy']) {
-    test(`cannot open the regulators area at ${prefix || '/'} @operatoratregulatordoor`, async ({
+    test(`cannot open the regulators area at ${prefix || '/'} @operatorAtRegulatorDoor`, async ({
       page
     }) => {
       // The journey needs nothing of the operator but a signed-in session, so

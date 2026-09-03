@@ -34,7 +34,7 @@ async function uploadWorkbookAndWaitForCompletion(
   return orsUploadPage.waitForCompletedOrFailedImport()
 }
 
-test.describe('ORS upload flow @orsupload', () => {
+test.describe('ORS upload flow @orsUpload', () => {
   test('Should upload an ORS workbook and show completed import status', async ({
     page
   }) => {
@@ -178,7 +178,7 @@ test.describe('ORS upload flow @orsupload', () => {
   // created in "Should upload workbooks for filter tests" via shared
   // closure state - non-serial mode doesn't guarantee that setup runs (or
   // finishes running) before the tests that depend on it.
-  test.describe.serial('Registration number filter @orsupload', () => {
+  test.describe.serial('Registration number filter @orsUpload', () => {
     let alphaRegistrationNumber
     let alphaAccreditationNumber
     let betaRegistrationNumber

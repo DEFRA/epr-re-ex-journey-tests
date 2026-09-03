@@ -40,7 +40,7 @@ test.describe('Admin accreditation status transitions', () => {
     await loginPage.loginAsServiceMaintainer()
   })
 
-  test('gates approval on the registration, then rejects, reopens, grants, suspends, reapproves, cancels and reinstates an accreditation through the admin UI @admin @accreditationtransitions', async ({
+  test('gates approval on the registration, then rejects, reopens, grants, suspends, reapproves, cancels and reinstates an accreditation through the admin UI @accreditationTransitions', async ({
     page
   }) => {
     const organisationsPage = new OrganisationsPage(page)

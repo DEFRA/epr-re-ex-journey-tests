@@ -2,7 +2,7 @@ import { test } from '@playwright/test'
 import { runDeleteCreatedPrn } from '../support/delete-created-prn.js'
 
 test.describe('Deleting Packing Recycling Notes (Exporter)', () => {
-  test('Should be able to create and delete PRN for Fibre (Exporter) @delprnexp', async ({
+  test('Should be able to create and delete PRN for Fibre (Exporter) @delPRNExp', async ({
     page
   }) => {
     const regNumber = 'R26EX5000000002FB'

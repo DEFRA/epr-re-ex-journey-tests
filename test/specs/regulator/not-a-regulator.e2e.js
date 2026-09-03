@@ -5,7 +5,7 @@ import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { NotAuthorisedPage } from 'page-objects/regulator/not-authorised.page'
 
 test.describe('An Entra user who is not a regulator @regulator', () => {
-  test('is turned away at sign in, and reaches no operator page afterwards @notaregulator', async ({
+  test('is turned away at sign in, and reaches no operator page afterwards @notARegulator', async ({
     page
   }) => {
     const loginPage = new RegulatorLoginPage(page)

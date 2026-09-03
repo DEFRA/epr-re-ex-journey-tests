@@ -83,13 +83,22 @@ npm run test:local
 Running tests with a specific tag locally - for example, a frontend PRN spec or an admin spec:
 
 ```bash
-GREP='@delprnexp' npm run test:local:grep
-GREP='@tonnagemonitoring' npm run test:local:grep
+GREP='@delPRNExp' npm run test:local:grep
+GREP='@tonnageMonitoring' npm run test:local:grep
 ```
 
 **Tag conventions:**
 
+Tags are for `--grep` spec selection, not documentation. Every tag is camelCase (`@newTag`, not `@newtag` or `@new-tag`; a single-word tag like `@cma` is just lowercase). A handful of tags are additionally cross-cutting categories with an enforced meaning - use those to select a slice of the suite by concern, and hold any new one to the same bar: does it name a concern broad enough to span multiple spec files, or is it really a label for one spec?
+
 - `@smoketest` - broad, high-value specs (real S3/CDP Uploader exercise, wide page traversal across an app variant) worth running everywhere: locally, in GHA, and as the CDP Portal's default profile against a real environment. Reserve it for breadth/infra-relevance, not for re-proving business logic already covered by an ordinary spec - that just slows down every run without adding signal.
+- `@organisations` - admin-app specs that operate on an organisation as an admin-facing entity: viewing/updating it, its registrations and submissions, and linking/unlinking its Defra ID. Not for regulator-side or applicant-facing organisation views - use `@regulator` there.
+- `@regulator` - specs exercising the regulator frontend: login, browsing/searching organisations, reading registrations and accreditations, and regulator-side permission boundaries. Everything under `specs/regulator/` should carry it.
+- `@cma` - specs covering closed-period adjustments surfaced in summary logs and reports: adjusted-load detection, the associated messaging, and resubmission behaviour once a period has closed.
+- `@accessibility` - WCAG accessibility scans (axe-core sweeps) of a page or app variant. Keep these specs purely accessibility-focused; don't fold functional assertions into one just because it's already visiting the page.
+- `@permissions` - specs asserting a role is denied an admin action it shouldn't have (e.g. a service-maintainer scope blocked from unsubmitting a report or purging the DLQ). For the negative/restricted-access case only, not happy-path admin flows.
+
+Everything else you'll see in a test title (`@delPRNExp`, `@summaryLogReprocessorInput`, `@registrationTransitions`, ...) is a free-form, per-spec grep handle, not a category: `--grep` matches title text, so a short unique word lets you target one spec or scenario (see the `GREP=` examples above) without needing to type its full sentence. Beyond the shared camelCase rule, these aren't standardized - they aren't guaranteed to mean anything outside their own file, and shouldn't be used to select CI runs by concern - only the category tags above are held to that bar. `@admin` used to be one of these masquerading as a category (tagging 2 of the many specs under `specs/admin/`, duplicating what the path-based `test:local:admin` script already selects); it's been retired rather than fixed, since nothing needed the extra selector once you had the path.
 
 ### Running with Proxy
 

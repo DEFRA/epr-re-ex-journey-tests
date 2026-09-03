@@ -8,7 +8,7 @@ import { seedAdminActivityData } from '../../support/seeding/admin-activity.js'
 import { externalAPICancelPrn } from '../../support/seeding/prns.js'
 import { waitForWasteBalance } from '../../support/seeding/waiters.js'
 test.describe('Cancel an accepted PRN from the admin UI', () => {
-  test('issues, accepts and cancels a PRN, crediting the balance back @prnactivity @prncancellation', async ({
+  test('issues, accepts and cancels a PRN, crediting the balance back @prnActivity @prnCancellation', async ({
     page
   }) => {
     const seeded = await seedAdminActivityData()
@@ -49,7 +49,7 @@ test.describe('Cancel an accepted PRN from the admin UI', () => {
 })
 
 test.describe('Cancel an awaiting acceptance PRN from the admin UI', () => {
-  test('issues but does not accept, then cancels a PRN, crediting the balance back @prnactivity @prncancellation', async ({
+  test('issues but does not accept, then cancels a PRN, crediting the balance back @prnActivity @prnCancellation', async ({
     page
   }) => {
     const seeded = await seedAdminActivityData({ acceptPrn: false })
@@ -127,7 +127,7 @@ test.describe('Cancel an awaiting acceptance PRN from the admin UI', () => {
     )
   })
 
-  test('does not offer Cancel for a PRN the recipient has already rejected (awaiting_cancellation) @prnactivity @prncancellation', async ({
+  test('does not offer Cancel for a PRN the recipient has already rejected (awaiting_cancellation) @prnActivity @prnCancellation', async ({
     page
   }) => {
     const seeded = await seedAdminActivityData({ acceptPrn: false })

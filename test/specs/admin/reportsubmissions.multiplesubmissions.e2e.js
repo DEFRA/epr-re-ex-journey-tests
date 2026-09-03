@@ -54,7 +54,7 @@ test.describe('Report submissions CSV - multiple submissions per period', () => 
     await loginPage.loginAsServiceMaintainer()
   })
 
-  test('exports one row per submitted report, and an in-flight correction neither adds a row nor blanks the submitted figures @reportsubmissions @multipleSubmissions', async ({
+  test('exports one row per submitted report, and an in-flight correction neither adds a row nor blanks the submitted figures @reportSubmissions @multipleSubmissions', async ({
     page
   }) => {
     const reportSubmissionsPage = new ReportSubmissionsPage(page)

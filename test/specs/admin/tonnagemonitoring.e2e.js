@@ -5,7 +5,7 @@ import { Navigation } from 'page-objects/admin/navigation.page'
 import { TonnageMonitoringPage } from 'page-objects/admin/tonnage.monitoring.page'
 
 test.describe('Tonnage Monitoring page', () => {
-  test('Should be able to view Tonnage Monitoring if logged in @tonnagemonitoring', async ({
+  test('Should be able to view Tonnage Monitoring if logged in @tonnageMonitoring', async ({
     page
   }) => {
     const loginPage = new AdminLoginPage(page)

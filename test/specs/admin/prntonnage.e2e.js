@@ -11,7 +11,7 @@ test.describe('PRN tonnage page', () => {
     seeded = await seedAdminActivityData()
   })
 
-  test('Should report accepted PRN tonnage per accreditation and allow a CSV download @prntonnage', async ({
+  test('Should report accepted PRN tonnage per accreditation and allow a CSV download @prnTonnage', async ({
     page
   }) => {
     const loginPage = new AdminLoginPage(page)

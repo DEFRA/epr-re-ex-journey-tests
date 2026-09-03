@@ -40,7 +40,7 @@ test.describe('Report Submissions page', () => {
     await loginPage.loginAsServiceMaintainer()
   })
 
-  test('Should be able to download Report Submissions if logged in, with all expected column headers @reportsubmissions', async ({
+  test('Should be able to download Report Submissions if logged in, with all expected column headers @reportSubmissions', async ({
     page
   }) => {
     const navigation = new Navigation(page)
