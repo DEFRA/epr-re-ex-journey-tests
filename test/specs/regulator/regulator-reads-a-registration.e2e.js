@@ -152,6 +152,69 @@ test.describe('A regulator reading a registration @regulator', () => {
     // page above makes for itself.
     expect(await accreditationPage.changeControlCount()).toBe(0)
 
+    // The reports table is the record of what the operator owed under this
+    // accreditation and what arrived against it. The seed submitted one
+    // report, for the last completed period, and left every earlier period
+    // unreported - so the one table holds a row of each kind.
+    const { year, cadence, period } = seeded.reportPeriod
+
+    // The period the seed chose moves with the run date, so its label is
+    // derived from what was seeded rather than written down.
+    const monthName = new Date(Date.UTC(year, period - 1)).toLocaleString(
+      'en-GB',
+      { month: 'long', timeZone: 'UTC' }
+    )
+    const periodLabel = `${monthName}, ${year}`
+
+    expect(await accreditationPage.reportHeadings()).toStrictEqual([
+      'Period',
+      'Due date',
+      'Submission date',
+      'Status',
+      'Actions'
+    ])
+
+    const reports = await accreditationPage.reports()
+
+    // The table and the empty state are alternatives, so the table rendering
+    // is only half the claim - the message being absent is the other half.
+    expect(await accreditationPage.noReportsMessage().count()).toBe(0)
+
+    // The seeded period is the most recent one to have ended, so finding it
+    // first is what says the table is ordered most recent period first.
+    expect(reports[0].get('Period')).toBe(periodLabel)
+    expect(reports[0].get('Due date')).toMatch(/^\d{1,2} [A-Z][a-z]+ \d{4}$/)
+    expect(reports[0].get('Status')).toBe('Submitted')
+
+    // The submission's timestamp belongs to the run rather than to this page,
+    // so the row is asserted to carry one rather than to carry a given one.
+    expect(reports[0].get('Submission date')).toBeTruthy()
+
+    expect(await accreditationPage.reportActionLink(1).innerText()).toContain(
+      'View report'
+    )
+    expect(
+      await accreditationPage.reportActionLink(1).getAttribute('href')
+    ).toContain(`/reports/${year}/${cadence}/${period}/submissions/1/view`)
+
+    // Every action link reads the same two words, so the period it names is
+    // the only thing telling one row's link from another's.
+    expect(await accreditationPage.getReportActionHiddenText(1)).toBe(
+      periodLabel
+    )
+
+    // Earlier periods ended with nothing submitted against them, so the last
+    // row is the other kind: a period that is owed rather than answered.
+    expect(reports.length).toBeGreaterThan(1)
+
+    const unreported = reports[reports.length - 1]
+
+    expect(unreported.get('Submission date')).toBe('')
+    expect(unreported.get('Status')).not.toBe('Submitted')
+    expect(
+      await accreditationPage.reportActionLink(reports.length).count()
+    ).toBe(0)
+
     // Getting back to the registration is an acceptance criterion, so the
     // crumb is followed rather than merely asserted to be present.
     await accreditationPage.registrationLink().click()

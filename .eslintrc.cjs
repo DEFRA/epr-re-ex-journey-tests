@@ -15,7 +15,11 @@ module.exports = {
     camelcase: [
       'error',
       {
-        allow: ['^faker[A-Z]{2}_[A-Z]{2}$']
+        allow: [
+          '^faker[A-Z]{2}_[A-Z]{2}$',
+          '^page_location$',
+          '^page_referrer$'
+        ]
       }
     ]
   }
