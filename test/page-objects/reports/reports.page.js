@@ -74,8 +74,15 @@ class ReportsPage extends Page {
   #activeTableXPath = tableAfterHeadingXPath(ACTIVE_HEADING)
   #submittedTableXPath = tableAfterHeadingXPath(SUBMITTED_HEADING)
 
+  // Overrides the base Page's heading()/headingText(): this page's own h1
+  // renders as govuk-heading-l, not the govuk-heading-xl every other page in
+  // the suite uses.
+  heading() {
+    return this.page.locator('h1.govuk-heading-l')
+  }
+
   async headingText() {
-    return this.page.locator('h1.govuk-heading-l').innerText()
+    return this.heading().innerText()
   }
 
   async selectActiveActionLink(rowIndex) {

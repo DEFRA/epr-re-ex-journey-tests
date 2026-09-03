@@ -11,9 +11,9 @@ import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.p
 import { MonthlyReportDraftDeclarationPage } from 'page-objects/reports/monthly.report.draft.declaration.page.js'
 import {
   createLinkedOrganisation,
-  unsubmitReport,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
+import { unsubmitReport } from '../support/seeding/reports.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import {
   navigateToReports,
@@ -115,7 +115,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
 
     test.afterAll(async () => {
       const homePage = new HomePage(page)
-      await homePage.signOut()
+      await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
       await page.close()
     })
@@ -160,7 +160,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       await reportDetailPage.useThisData()
 
       // On tonnes-recycled — back link goes to reports list
-      await tonnesRecycledPage.selectBackLink()
+      await tonnesRecycledPage.backLink().click()
       const reportsHeading = await reportsPage.headingText()
       expect(reportsHeading).toContain('Reports')
 
@@ -173,7 +173,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       await tonnesRecycledPage.continue()
 
       // On tonnes-not-recycled — back link goes to tonnes-recycled
-      await tonnesNotRecycledPage.selectBackLink()
+      await tonnesNotRecycledPage.backLink().click()
       const backToTonnesRecycled = await tonnesRecycledPage.headingText()
       expect(backToTonnesRecycled).toBeTruthy()
 
@@ -184,12 +184,12 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       await tonnesNotRecycledPage.continue()
 
       // On supporting-information — back link goes to tonnes-not-recycled (not free-prns)
-      await reportSupportingInformationPage.selectBackLink()
+      await reportSupportingInformationPage.backLink().click()
       const backToTonnesNotRecycled = await tonnesNotRecycledPage.headingText()
       expect(backToTonnesNotRecycled).toBeTruthy()
 
       // Clean up — leave the period "Due" for the next test
-      await tonnesNotRecycledPage.deleteReportLink()
+      await tonnesNotRecycledPage.deleteReportLink().click()
       await confirmDeleteReportPage.confirmDeletion()
     })
 
@@ -258,7 +258,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       await checkBodyText(page, 'report created', 30)
 
       // --- View draft report in new tab ---
-      await confirmationPage.viewDraftReport()
+      await confirmationPage.viewDraftReport().click()
       let newTab = await switchToNewTab(page)
 
       // Verify draft report page content
@@ -279,7 +279,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       // Close draft tab and return to confirmation page
       await closeCurrentTabAndReturn(newTab)
 
-      await confirmationPage.goToReports()
+      await confirmationPage.goToReports().click()
       await reportsPage.selectActiveActionLink(1)
 
       // Confirm and submit report
@@ -288,7 +288,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       const confirmationText = await reportSubmittedPage.confirmationText()
       expect(confirmationText).toContain('report submitted to regulator')
 
-      await reportSubmittedPage.viewReportLink()
+      await reportSubmittedPage.viewReportLink().click()
       newTab = await switchToNewTab(page)
 
       await checkBodyText(newTab, 'Report for Quarter', 10)
@@ -308,7 +308,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       // Close report tab and return to submission confirmation page
       await closeCurrentTabAndReturn(newTab)
 
-      await reportSubmittedPage.returnToReportsLink()
+      await reportSubmittedPage.returnToReportsLink().click()
 
       const submittedBadge = await reportsPage.getSubmittedStatusBadge(1)
       const submittedColour = await reportsPage.getSubmittedStatusColour(1)
@@ -353,7 +353,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
     const reportsHeading = await reportsPage.headingText()
     expect(reportsHeading).toContain('Reports')
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

@@ -7,7 +7,7 @@ import { checkBodyText, checkUploadErrorText } from '../support/checks.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 // Split from summarylogs.unhappy.paths.e2e.js (PAE-1405 CI runtime work) so
@@ -47,7 +47,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     )
 
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile('resources/empty.xlsx')
     await uploadSummaryLogPage.continue()
@@ -75,7 +75,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     await checkBodyText(page, 'R26ER5000000002PA', 10)
     await checkBodyText(page, 'A26ER5000000004PA', 10)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -110,7 +110,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     )
 
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.continue()
     await expect(page).toHaveTitle(/Summary log: upload/)
@@ -134,7 +134,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
       60
     )
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -168,7 +168,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     )
 
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await expect(page).toHaveTitle(/Summary log: upload/)
 
@@ -378,7 +378,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
 
     expect(validationErrors).toEqual(expectedErrors)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

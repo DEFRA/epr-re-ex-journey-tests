@@ -188,10 +188,8 @@ class OrsUploadPage extends AdminPage {
       .innerText()
   }
 
-  async clickNextPage() {
-    await this.page
-      .locator('nav.govuk-pagination .govuk-pagination__next a')
-      .click()
+  nextPageLink() {
+    return this.page.locator('nav.govuk-pagination .govuk-pagination__next a')
   }
 
   async clickPageNumber(pageNumber) {
@@ -214,8 +212,10 @@ class OrsUploadPage extends AdminPage {
     return this.registrationNumberInput.inputValue()
   }
 
-  async clearRegistrationNumberFilter() {
-    await this.page.locator('form.app-filters a.govuk-button--inverse').click()
+  // Hand-written markup rather than the govukButton macro, so it's a plain
+  // link (no role="button") despite the button-styled classes.
+  clearRegistrationNumberFilterLink() {
+    return this.page.locator('form.app-filters a.govuk-button--inverse')
   }
 
   async getInsetText() {
@@ -223,12 +223,21 @@ class OrsUploadPage extends AdminPage {
   }
 
   async permissionsErrorHeading() {
-    return this.page.locator('#main-content > div > div > h1').innerText()
+    return this.page
+      .getByRole('heading', {
+        level: 1,
+        name: 'You do not have permission',
+        exact: true
+      })
+      .innerText()
   }
 
   async permissionsErrorText() {
     return this.page
-      .locator('#main-content > div > div > p:nth-child(2)')
+      .getByText(
+        'Your account does not have permission to use this page. If you think this is wrong, contact your administrator.',
+        { exact: true }
+      )
       .innerText()
   }
 

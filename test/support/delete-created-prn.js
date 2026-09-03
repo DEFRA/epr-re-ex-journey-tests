@@ -11,12 +11,16 @@ import { DashboardPage } from '../page-objects/dashboard.page.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
-  updateMigratedOrganisation,
-  uploadAndSubmitSummaryLog
-} from './apicalls.js'
+  updateMigratedOrganisation
+} from './seeding/organisation.js'
+import { uploadAndSubmitSummaryLog } from './seeding/summary-logs.js'
 import { defraIdStub } from './defra-id-stub.js'
 import { createLinkAndLogin } from './login-helper.js'
 import { tonnageWordings, tradingName } from './fixtures.js'
+
+/**
+ * @import { Page } from '@playwright/test'
+ */
 
 /**
  * Shared "create then delete a PRN/PERN" flow. Reprocessor Output
@@ -24,7 +28,7 @@ import { tonnageWordings, tradingName } from './fixtures.js'
  * test data, PRN/PERN wording, and the Exporter-only overseas-sites seeding
  * step, so both call this with a different config.
  *
- * @param {import('@playwright/test').Page} page
+ * @param {Page} page
  * @param {object} config
  * @param {string} config.wasteProcessingType - 'Reprocessor' | 'Exporter'
  * @param {string} config.material - material param for createLinkedOrganisation
@@ -109,13 +113,13 @@ export async function runDeleteCreatedPrn(
   let wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
   expect(wasteBalanceAmount).toBe(expectedWasteBalance)
 
-  await wasteRecordsPage[createNewLinkName]()
+  await wasteRecordsPage[createNewLinkName]().click()
 
   await createPRNPage.createPrn(tonnageWordings.integer, tradingName, 'Testing')
 
   const headingText = await checkBeforeCreatingPrnPage.headingText()
   expect(headingText).toBe(`Check before creating ${wording}`)
-  await checkBeforeCreatingPrnPage.createPRN()
+  await checkBeforeCreatingPrnPage.createPRNButton().click()
 
   const message = await prnCreatedPage.messageText()
 
@@ -124,50 +128,50 @@ export async function runDeleteCreatedPrn(
   expect(message).toContain(`${wording} created`)
   expect(message).toContain(awaitingAuthorisationStatus)
 
-  await prnCreatedPage.returnToRegistrationPage()
+  await prnCreatedPage.returnToRegistrationPage().click()
   await dashboardPage.selectTableLink(1, 1)
 
   // Check waste balance amount is deducted from creation
   wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
   expect(wasteBalanceAmount).toBe(expectedDeductedWasteBalance)
 
-  await wasteRecordsPage[manageLinkName]()
+  await wasteRecordsPage[manageLinkName]().click()
 
   // Check No PRNs/PERNs have been issued yet message
-  await prnDashboardPage.selectIssuedTab()
+  await prnDashboardPage.issuedTab().click()
   const noIssuedPrnMessage = await prnDashboardPage.getNoIssuedPrnMessage()
   expect(noIssuedPrnMessage).toBe(`No ${wording}s have been issued yet.`)
 
   // Return to awaiting authorisation PRNs/PERNs
-  await prnDashboardPage.selectAwaitingActionTab()
+  await prnDashboardPage.awaitingActionTab().click()
   await prnDashboardPage.selectAwaitingLink(1)
 
   // Test the back link on Delete confirmation page first
-  await prnViewPage.deletePRNButton()
+  await prnViewPage.deletePRNButton().click()
 
   let confirmDeleteHeadingText = await confirmDeletePRNPage.headingText()
   expect(confirmDeleteHeadingText).toBe(
     `Are you sure you want to delete this ${wording}?`
   )
-  await confirmDeletePRNPage.selectBackLink()
+  await confirmDeletePRNPage.backLink().click()
 
   // Now delete the PRN/PERN
-  await prnViewPage.deletePRNButton()
+  await prnViewPage.deletePRNButton().click()
   confirmDeleteHeadingText = await confirmDeletePRNPage.headingText()
   expect(confirmDeleteHeadingText).toBe(
     `Are you sure you want to delete this ${wording}?`
   )
-  await confirmDeletePRNPage.deletePrnAndCheckDoubleClickPrevented()
+  await confirmDeletePRNPage.deletePrnAndCheckDoubleClickPrevented(wording)
 
   const noCreatedPrnMessage = await prnDashboardPage.getNoCreatedPrnMessage()
   expect(noCreatedPrnMessage).toBe(`You have not created any ${wording}s.`)
 
-  await prnDashboardPage.selectBackLink()
+  await prnDashboardPage.backLink().click()
 
   // Check waste balance amount is now from the uploaded value and "returned" from the deleted PRN/PERN
   wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
   expect(wasteBalanceAmount).toBe(expectedWasteBalance)
 
-  await homePage.signOut()
+  await homePage.signOutLink().click()
   await expect(page).toHaveTitle(/Signed out/)
 }

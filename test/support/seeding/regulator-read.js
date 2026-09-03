@@ -1,20 +1,21 @@
 import {
   createAndRegisterDefraIdUser,
+  linkDefraIdUser
+} from '../defra-id-linking.js'
+import {
   createLinkedOrganisation,
-  createPrn,
-  externalAPICancelPrn,
   lastCompletedPeriod,
-  linkDefraIdUser,
-  seedReportSubmission,
-  updateMigratedOrganisation,
-  updatePrnStatus,
-  uploadAndSubmitSummaryLog,
-  waitForWasteBalance
-} from './apicalls.js'
-import { defraIdStub } from './defra-id-stub.js'
+  updateMigratedOrganisation
+} from './organisation.js'
+import { createPrn, externalAPICancelPrn, updatePrnStatus } from './prns.js'
+import { seedReportSubmission } from './reports.js'
+import { uploadAndSubmitSummaryLog } from './summary-logs.js'
+import { waitForWasteBalance } from './waiters.js'
+import { defraIdStub } from '../defra-id-stub.js'
+import { generateRegNumber, generateAccNumber } from '../reg-acc-number.js'
 
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
-const REGISTRATION_NUMBER = 'R26ER5000000003PA'
+export const REGISTRATION_NUMBER = 'R26ER5000000003PA'
 const ACCREDITATION_NUMBER = 'A26ER5000000002PA'
 
 // The tonnage each seeded note is worth, and the figures the seeded report
@@ -47,6 +48,7 @@ const REPORT_FIGURES = {
  * @returns {Promise<{
  *   companyName: string,
  *   refNo: string,
+ *   registrationNumber: string,
  *   orgId: number,
  *   registrationId: string,
  *   accreditationId: string,
@@ -141,6 +143,7 @@ export async function seedAwaitingPrnAndSubmittedReport() {
     refNo: organisation.refNo,
     orgId: organisation.orgId,
     registrationId,
+    registrationNumber: REGISTRATION_NUMBER,
     accreditationId,
     accreditationNumber: ACCREDITATION_NUMBER,
     prnId,
@@ -148,5 +151,118 @@ export async function seedAwaitingPrnAndSubmittedReport() {
     cancellationPrnId: cancellation.prnId,
     cancellationPrnTonnage: CANCELLATION_PRN_TONNAGE,
     reportPeriod
+  }
+}
+
+const INPUT_SITE = 'Regulator read - reprocessor input site'
+const OUTPUT_SITE = 'Regulator read - reprocessor output site'
+
+/**
+ * Seeds one organisation holding three registrations, so a regulator journey
+ * can prove the three things a single-registration organisation cannot: that
+ * registrations group by site, that reprocessor and exporter registrations
+ * are shown apart, and that a registration with no accreditation reads
+ * differently from one that carries one.
+ *
+ * The reprocessor input and output registrations sit at two different sites,
+ * so the Reprocessor tab renders two site tables rather than one. The output
+ * registration carries no accreditation, so its row is the one that proves
+ * the "Not applicable" case rather than the "Approved" one the input
+ * registration already covers. The exporter registration lives on its own
+ * tab and, unlike a reprocessor's, its table carries no site caption at all.
+ *
+ * All three registrations and the (two) accreditations are approved
+ * over HTTP as the operator, exactly as seedAwaitingPrnAndSubmittedReport
+ * does, so a regulator journey can start at sign-in with the data already in
+ * place.
+ *
+ * @returns {Promise<{
+ *   companyName: string,
+ *   refNo: string,
+ *   orgId: number,
+ *   inputSite: string,
+ *   outputSite: string,
+ *   inputRegistrationNumber: string,
+ *   outputRegistrationNumber: string,
+ *   exporterRegistrationNumber: string
+ * }>}
+ */
+export async function seedMultiSiteMultiTypeOrganisation() {
+  const organisation = await createLinkedOrganisation([
+    {
+      material: 'Paper or board (R3)',
+      wasteProcessingType: 'Reprocessor',
+      street: INPUT_SITE
+    },
+    {
+      material: 'Steel (R4)',
+      wasteProcessingType: 'Reprocessor',
+      street: OUTPUT_SITE,
+      withoutAccreditation: true
+    },
+    { material: 'Plastic (R3)', wasteProcessingType: 'Exporter' }
+  ])
+
+  const inputRegistrationNumber = generateRegNumber({
+    wasteProcessingType: 'reprocessor',
+    materialSuffix: 'PA',
+    serial: '0201'
+  })
+  const outputRegistrationNumber = generateRegNumber({
+    wasteProcessingType: 'reprocessor',
+    materialSuffix: 'ST',
+    serial: '0202'
+  })
+  const exporterRegistrationNumber = generateRegNumber({
+    wasteProcessingType: 'exporter',
+    materialSuffix: 'PL',
+    serial: '0203'
+  })
+
+  const migrated = await updateMigratedOrganisation(organisation.refNo, [
+    {
+      reprocessingType: 'input',
+      regNumber: inputRegistrationNumber,
+      accNumber: generateAccNumber({
+        wasteProcessingType: 'reprocessor',
+        materialSuffix: 'PA',
+        serial: '0201'
+      }),
+      status: 'approved'
+    },
+    {
+      // The output registration is deliberately left without an
+      // accreditation - withoutAccreditation has to be set on both this row
+      // and its matching createLinkedOrganisation row above, or
+      // updateMigratedOrganisation's accreditation index drifts by one and
+      // stamps a reprocessor accreditation shape onto the exporter's record.
+      reprocessingType: 'output',
+      regNumber: outputRegistrationNumber,
+      status: 'approved',
+      withoutAccreditation: true
+    },
+    {
+      regNumber: exporterRegistrationNumber,
+      accNumber: generateAccNumber({
+        wasteProcessingType: 'exporter',
+        materialSuffix: 'PL',
+        serial: '0203'
+      }),
+      status: 'approved'
+    }
+  ])
+
+  const user = await createAndRegisterDefraIdUser(migrated.email)
+  await linkDefraIdUser(organisation.refNo, user.userId, migrated.email)
+
+  return {
+    companyName: organisation.organisation.companyName,
+    refNo: organisation.refNo,
+    orgId: organisation.orgId,
+    inputSite: INPUT_SITE,
+    outputSite: OUTPUT_SITE,
+    inputRegistrationNumber,
+    outputRegistrationNumber,
+    exporterRegistrationNumber
   }
 }

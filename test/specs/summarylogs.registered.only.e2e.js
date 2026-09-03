@@ -2,12 +2,15 @@ import { test, expect } from '@playwright/test'
 import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { HomePage } from 'page-objects/homepage.js'
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
-import seedOverseasSites, {
-  createAndRegisterDefraIdUser,
+import {
+  seedOverseasSites,
   createLinkedOrganisation,
-  linkDefraIdUser,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
+import {
+  createAndRegisterDefraIdUser,
+  linkDefraIdUser
+} from '../support/defra-id-linking.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude
@@ -102,7 +105,7 @@ test.describe('@registered-only', () => {
     await checkBodyTextDoesNotInclude(page, 'Accreditation number', 5)
     await checkBodyTextDoesNotInclude(page, 'PRNs', 5)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
     await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-output-regonly.xlsx'
@@ -115,20 +118,20 @@ test.describe('@registered-only', () => {
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(page, 'new loads will be recorded', 30)
     await checkBodyText(page, 'These have been added to your summary log.', 30)
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
 
     await checkBodyText(page, 'Summary log uploaded', 30)
     await checkBodyTextDoesNotInclude(page, 'Your updated waste balance', 10)
-    await uploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
     const exportRow = await dashboardPage.getTableRow(1, 1)
     expect(exportRow.get('Accreditation')).toBe('Not accredited')
     expect(exportRow.get('Available waste balance (tonnes)')).toBe(
       'Not applicable'
     )
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -178,7 +181,7 @@ test.describe('@registered-only', () => {
     await dashboardPage.selectTableLink(1, 1)
     await checkBodyText(page, 'R26EX5000000003PA', 10)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
 
     await uploadSummaryLogPage.uploadFile('resources/exporter-regonly.xlsx')
@@ -190,13 +193,13 @@ test.describe('@registered-only', () => {
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(page, 'new loads will be recorded', 30)
     await checkBodyText(page, 'These have been added to your summary log.', 30)
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
 
     await checkBodyText(page, 'Summary log uploaded', 30)
     await checkBodyTextDoesNotInclude(page, 'Your updated waste balance', 10)
-    await uploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

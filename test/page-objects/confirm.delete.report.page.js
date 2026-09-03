@@ -2,15 +2,20 @@ import { Page } from 'page-objects/page'
 
 class ConfirmDeleteReportPage extends Page {
   async warningText() {
-    return this.page.locator('p', { hasText: 'cannot be undone' }).innerText()
+    return this.page
+      .getByText(
+        'Confirm that you want to delete this report. This action cannot be undone.',
+        { exact: true }
+      )
+      .innerText()
   }
 
   async confirmDeletion() {
-    await this.submit()
+    await this.clickButton('Confirm deletion')
   }
 
   async confirmDeletionAndCheckDoubleClickPrevented() {
-    await this.submitAndCheckDoubleClickPrevented()
+    await this.clickButtonCheckingDoubleClickPrevented('Confirm deletion')
   }
 }
 

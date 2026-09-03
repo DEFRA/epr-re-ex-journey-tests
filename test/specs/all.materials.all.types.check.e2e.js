@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { createOrgWithAllWasteProcessingTypeAllMaterials } from '../support/apicalls.js'
+import { createOrgWithAllWasteProcessingTypeAllMaterials } from '../support/seeding/organisation.js'
 import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { MATERIALS } from '../support/materials.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -23,7 +23,7 @@ test.describe('All materials and all waste processing types @allMaterials @smoke
       expect(material).toBe(MATERIALS[i].name)
     }
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
 
     // Sanity check Exporter materials
     for (let i = 0; i < MATERIALS.length; i++) {

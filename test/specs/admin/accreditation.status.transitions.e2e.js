@@ -10,11 +10,11 @@ import {
   createLinkedOrganisation,
   getOrganisation,
   updateMigratedOrganisation
-} from '../../support/apicalls.js'
-
+} from '../../support/seeding/organisation.js'
 const CURRENT_YEAR = new Date().getFullYear()
-// The dates typed into the approve confirm forms (PAE-1814). The valid-to is
-// deliberately not the value updateMigratedOrganisation seeds
+// The dates typed into the approve confirm forms (PAE-1814). Registrations
+// don't expire (PAE-1904), so only the accreditation grant uses valid-to. It
+// is deliberately not the value updateMigratedOrganisation seeds
 // (SEEDED_VALID_TO), so asserting the granted value proves the grant wrote it.
 const GRANTED_VALID_FROM = { day: '1', month: '1', year: `${CURRENT_YEAR}` }
 const GRANTED_VALID_TO = { day: '31', month: '12', year: `${CURRENT_YEAR}` }
@@ -93,7 +93,6 @@ test.describe('Admin accreditation status transitions', () => {
     )
     await registrationTransitionPage.fillGrantFields({
       validFrom: GRANTED_VALID_FROM,
-      validTo: GRANTED_VALID_TO,
       registrationNumber: 'E25SR500030920PA'
     })
     await registrationTransitionPage.confirm('Approve now')
@@ -102,12 +101,10 @@ test.describe('Admin accreditation status transitions', () => {
       'approved'
     )
 
-    // The registration's granted validity window is persisted exactly as
-    // entered, and the valid-to has replaced the seeded one (PAE-1814)
+    // The registration's granted valid-from is persisted exactly as entered.
+    // Registrations don't expire (PAE-1904), so there is no valid-to to assert.
     const grantedRegistration = (await getOrganisation(orgId)).registrations[0]
     expect(grantedRegistration.validFrom).toBe(GRANTED_VALID_FROM_ISO)
-    expect(grantedRegistration.validTo).toBe(GRANTED_VALID_TO_ISO)
-    expect(grantedRegistration.validTo).not.toBe(SEEDED_VALID_TO)
 
     await expect(
       registrationOverviewPage

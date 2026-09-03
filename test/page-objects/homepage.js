@@ -9,12 +9,12 @@ class HomePage extends Page {
     return this.page.goto(lang + '/start')
   }
 
-  async getStartNowHref() {
-    return this.page.locator('a.govuk-button').getAttribute('href')
+  startNowButton() {
+    return this.page.getByRole('button', { name: 'Start now', exact: true })
   }
 
-  async clickStartNow() {
-    await this.page.locator('a.govuk-button').click()
+  async getStartNowHref() {
+    return this.startNowButton().getAttribute('href')
   }
 
   async linkRegistration() {
@@ -22,7 +22,7 @@ class HomePage extends Page {
     // clicking the input directly fails Playwright's actionability check —
     // click the label instead.
     await this.page.locator('label[for="organisation-id"]').click()
-    await this.submit()
+    await this.clickButton('Confirm')
   }
 
   async navLinkElements() {
@@ -42,7 +42,10 @@ class HomePage extends Page {
    * @param {string} text - The link text
    */
   async getNavigationLinkHref(text) {
-    return this.page.locator('a', { hasText: text }).getAttribute('href')
+    return this.page
+      .locator('ul#navigation')
+      .getByRole('link', { name: text, exact: true })
+      .getAttribute('href')
   }
 
   // Phase Banner selector
@@ -75,8 +78,10 @@ class HomePage extends Page {
     return this.phaseBannerFeedbackLink.innerText()
   }
 
-  async homeLink() {
-    await this.page.locator('a', { hasText: 'Home' }).click()
+  homeLink() {
+    return this.page
+      .locator('ul#navigation')
+      .getByRole('link', { name: 'Home', exact: true })
   }
 }
 

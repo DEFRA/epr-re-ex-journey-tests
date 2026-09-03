@@ -5,10 +5,8 @@ class TonnageMonitoringPage extends AdminPage {
     return super.open('/tonnage-monitoring')
   }
 
-  async downloadCsv() {
-    return this.page
-      .locator('#main-content > div > div > div > form > button')
-      .click()
+  downloadCsvButton() {
+    return this.page.getByRole('button', { name: 'Download CSV', exact: true })
   }
 
   async tonnageMaterialTableData() {

@@ -5,28 +5,34 @@ class WasteRecordsPage extends Page {
     return this.page.goto(`/organisations/${orgId}/registrations/${regId}`)
   }
 
-  async submitSummaryLogLink() {
-    await this.page.locator('a', { hasText: 'Upload your summary log' }).click()
+  submitSummaryLogLink() {
+    return this.page.getByRole('link', {
+      name: 'Upload your summary log',
+      exact: true
+    })
   }
 
-  async createNewPRNLink() {
-    await this.page.locator('a', { hasText: 'Create new PRN' }).click()
+  createNewPRNLink() {
+    return this.page.getByRole('link', { name: 'Create new PRN', exact: true })
   }
 
-  async managePRNsLink() {
-    await this.page.locator('a', { hasText: 'Manage PRNs' }).click()
+  managePRNsLink() {
+    return this.page.getByRole('link', { name: 'Manage PRNs', exact: true })
   }
 
-  async managePERNsLink() {
-    await this.page.locator('a', { hasText: 'Manage PERNs' }).click()
+  managePERNsLink() {
+    return this.page.getByRole('link', { name: 'Manage PERNs', exact: true })
   }
 
-  async createNewPERNLink() {
-    await this.page.locator('a', { hasText: 'Create new PERN' }).click()
+  createNewPERNLink() {
+    return this.page.getByRole('link', {
+      name: 'Create new PERN',
+      exact: true
+    })
   }
 
-  async manageReportsLink() {
-    await this.page.locator('a', { hasText: 'Manage reports' }).click()
+  manageReportsLink() {
+    return this.page.getByRole('link', { name: 'Manage reports', exact: true })
   }
 
   /**
@@ -73,26 +79,45 @@ class WasteRecordsPage extends Page {
   }
 
   /**
-   * Every route the summary cards offer, with the ids taken out of the paths
-   * so a journey can name a route without knowing which record it landed on.
-   * A journey compares the whole set rather than looking for one link: an
-   * empty set fails that comparison, where asking whether one link is absent
-   * is satisfied by a page that never loaded.
+   * The link into the waste balance ledger. It sits in the page body rather
+   * than in a summary card, because the ledger explains the balance printed
+   * above it rather than being one of the tasks the registration offers.
+   *
+   * @returns {import('@playwright/test').Locator}
+   */
+  wasteBalanceLedgerLink() {
+    return this.page.locator('#main-content a[href$="/waste-balance-ledger"]')
+  }
+
+  /**
+   * Every route the page offers, with the ids taken out of the paths so a
+   * journey can name a route without knowing which record it landed on. A
+   * journey compares the whole set rather than looking for one link: an empty
+   * set fails that comparison, where asking whether one link is absent is
+   * satisfied by a page that never loaded.
+   *
+   * This reads the whole of the main content, not the summary cards alone.
+   * The page renders its own links inside it and the template puts the header,
+   * the footer and the back link outside it, so the set is every route the
+   * page offers and nothing more. Scoping to the cards let a link in the page
+   * body arrive without the comparison ever seeing it.
    *
    * @returns {Promise<string[]>}
    */
   async offeredRoutes() {
+    // The page is served as one document, so waiting on the first card says
+    // the whole body is there before the links are read.
     const cards = this.page.locator('#main-content .govuk-summary-card')
     await cards.first().waitFor({ state: 'visible' })
 
-    const hrefs = await cards
-      .locator('a[href]')
+    const hrefs = await this.page
+      .locator('#main-content a[href]')
       .evaluateAll((links) =>
         links.map((link) => link.getAttribute('href') ?? '')
       )
 
-    // The cards are ordered by the page, so sort to compare the routes on
-    // offer rather than the order they are laid out in.
+    // The page decides the order it lays its links out in, so sort to compare
+    // the routes on offer rather than that order.
     return hrefs.map((href) => href.replace(/[0-9a-f]{24}/g, '{id}')).sort()
   }
 }

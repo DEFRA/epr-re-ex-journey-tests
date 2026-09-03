@@ -8,7 +8,7 @@ import { OrsUploadPage } from 'page-objects/admin/ors.upload.page'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../../support/apicalls.js'
+} from '../../support/seeding/organisation.js'
 import {
   createOrsSpreadsheet,
   validOrsSites
@@ -163,7 +163,7 @@ test.describe('ORS upload flow @orsupload', () => {
     const pageOneStatus = await orsUploadPage.getPaginationStatusText()
     expect(pageOneStatus).toContain('Showing page 1 of')
 
-    await orsUploadPage.clickNextPage()
+    await orsUploadPage.nextPageLink().click()
     await expect(page).toHaveURL(/page=2&pageSize=2/)
 
     const pageTwoStatus = await orsUploadPage.getPaginationStatusText()
@@ -290,7 +290,7 @@ test.describe('ORS upload flow @orsupload', () => {
 
       await orsUploadPage.openList()
       await orsUploadPage.filterByRegistrationNumber(alphaRegistrationNumber)
-      await orsUploadPage.clearRegistrationNumberFilter()
+      await orsUploadPage.clearRegistrationNumberFilterLink().click()
       await expect(page).not.toHaveURL(
         new RegExp(
           `registrationNumber=${encodeURIComponent(alphaRegistrationNumber)}`
@@ -384,7 +384,7 @@ test.describe('ORS upload flow @orsupload', () => {
       await organisationsPage.searchFor(organisationName)
       await organisationsPage.viewLink(1)
       await organisationOverviewPage.viewRegistrationLink(1)
-      await registrationOverviewPage.clickOnViewORSLink()
+      await registrationOverviewPage.viewORSLink().click()
       let orsOverviewHeader = await orsOverviewPage.getHeaderText()
       expect(orsOverviewHeader).toContain(
         organisationName + ' - ' + alphaAccreditationNumber
@@ -437,7 +437,7 @@ test.describe('ORS upload flow @orsupload', () => {
       await orsOverviewPage.clickOnBreadcrumbLink(2)
       await organisationOverviewPage.viewRegistrationLink(2)
 
-      await registrationOverviewPage.clickOnViewORSLink()
+      await registrationOverviewPage.viewORSLink().click()
       orsOverviewHeader = await orsOverviewPage.getHeaderText()
       expect(orsOverviewHeader).toContain(
         organisationName + ' - ' + betaAccreditationNumber

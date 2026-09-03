@@ -20,9 +20,9 @@ import {
 } from '../support/checks.js'
 import {
   createLinkedOrganisation,
-  updateMigratedOrganisation,
-  seedSubmittedReport
-} from '../support/apicalls.js'
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import { seedSubmittedReport } from '../support/seeding/reports.js'
 import {
   registerAndLinkDefraIdUser,
   loginViaHomePage
@@ -93,7 +93,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     await loginViaHomePage(page, migrationResponse.email)
 
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     // Upload a summary log that restates the closed Q1 2026 period, and confirm
     // it. On submit the backend flags that period's report for resubmission.
@@ -105,15 +105,15 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     await checkBodyText(page, 'Upload your summary log', 30)
     await checkBodyText(page, 'Closed periods: new loads', 30)
 
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
     await checkBodyText(page, 'Your waste records are being updated', 30)
     await checkBodyText(page, 'Summary log uploaded', 30)
-    await uploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
     // The Reports landing page now shows a "Requires resubmission" entry for the
     // restated period, with a "Review and create draft" call to action.
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
     expect(await reportsPage.getActiveStatusBadge(1)).toBe(
       'Requires resubmission'
     )
@@ -149,7 +149,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     // --- Intermediate stage: revisit the landing before submitting ---
     // The draft now exists but is not yet ready to submit, so the period keeps
     // its "Requires resubmission" status and the CTA becomes "Continue".
-    await tonnesRecycledPage.selectBackLink()
+    await tonnesRecycledPage.backLink().click()
     expect(await reportsPage.getActiveStatusBadge(1)).toBe(
       'Requires resubmission'
     )
@@ -173,7 +173,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     await checkBodyText(page, 'draft report created', 30)
     await checkBodyText(page, 'Requires resubmission', 10)
     await checkBodyText(page, 'as soon as possible', 10)
-    await confirmationPage.goToReports()
+    await confirmationPage.goToReports().click()
 
     // --- End state: status unchanged, CTA flips to "Review and submit" and the
     // original submitted report remains visible in the Submitted table. ---
@@ -203,7 +203,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     expect(await reportSubmittedPage.confirmationText()).toContain(
       'report submitted to regulator'
     )
-    await reportSubmittedPage.returnToReportsLink()
+    await reportSubmittedPage.returnToReportsLink().click()
 
     // --- End state: the backend folds the resubmission into a single submitted
     // item, so the period moves into the Submitted table tagged "Resubmitted"
@@ -227,7 +227,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     expect(activeTableText).not.toContain('Ready to submit')
     expect(activeTableText).not.toContain('Quarter 1')
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

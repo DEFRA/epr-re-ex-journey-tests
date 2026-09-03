@@ -1,10 +1,10 @@
 import {
   createLinkedOrganisation,
-  createSubmittedReport,
   FAKE_ACCREDITATION_NUMBER,
   FAKE_REGISTRATION_NUMBER,
   updateMigratedOrganisation
-} from '~/test/support/apicalls.js'
+} from '~/test/support/seeding/organisation.js'
+import { createSubmittedReport } from '~/test/support/seeding/reports.js'
 import { OrganisationsPage } from 'page-objects/admin/organisations.page'
 import { test, expect } from '@playwright/test'
 import { HomePage } from 'page-objects/admin/home.page'
@@ -34,7 +34,7 @@ users.forEach(({ username, scopes }) => {
 
     test.afterEach(async ({ page }) => {
       const homePage = new HomePage(page)
-      await homePage.signOut()
+      await homePage.signOutLink().click()
     })
 
     test('Should not be able to update an organisation @permissions @organisationpermissions', async ({
@@ -130,7 +130,7 @@ test.describe('Permissions flow for a support user only', () => {
 
   test.afterEach(async ({ page }) => {
     const homePage = new HomePage(page)
-    await homePage.signOut()
+    await homePage.signOutLink().click()
   })
 
   const testMessage = {

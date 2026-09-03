@@ -11,11 +11,11 @@ import { WasteRecordsExportPage } from 'page-objects/admin/waste.records.export.
 
 import {
   createLinkedOrganisation,
-  createSubmittedReport,
   FAKE_ACCREDITATION_NUMBER,
   FAKE_REGISTRATION_NUMBER,
   updateMigratedOrganisation
-} from '../../support/apicalls.js'
+} from '../../support/seeding/organisation.js'
+import { createSubmittedReport } from '../../support/seeding/reports.js'
 import {
   assertNoSeriousOrCriticalViolations,
   scanPageForAccessibilityViolations,
@@ -169,7 +169,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
     // (rendered only once signed out) so the scan doesn't run mid-redirect -
     // axe's page.evaluate throws "Execution context was destroyed" if it
     // starts while the sign-out navigation is still settling.
-    await homePage.signOut()
+    await homePage.signOutLink().click()
 
     await assertNoSeriousOrCriticalViolations(violations)
   })

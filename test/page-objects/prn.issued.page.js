@@ -6,17 +6,19 @@ class PRNIssuedPage extends Page {
   }
 
   issueAnotherPRN() {
-    return this.page.locator('#main-content > div > div > p:nth-child(4) > a')
+    return this.page.getByRole('link', {
+      name: /^Issue another (PRN|PERN)$/
+    })
   }
 
   managePRNs() {
-    return this.page.locator('#main-content > div > div > p:nth-child(5) > a')
+    return this.page.getByRole('link', { name: /^Manage (PRNs|PERNs)$/ })
   }
 
-  async viewPdfButton() {
-    await this.page
-      .locator('#main-content > div > div > p:nth-child(3) > a')
-      .click()
+  viewPdfButton() {
+    return this.page.getByRole('button', {
+      name: /^View (PRN|PERN) \(opens in a new tab\)$/
+    })
   }
 }
 

@@ -10,9 +10,9 @@ import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
   createLinkedOrganisation,
-  externalAPIAcceptPrn,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
+import { externalAPIAcceptPrn } from '../support/seeding/prns.js'
 import { checkBodyText } from '../support/checks.js'
 import { createPrnDetails } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'
@@ -64,7 +64,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     // Plastic 56,455.67
     await dashboardPage.selectTableLink(1, 1)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     const filePath = `resources/sanity/reprocessorOutput_${accNumber}_${regNumber}.xlsx`
     const uploadSummaryLogPage = new UploadSummaryLogPage(currentPage)
@@ -72,7 +72,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
 
     await dashboardPage.selectTableLink(1, 1)
 
-    await wasteRecordsPage.createNewPRNLink()
+    await wasteRecordsPage.createNewPRNLink().click()
 
     const originalWasteBalance = '56,455.67'
     const wasteBalanceHint = await createPRNPage.wasteBalanceHint()
@@ -97,9 +97,9 @@ test.describe('Issuing Packing Recycling Notes', () => {
       10
     )
 
-    await prnCreatedPage.returnToRegistrationPage()
+    await prnCreatedPage.returnToRegistrationPage().click()
     await dashboardPage.selectTableLink(1, 1)
-    await wasteRecordsPage.managePRNsLink()
+    await wasteRecordsPage.managePRNsLink().click()
 
     // Issue the created PRN
     await prnDashboardPage.selectAwaitingLink(1)
@@ -108,7 +108,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     })
 
     const prnIssuedPage = new PRNIssuedPage(currentPage)
-    await prnIssuedPage.viewPdfButton()
+    await prnIssuedPage.viewPdfButton().click()
     currentPage = await switchToNewTabAndClosePreviousTab(currentPage)
 
     prnHelper = new PrnHelper(currentPage)
@@ -116,17 +116,17 @@ test.describe('Issuing Packing Recycling Notes', () => {
     const prnViewPage = new PRNViewPage(currentPage)
 
     await prnHelper.checkViewPrnDetails(prnDetails)
-    await prnViewPage.returnToPRNList()
+    await prnViewPage.returnToPRNList().click()
 
-    await prnDashboardPage.selectBackLink()
+    await prnDashboardPage.backLink().click()
 
     // RPD accepts the PRN
     await externalAPIAcceptPrn(prnDetails)
 
     const wasteRecordsPageOnNewTab = new WasteRecordsPage(currentPage)
-    await wasteRecordsPageOnNewTab.managePRNsLink()
+    await wasteRecordsPageOnNewTab.managePRNsLink().click()
 
-    await prnDashboardPage.selectIssuedTab()
+    await prnDashboardPage.issuedTab().click()
     await prnHelper.checkIssuedRows(prnDetails, 1)
 
     await prnDashboardPage.selectIssuedLink(1)
@@ -136,7 +136,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     await prnHelper.checkViewPrnDetails(prnDetails)
 
     const homePageOnFinalTab = new HomePage(currentPage)
-    await homePageOnFinalTab.signOut()
+    await homePageOnFinalTab.signOutLink().click()
     await expect(currentPage).toHaveTitle(/Signed out/)
   })
 })

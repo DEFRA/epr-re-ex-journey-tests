@@ -8,11 +8,11 @@ import { RegistrationOverviewPage } from 'page-objects/admin/registration.overvi
 import { JsonEditor } from 'page-objects/admin/jsoneditor.page'
 import {
   createLinkedOrganisation,
-  createSubmittedReport,
   FAKE_ACCREDITATION_NUMBER,
   FAKE_REGISTRATION_NUMBER,
   updateMigratedOrganisation
-} from '../../support/apicalls.js'
+} from '../../support/seeding/organisation.js'
+import { createSubmittedReport } from '../../support/seeding/reports.js'
 import { SystemLogsPage } from 'page-objects/admin/system.logs.page'
 import { UnsubmitConfirmationPage } from 'page-objects/admin/unsubmit.confirmation.page'
 import { randomUUID } from 'crypto'
@@ -73,7 +73,7 @@ test.describe('Organisations page', () => {
     expect(actualOrgValue).toContain(organisation.email)
     await jsonEditor.switchToTreeEditor()
     await jsonEditor.updateOrgId(updatedOrgId)
-    await jsonEditor.saveChanges()
+    await jsonEditor.saveButton().click()
 
     const successMessage = await organisationsPage.getSuccessMessage()
     expect(successMessage).toEqual('Organisation record updated')
@@ -270,12 +270,12 @@ test.describe('Organisations page', () => {
     expect(warningText).toContain(
       "Unsubmitting will move the report back to 'ready to submit'. The operator will need to delete and resubmit it."
     )
-    await unsubmitConfirmationPage.confirmUnsubmit()
+    await unsubmitConfirmationPage.confirmUnsubmitButton().click()
 
     const successMessage = await unsubmitConfirmationPage.getSuccessMessage()
     expect(successMessage).toEqual('Report unsubmitted')
 
-    await unsubmitConfirmationPage.returnToRegistrationOverview()
+    await unsubmitConfirmationPage.returnToRegistrationOverviewLink().click()
 
     reportsData = await registrationOverviewPage.getReportsTableData()
     expect(reportsData.length).toBeGreaterThanOrEqual(1)

@@ -39,12 +39,12 @@ class RegistrationOverviewPage extends AdminPage {
     return data
   }
 
-  async clickOnViewORSLink() {
-    await this.page
-      .locator(
-        '#main-content > div > div:nth-child(2) > div > dl > div:nth-child(10) > dd > a'
-      )
-      .click()
+  viewORSLink() {
+    return this.page
+      .locator('.govuk-summary-list__row', {
+        has: this.page.locator('dt', { hasText: 'Overseas sites' })
+      })
+      .getByRole('link', { name: 'View', exact: true })
   }
 
   // The actions cell renders <a>View</a><br><a>Unsubmit</a>, so the nth-child
@@ -77,6 +77,35 @@ class RegistrationOverviewPage extends AdminPage {
 
   async getSummaryLogsContent() {
     return this.page.locator('#summary-logs').innerText()
+  }
+
+  // The summary-logs table Actions cell (3rd column) renders
+  // <a>View data</a><br><a>Download</a>; return both links so a test can
+  // assert on the entry points offered for a log.
+  async getSummaryLogActionLinks(row) {
+    const cell = this.page.locator(
+      `#summary-logs table tbody tr:nth-child(${row}) td:nth-child(3)`
+    )
+    await cell.waitFor({ state: 'visible', timeout: 10000 })
+
+    const links = cell.locator('a')
+    const count = await links.count()
+    const data = []
+    for (let i = 0; i < count; i++) {
+      const link = links.nth(i)
+      data.push({
+        text: await link.innerText(),
+        href: await link.getAttribute('href')
+      })
+    }
+    return data
+  }
+
+  async clickViewSummaryLogData(row) {
+    await this.page
+      .locator(`#summary-logs table tbody tr:nth-child(${row}) td:nth-child(3)`)
+      .getByRole('link', { name: 'View data' })
+      .click()
   }
 
   accreditationStatusRow() {

@@ -3,8 +3,7 @@ import { test, expect } from '@playwright/test'
 import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { Navigation } from 'page-objects/admin/navigation.page'
 import { PrnTonnagePage } from 'page-objects/admin/prn.tonnage.page'
-import { seedAdminActivityData } from '../../support/admin-activity-seed.js'
-
+import { seedAdminActivityData } from '../../support/seeding/admin-activity.js'
 test.describe('PRN tonnage page', () => {
   let seeded
 
@@ -29,7 +28,7 @@ test.describe('PRN tonnage page', () => {
     const landingHeading = await prnTonnagePage.getHeaderText()
     expect(landingHeading).toBe('PRN tonnage')
 
-    await prnTonnagePage.runReport()
+    await prnTonnagePage.runReportButton().click()
 
     const tableText = await prnTonnagePage.tableText()
     expect(tableText).toContain(seeded.accreditationNumber)

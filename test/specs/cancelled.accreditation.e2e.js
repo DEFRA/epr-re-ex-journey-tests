@@ -2,7 +2,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation,
   updateStatus
-} from '~/test/support/apicalls.js'
+} from '~/test/support/seeding/organisation.js'
 import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { test, expect } from '@playwright/test'
 import { checkBodyText } from '~/test/support/checks.js'
@@ -56,7 +56,7 @@ test.describe('Cancelled accreditation @cancelledaccreditation', () => {
     // now we cancel the accreditation, PERN links should be gone
     await updateStatus(orgId, 'cancelled')
 
-    await dashboardPage.selectBackLink()
+    await dashboardPage.backLink().click()
 
     accStatus = await dashboardPage.getAccreditationStatus(1, 1)
     expect(accStatus).toBe('Not accredited')

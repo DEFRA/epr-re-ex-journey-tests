@@ -1,32 +1,38 @@
 import { Page } from 'page-objects/page'
 
-const ISSUE_BUTTON_SELECTOR = '#main-content > div > div > form > div > button'
-
 class PRNViewPage extends Page {
-  async returnToPRNList() {
-    await this.page.locator('a', { hasText: 'Return to PRN list' }).click()
+  returnToPRNList() {
+    return this.page.getByRole('link', {
+      name: 'Return to PRN list',
+      exact: true
+    })
   }
 
-  async returnToPERNList() {
-    await this.page.locator('a', { hasText: 'Return to PERN list' }).click()
+  returnToPERNList() {
+    return this.page.getByRole('link', {
+      name: 'Return to PERN list',
+      exact: true
+    })
   }
 
-  async cancelPRNButton() {
-    await this.page.locator('#main-content > div > div > a').click()
+  cancelPRNButton() {
+    return this.page.getByRole('button', { name: /^Cancel (PRN|PERN)$/ })
   }
 
-  async deletePRNButton() {
-    await this.page
-      .locator('#main-content > div > div > form > div > a')
-      .click()
+  deletePRNButton() {
+    return this.page.locator('.govuk-button-group a.govuk-button')
   }
 
-  async issuePRNButton() {
-    await this.submit(ISSUE_BUTTON_SELECTOR)
+  // Name-matched rather than selected by class: the cookie-consent banner's
+  // Accept/Reject buttons also render as a .govuk-button-group of plain
+  // govuk-buttons, so a class-only locator is ambiguous once that banner is
+  // showing.
+  issuePRNButton() {
+    return this.page.getByRole('button', { name: /^Issue (PRN|PERN)$/ })
   }
 
   async issueAndCheckDoubleClickPrevented() {
-    await this.submitAndCheckDoubleClickPrevented(ISSUE_BUTTON_SELECTOR)
+    await this.submitAndCheckDoubleClickPrevented(this.issuePRNButton())
   }
 
   /**

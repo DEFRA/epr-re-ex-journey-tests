@@ -6,7 +6,7 @@ import {
   seedOverseasSites,
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
 import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
@@ -49,7 +49,7 @@ test.describe('Report only shows from accreditation validFrom date — exporter 
     )
 
     await dashboardPage.selectTableLink(1, 1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
 
     // wait for heading text for the page to load
     await reportsPage.headingText()
@@ -65,7 +65,7 @@ test.describe('Report only shows from accreditation validFrom date — exporter 
       expect(await reportsPage.getActivePeriodLabel(1)).toBe(monthYear)
     }
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

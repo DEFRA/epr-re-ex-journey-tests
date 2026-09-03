@@ -7,9 +7,9 @@ import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { checkBodyText } from '../support/checks.js'
 import {
   createLinkedOrganisation,
-  updateMigratedOrganisation,
-  seedSubmittedReport
-} from '../support/apicalls.js'
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import { seedSubmittedReport } from '../support/seeding/reports.js'
 import {
   registerAndLinkDefraIdUser,
   loginViaHomePage
@@ -87,7 +87,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
 
     await dashboardPage.selectLink(1)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-output-regonly-cma.xlsx'
@@ -116,7 +116,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
 
     // Submit inline (not performUploadAndReturnToHomepage, which would click
     // "Return to home" and skip the success-page assertions below).
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
     await checkBodyText(page, 'Summary log uploaded', 30)
@@ -136,7 +136,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
       `/organisations/${organisationDetails.refNo}/registrations/${regId}/reports`
     )
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 

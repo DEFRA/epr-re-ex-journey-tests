@@ -11,9 +11,9 @@ import {
 import {
   seedOverseasSites,
   createLinkedOrganisation,
-  updateMigratedOrganisation,
-  seedSubmittedReport
-} from '../support/apicalls.js'
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import { seedSubmittedReport } from '../support/seeding/reports.js'
 import {
   createLinkAndLogin,
   registerAndLinkDefraIdUser,
@@ -76,13 +76,13 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     // renders as plain text on the task page, not as a link.
     await checkBodyText(page, 'R26ER5000000005PA', 10)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
       'resources/reprocessor-output.xlsx'
     )
 
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile('resources/reprocessor-output.xlsx')
     await uploadSummaryLogPage.continue()
 
@@ -110,7 +110,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       30
     )
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -172,7 +172,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
 
     await dashboardPage.selectLink(1)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-output-regonly-cma-2025.xlsx'
@@ -192,7 +192,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await checkBodyTextDoesNotInclude(page, 'Open periods: new loads', 5)
     await checkBodyTextDoesNotInclude(page, 'Open periods: adjusted loads', 5)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -239,10 +239,10 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       migrationResponse.email
     )
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
       'resources/exporter-2025.xlsx'
     )
@@ -259,9 +259,9 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       { prnRevenue: 100, freeTonnage: 0 }
     )
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
       'resources/exporter-adjustments-2025.xlsx'
     )
@@ -305,7 +305,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await checkBodyTextDoesNotInclude(page, 'Open periods: new loads', 5)
     await checkBodyTextDoesNotInclude(page, 'Open periods: adjusted loads', 5)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

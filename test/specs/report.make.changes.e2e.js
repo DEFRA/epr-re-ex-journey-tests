@@ -13,11 +13,13 @@ import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js
 import { checkBodyText } from '../support/checks.js'
 import {
   createAndRegisterDefraIdUser,
+  linkDefraIdUser
+} from '../support/defra-id-linking.js'
+import {
   createLinkedOrganisation,
-  linkDefraIdUser,
-  updateMigratedOrganisation,
-  seedSubmittedReport
-} from '../support/apicalls.js'
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import { seedSubmittedReport } from '../support/seeding/reports.js'
 import { loginViaHomePage } from '../support/login-helper.js'
 
 async function seedSubmittedRegisteredReprocessor() {
@@ -87,13 +89,13 @@ test.describe
     const homePage = new HomePage(page)
 
     await homePage.open()
-    await homePage.clickStartNow()
+    await homePage.startNowButton().click()
     await defraIdStubPage.loginViaEmail(migrationResponse.email)
   })
 
   test.afterAll(async () => {
     const homePage = new HomePage(page)
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
     await page.close()
   })
@@ -108,13 +110,13 @@ test.describe
     const homePage = new HomePage(page)
 
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
 
     expect(await reportsPage.getSubmittedStatusBadge(1)).toBe('Submitted')
     await reportsPage.selectSubmittedActionLink(1)
 
     expect(await reportViewPage.headingText()).toContain('Report for')
-    await reportViewPage.makeChangesLink()
+    await reportViewPage.makeChangesLink().click()
 
     expect(await makeChangesPage.headingText()).toContain(
       'need to resubmit this report'
@@ -128,9 +130,9 @@ test.describe
     await makeChangesPage.cancel()
     expect(await reportViewPage.headingText()).toContain('Report for')
 
-    await homePage.homeLink()
+    await homePage.homeLink().click()
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
     expect(await reportsPage.getSubmittedStatusBadge(1)).toBe('Submitted')
   })
 
@@ -146,12 +148,12 @@ test.describe
 
     // The previous test ends on the reports page (not the dashboard), so
     // reset to a known starting point before selecting the org link.
-    await homePage.homeLink()
+    await homePage.homeLink().click()
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
 
     await reportsPage.selectSubmittedActionLink(1)
-    await reportViewPage.makeChangesLink()
+    await reportViewPage.makeChangesLink().click()
 
     await makeChangesPage.useThisReportsSummaryLogAndCheckDoubleClickPrevented()
 
@@ -192,10 +194,10 @@ test.describe('Reports - operator-initiated resubmission explainer @operatorResu
     await loginViaHomePage(page, migrationResponse.email)
 
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
 
     await reportsPage.selectSubmittedActionLink(1)
-    await reportViewPage.makeChangesLink()
+    await reportViewPage.makeChangesLink().click()
 
     // "Use this report's summary log" flags the submitted report for
     // resubmission (operator-initiated) and redirects to the new draft's detail
@@ -208,9 +210,9 @@ test.describe('Reports - operator-initiated resubmission explainer @operatorResu
 
     // Back on the reports landing the period requires resubmission with a
     // "Review and create draft" CTA that leads to the explainer.
-    await homePage.homeLink()
+    await homePage.homeLink().click()
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
     expect(await reportsPage.getActiveStatusBadge(1)).toBe(
       'Requires resubmission'
     )
@@ -227,7 +229,7 @@ test.describe('Reports - operator-initiated resubmission explainer @operatorResu
       10
     )
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

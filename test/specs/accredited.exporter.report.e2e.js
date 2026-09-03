@@ -12,10 +12,10 @@ import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.p
 import {
   seedOverseasSites,
   createLinkedOrganisation,
-  unsubmitReport,
-  updateMigratedOrganisation,
-  uploadAndSubmitSummaryLog
-} from '../support/apicalls.js'
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import { unsubmitReport } from '../support/seeding/reports.js'
+import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
 import { checkBodyText } from '../support/checks.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -85,12 +85,12 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       const dashboardPage = new DashboardPage(page)
       const wasteRecordsPage = new WasteRecordsPage(page)
       await dashboardPage.selectTableLink(1, 1)
-      await wasteRecordsPage.manageReportsLink()
+      await wasteRecordsPage.manageReportsLink().click()
     })
 
     test.afterAll(async () => {
       const homePage = new HomePage(page)
-      await homePage.signOut()
+      await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
       await page.close()
     })
@@ -116,7 +116,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       await reportDetailPage.useThisData()
 
       // On prn-summary — back link goes to reports list
-      await prnSummaryPage.selectBackLink()
+      await prnSummaryPage.backLink().click()
       const reportsHeading = await reportsPage.headingText()
       expect(reportsHeading).toContain('Reports')
 
@@ -129,7 +129,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       await prnSummaryPage.continue()
 
       // On free-perns — back link goes to prn-summary
-      await freePernPage.selectBackLink()
+      await freePernPage.backLink().click()
       const backToPrnSummary = await prnSummaryPage.headingText()
       expect(backToPrnSummary).toBeTruthy()
 
@@ -140,12 +140,12 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       await freePernPage.continue()
 
       // On supporting info — back link goes to free-perns
-      await reportSupportingInformationPage.selectBackLink()
+      await reportSupportingInformationPage.backLink().click()
       const backToFreePern = await freePernPage.headingText()
       expect(backToFreePern).toBeTruthy()
 
       // Clean up — delete report so next test starts fresh
-      await freePernPage.deleteReportLink()
+      await freePernPage.deleteReportLink().click()
       await confirmDeleteReportPage.confirmDeletion()
     })
 
@@ -160,18 +160,18 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       await reportDetailPage.useThisData()
 
       // --- Delete from PRN summary page ---
-      await prnSummaryPage.deleteReportLink()
+      await prnSummaryPage.deleteReportLink().click()
 
       const deleteHeading = await confirmDeleteReportPage.headingText()
       expect(deleteHeading).toBe('Confirm deletion of this report')
 
       // Back link should return to prn-summary
-      await confirmDeleteReportPage.selectBackLink()
+      await confirmDeleteReportPage.backLink().click()
       const backToPrnSummary = await prnSummaryPage.headingText()
       expect(backToPrnSummary).toBeTruthy()
 
       // Confirm deletion
-      await prnSummaryPage.deleteReportLink()
+      await prnSummaryPage.deleteReportLink().click()
       await confirmDeleteReportPage.confirmDeletion()
 
       // Should be back on reports list with status reverted to Due
@@ -186,7 +186,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       await prnSummaryPage.enterRevenue('100')
       await prnSummaryPage.continue()
 
-      await freePernPage.deleteReportLink()
+      await freePernPage.deleteReportLink().click()
 
       const deleteHeading2 = await confirmDeleteReportPage.headingText()
       expect(deleteHeading2).toBe('Confirm deletion of this report')
@@ -235,7 +235,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
 
       // Clean up — delete the report (Continue goes directly to prn-summary)
       await reportsPage.selectActiveActionLink(1)
-      await prnSummaryPage.deleteReportLink()
+      await prnSummaryPage.deleteReportLink().click()
       await confirmDeleteReportPage.confirmDeletion()
     })
 
@@ -295,7 +295,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       await checkBodyText(page, 'report created', 30)
 
       // --- View draft report in new tab ---
-      await confirmationPage.viewDraftReport()
+      await confirmationPage.viewDraftReport().click()
       let newTab = await switchToNewTab(page)
 
       // Verify draft report page content
@@ -335,7 +335,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       const confirmationText = await reportSubmittedPage.confirmationText()
       expect(confirmationText).toContain('report submitted to regulator')
 
-      await reportSubmittedPage.viewReportLink()
+      await reportSubmittedPage.viewReportLink().click()
       newTab = await switchToNewTab(page)
 
       await checkBodyText(newTab, 'Report for', 10)
@@ -350,7 +350,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       // Close report tab and return to submission confirmation page
       await closeCurrentTabAndReturn(newTab)
 
-      await reportSubmittedPage.returnToReportsLink()
+      await reportSubmittedPage.returnToReportsLink().click()
 
       const submittedBadge = await reportsPage.getSubmittedStatusBadge(1)
       const submittedColour = await reportsPage.getSubmittedStatusColour(1)
@@ -414,7 +414,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
 
     test.afterAll(async () => {
       const homePage = new HomePage(page)
-      await homePage.signOut()
+      await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
       await page.close()
     })

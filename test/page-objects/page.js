@@ -9,20 +9,24 @@ class Page {
     return this.page.goto(path)
   }
 
-  async headingText() {
-    return this.page.locator('h1.govuk-heading-xl').innerText()
+  heading() {
+    return this.page.locator('h1.govuk-heading-xl')
   }
 
-  async selectBackLink() {
-    await this.page.locator('a', { hasText: 'Back' }).click()
+  async headingText() {
+    return this.heading().innerText()
+  }
+
+  backLink() {
+    return this.page.locator('.govuk-back-link')
   }
 
   async messageText() {
-    return this.page.locator('#main-content > div > div > div').innerText()
+    return this.page.locator('.govuk-panel--confirmation').innerText()
   }
 
   async dashboardHeaderText() {
-    return this.page.locator('#main-content > div > div > div > h1').innerText()
+    return this.page.locator('[data-testid="app-page-body"] h1').innerText()
   }
 
   async wasteBalanceAmount() {
@@ -56,51 +60,67 @@ class Page {
     return dataMap
   }
 
-  async signOut() {
-    await this.page.locator('a', { hasText: 'Sign out' }).click()
+  signOutLink() {
+    return this.page.getByRole('link', { name: 'Sign out', exact: true })
   }
 
-  async submit(selector = 'button[type=submit]') {
+  async submit(selector) {
     await this.page.locator(selector).click()
   }
 
-  async submitAndCheckDoubleClickPrevented(
-    selector = 'button[type=submit]',
-    options
-  ) {
+  async clickButton(name) {
+    await this.page.getByRole('button', { name }).click()
+  }
+
+  async clickButtonCheckingDoubleClickPrevented(name, options) {
+    await checkDoubleClickPrevented(
+      this.page,
+      this.page.getByRole('button', { name }),
+      options
+    )
+  }
+
+  async submitAndCheckDoubleClickPrevented(selector, options) {
     await checkDoubleClickPrevented(this.page, selector, options)
   }
 
   // Shared by the various GOV.UK "confirmation panel" pages (PRN created /
   // issued / cancelled, summary log upload) which all render this link.
-  async returnToHomePage() {
-    await this.page.locator('a', { hasText: 'Return to home' }).click()
+  returnToHomeLink() {
+    return this.page.getByRole('link', { name: 'Return to home', exact: true })
   }
 
   async panelDetailText() {
-    return this.page
-      .locator('#main-content > div > div > div > div > strong')
-      .innerText()
+    return this.page.locator('.govuk-panel__body strong').innerText()
   }
 
-  async goToPrnsPage() {
-    await this.page.locator('a', { hasText: 'PRNs page' }).click()
+  prnsPageLink() {
+    return this.page.getByRole('link', { name: 'PRNs page', exact: true })
   }
 
-  async goToPernsPage() {
-    await this.page.locator('a', { hasText: 'PERNs page' }).click()
+  pernsPageLink() {
+    return this.page.getByRole('link', { name: 'PERNs page', exact: true })
   }
 
   // Reads a single row of a header-driven GOV.UK table into a Map keyed by
-  // column header text.
+  // column header text. A row whose first cell heads it (firstCellIsHeader)
+  // holds that cell as a th, so the row is read as th and td alike.
   async readGovukTableRow(tableSelector, rowIndex) {
     const tableRow = new Map()
-    const headerText = await this.page
-      .locator(`${tableSelector} > thead > tr th`)
-      .allInnerTexts()
-    const rowText = await this.page
-      .locator(`${tableSelector} > tbody > tr:nth-child(${rowIndex}) td`)
-      .allInnerTexts()
+    const headers = this.page.locator(`${tableSelector} > thead > tr th`)
+    const cells = this.page.locator(
+      `${tableSelector} > tbody > tr:nth-child(${rowIndex}) :is(th, td)`
+    )
+
+    // Pages can be queried immediately after a full-page navigation. Wait for
+    // the requested row rather than reading an empty, still-loading table.
+    await headers.first().waitFor({ state: 'visible' })
+    await cells.first().waitFor({ state: 'visible' })
+
+    const [headerText, rowText] = await Promise.all([
+      headers.allInnerTexts(),
+      cells.allInnerTexts()
+    ])
     for (let i = 0; i < headerText.length; i++) {
       tableRow.set(headerText[i], rowText[i])
     }

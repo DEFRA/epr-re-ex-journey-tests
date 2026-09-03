@@ -12,7 +12,7 @@ import {
   seedOverseasSites,
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 // PAE-1648 closed-period adjustment messaging copy (en.json
@@ -76,7 +76,7 @@ test.describe('Summary Logs Exporter', () => {
       migrationResponse.email
     )
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
 
     // Single-registration orgs skip the selection list, so the reg/acc
@@ -84,7 +84,7 @@ test.describe('Summary Logs Exporter', () => {
     await checkBodyText(page, 'R26EX5000000003PA', 10)
     await checkBodyText(page, 'A26EX5000000000PA', 10)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile('resources/exporter.xlsx')
     await uploadSummaryLogPage.continue()
@@ -119,7 +119,7 @@ test.describe('Summary Logs Exporter', () => {
     )
     await checkBodyTextDoesNotInclude(page, IMPORTANT_BODY, 5)
 
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
 
@@ -134,9 +134,9 @@ test.describe('Summary Logs Exporter', () => {
       false
     )
 
-    await uploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
 
     let availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe('30.00')
@@ -146,7 +146,7 @@ test.describe('Summary Logs Exporter', () => {
 
     expect(wasteBalanceAmount).toBe('30.00 tonnes')
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile('resources/exporter-adjustments.xlsx')
     await uploadSummaryLogPage.continue()
@@ -210,7 +210,7 @@ test.describe('Summary Logs Exporter', () => {
     const detailsText = await checkSummaryLogPage.loadDetailsText()
     expect(detailsText).toContain(ADJUSTED_ADDED_HEADING)
 
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
 
@@ -218,14 +218,14 @@ test.describe('Summary Logs Exporter', () => {
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '139.00 tonnes', 10)
 
-    await uploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
 
     availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe('139.00')
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

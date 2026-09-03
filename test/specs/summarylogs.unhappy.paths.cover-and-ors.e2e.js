@@ -12,7 +12,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation,
   seedOverseasSites
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 // Split from summarylogs.unhappy.paths.e2e.js (PAE-1405 CI runtime work) so
@@ -56,7 +56,7 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
     await checkBodyText(page, 'R26EX5000000002PP', 10)
     await checkBodyText(page, 'A26EX5000000002PP', 10)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await expect(page).toHaveTitle(/Summary log: upload/)
 
@@ -87,7 +87,7 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
       60
     )
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -131,7 +131,7 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
     )
 
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile(
       'resources/exporter-ors-not-found.xlsx'
@@ -157,15 +157,15 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
       10
     )
 
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
     await checkBodyText(page, 'Your waste records are being updated', 30)
     await checkBodyText(page, 'Summary log uploaded', 30)
 
-    await uploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
     const availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe('0.00')
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

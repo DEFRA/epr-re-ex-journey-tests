@@ -1,62 +1,18 @@
 import { test } from '@playwright/test'
 import { expect } from 'chai'
-import { readFile } from 'node:fs/promises'
 import { BaseAPI } from '../apis/base-api.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import {
   createAndRegisterDefraIdUser,
+  linkDefraIdUser
+} from '../support/defra-id-linking.js'
+import {
   createLinkedOrganisation,
-  linkDefraIdUser,
-  updateMigratedOrganisation,
-  waitForSummaryLogStatus
-} from '../support/apicalls.js'
-
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import { uploadAndValidateSummaryLog } from '../support/seeding/summary-logs.js'
+import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
-
-// Mirrors apicalls.js's uploadAndSubmitSummaryLog, but stops after reaching
-// 'validated' rather than also submitting - the staleness scenario needs two
-// summary logs both sitting at 'validated' before either is submitted.
-async function uploadAndValidate(baseAPI, refNo, registrationId, authHeader) {
-  const summaryLogsPath = `/v1/organisations/${refNo}/registrations/${registrationId}/summary-logs`
-  const initiateResponse = await baseAPI.post(
-    summaryLogsPath,
-    JSON.stringify({ redirectUrl: '/' }),
-    { ...authHeader, 'content-type': 'application/json' }
-  )
-  expect(initiateResponse.statusCode).to.equal(201)
-  const { summaryLogId, uploadUrl } = /** @type {any} */ (
-    await initiateResponse.body.json()
-  )
-
-  const hostUploadUrl = new URL(
-    new URL(uploadUrl).pathname,
-    'http://localhost:7337'
-  )
-  const form = new FormData()
-  form.append(
-    'summaryLogUpload',
-    new Blob([new Uint8Array(await readFile(FIXTURE_PATH))], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    }),
-    'summary-log.xlsx'
-  )
-  const uploadResponse = await fetch(hostUploadUrl, {
-    method: 'POST',
-    body: form,
-    redirect: 'manual'
-  })
-  expect(uploadResponse.status).to.be.lessThan(400)
-
-  const summaryLogPath = `${summaryLogsPath}/${summaryLogId}`
-  await waitForSummaryLogStatus(
-    baseAPI,
-    summaryLogPath,
-    authHeader,
-    'validated'
-  )
-
-  return { summaryLogId, summaryLogPath }
-}
 
 test.describe('Summary log staleness detection @summaryLogStaleness', () => {
   const baseAPI = new BaseAPI()
@@ -78,17 +34,19 @@ test.describe('Summary log staleness detection @summaryLogStaleness', () => {
     const authHeader = defraIdStub.authHeader(user.userId)
     const registrationId = migrated.registrationIds[0]
 
-    const first = await uploadAndValidate(
-      baseAPI,
+    const first = await uploadAndValidateSummaryLog(
       org.refNo,
       registrationId,
-      authHeader
+      authHeader,
+      FIXTURE_PATH,
+      baseAPI
     )
-    const second = await uploadAndValidate(
-      baseAPI,
+    const second = await uploadAndValidateSummaryLog(
       org.refNo,
       registrationId,
-      authHeader
+      authHeader,
+      FIXTURE_PATH,
+      baseAPI
     )
 
     const firstSubmitResponse = await baseAPI.post(

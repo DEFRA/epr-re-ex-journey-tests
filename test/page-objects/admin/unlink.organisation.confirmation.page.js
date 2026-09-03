@@ -11,12 +11,12 @@ class UnlinkOrganisationConfirmationPage extends AdminPage {
       .innerText()
   }
 
-  async confirmUnlink() {
-    await this.page.locator('#main-content form button').click()
+  confirmUnlinkButton() {
+    return this.page.locator('#main-content form button')
   }
 
   async cancel() {
-    await this.page.locator('a', { hasText: 'Cancel' }).click()
+    await this.page.getByRole('link', { name: 'Cancel', exact: true }).click()
     // Wait for the navigation back to the organisation overview: callers
     // query that page immediately with non-waiting locators (e.g. count()),
     // which otherwise race the page load and flake.

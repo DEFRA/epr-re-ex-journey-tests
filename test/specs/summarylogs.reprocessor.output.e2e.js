@@ -8,7 +8,7 @@ import { checkBodyText } from '../support/checks.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 test.describe('Summary Logs Reprocessor Output', () => {
@@ -57,7 +57,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
     await checkBodyText(page, 'R26ER5000000005PA', 10)
     await checkBodyText(page, 'A26ER5000000003PA', 10)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
     await uploadSummaryLogPage.uploadFile('resources/reprocessor-output.xlsx')
     await uploadSummaryLogPage.continue()
@@ -71,7 +71,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
       '1 new load will be recorded (and will add to your waste balance)',
       30
     )
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
 
@@ -79,7 +79,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '3.00 tonnes', 10)
 
-    await uploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
     let availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe('3.00')
@@ -89,7 +89,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
 
     expect(wasteBalanceAmount).toBe('3.00 tonnes')
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
     await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-output-adjustments.xlsx'
@@ -105,7 +105,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
       '1 adjusted load will be recorded (and will reflect in your waste balance)',
       30
     )
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
 
@@ -113,7 +113,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '9.25 tonnes', 10)
 
-    await uploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
     availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe('9.25')
@@ -123,7 +123,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
 
     expect(wasteBalanceAmount).toBe('9.25 tonnes')
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

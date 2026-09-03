@@ -5,9 +5,9 @@ import { Navigation } from 'page-objects/admin/navigation.page'
 import { PublicRegisterPage } from 'page-objects/admin/public.register.page'
 import {
   createLinkedOrganisation,
-  createSubmittedReport,
   updateMigratedOrganisation
-} from '../../support/apicalls.js'
+} from '../../support/seeding/organisation.js'
+import { createSubmittedReport } from '../../support/seeding/reports.js'
 import { parseCsvRows } from '../../support/csv.js'
 
 // Matches the fixed abbreviation list the backend's compliance-reporting-periods
@@ -67,7 +67,7 @@ test.describe('Public Register page', () => {
 
     await navigation.clickOnLink('Public register')
     await expect(publicRegisterPage.downloadPublicRegisterButton).toBeVisible()
-    await publicRegisterPage.downloadPublicRegister()
+    await publicRegisterPage.downloadPublicRegisterButton.click()
 
     const csv = await publicRegisterPage.fetchCsv()
     expect(csv.status).toEqual(200)

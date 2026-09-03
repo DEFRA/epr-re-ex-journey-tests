@@ -1,6 +1,10 @@
 import { Page } from 'page-objects/page'
 
 /**
+ * @import { Locator } from '@playwright/test'
+ */
+
+/**
  * Where a regulator lands after sign-in. It is the organisation list: a
  * regulator holds no organisation id, so search is the only route they have to
  * an operator, and the service puts it in front of them rather than behind a
@@ -74,7 +78,7 @@ class RegulatorHomePage extends Page {
    */
   async searchFor(organisationName) {
     await this.page.locator('#search').fill(organisationName)
-    await this.page.locator('button[type=submit]').click()
+    await this.page.getByRole('button', { name: 'Search' }).click()
   }
 
   /**
@@ -92,12 +96,12 @@ class RegulatorHomePage extends Page {
   }
 
   /**
-   * Drops the search term by addressing the unsearched page, which is what
-   * the control does rather than sending an empty search.
-   * @returns {Promise<void>}
+   * The link that drops the search term by addressing the unsearched page,
+   * rather than sending an empty search.
+   * @returns {Locator}
    */
-  async clearSearch() {
-    await this.page.locator('.epr-search-panel a.govuk-button').click()
+  clearSearchLink() {
+    return this.page.locator('.epr-search-panel a.govuk-button')
   }
 
   /**
@@ -154,7 +158,7 @@ class RegulatorHomePage extends Page {
    * opens.
    *
    * @param {number} row
-   * @returns {import('@playwright/test').Locator}
+   * @returns {Locator}
    */
   actionLink(row) {
     return this.page.locator(
@@ -176,16 +180,6 @@ class RegulatorHomePage extends Page {
       .textContent()
 
     return (text ?? '').trim()
-  }
-
-  /**
-   * Opens the organisation a results row names, through the action it offers.
-   *
-   * @param {number} row
-   * @returns {Promise<void>}
-   */
-  async openOrganisation(row) {
-    await this.actionLink(row).click()
   }
 }
 

@@ -28,9 +28,9 @@ import { PRNCancelledPage } from 'page-objects/prn.cancelled.page.js'
 
 import {
   createLinkedOrganisation,
-  externalAPICancelPrn,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
+import { externalAPICancelPrn } from '../support/seeding/prns.js'
 import {
   assertNoSeriousOrCriticalViolations,
   scanPageForAccessibilityViolations,
@@ -128,7 +128,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ...(await scanPageForAccessibilityViolations(page, 'Waste records'))
     )
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     violations.push(
       ...(await scanPageForAccessibilityViolations(page, 'Upload summary log'))
     )
@@ -141,7 +141,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ...(await scanPageForAccessibilityViolations(page, 'Check summary log'))
     )
 
-    await checkSummaryLogPage.upload()
+    await checkSummaryLogPage.uploadButton().click()
     await checkBodyText(page, 'Your waste records are being updated', 30)
     await checkBodyText(page, 'Summary log uploaded', 30)
     violations.push(
@@ -151,7 +151,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ))
     )
 
-    await uploadSummaryLogPage.clickOnReturnToHomePage()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
     await navigateToReports(page)
     violations.push(
       ...(await scanPageForAccessibilityViolations(page, 'Reports list'))
@@ -172,7 +172,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
 
     // Detour into the delete-report confirmation page and back, so it gets
     // scanned without derailing the create/submit flow below.
-    await tonnesNotExportedPage.deleteReportLink()
+    await tonnesNotExportedPage.deleteReportLink().click()
     violations.push(
       ...(await scanPageForAccessibilityViolations(
         page,
@@ -206,7 +206,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ))
     )
 
-    await confirmationPage.goToReports()
+    await confirmationPage.goToReports().click()
     await reportsPage.selectActiveActionLink(1)
     violations.push(
       ...(await scanPageForAccessibilityViolations(
@@ -223,8 +223,8 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ))
     )
 
-    await reportSubmittedPage.returnToReportsLink()
-    await homePage.signOut()
+    await reportSubmittedPage.returnToReportsLink().click()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
 
     await assertNoSeriousOrCriticalViolations(violations)
@@ -326,7 +326,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
     )
 
     // --- Create, view and delete a draft (awaiting authorisation) PRN ---
-    await wasteRecordsPage.createNewPRNLink()
+    await wasteRecordsPage.createNewPRNLink().click()
     violations.push(
       ...(await scanPageForAccessibilityViolations(page, 'Create PRN'))
     )
@@ -343,14 +343,14 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ))
     )
 
-    await checkBeforeCreatingPRNPage.createPRN()
+    await checkBeforeCreatingPRNPage.createPRNButton().click()
     violations.push(
       ...(await scanPageForAccessibilityViolations(page, 'PRN created'))
     )
 
-    await prnCreatedPage.returnToRegistrationPage()
+    await prnCreatedPage.returnToRegistrationPage().click()
     await dashboardPage.selectTableLink(1, 1)
-    await wasteRecordsPage.managePRNsLink()
+    await wasteRecordsPage.managePRNsLink().click()
     violations.push(
       ...(await scanPageForAccessibilityViolations(
         page,
@@ -367,15 +367,15 @@ test.describe('WCAG Accessibility @smoketest', () => {
     )
 
     // Detour into the delete-PRN confirmation page and back.
-    await prnViewPage.deletePRNButton()
+    await prnViewPage.deletePRNButton().click()
     violations.push(
       ...(await scanPageForAccessibilityViolations(page, 'Confirm delete PRN'))
     )
-    await confirmDeletePRNPage.selectBackLink()
+    await confirmDeletePRNPage.backLink().click()
 
     // --- Issue the PRN, then have the recipient (RPD) reject it so the
     // cancellation confirmation pages can be scanned too ---
-    await prnViewPage.issuePRNButton()
+    await prnViewPage.issuePRNButton().click()
     violations.push(
       ...(await scanPageForAccessibilityViolations(page, 'PRN issued'))
     )
@@ -399,7 +399,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ))
     )
 
-    await prnViewPage.cancelPRNButton()
+    await prnViewPage.cancelPRNButton().click()
     violations.push(
       ...(await scanPageForAccessibilityViolations(page, 'Confirm cancel PRN'))
     )
@@ -409,8 +409,8 @@ test.describe('WCAG Accessibility @smoketest', () => {
       ...(await scanPageForAccessibilityViolations(page, 'PRN cancelled'))
     )
 
-    await prnCancelledPage.prnsPage()
-    await homePage.signOut()
+    await prnCancelledPage.prnsPage().click()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
 
     await assertNoSeriousOrCriticalViolations(violations)

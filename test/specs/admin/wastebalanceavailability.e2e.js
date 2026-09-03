@@ -3,8 +3,7 @@ import { test, expect } from '@playwright/test'
 import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { Navigation } from 'page-objects/admin/navigation.page'
 import { WasteBalanceAvailabilityPage } from 'page-objects/admin/waste.balance.availability.page'
-import { seedAdminActivityData } from '../../support/admin-activity-seed.js'
-
+import { seedAdminActivityData } from '../../support/seeding/admin-activity.js'
 test.describe('Waste balance availability page', () => {
   test.beforeAll(async () => {
     await seedAdminActivityData()

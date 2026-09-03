@@ -13,9 +13,9 @@ import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import {
   createLinkedOrganisation,
-  updateMigratedOrganisation,
-  uploadAndSubmitSummaryLog
-} from '../support/apicalls.js'
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
 import { checkBodyText } from '../support/checks.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -82,7 +82,7 @@ test.describe('Declaration name validation @declarationValidation', () => {
       'resources/reprocessor-output-regonly.xlsx'
     )
     await dashboardPage.selectTableLink(1, 1)
-    await wasteRecordsPage.manageReportsLink()
+    await wasteRecordsPage.manageReportsLink().click()
 
     await reportsPage.selectActiveActionLink(1)
     await reportDetailPage.useThisData()
@@ -94,13 +94,13 @@ test.describe('Declaration name validation @declarationValidation', () => {
     await reportCheckAnswersPage.createReport()
     await checkBodyText(page, 'report created', 30)
 
-    await confirmationPage.goToReports()
+    await confirmationPage.goToReports().click()
     await reportsPage.selectActiveActionLink(1)
   })
 
   test.afterAll(async () => {
     const homePage = new HomePage(page)
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
     await page.close()
   })

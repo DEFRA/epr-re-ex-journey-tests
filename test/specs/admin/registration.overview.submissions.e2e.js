@@ -10,8 +10,7 @@ import {
   RESTATED_PERIOD,
   seedReportSubmission,
   seedRestatedClosedPeriod
-} from '../../support/apicalls.js'
-
+} from '../../support/seeding/reports.js'
 const isQuarterOne2026 = (row) =>
   row.period === 'Quarter 1' && row.due.startsWith('2026')
 
@@ -164,7 +163,7 @@ test.describe('Registration overview - multiple submissions per period', () => {
     expect(await unsubmitConfirmationPage.getDetailsText()).toContain(
       'Submission: 2'
     )
-    await unsubmitConfirmationPage.confirmUnsubmit()
+    await unsubmitConfirmationPage.confirmUnsubmitButton().click()
     expect(await unsubmitConfirmationPage.getSuccessMessage()).toEqual(
       'Report unsubmitted'
     )

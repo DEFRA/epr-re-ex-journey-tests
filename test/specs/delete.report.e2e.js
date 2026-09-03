@@ -15,9 +15,9 @@ import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.p
 import { checkBodyText } from '../support/checks.js'
 import {
   createLinkedOrganisation,
-  updateMigratedOrganisation,
-  uploadAndSubmitSummaryLog
-} from '../support/apicalls.js'
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { expectActionRequiredStatus } from '../support/report-status.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -63,7 +63,7 @@ async function setupReprocessor(page) {
   const dashboardPage = new DashboardPage(page)
   const wasteRecordsPage = new WasteRecordsPage(page)
   await dashboardPage.selectTableLink(1, 1)
-  await wasteRecordsPage.manageReportsLink()
+  await wasteRecordsPage.manageReportsLink().click()
 }
 
 async function navigateReprocessorToSupportingInfo(page) {
@@ -99,7 +99,7 @@ test.describe.serial('Deleting reports', () => {
 
   test.afterAll(async () => {
     const homePage = new HomePage(page)
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
     await page.close()
   })
@@ -125,7 +125,7 @@ test.describe.serial('Deleting reports', () => {
     expect(supportingInfoHeading).toBe(
       'Add supporting information for your regulator (optional)'
     )
-    await reportSupportingInformationPage.deleteReportLink()
+    await reportSupportingInformationPage.deleteReportLink().click()
 
     // Confirm deletion page — verify content
     const deleteHeading = await confirmDeleteReportPage.headingText()
@@ -135,14 +135,14 @@ test.describe.serial('Deleting reports', () => {
     expect(warningText).toContain('This action cannot be undone')
 
     // Test back link
-    await confirmDeleteReportPage.selectBackLink()
+    await confirmDeleteReportPage.backLink().click()
     const backHeading = await reportSupportingInformationPage.headingText()
     expect(backHeading).toBe(
       'Add supporting information for your regulator (optional)'
     )
 
     // Now delete
-    await reportSupportingInformationPage.deleteReportLink()
+    await reportSupportingInformationPage.deleteReportLink().click()
     await confirmDeleteReportPage.confirmDeletionAndCheckDoubleClickPrevented()
 
     // Should be back on reports list with status reverted to Due
@@ -176,20 +176,20 @@ test.describe.serial('Deleting reports', () => {
     expect(checkHeading).toBe(
       'Check your answers before you create this draft report'
     )
-    await reportCheckAnswersPage.deleteAndStartAgainLink()
+    await reportCheckAnswersPage.deleteAndStartAgainLink().click()
 
     // Confirm deletion page — test back link returns to check your answers
     const deleteHeading = await confirmDeleteReportPage.headingText()
     expect(deleteHeading).toBe('Confirm deletion of this report')
 
-    await confirmDeleteReportPage.selectBackLink()
+    await confirmDeleteReportPage.backLink().click()
     const backToCheckAnswers = await reportCheckAnswersPage.headingText()
     expect(backToCheckAnswers).toBe(
       'Check your answers before you create this draft report'
     )
 
     // Return to confirm deletion and delete
-    await reportCheckAnswersPage.deleteAndStartAgainLink()
+    await reportCheckAnswersPage.deleteAndStartAgainLink().click()
     await confirmDeleteReportPage.confirmDeletion()
 
     // Should be back on reports list with status reverted to Due
@@ -235,7 +235,7 @@ test.describe.serial('Deleting reports', () => {
     await reportsPage.selectActiveActionLink(1)
 
     // On the submit/declaration page — click delete report
-    await monthlyReportDraftDeclarationPage.deleteReport()
+    await monthlyReportDraftDeclarationPage.deleteReport().click()
 
     // Verify confirm deletion page
     const deleteHeading = await confirmDeleteReportPage.headingText()

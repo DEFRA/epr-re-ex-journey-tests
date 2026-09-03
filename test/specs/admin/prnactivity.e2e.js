@@ -3,8 +3,7 @@ import { test, expect } from '@playwright/test'
 import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { Navigation } from 'page-objects/admin/navigation.page'
 import { PrnActivityPage } from 'page-objects/admin/prn.activity.page'
-import { seedAdminActivityData } from '../../support/admin-activity-seed.js'
-
+import { seedAdminActivityData } from '../../support/seeding/admin-activity.js'
 test.describe('PRN activity page', () => {
   let seeded
 

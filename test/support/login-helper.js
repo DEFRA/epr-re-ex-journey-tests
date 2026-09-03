@@ -1,19 +1,8 @@
 import { HomePage } from 'page-objects/homepage.js'
 import { DefraIdStubPage } from 'page-objects/defra.id.stub.page.js'
-import { createAndRegisterDefraIdUser, linkDefraIdUser } from './apicalls.js'
+import { registerAndLinkDefraIdUser } from './defra-id-linking.js'
 
-/**
- * Registers a Defra ID user for the given email and links them to the
- * organisation. Returns the user so callers that need user.userId for
- * further seeding (e.g. seedSubmittedReport) before logging in still can.
- * @param {string} organisationRefNo
- * @param {string} email
- */
-export async function registerAndLinkDefraIdUser(organisationRefNo, email) {
-  const user = await createAndRegisterDefraIdUser(email)
-  await linkDefraIdUser(organisationRefNo, user.userId, email)
-  return user
-}
+export { registerAndLinkDefraIdUser }
 
 /**
  * Drives the UI login flow via the Defra ID stub, starting from the home
@@ -26,7 +15,7 @@ export async function loginViaHomePage(page, email) {
   const defraIdStubPage = new DefraIdStubPage(page)
 
   await homePage.openStart()
-  await homePage.clickStartNow()
+  await homePage.startNowButton().click()
   await defraIdStubPage.loginViaEmail(email)
 }
 

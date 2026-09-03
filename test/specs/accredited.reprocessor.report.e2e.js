@@ -11,9 +11,9 @@ import { ReportCheckAnswersPage } from 'page-objects/reports/report.check.answer
 import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.page.js'
 import {
   createLinkedOrganisation,
-  unsubmitReport,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
+import { unsubmitReport } from '../support/seeding/reports.js'
 import { checkBodyText } from '../support/checks.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { uploadSummaryLogAndNavigateToReports } from '../support/report-navigation.js'
@@ -83,7 +83,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
 
     test.afterAll(async () => {
       const homePage = new HomePage(page)
-      await homePage.signOut()
+      await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
       await page.close()
     })
@@ -111,7 +111,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await reportDetailPage.useThisData()
 
       // On tonnes-recycled — back link goes to reports list
-      await tonnesRecycledPage.selectBackLink()
+      await tonnesRecycledPage.backLink().click()
       const reportsHeading = await reportsPage.headingText()
       expect(reportsHeading).toContain('Reports')
 
@@ -124,7 +124,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await tonnesRecycledPage.continue()
 
       // On tonnes-not-recycled — back link goes to tonnes-recycled
-      await tonnesNotRecycledPage.selectBackLink()
+      await tonnesNotRecycledPage.backLink().click()
       const backToTonnesRecycled = await tonnesRecycledPage.headingText()
       expect(backToTonnesRecycled).toBeTruthy()
 
@@ -135,7 +135,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await tonnesNotRecycledPage.continue()
 
       // On prn-summary — back link goes to tonnes-not-recycled
-      await reprocessorPrnSummaryPage.selectBackLink()
+      await reprocessorPrnSummaryPage.backLink().click()
       const backToTonnesNotRecycled = await tonnesNotRecycledPage.headingText()
       expect(backToTonnesNotRecycled).toBeTruthy()
 
@@ -146,7 +146,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await reprocessorPrnSummaryPage.continue()
 
       // On free-prns — back link goes to prn-summary
-      await freePrnsPage.selectBackLink()
+      await freePrnsPage.backLink().click()
       const backToPrnSummary = await reprocessorPrnSummaryPage.headingText()
       expect(backToPrnSummary).toBeTruthy()
 
@@ -157,12 +157,12 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await freePrnsPage.continue()
 
       // On supporting info — back link goes to free-prns
-      await reportSupportingInformationPage.selectBackLink()
+      await reportSupportingInformationPage.backLink().click()
       const backToFreePrns = await freePrnsPage.headingText()
       expect(backToFreePrns).toBeTruthy()
 
       // Clean up — delete report so next test starts fresh
-      await freePrnsPage.deleteReportLink()
+      await freePrnsPage.deleteReportLink().click()
       await confirmDeleteReportPage.confirmDeletion()
     })
 
@@ -178,18 +178,18 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await reportDetailPage.useThisData()
 
       // --- Delete from tonnes recycled page ---
-      await tonnesRecycledPage.deleteReportLink()
+      await tonnesRecycledPage.deleteReportLink().click()
 
       const deleteHeading = await confirmDeleteReportPage.headingText()
       expect(deleteHeading).toBe('Confirm deletion of this report')
 
       // Back link should return to tonnes-recycled
-      await confirmDeleteReportPage.selectBackLink()
+      await confirmDeleteReportPage.backLink().click()
       const backToTonnesRecycled = await tonnesRecycledPage.headingText()
       expect(backToTonnesRecycled).toBeTruthy()
 
       // Confirm deletion
-      await tonnesRecycledPage.deleteReportLink()
+      await tonnesRecycledPage.deleteReportLink().click()
       await confirmDeleteReportPage.confirmDeletion()
 
       // Should be back on reports list with status reverted to Due
@@ -206,7 +206,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await tonnesNotRecycledPage.enterTonnage('89.31')
       await tonnesNotRecycledPage.continue()
 
-      await reprocessorPrnSummaryPage.deleteReportLink()
+      await reprocessorPrnSummaryPage.deleteReportLink().click()
 
       const deleteHeading2 = await confirmDeleteReportPage.headingText()
       expect(deleteHeading2).toBe('Confirm deletion of this report')
@@ -275,7 +275,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       )
 
       // Clean up — delete the report
-      await reportCheckAnswersPage.deleteAndStartAgainLink()
+      await reportCheckAnswersPage.deleteAndStartAgainLink().click()
       await confirmDeleteReportPage.confirmDeletion()
     })
 
@@ -354,7 +354,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await checkBodyText(page, 'report created', 30)
 
       // --- View draft report in new tab ---
-      await confirmationPage.viewDraftReport()
+      await confirmationPage.viewDraftReport().click()
       let newTab = await switchToNewTab(page)
 
       // Verify draft report page content
@@ -379,7 +379,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       // Close draft tab and return to confirmation page
       await closeCurrentTabAndReturn(newTab)
 
-      await confirmationPage.goToReports()
+      await confirmationPage.goToReports().click()
 
       const reportsHeading = await reportsPage.headingText()
       expect(reportsHeading).toContain('Reports')
@@ -392,7 +392,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       const confirmationText = await reportSubmittedPage.confirmationText()
       expect(confirmationText).toContain('report submitted to regulator')
 
-      await reportSubmittedPage.viewReportLink()
+      await reportSubmittedPage.viewReportLink().click()
       newTab = await switchToNewTab(page)
 
       await checkBodyText(newTab, 'Report for', 10)
@@ -416,7 +416,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       // Close report tab and return to submission confirmation page
       await closeCurrentTabAndReturn(newTab)
 
-      await reportSubmittedPage.returnToReportsLink()
+      await reportSubmittedPage.returnToReportsLink().click()
 
       const submittedBadge = await reportsPage.getSubmittedStatusBadge(1)
       const submittedColour = await reportsPage.getSubmittedStatusColour(1)
@@ -491,7 +491,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await checkBodyText(page, '404', 10)
       await checkBodyText(page, 'Page not found', 10)
 
-      await homePage.signOut()
+      await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
     })
   })

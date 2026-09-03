@@ -5,7 +5,7 @@ import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
-} from '../support/apicalls.js'
+} from '../support/seeding/organisation.js'
 import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { checkBodyText } from '../support/checks.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -72,7 +72,7 @@ test.describe('Summary Logs (Glass Material) @smoketest', () => {
     const secondGlassMaterial = await dashboardPage.getMaterial(2, 1)
     expect(secondGlassMaterial).toBe('Glass other')
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
     const glassMaterial = await dashboardPage.getMaterial(1, 1)
     expect(glassMaterial).toBe('Glass other')
 
@@ -86,7 +86,7 @@ test.describe('Summary Logs (Glass Material) @smoketest', () => {
     let dashboardHeaderText = await wasteRecordsPage.dashboardHeaderText()
     expect(dashboardHeaderText).toContain('Glass other')
 
-    await homePage.homeLink()
+    await homePage.homeLink().click()
     await dashboardPage.selectTableLink(1, 1)
 
     dashboardHeaderText = await wasteRecordsPage.dashboardHeaderText()
@@ -98,7 +98,7 @@ test.describe('Summary Logs (Glass Material) @smoketest', () => {
     await checkBodyText(page, 'Page not found', 10)
     // End of PAE-913 verification
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

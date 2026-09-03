@@ -8,9 +8,9 @@ import { checkBodyText } from '../support/checks.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
-  updateMigratedOrganisation,
-  seedSubmittedReport
-} from '../support/apicalls.js'
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import { seedSubmittedReport } from '../support/seeding/reports.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 // The adjusted-loads accordion splits each balance-affecting load by the
@@ -72,10 +72,10 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
       migrationResponse.email
     )
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
       'resources/exporter.xlsx'
     )
@@ -92,9 +92,9 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
       { prnRevenue: 100, freeTonnage: 0 }
     )
 
-    await dashboardPage.selectExportingTab()
+    await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile('resources/exporter-adjustments.xlsx')
     await uploadSummaryLogPage.continue()
 
@@ -164,7 +164,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     const detailsText = await checkSummaryLogPage.loadDetailsText()
     expect(detailsText).toContain(ADJUSTED_ADDED_HEADING)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -212,13 +212,13 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
 
     await dashboardPage.selectLink(1)
 
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
       'resources/reprocessor-output-regonly.xlsx'
     )
 
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-output-regonly-adjustments.xlsx'
     )
@@ -234,7 +234,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     expect(subStates).toContain('1 adjusted load will be recorded')
     await checkBodyText(page, 'These have been added to your summary log.', 30)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 
@@ -277,7 +277,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
 
     // Baseline: row 1001 is included and contributes 339.99t to the balance.
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
       'resources/summary-log.xlsx'
     )
@@ -285,7 +285,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     // Re-upload with row 1001's PRN answer flipped to Yes, excluding it — an
     // open-period adjustment that reverses its earlier contribution.
     await dashboardPage.selectLink(1)
-    await wasteRecordsPage.submitSummaryLogLink()
+    await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
       'resources/reprocessor-input-prn-issued.xlsx'
     )
@@ -315,7 +315,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     )
     expect(bodyText).not.toContain(MISSING_DATA_HEADING)
 
-    await homePage.signOut()
+    await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
   })
 })

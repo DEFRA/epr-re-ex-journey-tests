@@ -30,12 +30,15 @@ class PRNDashboardPage extends Page {
       .click()
   }
 
-  async selectIssuedTab() {
-    await this.page.locator('//a[normalize-space()="Issued"]').click()
+  // The GOV.UK tabs component only assigns role="tab" once its JS enhances
+  // the plain anchors on load, so getByRole here waits on the enhancement
+  // rather than racing it the way a plain text/XPath match would.
+  issuedTab() {
+    return this.page.getByRole('tab', { name: 'Issued', exact: true })
   }
 
-  async selectCancelledTab() {
-    await this.page.locator('//a[normalize-space()="Cancelled"]').click()
+  cancelledTab() {
+    return this.page.getByRole('tab', { name: 'Cancelled', exact: true })
   }
 
   // Index changes depending on whether PRN cancellation / PRN awaiting authorisation exists
@@ -57,8 +60,8 @@ class PRNDashboardPage extends Page {
     return this.getTableRow('#issued', rowIndex)
   }
 
-  async selectAwaitingActionTab() {
-    await this.page.locator('//a[normalize-space()="Awaiting action"]').click()
+  awaitingActionTab() {
+    return this.page.getByRole('tab', { name: 'Awaiting action', exact: true })
   }
 
   // Depending on whether PRN cancellation / PRN awaiting authorisation exists, the table index might change / shift accordingly
@@ -74,7 +77,9 @@ class PRNDashboardPage extends Page {
   }
 
   async selectPrnHeadingText() {
-    return this.page.locator('#main-content > div > div > h2').innerText()
+    return this.page
+      .getByRole('heading', { level: 2, name: /^Select a (PRN|PERN)$/ })
+      .innerText()
   }
 
   async getNoPrnMessage() {
@@ -86,15 +91,15 @@ class PRNDashboardPage extends Page {
   }
 
   async getNoCreatedPrnMessage() {
-    return this.page.locator('#main-content > div > div > p').innerText()
+    return this.page
+      .getByText(/^You have not created any (PRNs|PERNs)\.$/)
+      .innerText()
   }
 
-  async createAPrnButton() {
-    await this.page
-      .locator(
-        '#main-content div.epr-heading-with-action > a[data-module="govuk-button"]'
-      )
-      .click()
+  createAPrnButton() {
+    return this.page.locator(
+      '#main-content div.epr-heading-with-action > a[data-module="govuk-button"]'
+    )
   }
 }
 
