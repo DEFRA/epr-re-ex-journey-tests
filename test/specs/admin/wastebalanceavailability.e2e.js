@@ -9,7 +9,7 @@ test.describe('Waste balance availability page', () => {
     await seedAdminActivityData()
   })
 
-  test('Should display the available waste balance by material and allow a CSV download @wastebalanceavailability', async ({
+  test('Should display the available waste balance by material and allow a CSV download @wasteBalanceAvailability', async ({
     page
   }) => {
     const loginPage = new AdminLoginPage(page)

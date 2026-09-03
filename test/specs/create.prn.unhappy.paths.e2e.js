@@ -3,7 +3,7 @@ import { thirdTradingName as tradingName } from '../support/fixtures.js'
 import { runCreatePrnUnhappyPaths } from '../support/create-prn-unhappy-paths.js'
 
 test.describe('Creating Packing Recycling Notes', () => {
-  test('Should test various (Unhappy) paths for Create PRN Reprocessor @createprn', async ({
+  test('Should test various (Unhappy) paths for Create PRN Reprocessor @createPRN', async ({
     page
   }) => {
     await runCreatePrnUnhappyPaths(page, {

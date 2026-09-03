@@ -104,7 +104,7 @@ test.describe.serial('Deleting reports', () => {
     await page.close()
   })
 
-  test('should delete from the supporting information page @delreport', async () => {
+  test('should delete from the supporting information page @delReport', async () => {
     const reportsPage = new ReportsPage(page)
     const reportDetailPage = new ReportDetailPage(page)
     const reportSupportingInformationPage = new ReportSupportingInformationPage(
@@ -152,7 +152,7 @@ test.describe.serial('Deleting reports', () => {
     await expectActionRequiredStatus(page, 1)
   })
 
-  test('should delete from the check your answers page @delreport', async () => {
+  test('should delete from the check your answers page @delReport', async () => {
     const reportsPage = new ReportsPage(page)
     const reportDetailPage = new ReportDetailPage(page)
     const reportSupportingInformationPage = new ReportSupportingInformationPage(
@@ -199,7 +199,7 @@ test.describe.serial('Deleting reports', () => {
     await expectActionRequiredStatus(page, 1)
   })
 
-  test('should delete from the submit page @delete-report', async () => {
+  test('should delete from the submit page @deleteReport', async () => {
     const reportsPage = new ReportsPage(page)
     const reportDetailPage = new ReportDetailPage(page)
     const reportSupportingInformationPage = new ReportSupportingInformationPage(

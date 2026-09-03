@@ -33,7 +33,7 @@ test.describe('Admin registration status transitions', () => {
     await loginPage.loginAsServiceMaintainer()
   })
 
-  test('rejects, reopens, grants, cancels and reinstates a registration through the admin UI @admin @registrationtransitions', async ({
+  test('rejects, reopens, grants, cancels and reinstates a registration through the admin UI @registrationTransitions', async ({
     page
   }) => {
     const organisationsPage = new OrganisationsPage(page)
@@ -125,7 +125,7 @@ test.describe('Admin registration status transitions', () => {
     )
   })
 
-  test('cancelling a registration cascades cancellation to its linked accreditation and gates its reinstatement @admin @registrationtransitions', async ({
+  test('cancelling a registration cascades cancellation to its linked accreditation and gates its reinstatement @registrationTransitions', async ({
     page
   }) => {
     const organisationsPage = new OrganisationsPage(page)

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { OrganisationsPage } from 'page-objects/admin/organisations.page'
 
-test.describe('Signin redirect tests @signinredirect', () => {
+test.describe('Signin redirect tests @signinRedirect', () => {
   test('Should be redirected to the originally requested page and not redirected to the home page', async ({
     page
   }) => {

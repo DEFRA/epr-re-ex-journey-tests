@@ -6,7 +6,7 @@ import { RegulatorOrganisationPage } from 'page-objects/regulator/organisation.p
 import { seedMultiSiteMultiTypeOrganisation } from '../../support/seeding/regulator-read.js'
 
 test.describe('A regulator viewing registrations grouped by site and by type @regulator', () => {
-  test('sees reprocessor registrations grouped by site, exporter registrations on their own tab, and an accreditation only where the registration carries one @regulatorregistrationsbysiteandtype', async ({
+  test('sees reprocessor registrations grouped by site, exporter registrations on their own tab, and an accreditation only where the registration carries one @regulatorRegistrationsBySiteAndType', async ({
     page
   }) => {
     const loginPage = new RegulatorLoginPage(page)

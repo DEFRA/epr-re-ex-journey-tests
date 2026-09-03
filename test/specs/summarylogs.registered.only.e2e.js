@@ -22,7 +22,7 @@ import {
   loginViaHomePage
 } from '../support/login-helper.js'
 
-test.describe('@registered-only', () => {
+test.describe('@registeredOnly', () => {
   test('should be able to upload Registered Only Reprocessor Summary Logs for registered-only operators and display unaccredited registrations alongside accredited ones @regOnlyReprocessor', async ({
     page
   }) => {

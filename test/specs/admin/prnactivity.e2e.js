@@ -11,7 +11,7 @@ test.describe('PRN activity page', () => {
     seeded = await seedAdminActivityData()
   })
 
-  test('Should list an accepted PRN and allow a CSV download @prnactivity', async ({
+  test('Should list an accepted PRN and allow a CSV download @prnActivity', async ({
     page
   }) => {
     const loginPage = new AdminLoginPage(page)

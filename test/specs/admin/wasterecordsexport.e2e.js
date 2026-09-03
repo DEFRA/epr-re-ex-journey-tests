@@ -5,7 +5,7 @@ import { Navigation } from 'page-objects/admin/navigation.page'
 import { WasteRecordsExportPage } from 'page-objects/admin/waste.records.export.page'
 
 test.describe('Waste records export page', () => {
-  test('Should download a CSV with the expected metadata header columns @wasterecordsexport', async ({
+  test('Should download a CSV with the expected metadata header columns @wasteRecordsExport', async ({
     page
   }) => {
     const loginPage = new AdminLoginPage(page)

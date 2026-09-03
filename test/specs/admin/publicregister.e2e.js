@@ -53,7 +53,7 @@ test.describe('Public Register page', () => {
     report = await createSubmittedReport(linkedOrganisation.refNo)
   })
 
-  test('Should be able to view Public Register if logged in @publicregister', async ({
+  test('Should be able to view Public Register if logged in @publicRegister', async ({
     page
   }) => {
     const loginPage = new AdminLoginPage(page)

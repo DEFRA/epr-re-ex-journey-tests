@@ -7,7 +7,7 @@ import { Navigation } from 'page-objects/admin/navigation.page'
 import { OrganisationsPage } from 'page-objects/admin/organisations.page'
 import { SystemLogsPage } from 'page-objects/admin/system.logs.page'
 import { createLinkedOrganisation } from '../../support/seeding/organisation.js'
-test.describe('System logs search @searchsystemlogs', () => {
+test.describe('System logs search @searchSystemLogs', () => {
   let linkedOrganisation
 
   // All tests below share one continuous, already-logged-in session: the

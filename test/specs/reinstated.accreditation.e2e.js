@@ -8,8 +8,8 @@ import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { test, expect } from '@playwright/test'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
 
-test.describe('Reinstated accreditation @reinstatedaccreditation', () => {
-  test('Reapproving a suspended accreditation and reinstating a cancelled one restore PERN access @reinstatedprn', async ({
+test.describe('Reinstated accreditation @reinstatedAccreditation', () => {
+  test('Reapproving a suspended accreditation and reinstating a cancelled one restore PERN access @reinstatedPRN', async ({
     page
   }) => {
     const dashboardPage = new DashboardPage(page)
