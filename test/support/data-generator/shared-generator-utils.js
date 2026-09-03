@@ -294,7 +294,6 @@ export async function updateOrganisationData(
   registrationUpdates.forEach(({ index, updateData }) => {
     data.registrations[index].status = updateData.status
     data.registrations[index].validFrom = validFrom
-    data.registrations[index].validTo = `${currentYear + 1}-01-01`
     if (updateData.reprocessingType) {
       data.registrations[index].reprocessingType = updateData.reprocessingType
     }

@@ -233,7 +233,6 @@ export async function updateMigratedOrganisation(
     const orgUpdateData = updateDataRows[i]
     data.registrations[i].status = orgUpdateData.status
     data.registrations[i].validFrom = validFrom
-    data.registrations[i].validTo = `${currentYear + 1}-01-01`
     data.registrations[i].registrationNumber = orgUpdateData.regNumber
     data.registrations[i].statusHistory = [
       ...(data.registrations[i].statusHistory || []),
