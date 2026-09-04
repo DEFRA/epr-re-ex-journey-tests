@@ -47,14 +47,20 @@ class WasteBalanceLedgerPage extends Page {
   }
 
   /**
-   * Every way into a note the ledger offers, whichever note it is. A row that
-   * moved the balance for something other than a note offers none, so the
-   * count says which rows carry one.
+   * Where each row's action leads, in row order, and null for a row that
+   * offers none. It reads the target rather than the link text, so it says
+   * which row leads to which note instead of only that a link is there.
    *
-   * @returns {import('@playwright/test').Locator}
+   * @returns {Promise<(string | null)[]>}
    */
-  allViewNoteLinks() {
-    return this.page.getByRole('link', { name: /^View PRN/ })
+  async actionTargets() {
+    return this.page
+      .locator(`${LEDGER_TABLE} > tbody > tr > td:last-child`)
+      .evaluateAll((cells) =>
+        cells.map(
+          (cell) => cell.querySelector('a')?.getAttribute('href') ?? null
+        )
+      )
   }
 }
 

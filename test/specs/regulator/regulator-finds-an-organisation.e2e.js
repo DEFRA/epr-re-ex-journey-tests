@@ -283,14 +283,22 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     expect(undated).toStrictEqual([])
 
-    // Every movement a note caused offers a way into that note, and the
-    // summary log that opened the balance offers none - it is not a note.
-    // Four of the five rows, counted rather than sampled, because one link on
-    // the page cannot say that the fifth row was left alone.
-    expect(await ledgerPage.allViewNoteLinks().count()).toBe(4)
-    expect(await ledgerPage.viewNoteLinks(cancellationPrnNumber).count()).toBe(
-      3
-    )
+    // Which note each row leads to, in row order. Comparing the whole column
+    // is what ties a link to its own row: counting the links cannot say that
+    // the fourth one belongs to the note on the fourth row rather than to the
+    // summary log below it. The summary log leads nowhere, because it is not
+    // a note. The paths come off the accreditation the journey already
+    // reached, so they carry whatever prefix the running service uses.
+    const noteRoute = (prnId) =>
+      `${new URL(accreditationUrl).pathname}/packaging-recycling-notes/${prnId}/view`
+
+    expect(await ledgerPage.actionTargets()).toEqual([
+      noteRoute(seeded.cancellationPrnId),
+      noteRoute(seeded.cancellationPrnId),
+      noteRoute(seeded.cancellationPrnId),
+      noteRoute(seeded.prnId),
+      null
+    ])
 
     // Reading a movement and then reading the note behind it is the journey
     // this page exists for, so it is walked rather than asserted from the
