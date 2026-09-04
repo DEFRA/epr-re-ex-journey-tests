@@ -23,7 +23,7 @@ test.describe('A regulator viewing registrations grouped by site and by type @re
     expect(await organisationPage.captionText()).toBe(seeded.companyName)
 
     // The organisation reprocesses and exports, so this page offers a tab for
-    // each - and the Reprocessor tab is where the "View organisation" link
+    // each - and the Reprocessor tab is where the results row's View link
     // lands, so it is asserted selected without navigating anywhere first.
     expect(await organisationPage.tabs().allInnerTexts()).toEqual([
       'Reprocessor',
@@ -52,7 +52,7 @@ test.describe('A regulator viewing registrations grouped by site and by type @re
         ['Material', 'Paper and board'],
         ['Regulator', 'EA'],
         ['Accreditation', 'Approved'],
-        ['Actions', `View registration ${seeded.inputRegistrationNumber}`]
+        ['Actions', `View ${seeded.inputRegistrationNumber}`]
       ])
     ])
 
@@ -67,7 +67,7 @@ test.describe('A regulator viewing registrations grouped by site and by type @re
         ['Material', 'Steel'],
         ['Regulator', 'EA'],
         ['Accreditation', 'Not applicable'],
-        ['Actions', `View registration ${seeded.outputRegistrationNumber}`]
+        ['Actions', `View ${seeded.outputRegistrationNumber}`]
       ])
     ])
 
@@ -96,7 +96,7 @@ test.describe('A regulator viewing registrations grouped by site and by type @re
         ['Material', 'Plastic'],
         ['Regulator', 'EA'],
         ['Accreditation', 'Approved'],
-        ['Actions', `View registration ${seeded.exporterRegistrationNumber}`]
+        ['Actions', `View ${seeded.exporterRegistrationNumber}`]
       ])
     ])
   })
