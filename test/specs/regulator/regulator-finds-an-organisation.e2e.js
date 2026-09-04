@@ -10,9 +10,25 @@ import { ReportViewPage } from 'page-objects/reports/report.view.page'
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page'
 import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page'
 import { checkBodyText } from '../../support/checks.js'
+import { SEEDED_VALID_FROM } from '../../support/seeding/organisation.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
 // A ledger Date cell, e.g. "18 August 2026, 5:06pm".
 const LEDGER_TIMESTAMP = /^\d{1,2} [A-Z][a-z]+ \d{4}, \d{1,2}:\d{2}(am|pm)$/
+
+/**
+ * The registered-only years the registration page offers. A registration has no
+ * end date, so the set runs from the year the seed starts in to the current one
+ * and grows every January - which is why it is derived rather than written down.
+ * @returns {string[]}
+ */
+const seededRegisteredOnlyYears = () => {
+  const firstYear = new Date(SEEDED_VALID_FROM).getUTCFullYear()
+  const currentYear = new Date().getUTCFullYear()
+
+  return Array.from({ length: currentYear - firstYear + 1 }, (_, offset) =>
+    String(firstYear + offset)
+  )
+}
 
 test.describe('A regulator looking up an operator @regulator', () => {
   test('finds an organisation by name, reads its notes, its reports and its waste balance ledger, and is offered nothing to change @regulatorSearch', async ({
@@ -99,9 +115,19 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // here later has to be justified rather than arriving unnoticed. The note
     // list, the reports and the ledger are reached by their own routes below:
     // the design offers a regulator none of them from this page.
-    expect(await detailsPage.offeredRoutes()).toEqual([
-      '/organisations/{id}/registrations/{id}/accreditations/{id}'
-    ])
+    //
+    // What it does offer is the accreditation and a year per registered-only
+    // period. The years are not id-normalised, so they arrive literally, and
+    // the set is sorted.
+    expect(await detailsPage.offeredRoutes()).toEqual(
+      [
+        '/organisations/{id}/registrations/{id}/accreditations/{id}',
+        ...seededRegisteredOnlyYears().map(
+          (year) =>
+            `/organisations/{id}/registrations/{id}/registered-only-periods/${year}`
+        )
+      ].sort()
+    )
 
     // A regulator holds no record ids to build a path from, so take the two
     // the journey has reached - the registration it is on and the

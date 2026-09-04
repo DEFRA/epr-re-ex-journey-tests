@@ -188,11 +188,17 @@ export async function createLinkedOrganisation(dataRows) {
 
 // Examples for updateDataRows:
 // [ { reprocessingType: 'input', regNumber: 'R26ER5000000003PA', accNumber: 'A26ER5000000002PA', status: 'approved' }]
+// The date a seeded registration and accreditation both start from. Exported
+// because a registration has no end date, so what a page lists for it runs from
+// here to today - and a spec asserting that set has to derive it rather than
+// write it down.
+export const SEEDED_VALID_FROM = '2026-01-01'
+
 export async function updateMigratedOrganisation(
   orgId,
   updateDataRows,
   submittedToRegulator,
-  validFrom = '2026-01-01'
+  validFrom = SEEDED_VALID_FROM
 ) {
   const authClient = new AuthClient()
   const baseAPI = new BaseAPI()
