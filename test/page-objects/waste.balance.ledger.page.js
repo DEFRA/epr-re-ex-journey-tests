@@ -43,7 +43,7 @@ class WasteBalanceLedgerPage extends Page {
    * @returns {import('@playwright/test').Locator}
    */
   viewNoteLinks(prnNumber) {
-    return this.page.getByRole('link', { name: `View PRN ${prnNumber}` })
+    return this.page.getByRole('link', { name: `View ${prnNumber}` })
   }
 
   /**
