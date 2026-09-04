@@ -1,3 +1,5 @@
+import { clickAndAwaitRedirectChain } from './redirect-settle.js'
+
 /**
  * Fills in GOV.UK One Login's own sign-in form - the real Defra ID provider
  * epr-frontend uses in dev, ext-test and prod - and waits for the redirect
@@ -20,10 +22,7 @@ export async function signInAtGovUkOneLogin(page, email, password) {
 
   await page.locator('#password').fill(password)
 
-  const urlBeforeClick = page.url()
-  await page.getByRole('button', { name: 'Continue', exact: true }).click()
-  await page.waitForURL((url) => url.toString() !== urlBeforeClick, {
-    timeout: 15000
-  })
-  await page.waitForLoadState('networkidle', { timeout: 15000 })
+  await clickAndAwaitRedirectChain(page, () =>
+    page.getByRole('button', { name: 'Continue', exact: true }).click()
+  )
 }

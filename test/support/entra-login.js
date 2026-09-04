@@ -1,3 +1,5 @@
+import { clickAndAwaitRedirectChain } from './redirect-settle.js'
+
 /**
  * Fills in Microsoft's own sign-in form and waits for the redirect chain to
  * settle. Shared by every page object that signs an Entra identity in, because
@@ -20,10 +22,7 @@ export async function signInAtMicrosoft(page, username, password) {
   await page.locator('#i0118').fill(password)
   await page.locator('input[value="Sign in"]').click()
 
-  const urlBeforeClick = page.url()
-  await page.locator('input[value="Yes"]').click()
-  await page.waitForURL((url) => url.toString() !== urlBeforeClick, {
-    timeout: 15000
-  })
-  await page.waitForLoadState('networkidle', { timeout: 15000 })
+  await clickAndAwaitRedirectChain(page, () =>
+    page.locator('input[value="Yes"]').click()
+  )
 }

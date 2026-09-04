@@ -329,7 +329,7 @@ Each variable takes `real` or `stub`, and wins over the default. Any other value
 
 A run that reaches a real provider without its credentials fails naming the missing variable, rather than sending a blank one and reporting whatever the provider says about it.
 
-Defra ID has no mode variable. Every environment reaches it through the stub, because the suite holds no real CPDev sign-in path.
+Defra ID still has no mode variable - every spec but the ext-test-only operator smoketest reaches it through the stub regardless of environment, since the suite otherwise holds no real CPDev sign-in path (see above).
 
 ## Requirements of CDP Environment Tests
 
