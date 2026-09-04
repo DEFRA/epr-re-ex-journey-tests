@@ -10,9 +10,25 @@ import { ReportViewPage } from 'page-objects/reports/report.view.page'
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page'
 import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page'
 import { checkBodyText } from '../../support/checks.js'
+import { SEEDED_VALID_FROM } from '../../support/seeding/organisation.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
-// A ledger Date and time cell, e.g. "18 August 2026, 5:06pm".
+// A ledger Date cell, e.g. "18 August 2026, 5:06pm".
 const LEDGER_TIMESTAMP = /^\d{1,2} [A-Z][a-z]+ \d{4}, \d{1,2}:\d{2}(am|pm)$/
+
+/**
+ * The registered-only years the registration page offers. A registration has no
+ * end date, so the set runs from the year the seed starts in to the current one
+ * and grows every January - which is why it is derived rather than written down.
+ * @returns {string[]}
+ */
+const seededRegisteredOnlyYears = () => {
+  const firstYear = new Date(SEEDED_VALID_FROM).getUTCFullYear()
+  const currentYear = new Date().getUTCFullYear()
+
+  return Array.from({ length: currentYear - firstYear + 1 }, (_, offset) =>
+    String(firstYear + offset)
+  )
+}
 
 test.describe('A regulator looking up an operator @regulator', () => {
   test('finds an organisation by name, reads its notes, its reports and its waste balance ledger, and is offered nothing to change @regulatorSearch', async ({
@@ -54,8 +70,8 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // an Actions column, so the row now carries a second link. Naming it here
     // is what justifies it: the whole-row compare above no longer sees it, so
     // without this the new route would arrive unnoticed.
-    expect(await homePage.actionLink(1).innerText()).toContain(
-      'View organisation'
+    await expect(homePage.actionLink(1)).toHaveText(
+      `View ${seeded.companyName}`
     )
     expect(await homePage.getActionHiddenText(1)).toBe(seeded.companyName)
 
@@ -75,8 +91,8 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // The whole row, keyed by the column that states it. Comparing all six is
     // what says the record reads correctly rather than that one cell does, and
     // it names a renamed or reordered column in the failure. Every row's link
-    // reads "View registration", so the name it carries after that is the only
-    // thing saying which registration this row opens.
+    // reads "View", so the name it carries after that is the only thing saying
+    // which registration this row opens.
     expect(await organisationPage.registrations()).toEqual([
       new Map([
         ['Registration number', seeded.registrationNumber],
@@ -84,7 +100,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
         ['Material', 'Paper and board'],
         ['Regulator', 'EA'],
         ['Accreditation', 'Approved'],
-        ['Actions', `View registration ${seeded.registrationNumber}`]
+        ['Actions', `View ${seeded.registrationNumber}`]
       ])
     ])
 
@@ -99,9 +115,19 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // here later has to be justified rather than arriving unnoticed. The note
     // list, the reports and the ledger are reached by their own routes below:
     // the design offers a regulator none of them from this page.
-    expect(await detailsPage.offeredRoutes()).toEqual([
-      '/organisations/{id}/registrations/{id}/accreditations/{id}'
-    ])
+    //
+    // What it does offer is the accreditation and a year per registered-only
+    // period. The years are not id-normalised, so they arrive literally, and
+    // the set is sorted.
+    expect(await detailsPage.offeredRoutes()).toEqual(
+      [
+        '/organisations/{id}/registrations/{id}/accreditations/{id}',
+        ...seededRegisteredOnlyYears().map(
+          (year) =>
+            `/organisations/{id}/registrations/{id}/registered-only-periods/${year}`
+        )
+      ].sort()
+    )
 
     // A regulator holds no record ids to build a path from, so take the two
     // the journey has reached - the registration it is on and the
@@ -167,7 +193,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // only row the Submitted section holds - and the link it keeps names that
     // period, which says the calendar rendered the operator's own submission.
     const { year, cadence, period } = seeded.reportPeriod
-    await reportsPage.expectSubmittedActionLink(1, 'View report')
+    await reportsPage.expectSubmittedActionLink(1, 'View')
     expect(await reportsPage.getSubmittedActionLinkHref(1)).toContain(
       `/reports/${year}/${cadence}/${period}/submissions/1/view`
     )
@@ -198,15 +224,14 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     const ledgerEvents = await ledgerPage.eventRows()
 
-    // The six columns the ledger states, in the order it states them. The
+    // The five columns the ledger states, in the order it states them. The
     // rows below are keyed by these headings, so naming them here is what
     // stops a renamed column reading as a missing cell.
     expect([...ledgerEvents[0].keys()]).toEqual([
-      'Date and time',
+      'Date',
       'Event',
       'Tonnage',
-      'Balance',
-      'Available',
+      'Waste balance available (tonnes)',
       'Who'
     ])
 
@@ -223,14 +248,18 @@ test.describe('A regulator looking up an operator @regulator', () => {
       'Summary log submitted'
     ])
 
-    // The tonnage each note moved, read back off the rows. The seed draws the
-    // two notes for different amounts so a row names which note it is.
+    // What each event moved the available balance by, read back off the rows.
+    // Drawing a note takes its tonnage out of the balance and the summary log
+    // put it there, so the two read opposite ways round; issuing a note settles
+    // an amount already held back and rejecting one settles nothing, so neither
+    // moves the balance a regulator is reading. The seed draws the two notes
+    // for different amounts, so a row names which note it is.
     expect(ledgerEvents.map((event) => event.get('Tonnage'))).toEqual([
-      `${seeded.cancellationPrnTonnage}.00`,
-      `${seeded.cancellationPrnTonnage}.00`,
-      `${seeded.cancellationPrnTonnage}.00`,
-      `${seeded.prnTonnage}.00`,
-      expect.stringMatching(/^\d+\.\d{2}$/)
+      'N/A',
+      'N/A',
+      `-${seeded.cancellationPrnTonnage}.00`,
+      `-${seeded.prnTonnage}.00`,
+      `+${seeded.summaryLogCredit}`
     ])
 
     // The page carries no sequence number, so on a ledger whose events span
@@ -240,7 +269,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // an undefined entry and would read a table with no such column as a clean
     // pass.
     const undated = ledgerEvents
-      .map((event) => event.get('Date and time'))
+      .map((event) => event.get('Date'))
       .filter((cell) => cell === undefined || !LEDGER_TIMESTAMP.test(cell))
 
     expect(undated).toStrictEqual([])

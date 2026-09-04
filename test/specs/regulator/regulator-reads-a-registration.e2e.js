@@ -2,12 +2,14 @@ import { test, expect } from '@playwright/test'
 
 import { DashboardPage } from 'page-objects/dashboard.page'
 import { AccreditationDetailsPage } from 'page-objects/regulator/accreditation.details.page'
+import { RegisteredOnlyPeriodPage } from 'page-objects/regulator/registered-only-period.page'
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
+import { SEEDED_VALID_FROM } from '../../support/seeding/organisation.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
 test.describe('A regulator reading a registration @regulator', () => {
-  test('walks from the organisation list to a registration, reads what it covers and the periods it holds, then opens one and comes back @regulatorRegistration @regulatorAccreditation', async ({
+  test('walks from the organisation list to a registration, reads what it covers and the periods it holds, then opens each kind and comes back @regulatorRegistration @regulatorAccreditation @regulatorRegisteredOnly', async ({
     page
   }) => {
     const loginPage = new RegulatorLoginPage(page)
@@ -15,6 +17,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     const dashboardPage = new DashboardPage(page)
     const detailsPage = new RegistrationDetailsPage(page)
     const accreditationPage = new AccreditationDetailsPage(page)
+    const registeredOnlyPage = new RegisteredOnlyPeriodPage(page)
 
     const seeded = await seedAwaitingPrnAndSubmittedReport()
 
@@ -74,8 +77,8 @@ test.describe('A regulator reading a registration @regulator', () => {
       /^\d{1,2} [A-Z][a-z]+( \d{4})? to (Current|\d{1,2} [A-Z][a-z]+ \d{4})$/
     )
 
-    expect(await detailsPage.actionLink(1).innerText()).toContain(
-      'View accreditation'
+    await expect(detailsPage.actionLink(1)).toHaveText(
+      `View ${seeded.accreditationNumber}`
     )
     expect(await detailsPage.getActionHiddenText(1)).toBe(
       seeded.accreditationNumber
@@ -190,14 +193,14 @@ test.describe('A regulator reading a registration @regulator', () => {
     // so the row is asserted to carry one rather than to carry a given one.
     expect(reports[0].get('Submission date')).toBeTruthy()
 
-    expect(await accreditationPage.reportActionLink(1).innerText()).toContain(
-      'View report'
+    await expect(accreditationPage.reportActionLink(1)).toHaveText(
+      `View ${periodLabel}`
     )
     expect(
       await accreditationPage.reportActionLink(1).getAttribute('href')
     ).toContain(`/reports/${year}/${cadence}/${period}/submissions/1/view`)
 
-    // Every action link reads the same two words, so the period it names is
+    // Every action link reads the same single word, so the period it names is
     // the only thing telling one row's link from another's.
     expect(await accreditationPage.getReportActionHiddenText(1)).toBe(
       periodLabel
@@ -218,6 +221,72 @@ test.describe('A regulator reading a registration @regulator', () => {
     // Getting back to the registration is an acceptance criterion, so the
     // crumb is followed rather than merely asserted to be present.
     await accreditationPage.registrationLink().click()
+    expect(new URL(page.url()).pathname).toBe(new URL(registrationUrl).pathname)
+
+    // The registration also lists the years it ran over without an
+    // accreditation. The seed grants both from the same date, so the year this
+    // opens holds nothing - which is the acceptance criterion this journey is
+    // here for.
+    const registeredOnly = await detailsPage.registeredOnlyPeriods()
+
+    expect([...registeredOnly[0].keys()]).toStrictEqual(['Period', 'Actions'])
+
+    // A registration has no end date, so the list runs to the current year and
+    // grows every January. The row the journey opens is the seeded start year,
+    // found rather than assumed to be first.
+    const seededYear = new Date(SEEDED_VALID_FROM).getUTCFullYear()
+    const seededRow =
+      registeredOnly.findIndex(
+        (row) => row.get('Period') === String(seededYear)
+      ) + 1
+
+    expect(seededRow).toBeGreaterThan(0)
+
+    expect(
+      await detailsPage.registeredOnlyActionLink(seededRow).innerText()
+    ).toContain('View reg-only period')
+
+    // Every action link reads the same two words, so the year it names is the
+    // only thing telling one row's link from another's.
+    expect(await detailsPage.getRegisteredOnlyHiddenText(seededRow)).toBe(
+      String(seededYear)
+    )
+
+    expect(
+      await detailsPage.registeredOnlyActionLink(seededRow).getAttribute('href')
+    ).toContain(`/registered-only-periods/${seededYear}`)
+
+    await detailsPage.registeredOnlyActionLink(seededRow).click()
+
+    expect(await registeredOnlyPage.headingText()).toContain(
+      `${seededYear} Registered-only periods`
+    )
+
+    await expect(page).toHaveTitle(
+      new RegExp(`${seededYear} Registered-only periods`)
+    )
+
+    const registeredOnlyCaption = await registeredOnlyPage.captionText()
+    expect(registeredOnlyCaption).toContain(seeded.companyName)
+    expect(registeredOnlyCaption).toContain(seeded.registrationNumber)
+
+    // The seed is accredited from the day the registration starts, so this
+    // period holds no data and says so in both sentences.
+    await expect(registeredOnlyPage.noDataMessage()).toBeVisible()
+    await expect(registeredOnlyPage.returnToRegistrationMessage()).toBeVisible()
+
+    expect(await registeredOnlyPage.breadcrumbs()).toStrictEqual([
+      'All organisations',
+      seeded.companyName,
+      'Registration details',
+      `${seededYear} Registered-only periods`
+    ])
+
+    expect(await registeredOnlyPage.changeControlCount()).toBe(0)
+
+    // Getting back is an acceptance criterion here too, so the crumb is
+    // followed rather than asserted to be present.
+    await registeredOnlyPage.registrationLink().click()
     expect(new URL(page.url()).pathname).toBe(new URL(registrationUrl).pathname)
   })
 })

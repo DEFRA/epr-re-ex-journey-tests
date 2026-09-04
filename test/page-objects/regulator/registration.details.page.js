@@ -1,6 +1,11 @@
 import { Page } from 'page-objects/page'
 
-const PERIODS_TABLE = '#main-content table.govuk-table'
+// The page holds two tables, so each is addressed by the id it renders with
+// rather than by being the only `.govuk-table` in main content.
+const PERIODS_TABLE =
+  '#main-content table[data-testid="accredited-periods-table"]'
+const REGISTERED_ONLY_TABLE =
+  '#main-content table[data-testid="registered-only-table"]'
 
 class RegistrationDetailsPage extends Page {
   /**
@@ -20,16 +25,19 @@ class RegistrationDetailsPage extends Page {
   }
 
   /**
-   * The wait settles on the first row, so a page that rendered none fails here
+   * The rows of one table, each read as its headings mapped onto its cells.
+   *
+   * The wait settles on the first row, so a table that rendered none fails here
    * rather than answering with an empty list a caller could read as a pass.
+   * @param {string} table
    * @returns {Promise<Map<string, string>[]>}
    */
-  async accreditedPeriods() {
-    const rows = this.page.locator(`${PERIODS_TABLE} > tbody > tr`)
+  async #rowsOf(table) {
+    const rows = this.page.locator(`${table} > tbody > tr`)
     await rows.first().waitFor({ state: 'visible' })
 
     const headings = await this.page
-      .locator(`${PERIODS_TABLE} > thead > tr th`)
+      .locator(`${table} > thead > tr th`)
       .allInnerTexts()
 
     const count = await rows.count()
@@ -38,7 +46,7 @@ class RegistrationDetailsPage extends Page {
     for (let index = 1; index <= count; index++) {
       const cells = await this.page
         .locator(
-          `${PERIODS_TABLE} > tbody > tr:nth-child(${index}) th, ${PERIODS_TABLE} > tbody > tr:nth-child(${index}) td`
+          `${table} > tbody > tr:nth-child(${index}) th, ${table} > tbody > tr:nth-child(${index}) td`
         )
         .allInnerTexts()
 
@@ -51,6 +59,22 @@ class RegistrationDetailsPage extends Page {
   }
 
   /**
+   * @returns {Promise<Map<string, string>[]>}
+   */
+  async accreditedPeriods() {
+    return this.#rowsOf(PERIODS_TABLE)
+  }
+
+  /**
+   * One row per year the registration has run over, whether or not it held an
+   * accreditation for all of it.
+   * @returns {Promise<Map<string, string>[]>}
+   */
+  async registeredOnlyPeriods() {
+    return this.#rowsOf(REGISTERED_ONLY_TABLE)
+  }
+
+  /**
    * @param {number} row
    * @returns {import('@playwright/test').Locator}
    */
@@ -58,6 +82,30 @@ class RegistrationDetailsPage extends Page {
     return this.page.locator(
       `${PERIODS_TABLE} > tbody > tr:nth-child(${row}) td:last-child a`
     )
+  }
+
+  /**
+   * @param {number} row
+   * @returns {import('@playwright/test').Locator}
+   */
+  registeredOnlyActionLink(row) {
+    return this.page.locator(
+      `${REGISTERED_ONLY_TABLE} > tbody > tr:nth-child(${row}) td:last-child a`
+    )
+  }
+
+  /**
+   * The span is clipped to a pixel, so the text content is read rather than
+   * what is rendered.
+   * @param {number} row
+   * @returns {Promise<string>}
+   */
+  async getRegisteredOnlyHiddenText(row) {
+    const text = await this.registeredOnlyActionLink(row)
+      .locator('.govuk-visually-hidden')
+      .textContent()
+
+    return (text ?? '').trim()
   }
 
   /**
