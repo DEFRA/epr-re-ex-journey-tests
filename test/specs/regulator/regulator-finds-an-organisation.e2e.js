@@ -211,16 +211,13 @@ test.describe('A regulator looking up an operator @regulator', () => {
     expect(await reportViewPage.hasMakeChangesLink()).toBe(false)
 
     // The waste balance ledger is the third thing a regulator reads of this
-    // registration. The seed submitted a summary log and drew two notes
-    // against the balance it credited, so every one of those movements is
-    // filed here.
-    await page.goto(`${accreditationUrl}/waste-balance-ledger`)
+    // registration. It is filed on the accreditation the balance belongs to,
+    // beneath that accreditation's reports. The seed submitted a summary log
+    // and drew two notes against the balance it credited, so every one of
+    // those movements is here.
+    await page.goto(accreditationUrl)
 
-    expect(await ledgerPage.headingText()).toContain('Waste balance ledger')
-
-    // The caption names the accreditation the balance belongs to, which says
-    // the page rendered the seeded record rather than somebody else's ledger.
-    expect(await ledgerPage.captionText()).toContain(seeded.accreditationNumber)
+    await expect(ledgerPage.heading()).toBeVisible()
 
     const ledgerEvents = await ledgerPage.eventRows()
 

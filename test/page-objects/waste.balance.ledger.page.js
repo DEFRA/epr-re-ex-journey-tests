@@ -1,17 +1,18 @@
 import { Page } from 'page-objects/page'
 
-const LEDGER_TABLE = '#main-content table.govuk-table'
+const LEDGER_TABLE =
+  '#main-content table[data-testid="waste-balance-ledger-table"]'
 
 class WasteBalanceLedgerPage extends Page {
   /**
-   * The caption above the heading. It names the accreditation the balance
-   * belongs to, or says the balance is registered-only, so it is the only
-   * thing on the page that identifies which ledger a regulator is reading.
+   * The heading the ledger sits under. It shares the accreditation page with
+   * that page's own title and with the reports above it, so it is found by
+   * what it says rather than by its level or its place on the page.
    *
-   * @returns {Promise<string>}
+   * @returns {import('@playwright/test').Locator}
    */
-  async captionText() {
-    return this.page.locator('h1 .govuk-caption-xl').innerText()
+  heading() {
+    return this.page.getByRole('heading', { name: 'Waste balance ledger' })
   }
 
   /**
