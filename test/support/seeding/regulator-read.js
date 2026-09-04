@@ -25,6 +25,11 @@ const ACCREDITATION_NUMBER = 'A26ER5000000002PA'
 // apart without depending on which table it read.
 const PRN_TONNAGE = 5
 const CANCELLATION_PRN_TONNAGE = 7
+
+// What submitting the fixture credits the waste balance with. The figure is
+// the spreadsheet's own, so a journey reading it back off a page is reading
+// the seeded log rather than whatever balance it happened to find.
+const SUMMARY_LOG_CREDIT = 391.62
 const REPORT_FIGURES = {
   tonnageRecycled: 432,
   tonnageNotRecycled: 0,
@@ -57,6 +62,7 @@ const REPORT_FIGURES = {
  *   prnTonnage: number,
  *   cancellationPrnId: string,
  *   cancellationPrnTonnage: number,
+ *   summaryLogCredit: number,
  *   reportPeriod: {year: number, cadence: string, period: number}
  * }>}
  */
@@ -150,6 +156,7 @@ export async function seedAwaitingPrnAndSubmittedReport() {
     prnTonnage: PRN_TONNAGE,
     cancellationPrnId: cancellation.prnId,
     cancellationPrnTonnage: CANCELLATION_PRN_TONNAGE,
+    summaryLogCredit: SUMMARY_LOG_CREDIT,
     reportPeriod
   }
 }
