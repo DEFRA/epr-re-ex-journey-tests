@@ -137,7 +137,11 @@ export async function runCreatePrnUnhappyPaths(
   await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
   await confirmDiscardPRNPage.backLink().click()
 
-  await checkBeforeCreatingPrnPage.createPRNButton().click()
+  // Discard for real to return to a fresh Create page. (Previously this used
+  // the Create button, relying on a zero balance failing the confirm-time
+  // check and bouncing back; with a seeded balance the confirm now succeeds.)
+  await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
+  await confirmDiscardPRNPage.discardAndStartAgain()
 
   // Check Create PRN/PERN validation errors
   let createAPrnPageHeading = await createPRNPage.headingText()
