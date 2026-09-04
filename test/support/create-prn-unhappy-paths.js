@@ -7,9 +7,12 @@ import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
+  seedOverseasSites,
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from './seeding/organisation.js'
+import { uploadAndSubmitSummaryLog } from './seeding/summary-logs.js'
+import { defraIdStub } from './defra-id-stub.js'
 import { createPrnDetails } from './fixtures.js'
 import { PrnHelper } from './prn.helper.js'
 import { createLinkAndLogin } from './login-helper.js'
@@ -32,6 +35,7 @@ import { createLinkAndLogin } from './login-helper.js'
  * @param {string} [config.reprocessingType] - only set for Reprocessor scenarios, e.g. 'input'
  * @param {string} config.tradingName
  * @param {string} [config.process] - defaults to 'R3' in createPrnDetails when omitted
+ * @param {string} config.summaryLogFilePath - fixture uploaded to seed a waste balance so draft creation passes the create-form pre-check
  * @param {boolean} [config.isPern]
  * @param {'createNewPRNLink'|'createNewPERNLink'} config.createNewLinkName
  * @param {'managePRNsLink'|'managePERNsLink'} config.manageLinkName
@@ -47,6 +51,7 @@ export async function runCreatePrnUnhappyPaths(
     reprocessingType,
     tradingName,
     process,
+    summaryLogFilePath,
     isPern = false,
     createNewLinkName,
     manageLinkName
@@ -80,10 +85,23 @@ export async function runCreatePrnUnhappyPaths(
     [migrationEntry]
   )
 
-  await createLinkAndLogin(
+  const user = await createLinkAndLogin(
     page,
     organisationDetails.refNo,
     migrationResponse.email
+  )
+
+  if (isPern) {
+    await seedOverseasSites(organisationDetails.refNo)
+  }
+
+  // Seed a waste balance so draft creation passes the create-form balance
+  // pre-check; the over-balance case is asserted at the create step below.
+  await uploadAndSubmitSummaryLog(
+    organisationDetails.refNo,
+    migrationResponse.registrationIds[0],
+    defraIdStub.authHeader(user.userId),
+    summaryLogFilePath
   )
 
   await dashboardPage.selectTableLink(1, 1)
@@ -119,7 +137,11 @@ export async function runCreatePrnUnhappyPaths(
   await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
   await confirmDiscardPRNPage.backLink().click()
 
-  await checkBeforeCreatingPrnPage.createPRNButton().click()
+  // Discard for real to return to a fresh Create page. (Previously this used
+  // the Create button, relying on a zero balance failing the confirm-time
+  // check and bouncing back; with a seeded balance the confirm now succeeds.)
+  await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
+  await confirmDiscardPRNPage.discardAndStartAgain()
 
   // Check Create PRN/PERN validation errors
   let createAPrnPageHeading = await createPRNPage.headingText()
@@ -135,11 +157,11 @@ export async function runCreatePrnUnhappyPaths(
     'Enter a packaging producer or compliance scheme'
   ])
 
-  await prnHelper.createAndCheckDraftPrn(prnDetails)
+  // Insufficient balance is caught at the create step: entering a tonnage
+  // above the available balance re-renders the Create page with the error,
+  // instead of proceeding to the check page.
+  await createPRNPage.createPrn(9999999, tradingName, 'Testing')
 
-  await checkBeforeCreatingPrnPage.createPRNButton().click()
-
-  // Now we see an error message related to tonnage exceeding waste balance
   errorMessages = await createPRNPage.errorMessages(1)
   expect(errorMessages).toEqual([
     'The tonnage you entered exceeds your available waste balance'
