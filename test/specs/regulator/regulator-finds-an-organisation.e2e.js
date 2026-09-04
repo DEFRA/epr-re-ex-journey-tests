@@ -224,7 +224,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     const ledgerEvents = await ledgerPage.eventRows()
 
-    // The five columns the ledger states, in the order it states them. The
+    // The six columns the ledger states, in the order it states them. The
     // rows below are keyed by these headings, so naming them here is what
     // stops a renamed column reading as a missing cell.
     expect([...ledgerEvents[0].keys()]).toEqual([
@@ -232,7 +232,8 @@ test.describe('A regulator looking up an operator @regulator', () => {
       'Event',
       'Tonnage',
       'Waste balance available (tonnes)',
-      'Who'
+      'Who',
+      'Actions'
     ])
 
     // Every movement the seed made, newest first. The summary log opens the
@@ -240,10 +241,18 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // issued and then rejected by the recipient. Comparing the whole list is
     // what says the ledger is ordered and complete: asking whether one name is
     // present cannot tell one note from two, and cannot see the order at all.
+    // A note is given its number when it is issued, and the ledger states the
+    // number the note carries now against every movement it caused. So the
+    // note that was issued and then rejected names itself on all three of its
+    // rows, and the note still awaiting authorisation names itself on none -
+    // which is the reading a regulator gets of a number that does not exist
+    // yet. The number sits on a second line under the event.
+    const { cancellationPrnNumber } = seeded
+
     expect(ledgerEvents.map((event) => event.get('Event'))).toEqual([
-      'PRN rejected',
-      'PRN issued',
-      'PRN created',
+      `PRN rejected\n${cancellationPrnNumber}`,
+      `PRN issued\n${cancellationPrnNumber}`,
+      `PRN created\n${cancellationPrnNumber}`,
       'PRN created',
       'Summary log submitted'
     ])
@@ -273,5 +282,28 @@ test.describe('A regulator looking up an operator @regulator', () => {
       .filter((cell) => cell === undefined || !LEDGER_TIMESTAMP.test(cell))
 
     expect(undated).toStrictEqual([])
+
+    // Every movement a note caused offers a way into that note, and the
+    // summary log that opened the balance offers none - it is not a note.
+    // Four of the five rows, counted rather than sampled, because one link on
+    // the page cannot say that the fifth row was left alone.
+    expect(await ledgerPage.allViewNoteLinks().count()).toBe(4)
+    expect(await ledgerPage.viewNoteLinks(cancellationPrnNumber).count()).toBe(
+      3
+    )
+
+    // Reading a movement and then reading the note behind it is the journey
+    // this page exists for, so it is walked rather than asserted from the
+    // href. The rejection is the newest movement, so its row is the first one.
+    await ledgerPage.viewNoteLinks(cancellationPrnNumber).first().click()
+
+    // The note names itself, which says the ledger opened this note rather
+    // than the other one it also offers.
+    await checkBodyText(page, cancellationPrnNumber, 10)
+
+    // A regulator reads the note and is offered nothing to change on it. The
+    // note is reached from the ledger here rather than from the list, so this
+    // is a second way in that has to land somewhere read-only too.
+    expect(await prnViewPage.formCount()).toBe(0)
   })
 })

@@ -33,6 +33,29 @@ class WasteBalanceLedgerPage extends Page {
     }
     return events
   }
+
+  /**
+   * The way into a note, from every row that moved the balance because of it.
+   * Each of those links reads the same to the eye, so the note's number is
+   * what tells one from another - to a reader of the page as much as to this.
+   *
+   * @param {string} prnNumber
+   * @returns {import('@playwright/test').Locator}
+   */
+  viewNoteLinks(prnNumber) {
+    return this.page.getByRole('link', { name: `View PRN ${prnNumber}` })
+  }
+
+  /**
+   * Every way into a note the ledger offers, whichever note it is. A row that
+   * moved the balance for something other than a note offers none, so the
+   * count says which rows carry one.
+   *
+   * @returns {import('@playwright/test').Locator}
+   */
+  allViewNoteLinks() {
+    return this.page.getByRole('link', { name: /^View PRN/ })
+  }
 }
 
 export { WasteBalanceLedgerPage }

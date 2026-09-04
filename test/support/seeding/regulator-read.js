@@ -61,6 +61,7 @@ const REPORT_FIGURES = {
  *   prnId: string,
  *   prnTonnage: number,
  *   cancellationPrnId: string,
+ *   cancellationPrnNumber: string,
  *   cancellationPrnTonnage: number,
  *   summaryLogCredit: number,
  *   reportPeriod: {year: number, cadence: string, period: number}
@@ -155,6 +156,7 @@ export async function seedAwaitingPrnAndSubmittedReport() {
     prnId,
     prnTonnage: PRN_TONNAGE,
     cancellationPrnId: cancellation.prnId,
+    cancellationPrnNumber: issued.prnNumber,
     cancellationPrnTonnage: CANCELLATION_PRN_TONNAGE,
     summaryLogCredit: SUMMARY_LOG_CREDIT,
     reportPeriod
