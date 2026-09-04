@@ -54,8 +54,8 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // an Actions column, so the row now carries a second link. Naming it here
     // is what justifies it: the whole-row compare above no longer sees it, so
     // without this the new route would arrive unnoticed.
-    expect(await homePage.actionLink(1).innerText()).toContain(
-      'View organisation'
+    await expect(homePage.actionLink(1)).toHaveText(
+      `View ${seeded.companyName}`
     )
     expect(await homePage.getActionHiddenText(1)).toBe(seeded.companyName)
 
@@ -75,8 +75,8 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // The whole row, keyed by the column that states it. Comparing all six is
     // what says the record reads correctly rather than that one cell does, and
     // it names a renamed or reordered column in the failure. Every row's link
-    // reads "View registration", so the name it carries after that is the only
-    // thing saying which registration this row opens.
+    // reads "View", so the name it carries after that is the only thing saying
+    // which registration this row opens.
     expect(await organisationPage.registrations()).toEqual([
       new Map([
         ['Registration number', seeded.registrationNumber],
@@ -84,7 +84,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
         ['Material', 'Paper and board'],
         ['Regulator', 'EA'],
         ['Accreditation', 'Approved'],
-        ['Actions', `View registration ${seeded.registrationNumber}`]
+        ['Actions', `View ${seeded.registrationNumber}`]
       ])
     ])
 
@@ -167,7 +167,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // only row the Submitted section holds - and the link it keeps names that
     // period, which says the calendar rendered the operator's own submission.
     const { year, cadence, period } = seeded.reportPeriod
-    await reportsPage.expectSubmittedActionLink(1, 'View report')
+    await reportsPage.expectSubmittedActionLink(1, 'View')
     expect(await reportsPage.getSubmittedActionLinkHref(1)).toContain(
       `/reports/${year}/${cadence}/${period}/submissions/1/view`
     )
