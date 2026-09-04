@@ -233,7 +233,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
       'N/A',
       `-${seeded.cancellationPrnTonnage}.00`,
       `-${seeded.prnTonnage}.00`,
-      expect.stringMatching(/^\+\d+\.\d{2}$/)
+      `+${seeded.summaryLogCredit}`
     ])
 
     // The page carries no sequence number, so on a ledger whose events span
