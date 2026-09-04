@@ -77,8 +77,8 @@ test.describe('A regulator reading a registration @regulator', () => {
       /^\d{1,2} [A-Z][a-z]+( \d{4})? to (Current|\d{1,2} [A-Z][a-z]+ \d{4})$/
     )
 
-    expect(await detailsPage.actionLink(1).innerText()).toContain(
-      'View accreditation'
+    await expect(detailsPage.actionLink(1)).toHaveText(
+      `View ${seeded.accreditationNumber}`
     )
     expect(await detailsPage.getActionHiddenText(1)).toBe(
       seeded.accreditationNumber
@@ -193,14 +193,14 @@ test.describe('A regulator reading a registration @regulator', () => {
     // so the row is asserted to carry one rather than to carry a given one.
     expect(reports[0].get('Submission date')).toBeTruthy()
 
-    expect(await accreditationPage.reportActionLink(1).innerText()).toContain(
-      'View report'
+    await expect(accreditationPage.reportActionLink(1)).toHaveText(
+      `View ${periodLabel}`
     )
     expect(
       await accreditationPage.reportActionLink(1).getAttribute('href')
     ).toContain(`/reports/${year}/${cadence}/${period}/submissions/1/view`)
 
-    // Every action link reads the same two words, so the period it names is
+    // Every action link reads the same single word, so the period it names is
     // the only thing telling one row's link from another's.
     expect(await accreditationPage.getReportActionHiddenText(1)).toBe(
       periodLabel
