@@ -6,14 +6,19 @@ test.describe('Creating Packing Recycling Notes', () => {
   test('Should test various (Unhappy) paths for Create PRN Reprocessor @createPRN', async ({
     page
   }) => {
+    const regNumber = 'R26ER5000000000ST'
+    const accNumber = 'A26ER5000000000ST'
+
     await runCreatePrnUnhappyPaths(page, {
       wasteProcessingType: 'Reprocessor',
-      material: 'Paper or board (R3)',
-      materialDesc: 'Paper and board',
-      regNumber: 'R25SR500000912PA',
-      accNumber: 'R-ACC12045PA',
+      material: 'Steel (R4)',
+      materialDesc: 'Steel',
+      regNumber,
+      accNumber,
       reprocessingType: 'input',
       tradingName,
+      process: 'R4',
+      summaryLogFilePath: `resources/sanity/reprocessorInput_${accNumber}_${regNumber}.xlsx`,
       createNewLinkName: 'createNewPRNLink',
       manageLinkName: 'managePRNsLink'
     })
