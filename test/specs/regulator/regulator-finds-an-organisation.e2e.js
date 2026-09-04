@@ -11,7 +11,7 @@ import { RegistrationDetailsPage } from 'page-objects/regulator/registration.det
 import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page'
 import { checkBodyText } from '../../support/checks.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
-// A ledger Date and time cell, e.g. "18 August 2026, 5:06pm".
+// A ledger Date cell, e.g. "18 August 2026, 5:06pm".
 const LEDGER_TIMESTAMP = /^\d{1,2} [A-Z][a-z]+ \d{4}, \d{1,2}:\d{2}(am|pm)$/
 
 test.describe('A regulator looking up an operator @regulator', () => {
@@ -198,15 +198,14 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     const ledgerEvents = await ledgerPage.eventRows()
 
-    // The six columns the ledger states, in the order it states them. The
+    // The five columns the ledger states, in the order it states them. The
     // rows below are keyed by these headings, so naming them here is what
     // stops a renamed column reading as a missing cell.
     expect([...ledgerEvents[0].keys()]).toEqual([
-      'Date and time',
+      'Date',
       'Event',
       'Tonnage',
-      'Balance',
-      'Available',
+      'Waste balance available (tonnes)',
       'Who'
     ])
 
@@ -223,14 +222,18 @@ test.describe('A regulator looking up an operator @regulator', () => {
       'Summary log submitted'
     ])
 
-    // The tonnage each note moved, read back off the rows. The seed draws the
-    // two notes for different amounts so a row names which note it is.
+    // What each event moved the available balance by, read back off the rows.
+    // Drawing a note takes its tonnage out of the balance and the summary log
+    // put it there, so the two read opposite ways round; issuing a note settles
+    // an amount already held back and rejecting one settles nothing, so neither
+    // moves the balance a regulator is reading. The seed draws the two notes
+    // for different amounts, so a row names which note it is.
     expect(ledgerEvents.map((event) => event.get('Tonnage'))).toEqual([
-      `${seeded.cancellationPrnTonnage}.00`,
-      `${seeded.cancellationPrnTonnage}.00`,
-      `${seeded.cancellationPrnTonnage}.00`,
-      `${seeded.prnTonnage}.00`,
-      expect.stringMatching(/^\d+\.\d{2}$/)
+      'N/A',
+      'N/A',
+      `-${seeded.cancellationPrnTonnage}.00`,
+      `-${seeded.prnTonnage}.00`,
+      expect.stringMatching(/^\+\d+\.\d{2}$/)
     ])
 
     // The page carries no sequence number, so on a ledger whose events span
@@ -240,7 +243,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // an undefined entry and would read a table with no such column as a clean
     // pass.
     const undated = ledgerEvents
-      .map((event) => event.get('Date and time'))
+      .map((event) => event.get('Date'))
       .filter((cell) => cell === undefined || !LEDGER_TIMESTAMP.test(cell))
 
     expect(undated).toStrictEqual([])
