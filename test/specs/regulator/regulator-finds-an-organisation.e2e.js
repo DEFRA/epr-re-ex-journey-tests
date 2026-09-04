@@ -211,20 +211,17 @@ test.describe('A regulator looking up an operator @regulator', () => {
     expect(await reportViewPage.hasMakeChangesLink()).toBe(false)
 
     // The waste balance ledger is the third thing a regulator reads of this
-    // registration. The seed submitted a summary log and drew two notes
-    // against the balance it credited, so every one of those movements is
-    // filed here.
-    await page.goto(`${accreditationUrl}/waste-balance-ledger`)
+    // registration. It is filed on the accreditation the balance belongs to,
+    // beneath that accreditation's reports. The seed submitted a summary log
+    // and drew two notes against the balance it credited, so every one of
+    // those movements is here.
+    await page.goto(accreditationUrl)
 
-    expect(await ledgerPage.headingText()).toContain('Waste balance ledger')
-
-    // The caption names the accreditation the balance belongs to, which says
-    // the page rendered the seeded record rather than somebody else's ledger.
-    expect(await ledgerPage.captionText()).toContain(seeded.accreditationNumber)
+    await expect(ledgerPage.heading()).toBeVisible()
 
     const ledgerEvents = await ledgerPage.eventRows()
 
-    // The five columns the ledger states, in the order it states them. The
+    // The six columns the ledger states, in the order it states them. The
     // rows below are keyed by these headings, so naming them here is what
     // stops a renamed column reading as a missing cell.
     expect([...ledgerEvents[0].keys()]).toEqual([
@@ -232,7 +229,8 @@ test.describe('A regulator looking up an operator @regulator', () => {
       'Event',
       'Tonnage',
       'Waste balance available (tonnes)',
-      'Who'
+      'Who',
+      'Actions'
     ])
 
     // Every movement the seed made, newest first. The summary log opens the
@@ -240,10 +238,18 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // issued and then rejected by the recipient. Comparing the whole list is
     // what says the ledger is ordered and complete: asking whether one name is
     // present cannot tell one note from two, and cannot see the order at all.
+    // A note is given its number when it is issued, and the ledger states the
+    // number the note carries now against every movement it caused. So the
+    // note that was issued and then rejected names itself on all three of its
+    // rows, and the note still awaiting authorisation names itself on none -
+    // which is the reading a regulator gets of a number that does not exist
+    // yet. The number sits on a second line under the event.
+    const { cancellationPrnNumber } = seeded
+
     expect(ledgerEvents.map((event) => event.get('Event'))).toEqual([
-      'PRN rejected',
-      'PRN issued',
-      'PRN created',
+      `PRN rejected\n${cancellationPrnNumber}`,
+      `PRN issued\n${cancellationPrnNumber}`,
+      `PRN created\n${cancellationPrnNumber}`,
       'PRN created',
       'Summary log submitted'
     ])
@@ -273,5 +279,36 @@ test.describe('A regulator looking up an operator @regulator', () => {
       .filter((cell) => cell === undefined || !LEDGER_TIMESTAMP.test(cell))
 
     expect(undated).toStrictEqual([])
+
+    // Which note each row leads to, in row order. Comparing the whole column
+    // is what ties a link to its own row: counting the links cannot say that
+    // the fourth one belongs to the note on the fourth row rather than to the
+    // summary log below it. The summary log leads nowhere, because it is not
+    // a note. The paths come off the accreditation the journey already
+    // reached, so they carry whatever prefix the running service uses.
+    const noteRoute = (prnId) =>
+      `${new URL(accreditationUrl).pathname}/packaging-recycling-notes/${prnId}/view`
+
+    expect(await ledgerPage.actionTargets()).toEqual([
+      noteRoute(seeded.cancellationPrnId),
+      noteRoute(seeded.cancellationPrnId),
+      noteRoute(seeded.cancellationPrnId),
+      noteRoute(seeded.prnId),
+      null
+    ])
+
+    // Reading a movement and then reading the note behind it is the journey
+    // this page exists for, so it is walked rather than asserted from the
+    // href. The rejection is the newest movement, so its row is the first one.
+    await ledgerPage.viewNoteLinks(cancellationPrnNumber).first().click()
+
+    // The note names itself, which says the ledger opened this note rather
+    // than the other one it also offers.
+    await checkBodyText(page, cancellationPrnNumber, 10)
+
+    // A regulator reads the note and is offered nothing to change on it. The
+    // note is reached from the ledger here rather than from the list, so this
+    // is a second way in that has to land somewhere read-only too.
+    expect(await prnViewPage.formCount()).toBe(0)
   })
 })
