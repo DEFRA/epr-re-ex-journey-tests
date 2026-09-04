@@ -42,7 +42,7 @@ const expectActionLink = async (page, rowIndex, tableXPath, label) => {
 }
 
 // Returns the href of the row's action anchor, so callers can assert the CTA
-// targets the expected submission (e.g. a resubmitted period's "View report"
+// targets the expected submission (e.g. a resubmitted period's "View" link
 // must point at submission 2, not the superseded submission 1).
 const getActionLinkHref = async (page, rowIndex, tableXPath) => {
   return page
