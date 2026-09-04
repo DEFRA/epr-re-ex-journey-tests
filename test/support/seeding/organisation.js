@@ -309,8 +309,13 @@ export async function updateMigratedOrganisation(
         }
         return entry
       })
-      if (orgUpdateData.validFrom?.trim()) {
-        data.accreditations[j].validFrom = orgUpdateData.validFrom
+      // accValidFrom lets the accreditation start after the registration did,
+      // which is what leaves a registered-only stretch between them. Without
+      // it, validFrom moves both records together and no gap exists.
+      const accValidFrom = orgUpdateData.accValidFrom ?? orgUpdateData.validFrom
+
+      if (accValidFrom?.trim()) {
+        data.accreditations[j].validFrom = accValidFrom
       }
       if (orgUpdateData.reprocessingType?.trim()) {
         data.accreditations[j].reprocessingType = orgUpdateData.reprocessingType
