@@ -151,6 +151,16 @@ const unrecognisedEntraUser = {
   password: usesRealEntra ? process.env.UNRECOGNISED_ENTRA_PASSWORD : 'pass'
 }
 
+// A GOV.UK One Login (real Defra ID) account, already linked to an
+// organisation in ext-test. Every other spec signs an operator in via the
+// Defra ID stub (see the note above on why real Defra ID sign-in is
+// otherwise a gap this suite leaves open), so these stay unset - and unused
+// - everywhere except the ext-test-only operator smoketest.
+const defraIdUser = {
+  username: process.env.DEFRA_ID_USERNAME,
+  password: process.env.DEFRA_ID_PASSWORD
+}
+
 const defraId = {
   local: withProxy
     ? 'http://defra-id-stub:3200'
@@ -271,6 +281,7 @@ export default {
   basicAuth,
   cognitoAuth,
   defraIdUri,
+  defraIdUser,
   dockerLogParser,
   regulatorUser,
   sqsUri,

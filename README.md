@@ -97,6 +97,7 @@ Tags are for `--grep` spec selection, not documentation. Every tag is camelCase 
 - `@cma` - specs covering closed-period adjustments surfaced in summary logs and reports: adjusted-load detection, the associated messaging, and resubmission behaviour once a period has closed.
 - `@accessibility` - WCAG accessibility scans (axe-core sweeps) of a page or app variant. Keep these specs purely accessibility-focused; don't fold functional assertions into one just because it's already visiting the page.
 - `@permissions` - specs asserting a role is denied an admin action it shouldn't have (e.g. a service-maintainer scope blocked from unsubmitting a report or purging the DLQ). For the negative/restricted-access case only, not happy-path admin flows.
+- `@extTestOnly` - specs that only work against the ext-test environment, typically because they sign in through a real, non-stubbed identity provider that's only wired up there (see the Defra ID note in `test/config/config.js`). These still guard themselves with a runtime `test.skip` keyed off `process.env.ENVIRONMENT`, so an accidental run elsewhere skips rather than fails - the tag is for selecting or excluding this slice by concern (e.g. `GREP='@extTestOnly'`), not a substitute for the runtime guard.
 
 Everything else you'll see in a test title (`@delPRNExp`, `@summaryLogReprocessorInput`, `@registrationTransitions`, ...) is a free-form, per-spec grep handle, not a category: `--grep` matches title text, so a short unique word lets you target one spec or scenario (see the `GREP=` examples above) without needing to type its full sentence. Beyond the shared camelCase rule, these aren't standardized - they aren't guaranteed to mean anything outside their own file, and shouldn't be used to select CI runs by concern - only the category tags above are held to that bar. `@admin` used to be one of these masquerading as a category (tagging 2 of the many specs under `specs/admin/`, duplicating what the path-based `test:local:admin` script already selects); it's been retired rather than fixed, since nothing needed the extra selector once you had the path.
 
@@ -303,6 +304,8 @@ The results of the test run are made available in the portal.
 
 By default in the CDP-Portal only tests tagged with @smoketest are run. If you wish to run all the tests, pass in `all` in the profile section of the CDP Portal UI.
 
+`extTestOnly` runs just the `@extTestOnly` subset (currently the operator smoketest that signs in through real GOV.UK One Login) via `npm run test:extTestOnly` - use this profile when running against ext-test specifically, since these specs skip themselves everywhere else.
+
 Two other profiles skip the test run entirely and instead seed data via the
 [data generator](#generating-test-organisation-data), exiting immediately
 afterwards:
@@ -319,6 +322,8 @@ An environment stubs some identity providers and deploys others for real, and th
 | Entra      | `ENTRA_MODE`      | `test`, `ext-test` | `AUTH_CLIENT_SECRET`, `AUTH_USERNAME`, `AUTH_PASSWORD`, `REGULATOR_USERNAME`, `REGULATOR_PASSWORD`, `UNRECOGNISED_ENTRA_USERNAME`, `UNRECOGNISED_ENTRA_PASSWORD` |
 | Basic auth | `BASIC_AUTH_MODE` | `test`             | `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD`                                                                                                                     |
 | Cognito    | `COGNITO_MODE`    | `test`             | `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`                                                                                                                     |
+
+Defra ID isn't in the table above - every spec except the ext-test-only operator smoketest signs in through the Defra ID stub regardless of environment (see the note in `test/config/config.js`). That one spec needs `DEFRA_ID_USERNAME`/`DEFRA_ID_PASSWORD` - a GOV.UK One Login account already linked to an organisation in ext-test.
 
 Each variable takes `real` or `stub`, and wins over the default. Any other value stops the run. A local run takes every stub unless a mode variable asks otherwise.
 

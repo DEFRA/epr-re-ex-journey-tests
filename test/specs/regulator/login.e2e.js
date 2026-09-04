@@ -4,7 +4,7 @@ import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { ServiceNavigation } from 'page-objects/service-navigation.page'
 
-test.describe('Regulator login @regulator', () => {
+test.describe('Regulator login @regulator @smoketest', () => {
   test('Should be able to sign in as a regulator, reach the landing page, and sign out @regulatorLogin', async ({
     page
   }) => {
