@@ -60,7 +60,13 @@ test.describe('A regulator reading a registered-only period @regulator', () => {
     // time throughout and the page carries data rather than the empty state.
     await expect(registeredOnlyPage.noDataMessage()).toHaveCount(0)
 
-    await expect(ledgerPage.heading()).toBeVisible()
+    // The section is named for the record itself rather than for a balance,
+    // this period holding none - so it is not the accreditation page's "Waste
+    // balance ledger", and the shared page object's heading reader would look
+    // for the wrong words.
+    await expect(
+      page.getByRole('heading', { name: 'Ledger', exact: true })
+    ).toBeVisible()
 
     // No wait is needed for the event to exist. The backend syncs the waste
     // records - which is what commits the ledger event - before it transitions
@@ -68,14 +74,17 @@ test.describe('A regulator reading a registered-only period @regulator', () => {
     // status. So a log that reads as submitted has its ledger event written.
     const ledgerEvents = await ledgerPage.eventRows()
 
-    // The six columns the ledger states, in the order it states them. The row
+    // The four columns the ledger states, in the order it states them. The row
     // below is keyed by these headings, so naming them here is what stops a
     // renamed column reading as a missing cell.
+    //
+    // Neither balance column is among them: a registration holds no waste
+    // balance until it is accredited, and the accreditation page's Tonnage
+    // column states the movement in that balance rather than what the summary
+    // log reported. Showing the tonnage here is PAE-1935.
     expect([...ledgerEvents[0].keys()]).toEqual([
       'Date',
       'Event',
-      'Tonnage',
-      'Waste balance available (tonnes)',
       'Who',
       'Actions'
     ])
@@ -87,11 +96,8 @@ test.describe('A regulator reading a registered-only period @regulator', () => {
     // accreditation this registration does not have.
     expect(submission.get('Event')).toBe('Summary log submitted')
 
-    // The registration holds no balance while it is only registered, so both
-    // number columns say so rather than stating a running zero - and the row
-    // offers no note to open, for want of an accreditation to hang one on.
-    expect(submission.get('Tonnage')).toBe('N/A')
-    expect(submission.get('Waste balance available (tonnes)')).toBe('N/A')
+    // The row offers no note to open, for want of an accreditation to hang one
+    // on. The downloads the design draws here are PAE-1828.
     expect(submission.get('Actions')).toBe('')
 
     expect(submission.get('Who')).toContain('@')
