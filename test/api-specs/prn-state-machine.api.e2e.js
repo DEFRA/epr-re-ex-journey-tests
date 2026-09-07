@@ -10,7 +10,8 @@ import {
 } from '../support/defra-id-linking.js'
 import {
   createLinkedOrganisation,
-  updateMigratedOrganisation
+  updateMigratedOrganisation,
+  seedOverseasSites
 } from '../support/seeding/organisation.js'
 import {
   externalAPIAcceptPrn,
@@ -23,11 +24,12 @@ import { assertAuditLog } from '../support/docker-log-assertions.js'
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
 
 // Sets up one linked, approved Reprocessor Input registration with a real
-// waste-balance ledger (via a real summary-log upload+submit, since PRN
-// creation succeeds unconditionally but the draft->awaiting_authorisation
-// transition needs an open ledger to check against - confirmed via
-// epr-backend's own update-status-balance-effects.js: only 6 specific
-// transitions touch the ledger at all, draft->discarded isn't one of them).
+// waste-balance ledger (via a real summary-log upload+submit). Both draft
+// creation and the draft->awaiting_authorisation transition now check the
+// requested tonnage against this balance, so an open ledger carrying a real
+// credit is needed to create within-balance drafts at all. The ledger itself
+// is only mutated by 6 specific transitions (confirmed via epr-backend's own
+// update-status-balance-effects.js); draft->discarded isn't one of them.
 async function setUpAccreditedReprocessorWithBalance() {
   const baseAPI = new BaseAPI()
   const authClient = new AuthClient()
@@ -58,6 +60,47 @@ async function setUpAccreditedReprocessorWithBalance() {
     registrationId,
     authHeader,
     FIXTURE_PATH
+  )
+
+  return {
+    baseAPI,
+    authClient,
+    org,
+    registrationId,
+    accreditationId,
+    authHeader
+  }
+}
+
+// The exporter twin of the reprocessor setup above, for the PERN create-time
+// balance check. Exporters need overseas sites seeded and use the dedicated
+// exporter summary-log fixture (whose accreditation and registration numbers
+// are baked into its filename), mirroring accredited.exporter.report.e2e.js.
+async function setUpAccreditedExporterWithBalance() {
+  const regNumber = 'R26EX5000000002PA'
+  const accNumber = 'A26EX5000000002PA'
+
+  const baseAPI = new BaseAPI()
+  const authClient = new AuthClient()
+  await authClient.authenticate()
+  const org = await createLinkedOrganisation([
+    { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
+  ])
+  const migrated = await updateMigratedOrganisation(org.refNo, [
+    { regNumber, accNumber, status: 'approved' }
+  ])
+  const user = await createAndRegisterDefraIdUser(migrated.email)
+  await linkDefraIdUser(org.refNo, user.userId, migrated.email)
+  await seedOverseasSites(org.refNo)
+  const authHeader = defraIdStub.authHeader(user.userId)
+  const registrationId = migrated.registrationIds[0]
+  const accreditationId = migrated.accreditationIds[0]
+
+  await uploadAndSubmitSummaryLog(
+    org.refNo,
+    registrationId,
+    authHeader,
+    `resources/sanity/exporter_${accNumber}_${regNumber}.xlsx`
   )
 
   return {
@@ -236,25 +279,107 @@ test.describe('PRN state machine @prnStateMachine', () => {
   })
 
   test('rejects issuance when the requested tonnage exceeds the available waste balance @prnInsufficientBalance', async () => {
-    const { prnPath } = await createPrn(
+    // Draft creation is now itself balance-checked, so a single over-balance
+    // draft can no longer be created to reach the issuance-time backstop. The
+    // backstop is exercised instead by over-committing across two drafts:
+    // creation is point-in-time and reserves nothing, so a tiny first draft and
+    // a second draft equal to the whole available balance can both be created,
+    // but authorising the first drops the available balance below the second, so
+    // the second no longer fits. A tiny first draft keeps the transient
+    // ringfence small, since this balance is shared with the tests that follow.
+    const balance = await waitForWasteBalance(
+      ctx.org.refNo,
+      ctx.accreditationId,
+      ctx.authHeader
+    )
+    const available = Math.floor(
+      parseFloat(balance[ctx.accreditationId].availableAmount)
+    )
+
+    const { prnPath: firstPath } = await createPrn(
       ctx.baseAPI,
       ctx.org.refNo,
       ctx.registrationId,
       ctx.accreditationId,
       ctx.authHeader,
-      1000000
+      1
+    )
+    const { prnPath: secondPath } = await createPrn(
+      ctx.baseAPI,
+      ctx.org.refNo,
+      ctx.registrationId,
+      ctx.accreditationId,
+      ctx.authHeader,
+      available
     )
 
-    const response = await updatePrnStatus(
+    const firstAuth = await updatePrnStatus(
       ctx.baseAPI,
-      prnPath,
+      firstPath,
       ctx.authHeader,
       'awaiting_authorisation'
+    )
+    expect(firstAuth.statusCode).to.equal(200)
+
+    const secondAuth = await updatePrnStatus(
+      ctx.baseAPI,
+      secondPath,
+      ctx.authHeader,
+      'awaiting_authorisation'
+    )
+    expect(secondAuth.statusCode).to.equal(409)
+    const body = /** @type {any} */ (await secondAuth.body.json())
+    expect(body.message).to.equal('Insufficient available waste balance')
+
+    // Restore the shared balance for the tests that follow: deleting the
+    // authorised draft credits its tonnage back, and discarding the unauthorised
+    // one touches nothing.
+    const deleteFirst = await updatePrnStatus(
+      ctx.baseAPI,
+      firstPath,
+      ctx.authHeader,
+      'deleted'
+    )
+    expect(deleteFirst.statusCode).to.equal(200)
+    const discardSecond = await updatePrnStatus(
+      ctx.baseAPI,
+      secondPath,
+      ctx.authHeader,
+      'discarded'
+    )
+    expect(discardSecond.statusCode).to.equal(200)
+  })
+
+  test('rejects draft creation when the requested tonnage exceeds the available waste balance @prnInsufficientBalanceAtCreate', async () => {
+    // The create-time backstop: a draft for more than is available is refused up
+    // front with the same 409 the confirm-time transition raises, plus a
+    // machine-readable code the frontend discriminates on to show an inline
+    // error. Nothing is created, so no cleanup is needed.
+    const balance = await waitForWasteBalance(
+      ctx.org.refNo,
+      ctx.accreditationId,
+      ctx.authHeader
+    )
+    const overBalanceTonnage =
+      Math.floor(parseFloat(balance[ctx.accreditationId].availableAmount)) + 1
+
+    const response = await ctx.baseAPI.post(
+      `/v1/organisations/${ctx.org.refNo}/registrations/${ctx.registrationId}/accreditations/${ctx.accreditationId}/packaging-recycling-notes`,
+      JSON.stringify({
+        issuedToOrganisation: {
+          id: 'testId',
+          name: 'Test Organisation Ltd',
+          tradingName: 'Trading Name'
+        },
+        tonnage: overBalanceTonnage
+      }),
+      ctx.authHeader
     )
 
     expect(response.statusCode).to.equal(409)
     const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.equal('Insufficient available waste balance')
+    expect(body.code).to.equal('INSUFFICIENT_AVAILABLE_BALANCE')
   })
 
   test('deletes a PRN awaiting authorisation, crediting the balance back, then blocks further transitions @prnDeleteFlow', async () => {
@@ -610,5 +735,44 @@ test.describe('PRN state machine @prnStateMachine', () => {
     expect(cancelledNote.status.acceptedAt).to.be.a('string')
     expect(cancelledNote.status.rejectedAt).to.equal(undefined)
     expect(cancelledNote.status.cancelledAt).to.be.a('string')
+  })
+})
+
+// The create-time balance check applies to exporters (PERN) as well as
+// reprocessors (PRN); the backend runs the same assertion on both journeys.
+// A dedicated exporter setup proves the exporter path reaches it too.
+test.describe('PERN create-time balance check @pernStateMachine', () => {
+  let ctx
+
+  test.beforeAll(async () => {
+    ctx = await setUpAccreditedExporterWithBalance()
+  })
+
+  test('rejects draft creation when the requested tonnage exceeds the available waste balance @pernInsufficientBalanceAtCreate', async () => {
+    const balance = await waitForWasteBalance(
+      ctx.org.refNo,
+      ctx.accreditationId,
+      ctx.authHeader
+    )
+    const overBalanceTonnage =
+      Math.floor(parseFloat(balance[ctx.accreditationId].availableAmount)) + 1
+
+    const response = await ctx.baseAPI.post(
+      `/v1/organisations/${ctx.org.refNo}/registrations/${ctx.registrationId}/accreditations/${ctx.accreditationId}/packaging-recycling-notes`,
+      JSON.stringify({
+        issuedToOrganisation: {
+          id: 'testId',
+          name: 'Test Organisation Ltd',
+          tradingName: 'Trading Name'
+        },
+        tonnage: overBalanceTonnage
+      }),
+      ctx.authHeader
+    )
+
+    expect(response.statusCode).to.equal(409)
+    const body = /** @type {any} */ (await response.body.json())
+    expect(body.message).to.equal('Insufficient available waste balance')
+    expect(body.code).to.equal('INSUFFICIENT_AVAILABLE_BALANCE')
   })
 })
