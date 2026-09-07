@@ -1,4 +1,5 @@
 import { test } from '@playwright/test'
+import { step } from 'allure-js-commons'
 
 import { HomePage } from 'page-objects/admin/home.page'
 import { AdminLoginPage } from 'page-objects/admin/login.page'
@@ -18,31 +19,54 @@ import {
 import { createSubmittedReport } from '../../support/seeding/reports.js'
 import {
   assertNoSeriousOrCriticalViolations,
+  attachAccessibilityReport,
+  createAccessibilityCollector,
   scanPageForAccessibilityViolations,
   tagAccessibilityTest
 } from '../../support/accessibility.js'
+import { closeLighthouseChrome } from '../../support/lighthouse.js'
 
 test.describe('WCAG Accessibility @smoketest', () => {
+  test.afterAll(async () => {
+    await closeLighthouseChrome()
+  })
+
+  // Each test now also runs a Lighthouse audit per page alongside the Axe
+  // scan, which is slower (Lighthouse does a full page reload per page) -
+  // bumped well past the suite's default 2-minute ceiling to cover that.
+  const LIGHTHOUSE_TEST_TIMEOUT = 10 * 60 * 1000
+
   test('Should have no Serious/Critical accessibility violations on the Admin UI sign-in page @accessibility', async ({
     page
   }) => {
+    test.setTimeout(LIGHTHOUSE_TEST_TIMEOUT)
     const violations = []
+    const collector = createAccessibilityCollector()
     const loginPage = new AdminLoginPage(page)
 
     await tagAccessibilityTest('Admin sign-in page')
 
-    await loginPage.open()
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(page, 'Sign in'))
-    )
+    await step('🌐 Page tour: Admin sign-in page', async () => {
+      await loginPage.open()
+      violations.push(
+        ...(await scanPageForAccessibilityViolations(
+          page,
+          'Sign in',
+          collector
+        ))
+      )
+    })
 
+    await attachAccessibilityReport(collector)
     await assertNoSeriousOrCriticalViolations(violations)
   })
 
   test('Should have no Serious/Critical accessibility violations across the main Admin UI pages @accessibility', async ({
     page
   }) => {
+    test.setTimeout(LIGHTHOUSE_TEST_TIMEOUT)
     const violations = []
+    const collector = createAccessibilityCollector()
 
     const loginPage = new AdminLoginPage(page)
     const homePage = new HomePage(page)
@@ -71,106 +95,144 @@ test.describe('WCAG Accessibility @smoketest', () => {
     ])
     await createSubmittedReport(linkedOrganisation.refNo)
 
-    await loginPage.loginAsServiceMaintainer()
-    violations.push(...(await scanPageForAccessibilityViolations(page, 'Home')))
-
-    await navigation.clickOnLink('Organisations')
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(page, 'Organisations'))
-    )
-
-    await organisationsPage.searchFor(
-      linkedOrganisation.organisation.companyName
-    )
-    await organisationsPage.viewLink(1)
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(
-        page,
-        'Organisation overview'
-      ))
-    )
-
-    await organisationOverviewPage.viewRegistrationLink(1)
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(
-        page,
-        'Registration overview'
-      ))
-    )
-
-    // Detour into the Unsubmit confirmation page and back, without
-    // confirming the unsubmit, so it gets scanned without mutating the
-    // seeded report.
-    const reportsData = await registrationOverviewPage.getReportsTableData()
-    const submittedRowIndex = reportsData.findIndex((row) =>
-      row.actions.includes('Unsubmit')
-    )
-    if (submittedRowIndex >= 0) {
-      await registrationOverviewPage.clickOnUnsubmitReportLink(
-        submittedRowIndex + 1
+    await step('🌐 Page tour: Admin UI main pages', async () => {
+      await loginPage.loginAsServiceMaintainer()
+      violations.push(
+        ...(await scanPageForAccessibilityViolations(page, 'Home', collector))
       )
+
+      await navigation.clickOnLink('Organisations')
       violations.push(
         ...(await scanPageForAccessibilityViolations(
           page,
-          'Confirm unsubmit report'
+          'Organisations',
+          collector
         ))
       )
-      await page.goBack()
-    }
 
-    await navigation.clickOnLink('System logs')
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(page, 'System logs'))
-    )
+      await organisationsPage.searchFor(
+        linkedOrganisation.organisation.companyName
+      )
+      await organisationsPage.viewLink(1)
+      violations.push(
+        ...(await scanPageForAccessibilityViolations(
+          page,
+          'Organisation overview',
+          collector
+        ))
+      )
 
-    await navigation.clickOnLink('Public register')
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(page, 'Public register'))
-    )
+      await organisationOverviewPage.viewRegistrationLink(1)
+      violations.push(
+        ...(await scanPageForAccessibilityViolations(
+          page,
+          'Registration overview',
+          collector
+        ))
+      )
 
-    await navigation.clickOnLink('Tonnage monitoring')
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(page, 'Tonnage monitoring'))
-    )
+      // Detour into the Unsubmit confirmation page and back, without
+      // confirming the unsubmit, so it gets scanned without mutating the
+      // seeded report.
+      const reportsData = await registrationOverviewPage.getReportsTableData()
+      const submittedRowIndex = reportsData.findIndex((row) =>
+        row.actions.includes('Unsubmit')
+      )
+      if (submittedRowIndex >= 0) {
+        await registrationOverviewPage.clickOnUnsubmitReportLink(
+          submittedRowIndex + 1
+        )
+        violations.push(
+          ...(await scanPageForAccessibilityViolations(
+            page,
+            'Confirm unsubmit report',
+            collector
+          ))
+        )
+        await page.goBack()
+      }
 
-    await navigation.clickOnLink('Queue management')
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(page, 'Queue management'))
-    )
+      await navigation.clickOnLink('System logs')
+      violations.push(
+        ...(await scanPageForAccessibilityViolations(
+          page,
+          'System logs',
+          collector
+        ))
+      )
 
-    await navigation.clickOnLink('Report submissions')
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(page, 'Report submissions'))
-    )
+      await navigation.clickOnLink('Public register')
+      violations.push(
+        ...(await scanPageForAccessibilityViolations(
+          page,
+          'Public register',
+          collector
+        ))
+      )
 
-    await navigation.clickOnLink('Overseas sites')
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(page, 'Overseas sites'))
-    )
+      await navigation.clickOnLink('Tonnage monitoring')
+      violations.push(
+        ...(await scanPageForAccessibilityViolations(
+          page,
+          'Tonnage monitoring',
+          collector
+        ))
+      )
 
-    await orsUploadPage.open()
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(
-        page,
-        'Upload ORS workbooks'
-      ))
-    )
+      await navigation.clickOnLink('Queue management')
+      violations.push(
+        ...(await scanPageForAccessibilityViolations(
+          page,
+          'Queue management',
+          collector
+        ))
+      )
 
-    await wasteRecordsExportPage.open()
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(
-        page,
-        'Waste records export'
-      ))
-    )
+      await navigation.clickOnLink('Report submissions')
+      violations.push(
+        ...(await scanPageForAccessibilityViolations(
+          page,
+          'Report submissions',
+          collector
+        ))
+      )
 
-    // Sign-out redirects back to the (now unauthenticated) Home page rather
-    // than a dedicated confirmation screen. Wait for the "Sign in" link
-    // (rendered only once signed out) so the scan doesn't run mid-redirect -
-    // axe's page.evaluate throws "Execution context was destroyed" if it
-    // starts while the sign-out navigation is still settling.
-    await homePage.signOutLink().click()
+      await navigation.clickOnLink('Overseas sites')
+      violations.push(
+        ...(await scanPageForAccessibilityViolations(
+          page,
+          'Overseas sites',
+          collector
+        ))
+      )
 
+      await orsUploadPage.open()
+      violations.push(
+        ...(await scanPageForAccessibilityViolations(
+          page,
+          'Upload ORS workbooks',
+          collector
+        ))
+      )
+
+      await wasteRecordsExportPage.open()
+      violations.push(
+        ...(await scanPageForAccessibilityViolations(
+          page,
+          'Waste records export',
+          collector
+        ))
+      )
+
+      // Sign-out redirects back to the (now unauthenticated) Home page rather
+      // than a dedicated confirmation screen. Wait for the "Sign in" link
+      // (rendered only once signed out) so the scan doesn't run mid-redirect -
+      // axe's page.evaluate throws "Execution context was destroyed" if it
+      // starts while the sign-out navigation is still settling.
+      await homePage.signOutLink().click()
+    })
+
+    await attachAccessibilityReport(collector)
     await assertNoSeriousOrCriticalViolations(violations)
   })
 })
