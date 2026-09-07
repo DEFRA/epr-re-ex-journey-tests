@@ -23,7 +23,11 @@ async function approvedExporter({
   withoutAccreditation
 }) {
   const org = await createLinkedOrganisation([
-    { wasteProcessingType: 'Exporter', material: 'Paper or board (R3)' }
+    {
+      wasteProcessingType: 'Exporter',
+      material: 'Paper or board (R3)',
+      withoutAccreditation
+    }
   ])
   const migrated = await updateMigratedOrganisation(org.refNo, [
     {
@@ -121,7 +125,7 @@ test.describe('Overseas sites registration list @overseasSitesRegistrationList',
     expect(body).to.deep.equal({})
   })
 
-  test('404s for a registration that does not belong to the organisation @overseasSitesRegistrationNotFound', async () => {
+  test('404s for a registration id that does not exist @overseasSitesRegistrationNotFound', async () => {
     const { refNo } = await approvedExporter({
       regNumber: 'E25SR500030924PA',
       withoutAccreditation: true
