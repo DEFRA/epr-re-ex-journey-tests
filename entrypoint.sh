@@ -50,10 +50,13 @@ cleanup_created_orgs() {
 
 trap 'cleanup_created_orgs' EXIT
 
-# Run tests based on PROFILE (if all, then the full suite is run; otherwise
-# just the smoketest subset)
+# Run tests based on PROFILE (if all, then the full suite is run; if
+# extTestOnly, just the ext-test-only subset that needs real Defra ID
+# sign-in; otherwise just the smoketest subset)
 if [ "$PROFILE" = "all" ]; then
   npm test
+elif [ "$PROFILE" = "extTestOnly" ]; then
+  npm run test:extTestOnly
 else
   npm run test:smoketest
 fi

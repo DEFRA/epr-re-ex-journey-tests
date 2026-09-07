@@ -207,12 +207,12 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
 
     // --- End state: the backend folds the resubmission into a single submitted
     // item, so the period moves into the Submitted table tagged "Resubmitted"
-    // (green) with a "View report" link, and leaves Action required entirely. ---
+    // (green) with a "View" link, and leaves Action required entirely. ---
     expect(await reportsPage.getSubmittedStatusBadge(1)).toBe('Resubmitted')
     expect(await reportsPage.getSubmittedStatusColour(1)).toBe('green')
-    await reportsPage.expectSubmittedActionLink(1, 'View report')
+    await reportsPage.expectSubmittedActionLink(1, 'View')
 
-    // The "View report" CTA opens the resubmission (submission 2 — the latest
+    // The "View" CTA opens the resubmission (submission 2 — the latest
     // submitted report), not the superseded submission 1.
     expect(await reportsPage.getSubmittedActionLinkHref(1)).toContain(
       '/submissions/2/view'
