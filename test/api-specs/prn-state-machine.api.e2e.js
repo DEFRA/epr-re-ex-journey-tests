@@ -113,17 +113,19 @@ async function setUpAccreditedExporterWithBalance() {
   }
 }
 
-async function createPrn(
+const draftsPath = (refNo, registrationId, accreditationId) =>
+  `/v1/organisations/${refNo}/registrations/${registrationId}/accreditations/${accreditationId}/packaging-recycling-notes`
+
+// Posts a draft-creation request and returns the raw response, without asserting
+// the outcome, so both the success helper and the rejection tests can share it.
+async function postDraft(
   baseAPI,
-  refNo,
-  registrationId,
-  accreditationId,
+  { refNo, registrationId, accreditationId },
   authHeader,
   tonnage
 ) {
-  const path = `/v1/organisations/${refNo}/registrations/${registrationId}/accreditations/${accreditationId}/packaging-recycling-notes`
-  const response = await baseAPI.post(
-    path,
+  return baseAPI.post(
+    draftsPath(refNo, registrationId, accreditationId),
     JSON.stringify({
       issuedToOrganisation: {
         id: 'testId',
@@ -134,8 +136,34 @@ async function createPrn(
     }),
     authHeader
   )
+}
+
+// Asserts the create-time balance backstop: a 409 carrying both the message and
+// the machine-readable code the frontend discriminates on.
+async function assertInsufficientBalanceAtCreate(response) {
+  expect(response.statusCode).to.equal(409)
+  const body = /** @type {any} */ (await response.body.json())
+  expect(body.message).to.equal('Insufficient available waste balance')
+  expect(body.code).to.equal('INSUFFICIENT_AVAILABLE_BALANCE')
+}
+
+async function createPrn(
+  baseAPI,
+  refNo,
+  registrationId,
+  accreditationId,
+  authHeader,
+  tonnage
+) {
+  const response = await postDraft(
+    baseAPI,
+    { refNo, registrationId, accreditationId },
+    authHeader,
+    tonnage
+  )
   expect(response.statusCode).to.equal(201)
   const body = /** @type {any} */ (await response.body.json())
+  const path = draftsPath(refNo, registrationId, accreditationId)
   return { prnId: body.id, prnPath: `${path}/${body.id}` }
 }
 
@@ -296,58 +324,62 @@ test.describe('PRN state machine @prnStateMachine', () => {
       parseFloat(balance[ctx.accreditationId].availableAmount)
     )
 
-    const { prnPath: firstPath } = await createPrn(
-      ctx.baseAPI,
-      ctx.org.refNo,
-      ctx.registrationId,
-      ctx.accreditationId,
-      ctx.authHeader,
-      1
-    )
-    const { prnPath: secondPath } = await createPrn(
-      ctx.baseAPI,
-      ctx.org.refNo,
-      ctx.registrationId,
-      ctx.accreditationId,
-      ctx.authHeader,
-      available
-    )
+    let firstPath
+    let secondPath
+    try {
+      const first = await createPrn(
+        ctx.baseAPI,
+        ctx.org.refNo,
+        ctx.registrationId,
+        ctx.accreditationId,
+        ctx.authHeader,
+        1
+      )
+      firstPath = first.prnPath
+      const second = await createPrn(
+        ctx.baseAPI,
+        ctx.org.refNo,
+        ctx.registrationId,
+        ctx.accreditationId,
+        ctx.authHeader,
+        available
+      )
+      secondPath = second.prnPath
 
-    const firstAuth = await updatePrnStatus(
-      ctx.baseAPI,
-      firstPath,
-      ctx.authHeader,
-      'awaiting_authorisation'
-    )
-    expect(firstAuth.statusCode).to.equal(200)
+      const firstAuth = await updatePrnStatus(
+        ctx.baseAPI,
+        firstPath,
+        ctx.authHeader,
+        'awaiting_authorisation'
+      )
+      expect(firstAuth.statusCode).to.equal(200)
 
-    const secondAuth = await updatePrnStatus(
-      ctx.baseAPI,
-      secondPath,
-      ctx.authHeader,
-      'awaiting_authorisation'
-    )
-    expect(secondAuth.statusCode).to.equal(409)
-    const body = /** @type {any} */ (await secondAuth.body.json())
-    expect(body.message).to.equal('Insufficient available waste balance')
-
-    // Restore the shared balance for the tests that follow: deleting the
-    // authorised draft credits its tonnage back, and discarding the unauthorised
-    // one touches nothing.
-    const deleteFirst = await updatePrnStatus(
-      ctx.baseAPI,
-      firstPath,
-      ctx.authHeader,
-      'deleted'
-    )
-    expect(deleteFirst.statusCode).to.equal(200)
-    const discardSecond = await updatePrnStatus(
-      ctx.baseAPI,
-      secondPath,
-      ctx.authHeader,
-      'discarded'
-    )
-    expect(discardSecond.statusCode).to.equal(200)
+      const secondAuth = await updatePrnStatus(
+        ctx.baseAPI,
+        secondPath,
+        ctx.authHeader,
+        'awaiting_authorisation'
+      )
+      expect(secondAuth.statusCode).to.equal(409)
+      const body = /** @type {any} */ (await secondAuth.body.json())
+      expect(body.message).to.equal('Insufficient available waste balance')
+    } finally {
+      // Always restore the shared balance for the tests that follow, even if an
+      // assertion above threw after the first draft was authorised: deleting it
+      // credits its tonnage back, and discarding the second touches nothing.
+      // Best-effort, so no status assertions here.
+      if (firstPath) {
+        await updatePrnStatus(ctx.baseAPI, firstPath, ctx.authHeader, 'deleted')
+      }
+      if (secondPath) {
+        await updatePrnStatus(
+          ctx.baseAPI,
+          secondPath,
+          ctx.authHeader,
+          'discarded'
+        )
+      }
+    }
   })
 
   test('rejects draft creation when the requested tonnage exceeds the available waste balance @prnInsufficientBalanceAtCreate', async () => {
@@ -363,23 +395,18 @@ test.describe('PRN state machine @prnStateMachine', () => {
     const overBalanceTonnage =
       Math.floor(parseFloat(balance[ctx.accreditationId].availableAmount)) + 1
 
-    const response = await ctx.baseAPI.post(
-      `/v1/organisations/${ctx.org.refNo}/registrations/${ctx.registrationId}/accreditations/${ctx.accreditationId}/packaging-recycling-notes`,
-      JSON.stringify({
-        issuedToOrganisation: {
-          id: 'testId',
-          name: 'Test Organisation Ltd',
-          tradingName: 'Trading Name'
-        },
-        tonnage: overBalanceTonnage
-      }),
-      ctx.authHeader
+    const response = await postDraft(
+      ctx.baseAPI,
+      {
+        refNo: ctx.org.refNo,
+        registrationId: ctx.registrationId,
+        accreditationId: ctx.accreditationId
+      },
+      ctx.authHeader,
+      overBalanceTonnage
     )
 
-    expect(response.statusCode).to.equal(409)
-    const body = /** @type {any} */ (await response.body.json())
-    expect(body.message).to.equal('Insufficient available waste balance')
-    expect(body.code).to.equal('INSUFFICIENT_AVAILABLE_BALANCE')
+    await assertInsufficientBalanceAtCreate(response)
   })
 
   test('deletes a PRN awaiting authorisation, crediting the balance back, then blocks further transitions @prnDeleteFlow', async () => {
@@ -741,7 +768,7 @@ test.describe('PRN state machine @prnStateMachine', () => {
 // The create-time balance check applies to exporters (PERN) as well as
 // reprocessors (PRN); the backend runs the same assertion on both journeys.
 // A dedicated exporter setup proves the exporter path reaches it too.
-test.describe('PERN create-time balance check @pernStateMachine', () => {
+test.describe('PERN create-time balance check @pernCreateBalanceCheck', () => {
   let ctx
 
   test.beforeAll(async () => {
@@ -757,22 +784,17 @@ test.describe('PERN create-time balance check @pernStateMachine', () => {
     const overBalanceTonnage =
       Math.floor(parseFloat(balance[ctx.accreditationId].availableAmount)) + 1
 
-    const response = await ctx.baseAPI.post(
-      `/v1/organisations/${ctx.org.refNo}/registrations/${ctx.registrationId}/accreditations/${ctx.accreditationId}/packaging-recycling-notes`,
-      JSON.stringify({
-        issuedToOrganisation: {
-          id: 'testId',
-          name: 'Test Organisation Ltd',
-          tradingName: 'Trading Name'
-        },
-        tonnage: overBalanceTonnage
-      }),
-      ctx.authHeader
+    const response = await postDraft(
+      ctx.baseAPI,
+      {
+        refNo: ctx.org.refNo,
+        registrationId: ctx.registrationId,
+        accreditationId: ctx.accreditationId
+      },
+      ctx.authHeader,
+      overBalanceTonnage
     )
 
-    expect(response.statusCode).to.equal(409)
-    const body = /** @type {any} */ (await response.body.json())
-    expect(body.message).to.equal('Insufficient available waste balance')
-    expect(body.code).to.equal('INSUFFICIENT_AVAILABLE_BALANCE')
+    await assertInsufficientBalanceAtCreate(response)
   })
 })
