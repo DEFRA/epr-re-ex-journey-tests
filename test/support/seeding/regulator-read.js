@@ -284,6 +284,14 @@ const REGISTERED_ONLY_WASTE_PROCESSING_TYPE = 'Reprocessor'
 const REGISTERED_ONLY_REPROCESSING_TYPE = 'output'
 const REGISTERED_ONLY_FIXTURE_PATH = 'resources/reprocessor-output-regonly.xlsx'
 
+// The workbook names this registration number in its own header, and the
+// backend fails a summary log whose number does not match the registration it
+// was uploaded against - fatally, so the log lands on 'invalid' rather than
+// 'validated'. So the number is the fixture's to choose, not this seed's: it
+// is written down here rather than generated, exactly as every other seed that
+// uploads a workbook does. Change the workbook and change this with it.
+const REGISTERED_ONLY_REGISTRATION_NUMBER = 'R26ER5000000002PA'
+
 /**
  * Seeds one organisation holding a single approved registration that carries
  * no accreditation, and submits a registered-only summary log against it as
@@ -327,16 +335,10 @@ export async function seedRegisteredOnlySubmittedSummaryLog() {
     }
   ])
 
-  const registrationNumber = generateRegNumber({
-    wasteProcessingType: 'reprocessor',
-    materialSuffix: 'PA',
-    serial: '0301'
-  })
-
   const migrated = await updateMigratedOrganisation(organisation.refNo, [
     {
       reprocessingType: REGISTERED_ONLY_REPROCESSING_TYPE,
-      regNumber: registrationNumber,
+      regNumber: REGISTERED_ONLY_REGISTRATION_NUMBER,
       status: 'approved',
       withoutAccreditation: true
     }
@@ -359,7 +361,7 @@ export async function seedRegisteredOnlySubmittedSummaryLog() {
     refNo: organisation.refNo,
     orgId: organisation.orgId,
     registrationId,
-    registrationNumber,
+    registrationNumber: REGISTERED_ONLY_REGISTRATION_NUMBER,
     submissionYear: new Date().getUTCFullYear()
   }
 }
