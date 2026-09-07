@@ -276,47 +276,27 @@ export async function seedMultiSiteMultiTypeOrganisation() {
   }
 }
 
-// The registered-only fixture is a reprocessor output workbook for paper or
-// board, so the registration it is uploaded against has to be that same shape
-// or validation rejects it.
+// The registration must match the fixture's shape or validation rejects it.
 const REGISTERED_ONLY_MATERIAL = 'Paper or board (R3)'
 const REGISTERED_ONLY_WASTE_PROCESSING_TYPE = 'Reprocessor'
 const REGISTERED_ONLY_REPROCESSING_TYPE = 'output'
 const REGISTERED_ONLY_FIXTURE_PATH = 'resources/reprocessor-output-regonly.xlsx'
 
-// The workbook names this registration number in its own header, and the
-// backend fails a summary log whose number does not match the registration it
-// was uploaded against - fatally, so the log lands on 'invalid' rather than
-// 'validated'. So the number is the fixture's to choose, not this seed's: it
-// is written down here rather than generated, exactly as every other seed that
-// uploads a workbook does. Change the workbook and change this with it.
+// The workbook names this number in its header and the backend fails a
+// mismatch, so it is the fixture's to choose. Change the workbook, change this.
 const REGISTERED_ONLY_REGISTRATION_NUMBER = 'R26ER5000000002PA'
 
 /**
- * Seeds one organisation holding a single approved registration that carries
- * no accreditation, and submits a registered-only summary log against it as
- * the operator - so a regulator journey can open a ledger that exists only
- * because the registration is registered-only.
+ * One organisation with a single approved, accreditation-free registration,
+ * and a summary log submitted against it.
  *
- * The absence of an accreditation is the whole point of the shape. The backend
- * files a submission's waste records under
- * `summaryLog.accreditationId ?? registration.accreditationId`, so a
- * registration that carries an accreditation posts every log it ever submits
- * into that accreditation's ledger, whatever the dates say. A registered-only
- * ledger event therefore only exists for a registration with no accreditation
- * at all - which is why withoutAccreditation is set on both the
- * createLinkedOrganisation row and its matching updateMigratedOrganisation
- * row, exactly as seedMultiSiteMultiTypeOrganisation explains above.
+ * The backend files a submission under
+ * `summaryLog.accreditationId ?? registration.accreditationId`, so only a
+ * registration with no accreditation produces a registered-only ledger event.
+ * Hence `withoutAccreditation` on both rows.
  *
- * No waste balance is waited for: there is no accreditation, so none is ever
- * written. uploadAndSubmitSummaryLog waits for 'submitted' itself, and the
- * remaining race - the worker commits the ledger event a moment after that -
- * is absorbed by the spec reading the page, not here.
- *
- * The submission year is returned rather than the registration's start year:
- * the page filters ledger events by their createdAt, so the year to open is
- * the year the log was submitted.
- *
+ * Returns the submission year, not the registration's start year: the page
+ * filters ledger events by `createdAt`.
  * @returns {Promise<{
  *   companyName: string,
  *   refNo: string,
