@@ -11,6 +11,10 @@ import {
   getOrganisation,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
+import {
+  issuedAccreditationNumber,
+  issuedRegistrationNumber
+} from '../../support/issued-numbers.js'
 const CURRENT_YEAR = new Date().getFullYear()
 // The dates typed into the approve confirm forms (PAE-1814). Registrations
 // don't expire (PAE-1904), so only the accreditation grant uses valid-to. It
@@ -93,7 +97,7 @@ test.describe('Admin accreditation status transitions', () => {
     )
     await registrationTransitionPage.fillGrantFields({
       validFrom: GRANTED_VALID_FROM,
-      registrationNumber: 'E25SR500030920PA'
+      registrationNumber: issuedRegistrationNumber()
     })
     await registrationTransitionPage.confirm('Approve now')
 
@@ -137,7 +141,7 @@ test.describe('Admin accreditation status transitions', () => {
     await transitionPage.fillGrantFields({
       validFrom: GRANTED_VALID_FROM,
       validTo: GRANTED_VALID_TO,
-      accreditationNumber: 'ACC234571'
+      accreditationNumber: issuedAccreditationNumber()
     })
     await transitionPage.confirm('Approve now')
 

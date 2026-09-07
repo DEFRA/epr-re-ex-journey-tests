@@ -7,12 +7,15 @@ import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
+  seedOverseasSites,
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from './seeding/organisation.js'
+import { uploadAndSubmitSummaryLog } from './seeding/summary-logs.js'
 import { createPrnDetails } from './fixtures.js'
 import { PrnHelper } from './prn.helper.js'
 import { createLinkAndLogin } from './login-helper.js'
+import { defraIdStub } from './defra-id-stub.js'
 
 /**
  * Shared "unhappy paths" flow for creating a PRN/PERN: create a draft, discard
@@ -25,11 +28,13 @@ import { createLinkAndLogin } from './login-helper.js'
  * @param {import('@playwright/test').Page} page
  * @param {object} config
  * @param {string} config.wasteProcessingType - 'Reprocessor' | 'Exporter'
- * @param {string} config.material - material param for createLinkedOrganisation, e.g. 'Paper or board (R3)'
- * @param {string} config.materialDesc - display text on the Create page, e.g. 'Paper and board'
+ * @param {string} config.material - material param for createLinkedOrganisation, e.g. 'Steel (R4)'
+ * @param {string} config.materialDesc - display text on the Create page, e.g. 'Steel'
  * @param {string} config.regNumber
  * @param {string} config.accNumber
  * @param {string} [config.reprocessingType] - only set for Reprocessor scenarios, e.g. 'input'
+ * @param {boolean} [config.seedOverseasSites] - Exporter-only setup step
+ * @param {string} config.summaryLogFilePath - sanity fixture that credits a real balance for this accreditation
  * @param {string} config.tradingName
  * @param {string} [config.process] - defaults to 'R3' in createPrnDetails when omitted
  * @param {boolean} [config.isPern]
@@ -45,6 +50,8 @@ export async function runCreatePrnUnhappyPaths(
     regNumber,
     accNumber,
     reprocessingType,
+    seedOverseasSites: shouldSeedOverseasSites = false,
+    summaryLogFilePath,
     tradingName,
     process,
     isPern = false,
@@ -80,10 +87,25 @@ export async function runCreatePrnUnhappyPaths(
     [migrationEntry]
   )
 
-  await createLinkAndLogin(
+  if (shouldSeedOverseasSites) {
+    await seedOverseasSites(organisationDetails.refNo)
+  }
+
+  const user = await createLinkAndLogin(
     page,
     organisationDetails.refNo,
     migrationResponse.email
+  )
+
+  // Seed a real waste balance so within-balance drafts reach the check page.
+  // The create form now refuses an over-balance tonnage up front (the backend
+  // rejects the draft and the create page re-renders with the error), so these
+  // specs can no longer run against a zero-balance accreditation.
+  await uploadAndSubmitSummaryLog(
+    organisationDetails.refNo,
+    migrationResponse.registrationIds[0],
+    defraIdStub.authHeader(user.userId),
+    summaryLogFilePath
   )
 
   await dashboardPage.selectTableLink(1, 1)
@@ -101,10 +123,10 @@ export async function runCreatePrnUnhappyPaths(
     ...(process ? { process } : {})
   })
 
-  // Empty issuer notes, PRN/PERN created should say "Not provided"
+  // Empty issuer notes, PRN/PERN draft should say "Not provided"
   await prnHelper.createAndCheckDraftPrn(prnDetails)
 
-  // Discard the first attempt
+  // Discard the first attempt (double-click prevented)
   await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
   const discardHeading = await confirmDiscardPRNPage.headingText()
   expect(discardHeading).toBe(
@@ -112,39 +134,37 @@ export async function runCreatePrnUnhappyPaths(
   )
   await confirmDiscardPRNPage.discardAndCheckDoubleClickPrevented()
 
+  // Second attempt, this time with notes
   prnDetails.issuerNotes = 'Testing'
   await prnHelper.createAndCheckDraftPrn(prnDetails)
 
-  // This time we go to the discard page, and check the back link works
+  // Check the discard page's back link returns to the check page, then discard
   await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
   await confirmDiscardPRNPage.backLink().click()
+  await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
+  await confirmDiscardPRNPage.discardAndCheckDoubleClickPrevented()
 
-  await checkBeforeCreatingPrnPage.createPRNButton().click()
-
-  // Check Create PRN/PERN validation errors
+  // Back on the Create page: check its heading and material
   let createAPrnPageHeading = await createPRNPage.headingText()
   expect(createAPrnPageHeading).toBe(`Create a ${wording}`)
   let materialDetails = await createPRNPage.materialDetails()
   expect(materialDetails).toBe(`Material: ${materialDesc}`)
 
+  // Empty-form validation errors
   await createPRNPage.submitAndCheckDoubleClickPrevented()
-
-  let errorMessages = await createPRNPage.errorMessages(2)
-  expect(errorMessages).toEqual([
+  const validationErrors = await createPRNPage.errorMessages(2)
+  expect(validationErrors).toEqual([
     `Enter ${wording} tonnage as a whole number`,
     'Enter a packaging producer or compliance scheme'
   ])
 
-  await prnHelper.createAndCheckDraftPrn(prnDetails)
-
-  await checkBeforeCreatingPrnPage.createPRNButton().click()
-
-  // Now we see an error message related to tonnage exceeding waste balance
-  errorMessages = await createPRNPage.errorMessages(1)
-  expect(errorMessages).toEqual([
+  // An over-balance tonnage is refused at the create step itself: the create
+  // page re-renders with the balance error rather than the draft being created.
+  await createPRNPage.createPrn(9999999, prnDetails.tradingName, 'Testing')
+  const balanceErrors = await createPRNPage.errorMessages(1)
+  expect(balanceErrors).toEqual([
     'The tonnage you entered exceeds your available waste balance'
   ])
-  // End of Check Create PRN/PERN validation errors
 
   // Check Create a PRN/PERN page is accessible from the PRN/PERN Dashboard button
   await homePage.homeLink().click()
