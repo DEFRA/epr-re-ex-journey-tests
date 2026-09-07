@@ -23,6 +23,7 @@
     "clean": "rm -rf allure-results && rm -rf allure-report",
     "test": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.api.config.js && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.config.js",
     "test:smoketest": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.config.js --grep @smoketest",
+    "test:extTestOnly": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.config.js --grep @extTestOnly",
     "test:browserstack": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' node_modules/.bin/browserstack-node-sdk playwright test --config=playwright.browserstack.config.js",
     "test:local": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.api.config.js && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.config.js",
     "test:local:admin": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.api.config.js && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.config.js 'specs/admin/'",

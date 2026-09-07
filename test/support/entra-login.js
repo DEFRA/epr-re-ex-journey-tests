@@ -1,3 +1,6 @@
+import config from '~/test/config/config.js'
+import { clickAndAwaitRedirectChain } from './redirect-settle.js'
+
 /**
  * Fills in Microsoft's own sign-in form and waits for the redirect chain to
  * settle. Shared by every page object that signs an Entra identity in, because
@@ -20,10 +23,15 @@ export async function signInAtMicrosoft(page, username, password) {
   await page.locator('#i0118').fill(password)
   await page.locator('input[value="Sign in"]').click()
 
-  const urlBeforeClick = page.url()
-  await page.locator('input[value="Yes"]').click()
-  await page.waitForURL((url) => url.toString() !== urlBeforeClick, {
-    timeout: 15000
-  })
-  await page.waitForLoadState('networkidle', { timeout: 15000 })
+  await clickAndAwaitRedirectChain(page, () =>
+    page.locator('input[value="Yes"]').click()
+  )
 }
+
+// Signing out lands on the identity provider's own page, and only real Entra's
+// is titled "Sign out" rather than "Signed out" - the stub, and every other
+// provider this suite signs out of, sends the browser straight back to
+// epr-frontend's own "Signed out" page. This reads config.usesRealEntra
+// (rather than the environment name) for the same reason signInAtMicrosoft's
+// caller does: the two providers differ in shape, not just host.
+export const signOutTitle = config.usesRealEntra ? /Sign out/ : /Signed out/

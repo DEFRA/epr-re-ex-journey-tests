@@ -3,8 +3,9 @@ import { test, expect } from '@playwright/test'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { ServiceNavigation } from 'page-objects/service-navigation.page'
+import { signOutTitle } from '~/test/support/entra-login.js'
 
-test.describe('Regulator login @regulator', () => {
+test.describe('Regulator login @regulator @smoketest', () => {
   test('Should be able to sign in as a regulator, reach the landing page, and sign out @regulatorLogin', async ({
     page
   }) => {
@@ -33,7 +34,7 @@ test.describe('Regulator login @regulator', () => {
     const landingPageUrl = page.url()
 
     await homePage.signOutLink().click()
-    await expect(page).toHaveTitle(/Signed out/)
+    await expect(page).toHaveTitle(signOutTitle)
 
     // Attempting to access the landing page again should result in a redirection
     // to signed out page.
