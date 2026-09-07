@@ -275,3 +275,91 @@ export async function seedMultiSiteMultiTypeOrganisation() {
     exporterRegistrationNumber
   }
 }
+
+// The registered-only fixture is a reprocessor output workbook for paper or
+// board, so the registration it is uploaded against has to be that same shape
+// or validation rejects it.
+const REGISTERED_ONLY_MATERIAL = 'Paper or board (R3)'
+const REGISTERED_ONLY_WASTE_PROCESSING_TYPE = 'Reprocessor'
+const REGISTERED_ONLY_REPROCESSING_TYPE = 'output'
+const REGISTERED_ONLY_FIXTURE_PATH = 'resources/reprocessor-output-regonly.xlsx'
+
+/**
+ * Seeds one organisation holding a single approved registration that carries
+ * no accreditation, and submits a registered-only summary log against it as
+ * the operator - so a regulator journey can open a ledger that exists only
+ * because the registration is registered-only.
+ *
+ * The absence of an accreditation is the whole point of the shape. The backend
+ * files a submission's waste records under
+ * `summaryLog.accreditationId ?? registration.accreditationId`, so a
+ * registration that carries an accreditation posts every log it ever submits
+ * into that accreditation's ledger, whatever the dates say. A registered-only
+ * ledger event therefore only exists for a registration with no accreditation
+ * at all - which is why withoutAccreditation is set on both the
+ * createLinkedOrganisation row and its matching updateMigratedOrganisation
+ * row, exactly as seedMultiSiteMultiTypeOrganisation explains above.
+ *
+ * No waste balance is waited for: there is no accreditation, so none is ever
+ * written. uploadAndSubmitSummaryLog waits for 'submitted' itself, and the
+ * remaining race - the worker commits the ledger event a moment after that -
+ * is absorbed by the spec reading the page, not here.
+ *
+ * The submission year is returned rather than the registration's start year:
+ * the page filters ledger events by their createdAt, so the year to open is
+ * the year the log was submitted.
+ *
+ * @returns {Promise<{
+ *   companyName: string,
+ *   refNo: string,
+ *   orgId: number,
+ *   registrationId: string,
+ *   registrationNumber: string,
+ *   submissionYear: number
+ * }>}
+ */
+export async function seedRegisteredOnlySubmittedSummaryLog() {
+  const organisation = await createLinkedOrganisation([
+    {
+      material: REGISTERED_ONLY_MATERIAL,
+      wasteProcessingType: REGISTERED_ONLY_WASTE_PROCESSING_TYPE,
+      withoutAccreditation: true
+    }
+  ])
+
+  const registrationNumber = generateRegNumber({
+    wasteProcessingType: 'reprocessor',
+    materialSuffix: 'PA',
+    serial: '0301'
+  })
+
+  const migrated = await updateMigratedOrganisation(organisation.refNo, [
+    {
+      reprocessingType: REGISTERED_ONLY_REPROCESSING_TYPE,
+      regNumber: registrationNumber,
+      status: 'approved',
+      withoutAccreditation: true
+    }
+  ])
+  const registrationId = migrated.registrationIds[0]
+
+  const user = await createAndRegisterDefraIdUser(migrated.email)
+  await linkDefraIdUser(organisation.refNo, user.userId, migrated.email)
+  const defraAuthHeader = defraIdStub.authHeader(user.userId)
+
+  await uploadAndSubmitSummaryLog(
+    organisation.refNo,
+    registrationId,
+    defraAuthHeader,
+    REGISTERED_ONLY_FIXTURE_PATH
+  )
+
+  return {
+    companyName: organisation.organisation.companyName,
+    refNo: organisation.refNo,
+    orgId: organisation.orgId,
+    registrationId,
+    registrationNumber,
+    submissionYear: new Date().getUTCFullYear()
+  }
+}
