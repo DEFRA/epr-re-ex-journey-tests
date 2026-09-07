@@ -68,7 +68,7 @@ test.describe('Overseas sites registration list @overseasSitesRegistrationList',
 
   test('returns seeded overseas site detail for a registration holding an accreditation @overseasSitesRegistrationAccredited', async () => {
     const { refNo, registrationId } = await approvedExporter({
-      regNumber: 'E25SR500030917PA',
+      regNumber: 'E25SR500030921PA',
       accNumber: 'E-ACC123461'
     })
 
@@ -89,7 +89,7 @@ test.describe('Overseas sites registration list @overseasSitesRegistrationList',
   // sites could be listed by ORS id but never resolved to a name.
   test('returns seeded overseas site detail for a registration holding no accreditation @overseasSitesRegistrationUnaccredited', async () => {
     const { refNo, registrationId } = await approvedExporter({
-      regNumber: 'E25SR500030918PA',
+      regNumber: 'E25SR500030922PA',
       withoutAccreditation: true
     })
 
@@ -107,7 +107,7 @@ test.describe('Overseas sites registration list @overseasSitesRegistrationList',
 
   test('returns an empty object when the registration has no overseas sites @overseasSitesRegistrationEmpty', async () => {
     const { refNo, registrationId } = await approvedExporter({
-      regNumber: 'E25SR500030919PA',
+      regNumber: 'E25SR500030923PA',
       withoutAccreditation: true
     })
 
@@ -123,7 +123,7 @@ test.describe('Overseas sites registration list @overseasSitesRegistrationList',
 
   test('404s for a registration that does not belong to the organisation @overseasSitesRegistrationNotFound', async () => {
     const { refNo } = await approvedExporter({
-      regNumber: 'E25SR500030920PA',
+      regNumber: 'E25SR500030924PA',
       withoutAccreditation: true
     })
 
