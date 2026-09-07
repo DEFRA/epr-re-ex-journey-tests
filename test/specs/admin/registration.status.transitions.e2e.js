@@ -10,6 +10,7 @@ import {
   getOrganisation,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
+import { REGISTRATION_TRANSITIONS_REG_NUMBER } from '../../support/granted-numbers.js'
 const CURRENT_YEAR = new Date().getFullYear()
 // The date typed into the approve confirm form (PAE-1814). Registrations
 // don't expire (PAE-1904), so there is no valid-to to type or assert.
@@ -86,7 +87,7 @@ test.describe('Admin registration status transitions', () => {
     expect(await transitionPage.getHeading()).toBe('Approve registration')
     await transitionPage.fillGrantFields({
       validFrom: GRANTED_VALID_FROM,
-      registrationNumber: 'E25SR500030917PA'
+      registrationNumber: REGISTRATION_TRANSITIONS_REG_NUMBER
     })
     await transitionPage.confirm('Approve now')
 
