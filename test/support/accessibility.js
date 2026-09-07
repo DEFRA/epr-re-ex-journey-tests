@@ -1,17 +1,7 @@
-import {
-  step,
-  attachment,
-  epic,
-  feature,
-  story,
-  descriptionHtml
-} from 'allure-js-commons'
+import { step, attachment, epic, feature, story } from 'allure-js-commons'
 import AxeBuilder from '@axe-core/playwright'
-
-// Impact isn't always present on a violation (axe-core's `impact` field is
-// optional), so anything unrecognised sorts after the known levels rather
-// than throwing the summary table ordering off.
-const IMPACT_RANK = { critical: 0, serious: 1, moderate: 2, minor: 3 }
+import { runLighthouseAudit } from './lighthouse.js'
+import { buildAccessibilityHtmlReport } from './accessibility-report.js'
 
 function convertHTML(str) {
   const symbols = {
@@ -28,19 +18,6 @@ function convertHTML(str) {
     }
   }
   return str
-}
-
-// Unlike convertHTML above (which only replaces the first special character
-// it finds - fine for the element-markup preview it's used for), this needs
-// to escape every occurrence so free-text table cells can't break the
-// summary table's markup.
-function escapeHtml(str) {
-  return String(str)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&apos;')
 }
 
 /**
@@ -95,14 +72,47 @@ export async function logViolationsToAllure(violations) {
 }
 
 /**
+ * @typedef {object} AccessibilityCollectorPage
+ * @property {string} pageName
+ * @property {string} url
+ * @property {Array<object>} axeViolations
+ * @property {object} [lhr]
+ * @property {object} [metrics]
+ */
+
+/**
+ * Creates a fresh accumulator for scanPageForAccessibilityViolations to
+ * collect per-page Axe + Lighthouse results into, for a later call to
+ * attachAccessibilityReport. Scoped per-test (not a module-level
+ * singleton) so parallel tests can't tread on each other's report data.
+ */
+export function createAccessibilityCollector() {
+  return {
+    startDateTime: new Date(),
+    /** @type {AccessibilityCollectorPage[]} */
+    pages: []
+  }
+}
+
+/**
  * Runs an axe scan against the page's current state, logs any violations to
  * Allure grouped under a step named for the page, and returns the violations
  * tagged with pageName so callers can accumulate them across a multi-page
  * tour and report every offending page in one assertion.
+ *
+ * When a collector (from createAccessibilityCollector) is passed, this also
+ * runs a Lighthouse audit (accessibility/performance/SEO) of the same page
+ * and records both tools' results against it, for attachAccessibilityReport
+ * to render later. Omit the collector to keep the scan Axe-only, as before.
  * @param {import('@playwright/test').Page} page
  * @param {string} pageName
+ * @param {ReturnType<typeof createAccessibilityCollector>} [collector]
  */
-export async function scanPageForAccessibilityViolations(page, pageName) {
+export async function scanPageForAccessibilityViolations(
+  page,
+  pageName,
+  collector
+) {
   const builder = new AxeBuilder({ page })
   const results = await builder.analyze()
 
@@ -110,64 +120,60 @@ export async function scanPageForAccessibilityViolations(page, pageName) {
     await logViolationsToAllure(results.violations)
   })
 
+  if (collector) {
+    const lighthouseResult = await runLighthouseAudit(page, pageName)
+    collector.pages.push({
+      pageName,
+      url: results.url,
+      axeViolations: results.violations,
+      lhr: lighthouseResult?.lhr,
+      metrics: lighthouseResult?.metrics
+    })
+  }
+
   return results.violations.map((violation) => ({ ...violation, pageName }))
 }
 
-// Sets the test's description to one table covering every violation found
-// across the whole tour (not just Serious/Critical), sorted worst-first.
-// Allure renders the description at the top of the test page, above the
-// step list, so this is visible immediately on opening the test rather
-// than requiring a scroll past every page's own scan step to find it.
-async function setAccessibilitySummaryDescription(violations) {
-  if (violations.length === 0) {
-    await descriptionHtml('<p>No accessibility violations found.</p>')
-    return
-  }
+/**
+ * Builds the combined Axe + Lighthouse HTML report for every page recorded
+ * in the collector and attaches it to the current Allure test result,
+ * wrapped in its own clearly-named, emoji-prefixed step so it stands out in
+ * the step tree rather than blending in as an anonymous attachment.
+ *
+ * An embedded <iframe> in the test's description (rendered above the step
+ * list - the most prominent spot on the page) was tried and reverted:
+ * Allure's report generator strips <iframe> tags from descriptionHtml
+ * server-side unconditionally, regardless of content or size - confirmed by
+ * feeding it a trivial, safe iframe on its own, which still came back empty
+ * in the generated report. There's no supported way to get this content
+ * into the description itself.
+ * @param {ReturnType<typeof createAccessibilityCollector>} collector
+ */
+export async function attachAccessibilityReport(collector) {
+  if (collector.pages.length === 0) return
 
-  const sorted = [...violations].sort(
-    (a, b) =>
-      (IMPACT_RANK[a.impact] ?? IMPACT_RANK.minor + 1) -
-      (IMPACT_RANK[b.impact] ?? IMPACT_RANK.minor + 1)
-  )
+  const html = buildAccessibilityHtmlReport(collector)
 
-  const rows = sorted
-    .map(
-      (violation) => `<tr>
-        <td>${escapeHtml(violation.pageName)}</td>
-        <td>${escapeHtml(violation.impact ?? 'unknown')}</td>
-        <td>${escapeHtml(violation.id)}</td>
-        <td>${escapeHtml(violation.description)}</td>
-        <td><a href="${violation.helpUrl}" target="_blank">Help</a></td>
-      </tr>`
-    )
-    .join('')
-
-  const pageCount = new Set(violations.map((violation) => violation.pageName))
-    .size
-
-  await descriptionHtml(
-    `<p><b>${violations.length}</b> violation(s) across <b>${pageCount}</b> page(s):</p>
-    <table>
-      <thead>
-        <tr><th>Page</th><th>Impact</th><th>Rule</th><th>Description</th><th>Help</th></tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>`
+  await step(
+    '📊 Full accessibility & performance report (Axe + Lighthouse)',
+    async () => {
+      await attachment(
+        'Accessibility & performance report (Axe + Lighthouse)',
+        html,
+        'text/html'
+      )
+    }
   )
 }
 
 /**
- * Sets a consolidated summary of every violation found as the test's
- * description, then fails with a single error listing every
- * Serious/Critical violation across all pages scanned, rather than
- * stopping at the first one - so a multi-page tour surfaces every
- * offending page in one run instead of requiring a fix-rerun cycle per
- * page.
+ * Fails with a single error listing every Serious/Critical violation across
+ * all pages scanned, rather than stopping at the first one - so a
+ * multi-page tour surfaces every offending page in one run instead of
+ * requiring a fix-rerun cycle per page.
  * @param {Array<{pageName: string, id: string, impact: string, description: string, helpUrl: string}>} violations - accumulated output of scanPageForAccessibilityViolations
  */
 export async function assertNoSeriousOrCriticalViolations(violations) {
-  await setAccessibilitySummaryDescription(violations)
-
   const severe = violations.filter(
     (violation) =>
       violation.impact === 'critical' || violation.impact === 'serious'
