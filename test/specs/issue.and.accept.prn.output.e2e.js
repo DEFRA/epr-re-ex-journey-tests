@@ -235,9 +235,8 @@ test.describe('Issuing Packing Recycling Notes', () => {
     ])
 
     // Every PRN row leads to the same note, because there is only one; the
-    // summary log leads nowhere, because it is not one. The id in the middle
-    // is the journey's to discover rather than to know in advance, so it is
-    // matched by shape.
+    // summary log leads to its own file. The ids are the journey's to discover
+    // rather than to know in advance, so they are matched by shape.
     const noteRoutePattern = new RegExp(
       `^${new URL(accreditationUrl).pathname}/packaging-recycling-notes/[0-9a-f]{24}/view$`
     )
@@ -250,7 +249,9 @@ test.describe('Issuing Packing Recycling Notes', () => {
       actionTargets[0]
     ])
     expect(actionTargets[0]).toMatch(noteRoutePattern)
-    expect(actionTargets[3]).toBeNull()
+    expect(actionTargets[3]).toMatch(
+      /\/registrations\/[^/]+\/summary-logs\/files\/[^/]+\/download$/
+    )
 
     // Reading a movement and then reading the note behind it is what the
     // ledger is for, so it is walked rather than asserted from the href
