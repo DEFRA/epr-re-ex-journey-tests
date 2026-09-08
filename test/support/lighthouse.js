@@ -25,12 +25,13 @@ const PERFORMANCE_DIAGNOSTIC_AUDIT_IDS = [
 // playwright.config.js), but Lighthouse defaults to mobile emulation. Left
 // unset, the two halves of the accessibility/performance report would
 // describe different renderings of the page.
+const desktopSettings = desktopConfig.settings ?? {}
 const LIGHTHOUSE_CONFIG = {
   ...desktopConfig,
   settings: {
-    ...desktopConfig.settings,
+    ...desktopSettings,
     screenEmulation: {
-      ...desktopConfig.settings.screenEmulation,
+      ...desktopSettings.screenEmulation,
       width: 1920,
       height: 1080
     }
