@@ -21,6 +21,28 @@ class Page {
     return this.page.locator('.govuk-back-link')
   }
 
+  /**
+   * Follows a download link as the signed-in user and answers what came back.
+   * The body of a spreadsheet is not worth asserting, so only its size is.
+   *
+   * `page.request` shares the browser's cookies, so the session goes with it.
+   * @param {string} href
+   * @returns {Promise<{
+   *   status: number,
+   *   contentDisposition: string,
+   *   byteLength: number
+   * }>}
+   */
+  async fetchAttachment(href) {
+    const response = await this.page.request.get(href)
+
+    return {
+      status: response.status(),
+      contentDisposition: response.headers()['content-disposition'] ?? '',
+      byteLength: (await response.body()).length
+    }
+  }
+
   async messageText() {
     return this.page.locator('.govuk-panel--confirmation').innerText()
   }
