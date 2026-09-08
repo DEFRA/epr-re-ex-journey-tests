@@ -82,8 +82,7 @@ test.describe('A regulator reading a registered-only period @regulator', () => {
     // events without an accreditation.
     expect(submission.get('Event')).toBe('Summary log submitted')
 
-    // No note to open without an accreditation. Downloads are PAE-1720.
-    expect(submission.get('Actions')).toBe('')
+    expect(submission.get('Actions')).toContain('Download')
 
     expect(submission.get('Who')).toContain('@')
 
@@ -92,5 +91,24 @@ test.describe('A regulator reading a registered-only period @regulator', () => {
 
     // A regulator reads and does not write.
     expect(await registeredOnlyPage.changeControlCount()).toBe(0)
+
+    // The download is the point of the Actions column, so it is followed
+    // rather than merely asserted to be there.
+    const href = await ledgerPage.downloadLink().getAttribute('href')
+
+    expect(href).toBeTruthy()
+
+    const attachment = await registeredOnlyPage.fetchAttachment(href ?? '')
+
+    expect(attachment.status).toBe(200)
+    expect(attachment.byteLength).toBeGreaterThan(0)
+
+    // Named for the registration and the moment of submission, not for the
+    // file the operator happened to upload. The moment belongs to the run.
+    expect(attachment.contentDisposition).toMatch(
+      new RegExp(
+        `attachment; filename="${seeded.registrationNumber}-\\d{4}-\\d{2}-\\d{2}-\\d{6}\\.xlsx"`
+      )
+    )
   })
 })

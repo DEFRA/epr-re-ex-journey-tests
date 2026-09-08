@@ -283,19 +283,24 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // Which note each row leads to, in row order. Comparing the whole column
     // is what ties a link to its own row: counting the links cannot say that
     // the fourth one belongs to the note on the fourth row rather than to the
-    // summary log below it. The summary log leads nowhere, because it is not
-    // a note. The paths come off the accreditation the journey already
-    // reached, so they carry whatever prefix the running service uses.
+    // summary log below it. The paths come off the accreditation the journey
+    // already reached, so they carry whatever prefix the running service uses.
     const noteRoute = (prnId) =>
       `${new URL(accreditationUrl).pathname}/packaging-recycling-notes/${prnId}/view`
 
-    expect(await ledgerPage.actionTargets()).toEqual([
+    const targets = await ledgerPage.actionTargets()
+
+    expect(targets.slice(0, 4)).toEqual([
       noteRoute(seeded.cancellationPrnId),
       noteRoute(seeded.cancellationPrnId),
       noteRoute(seeded.cancellationPrnId),
-      noteRoute(seeded.prnId),
-      null
+      noteRoute(seeded.prnId)
     ])
+
+    // The summary log leads to its own file rather than to a note.
+    expect(targets[4]).toMatch(
+      /\/registrations\/[^/]+\/summary-logs\/files\/[^/]+\/download$/
+    )
 
     // Reading a movement and then reading the note behind it is the journey
     // this page exists for, so it is walked rather than asserted from the
