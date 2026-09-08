@@ -36,6 +36,15 @@ class WasteBalanceLedgerPage extends Page {
   }
 
   /**
+   * The way to the summary log behind a submission row.
+   *
+   * @returns {import('@playwright/test').Locator}
+   */
+  downloadLink() {
+    return this.page.locator(`${LEDGER_TABLE} a[href$="/download"]`).first()
+  }
+
+  /**
    * The way into a note, from every row that moved the balance because of it.
    * Each of those links reads the same to the eye, so the note's number is
    * what tells one from another - to a reader of the page as much as to this.
