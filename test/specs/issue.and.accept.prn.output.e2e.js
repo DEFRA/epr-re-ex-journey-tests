@@ -20,6 +20,7 @@ import {
 } from '../support/seeding/organisation.js'
 import { externalAPIAcceptPrn } from '../support/seeding/prns.js'
 import { checkBodyText } from '../support/checks.js'
+import { todayddMMMyyyy } from '../support/date.js'
 import { createPrnDetails } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
@@ -286,7 +287,9 @@ test.describe('Issuing Packing Recycling Notes', () => {
     expect(issued.get('Producer or compliance scheme')).toEqual(
       prnDetails.tradingName
     )
-    expect(issued.get('Date issued')).toEqual(prnDetails.issuedDate)
+    // The regulator's pages abbreviate the month where the operator's spell it
+    // out, so the same day reads differently either side of the fork.
+    expect(issued.get('Date issued')).toEqual(todayddMMMyyyy)
     expect(issued.get('Tonnage')).toEqual(
       Number(prnDetails.tonnageWordings.integer).toFixed(2)
     )
