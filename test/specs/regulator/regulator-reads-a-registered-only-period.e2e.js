@@ -103,9 +103,12 @@ test.describe('A regulator reading a registered-only period @regulator', () => {
     expect(attachment.status).toBe(200)
     expect(attachment.byteLength).toBeGreaterThan(0)
 
-    // Every fixture is uploaded under this name whatever the file on disk is
-    // called, and the backend stores what the upload carried.
-    expect(attachment.contentDisposition).toContain('attachment')
-    expect(attachment.contentDisposition).toContain('summary-log.xlsx')
+    // Named for the registration and the moment of submission, not for the
+    // file the operator happened to upload. The moment belongs to the run.
+    expect(attachment.contentDisposition).toMatch(
+      new RegExp(
+        `attachment; filename="${seeded.registrationNumber}-\\d{4}-\\d{2}-\\d{2}-\\d{6}\\.xlsx"`
+      )
+    )
   })
 })
