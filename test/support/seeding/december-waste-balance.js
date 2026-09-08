@@ -21,7 +21,10 @@ const NON_DECEMBER_FIXTURE = 'resources/summary-log.xlsx'
 
 // Submitted second: the same loads redated into the accreditation-year December.
 // The submission restates the balance, so its ledger event carries the December
-// portion (the events page shows the amount).
+// portion (the events page shows the amount). This file is derived from the
+// non-December one by test/support/spreadsheet/build-december-input-fixture.mjs;
+// regenerate it with that script after any change to the non-December fixture,
+// or the two drift apart.
 const DECEMBER_FIXTURE = 'resources/summary-log-december.xlsx'
 
 /**

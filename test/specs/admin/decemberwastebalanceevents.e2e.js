@@ -7,13 +7,18 @@ import { RegistrationOverviewPage } from 'page-objects/admin/registration.overvi
 import { WasteBalanceEventsPage } from 'page-objects/admin/waste.balance.events.page'
 import { seedDecemberWasteBalance } from '../../support/seeding/december-waste-balance.js'
 
+const NUMBER_COLUMN = 'Number'
 const DECEMBER_BALANCE_COLUMN = 'December closing balance'
 const DECEMBER_AVAILABLE_COLUMN = 'December closing available'
 
+// Events count from one in submission order, so the first is the non-December
+// submission and the second is the December resubmission.
+const NON_DECEMBER_EVENT = '1'
+const DECEMBER_EVENT = '2'
+
 // The backend omits the December fields until a balance holds a December
-// portion, which the page renders as a dash. Anything else is the amount.
+// portion, which the page renders as a dash.
 const ABSENT = '-'
-const isAmount = (value) => value !== ABSENT && Number(value) > 0
 
 test.describe('Waste balance events - December portion', () => {
   /** @type {Awaited<ReturnType<typeof seedDecemberWasteBalance>>} */
@@ -46,41 +51,39 @@ test.describe('Waste balance events - December portion', () => {
     expect(heading).toContain(seeded.accreditationNumber)
 
     // The December resubmission's ledger event is folded asynchronously, so the
-    // page is reloaded until the December amount lands rather than read once
-    // against a page that may still predate it.
+    // page is reloaded until both events are present rather than read once
+    // against a page that may still predate the second submission.
     await expect
       .poll(
         async () => {
           await page.reload()
-          const rows = await eventsPage.eventRows()
-          return rows.some((row) => isAmount(row.get(DECEMBER_BALANCE_COLUMN)))
+          return (await eventsPage.eventRows()).length
         },
         { timeout: 20000, intervals: [1000, 2000, 2000] }
       )
-      .toBe(true)
+      .toBe(2)
 
     const rows = await eventsPage.eventRows()
+    const byNumber = new Map(rows.map((row) => [row.get(NUMBER_COLUMN), row]))
+
+    const nonDecemberEvent = byNumber.get(NON_DECEMBER_EVENT)
+    const decemberEvent = byNumber.get(DECEMBER_EVENT)
+    if (!nonDecemberEvent || !decemberEvent) {
+      throw new Error('Expected both the non-December and December events')
+    }
 
     // The non-December submission's event carries no December portion, so both
     // December columns read as a dash.
-    expect(rows.map((row) => row.get(DECEMBER_BALANCE_COLUMN))).toContain(
-      ABSENT
-    )
-    expect(rows.map((row) => row.get(DECEMBER_AVAILABLE_COLUMN))).toContain(
-      ABSENT
-    )
+    expect(nonDecemberEvent.get(DECEMBER_BALANCE_COLUMN)).toBe(ABSENT)
+    expect(nonDecemberEvent.get(DECEMBER_AVAILABLE_COLUMN)).toBe(ABSENT)
 
     // The December submission's event carries the portion, so both December
     // columns show a positive amount alongside the total.
-    const decemberRow = rows.find((row) =>
-      isAmount(row.get(DECEMBER_BALANCE_COLUMN))
-    )
-    if (!decemberRow) {
-      throw new Error('Expected an event carrying the December portion')
-    }
-    expect(Number(decemberRow.get(DECEMBER_BALANCE_COLUMN))).toBeGreaterThan(0)
-    expect(Number(decemberRow.get(DECEMBER_AVAILABLE_COLUMN))).toBeGreaterThan(
+    expect(Number(decemberEvent.get(DECEMBER_BALANCE_COLUMN))).toBeGreaterThan(
       0
     )
+    expect(
+      Number(decemberEvent.get(DECEMBER_AVAILABLE_COLUMN))
+    ).toBeGreaterThan(0)
   })
 })
