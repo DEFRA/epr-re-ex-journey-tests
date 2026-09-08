@@ -47,6 +47,14 @@ class RegistrationOverviewPage extends AdminPage {
       .getByRole('link', { name: 'View', exact: true })
   }
 
+  viewWasteBalanceEventsLink() {
+    return this.page
+      .locator('.govuk-summary-list__row', {
+        has: this.page.locator('dt', { hasText: 'Waste balance events' })
+      })
+      .getByRole('link', { name: 'View', exact: true })
+  }
+
   // The actions cell renders <a>View</a><br><a>Unsubmit</a>, so the nth-child
   // indices below count the <br>: View is child 1 and Unsubmit is child 3.
   async clickOnViewReportLink(row) {
