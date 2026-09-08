@@ -275,3 +275,73 @@ export async function seedMultiSiteMultiTypeOrganisation() {
     exporterRegistrationNumber
   }
 }
+
+// The registration must match the fixture's shape or validation rejects it.
+const REGISTERED_ONLY_MATERIAL = 'Paper or board (R3)'
+const REGISTERED_ONLY_WASTE_PROCESSING_TYPE = 'Reprocessor'
+const REGISTERED_ONLY_REPROCESSING_TYPE = 'output'
+const REGISTERED_ONLY_FIXTURE_PATH = 'resources/reprocessor-output-regonly.xlsx'
+
+// The workbook names this number in its header and the backend fails a
+// mismatch, so it is the fixture's to choose. Change the workbook, change this.
+const REGISTERED_ONLY_REGISTRATION_NUMBER = 'R26ER5000000002PA'
+
+/**
+ * One organisation with a single approved, accreditation-free registration,
+ * and a summary log submitted against it.
+ *
+ * The backend files a submission under
+ * `summaryLog.accreditationId ?? registration.accreditationId`, so only a
+ * registration with no accreditation produces a registered-only ledger event.
+ * Hence `withoutAccreditation` on both rows.
+ *
+ * Returns the submission year, not the registration's start year: the page
+ * filters ledger events by `createdAt`.
+ * @returns {Promise<{
+ *   companyName: string,
+ *   refNo: string,
+ *   orgId: number,
+ *   registrationId: string,
+ *   registrationNumber: string,
+ *   submissionYear: number
+ * }>}
+ */
+export async function seedRegisteredOnlySubmittedSummaryLog() {
+  const organisation = await createLinkedOrganisation([
+    {
+      material: REGISTERED_ONLY_MATERIAL,
+      wasteProcessingType: REGISTERED_ONLY_WASTE_PROCESSING_TYPE,
+      withoutAccreditation: true
+    }
+  ])
+
+  const migrated = await updateMigratedOrganisation(organisation.refNo, [
+    {
+      reprocessingType: REGISTERED_ONLY_REPROCESSING_TYPE,
+      regNumber: REGISTERED_ONLY_REGISTRATION_NUMBER,
+      status: 'approved',
+      withoutAccreditation: true
+    }
+  ])
+  const registrationId = migrated.registrationIds[0]
+
+  const user = await createAndRegisterDefraIdUser(migrated.email)
+  await linkDefraIdUser(organisation.refNo, user.userId, migrated.email)
+  const defraAuthHeader = defraIdStub.authHeader(user.userId)
+
+  await uploadAndSubmitSummaryLog(
+    organisation.refNo,
+    registrationId,
+    defraAuthHeader,
+    REGISTERED_ONLY_FIXTURE_PATH
+  )
+
+  return {
+    companyName: organisation.organisation.companyName,
+    refNo: organisation.refNo,
+    orgId: organisation.orgId,
+    registrationId,
+    registrationNumber: REGISTERED_ONLY_REGISTRATION_NUMBER,
+    submissionYear: new Date().getUTCFullYear()
+  }
+}
