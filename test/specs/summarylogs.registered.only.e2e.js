@@ -160,9 +160,11 @@ test.describe('@registeredOnly', () => {
       organisationDetails.organisation.companyName
     )
 
-    // Row 1 of the Reprocessing tab, matching the operator's own dashboard
-    // read earlier - the registration the summary log above was uploaded to.
-    await regulatorDashboardPage.selectLink(1)
+    // The organisation holds registrations across several sites, so the
+    // Reprocessor tab groups them into one table per site rather than a
+    // single list - the registration is found by its own number rather than
+    // by a row position that a site table wouldn't keep stable.
+    await page.getByRole('link', { name: 'View R26ER5000000002PA' }).click()
 
     expect(await registrationDetailsPage.headingText()).toContain(
       'Registration details'
