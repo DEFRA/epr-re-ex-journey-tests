@@ -6,6 +6,7 @@ import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
 import { PRNIssuedPage } from 'page-objects/prn.issued.page.js'
 import { PRNViewPage } from 'page-objects/prn.view.page.js'
 import { AccreditationDetailsPage } from 'page-objects/regulator/accreditation.details.page.js'
+import { PrnsDetailedViewPage } from 'page-objects/regulator/prns.detailed-view.page.js'
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page.js'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page.js'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page.js'
@@ -153,7 +154,6 @@ test.describe('Issuing Packing Recycling Notes', () => {
     const registrationDetailsPage = new RegistrationDetailsPage(currentPage)
     const accreditationDetailsPage = new AccreditationDetailsPage(currentPage)
     const ledgerPage = new WasteBalanceLedgerPage(currentPage)
-    const regulatorPrnDashboardPage = new PRNDashboardPage(currentPage)
     const regulatorPrnViewPage = new PRNViewPage(currentPage)
 
     await regulatorLoginPage.loginAsRegulator()
@@ -265,16 +265,34 @@ test.describe('Issuing Packing Recycling Notes', () => {
     // either side of it.
     expect(await regulatorPrnViewPage.formCount()).toBe(0)
 
-    // The PRN dashboard is the other route to the same note, filed beneath
-    // the accreditation rather than reached from the ledger. It is where an
-    // operator manages their PRNs, and a regulator is given the same list
-    // with nothing on it to manage.
+    // The PRN list is the other route to the same note, filed beneath the
+    // accreditation rather than reached from the ledger. PAE-1930 forks that
+    // address: an operator keeps their own dashboard and a regulator gets a
+    // read-only page of their own, so this half asserts the regulator's.
     await currentPage.goto(`${accreditationUrl}/packaging-recycling-notes`)
 
-    await regulatorPrnDashboardPage.issuedTab().click()
-    await prnHelper.checkIssuedRows(prnDetails, 1)
+    const regulatorPrnsPage = new PrnsDetailedViewPage(currentPage)
 
-    await regulatorPrnDashboardPage.selectIssuedLink(1)
+    await expect(regulatorPrnsPage.detailedView()).toBeVisible()
+
+    await regulatorPrnsPage.selectTab('Issued')
+
+    // The regulator's issued table heads its first column "Number" rather
+    // than the operator's "PRN number", and formats the tonnage, so the row
+    // is read here rather than through the operator's PrnHelper.
+    const issued = (await regulatorPrnsPage.rows('issued'))[0]
+
+    expect(issued.get('Number')).toEqual(prnDetails.prnNumber)
+    expect(issued.get('Producer or compliance scheme')).toEqual(
+      prnDetails.tradingName
+    )
+    expect(issued.get('Date issued')).toEqual(prnDetails.issuedDate)
+    expect(issued.get('Tonnage')).toEqual(
+      Number(prnDetails.tonnageWordings.integer).toFixed(2)
+    )
+    expect(issued.get('Status')).toEqual(prnDetails.status)
+
+    await regulatorPrnsPage.actionLink('issued', 1).click()
 
     expect(await regulatorPrnViewPage.formCount()).toBe(0)
   })
