@@ -18,16 +18,33 @@ class CreatePRNPage extends Page {
     return headingElement.innerText()
   }
 
-  async createPrn(tonnage, producer, issuerNotes) {
+  async createPrn(tonnage, producer, issuerNotes, decemberWasteAnswer) {
     // Wait for the heading before interacting with the recipient field: it
     // progressively enhances into an accessible-autocomplete widget, and
     // typing into it before that JS has run leaves the underlying select
     // unset (matched by option value/id, not by the typed display name).
     await this.headingText()
+    if (decemberWasteAnswer) {
+      await this.selectDecemberWaste(decemberWasteAnswer)
+    }
     await this.enterTonnage(tonnage)
     await this.enterValue(producer)
     await this.addIssuerNotes(issuerNotes)
     await this.continue()
+  }
+
+  // GOV.UK radios visually hide the native input under a styled circle, so
+  // clicking the input directly fails Playwright's actionability check —
+  // click the label instead. Item ids follow the idPrefix convention: the
+  // first radio is the bare prefix, the second gets a "-2" suffix - "No" is
+  // rendered first to match the design's default, so "Yes" is the second.
+  async selectDecemberWaste(answer) {
+    const id = answer === 'Yes' ? 'is-december-waste-2' : 'is-december-waste'
+    await this.page.locator(`label[for="${id}"]`).click()
+  }
+
+  decemberWasteVisible() {
+    return this.page.locator('#is-december-waste').isVisible()
   }
 
   async enterTonnage(tonnes) {

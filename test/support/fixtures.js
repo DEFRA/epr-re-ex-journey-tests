@@ -23,6 +23,8 @@ export const tonnageWordings = {
  * @param {Object} [params.organisationDetails]
  * @param {string} [params.regAddress]
  * @param {Object} [params.tonnageWordings]
+ * @param {string} [params.selectDecemberWasteAnswer] - 'Yes' or 'No' to click on the create-PRN
+ *   radios (only when the radios are expected to render); omit to leave them untouched.
  */
 export const createPrnDetails = ({
   process = 'R3',
@@ -35,7 +37,8 @@ export const createPrnDetails = ({
   tonnageWordings = {
     integer: 203,
     word: 'Two hundred and three'
-  }
+  },
+  selectDecemberWasteAnswer
 } = {}) => {
   const companyName = organisationDetails.organisation?.companyName ?? ''
   if (regAddress === '') {
@@ -54,6 +57,10 @@ export const createPrnDetails = ({
     prnNumber: '',
     issuedDate: '',
     process,
-    createdDate: todayddMMMMyyyy
+    createdDate: todayddMMMMyyyy,
+    selectDecemberWasteAnswer,
+    // The persisted value the check/view pages show, regardless of whether
+    // the radios were touched: unticked (or never rendered) always means No.
+    decemberWaste: selectDecemberWasteAnswer ?? 'No'
   }
 }

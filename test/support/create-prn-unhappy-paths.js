@@ -150,6 +150,10 @@ export async function runCreatePrnUnhappyPaths(
   let materialDetails = await createPRNPage.materialDetails()
   expect(materialDetails).toBe(`Material: ${materialDesc}`)
 
+  // December Waste radios are output-reprocessor-only; this shared flow
+  // covers input and exporter, so they must never appear here.
+  expect(await createPRNPage.decemberWasteVisible()).toBe(false)
+
   // Empty-form validation errors
   await createPRNPage.submitAndCheckDoubleClickPrevented()
   const validationErrors = await createPRNPage.errorMessages(2)
