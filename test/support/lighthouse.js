@@ -1,20 +1,41 @@
 import { chromium } from '@playwright/test'
 import { launch } from 'chrome-launcher'
-import lighthouse from 'lighthouse'
+import lighthouse, { desktopConfig } from 'lighthouse'
 import { attachment } from 'allure-js-commons'
 
 const LIGHTHOUSE_CATEGORIES = ['accessibility', 'performance', 'seo']
 
+// Lighthouse 13 replaced several of the audits below with "insight" audits
+// covering the same ground under a new id (e.g. render-blocking-resources ->
+// render-blocking-insight; modern-image-formats/uses-optimized-images/
+// uses-responsive-images collapsed into image-delivery-insight). An id that
+// no longer exists in lhr.audits is silently dropped by pickDiagnostics
+// below, so this list must be kept in sync with whatever version of
+// `lighthouse` is installed.
 const PERFORMANCE_DIAGNOSTIC_AUDIT_IDS = [
-  'modern-image-formats',
-  'render-blocking-resources',
+  'image-delivery-insight',
+  'render-blocking-insight',
   'unused-javascript',
   'unused-css-rules',
-  'uses-responsive-images',
-  'uses-optimized-images',
   'mainthread-work-breakdown',
   'total-byte-weight'
 ]
+
+// Playwright runs the journey at a fixed 1920x1080 desktop window (see
+// playwright.config.js), but Lighthouse defaults to mobile emulation. Left
+// unset, the two halves of the accessibility/performance report would
+// describe different renderings of the page.
+const LIGHTHOUSE_CONFIG = {
+  ...desktopConfig,
+  settings: {
+    ...desktopConfig.settings,
+    screenEmulation: {
+      ...desktopConfig.settings.screenEmulation,
+      width: 1920,
+      height: 1080
+    }
+  }
+}
 
 let chromeInstance
 
@@ -90,7 +111,7 @@ function buildPerformanceMetrics(pageName, url, lhr) {
       speedIndex: audits['speed-index'],
       tti: audits.interactive,
       ttfb: audits['server-response-time'] || audits['time-to-first-byte'],
-      domSize: audits['dom-size'],
+      domSize: audits['dom-size-insight'],
       totalBytes: audits['total-byte-weight'],
       jsExecution: audits['bootup-time']
     },
@@ -123,16 +144,35 @@ export async function runLighthouseAudit(page, pageName) {
     const chrome = await getChromeInstance()
     const cookieHeader = await buildCookieHeader(page, url)
 
-    const result = await lighthouse(url, {
-      logLevel: 'error',
-      output: 'json',
-      onlyCategories: LIGHTHOUSE_CATEGORIES,
-      port: chrome.port,
-      extraHeaders: cookieHeader ? { Cookie: cookieHeader } : undefined
-    })
+    const result = await lighthouse(
+      url,
+      {
+        logLevel: 'error',
+        output: 'json',
+        onlyCategories: LIGHTHOUSE_CATEGORIES,
+        port: chrome.port,
+        extraHeaders: cookieHeader ? { Cookie: cookieHeader } : undefined
+      },
+      LIGHTHOUSE_CONFIG
+    )
 
     if (!result) {
       throw new Error('Lighthouse returned no result')
+    }
+
+    // Some pages (e.g. a one-time "created"/"issued" flash confirmation)
+    // clear their session flag as soon as they're read, then redirect on any
+    // subsequent GET. Playwright's own navigation already consumed the
+    // flash, so Lighthouse's fresh re-navigation to the same URL can land
+    // on a different page than the one it's meant to audit. Rather than
+    // silently mislabel that page's report, skip it.
+    if (result.lhr.finalDisplayedUrl !== url) {
+      await attachment(
+        `Lighthouse audit skipped: ${pageName}`,
+        `Requested ${url} but Lighthouse was redirected to ${result.lhr.finalDisplayedUrl} - likely a one-time page (e.g. a flash confirmation) already consumed by an earlier navigation. Skipping this audit rather than mislabeling the redirected page.`,
+        'text/plain'
+      )
+      return null
     }
 
     return {
@@ -147,6 +187,15 @@ export async function runLighthouseAudit(page, pageName) {
       `${error.stack || error.message}`,
       'text/plain'
     )
+    // The error may mean the shared Chrome process itself died, in which
+    // case every remaining audit in this worker would otherwise keep
+    // failing silently against a dead instance. Drop it so the next call
+    // relaunches a fresh one.
+    if (chromeInstance) {
+      const deadInstance = chromeInstance
+      chromeInstance = undefined
+      await deadInstance.kill().catch(() => {})
+    }
     return null
   }
 }

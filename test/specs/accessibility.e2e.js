@@ -68,27 +68,32 @@ test.describe('WCAG Accessibility @smoketest', () => {
 
     await tagAccessibilityTest('Public entry pages')
 
-    await step('🌐 Page tour: Public entry pages', async () => {
-      await homePage.open()
-      violations.push(
-        ...(await scanPageForAccessibilityViolations(
-          page,
-          'Home page',
-          collector
-        ))
-      )
+    try {
+      await step('🌐 Page tour: Public entry pages', async () => {
+        await homePage.open()
+        violations.push(
+          ...(await scanPageForAccessibilityViolations(
+            page,
+            'Home page',
+            collector
+          ))
+        )
 
-      await homePage.openStart()
-      violations.push(
-        ...(await scanPageForAccessibilityViolations(
-          page,
-          'Choose your organisation (start) page',
-          collector
-        ))
-      )
-    })
+        await homePage.openStart()
+        violations.push(
+          ...(await scanPageForAccessibilityViolations(
+            page,
+            'Choose your organisation (start) page',
+            collector
+          ))
+        )
+      })
+    } finally {
+      // Attach whatever was collected even if the tour above threw, so a
+      // mid-tour failure doesn't discard the report when it's most needed.
+      await attachAccessibilityReport(collector)
+    }
 
-    await attachAccessibilityReport(collector)
     await assertNoSeriousOrCriticalViolations(violations)
   })
 
@@ -102,196 +107,203 @@ test.describe('WCAG Accessibility @smoketest', () => {
 
     await tagAccessibilityTest('Exporter dashboard, upload and report flow')
 
-    await step(
-      '🌐 Page tour: Exporter dashboard, upload and report flow',
-      async () => {
-        const organisationDetails = await createLinkedOrganisation([
-          {
-            material: 'Paper or board (R3)',
-            wasteProcessingType: 'Exporter',
-            withoutAccreditation: true
-          }
-        ])
-        const migrationResponse = await updateMigratedOrganisation(
-          organisationDetails.refNo,
-          [
+    try {
+      await step(
+        '🌐 Page tour: Exporter dashboard, upload and report flow',
+        async () => {
+          const organisationDetails = await createLinkedOrganisation([
             {
-              regNumber: REG_NUMBER,
-              status: 'approved',
+              material: 'Paper or board (R3)',
+              wasteProcessingType: 'Exporter',
               withoutAccreditation: true
             }
-          ]
-        )
-        await createLinkAndLogin(
-          page,
-          organisationDetails.refNo,
-          migrationResponse.email
-        )
-
-        const homePage = new HomePage(page)
-        const dashboardPage = new DashboardPage(page)
-        const wasteRecordsPage = new WasteRecordsPage(page)
-        const uploadSummaryLogPage = new UploadSummaryLogPage(page)
-        const checkSummaryLogPage = new CheckSummaryLogPage(page)
-        const reportsPage = new ReportsPage(page)
-        const reportDetailPage = new ReportDetailPage(page)
-        const tonnesNotExportedPage = new TonnesNotExportedPage(page)
-        const reportSupportingInformationPage =
-          new ReportSupportingInformationPage(page)
-        const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
-        const confirmationPage = new ConfirmationPage(page)
-        const monthlyReportDraftDeclarationPage =
-          new MonthlyReportDraftDeclarationPage(page)
-        const reportSubmittedPage = new ReportSubmittedPage(page)
-        const confirmDeleteReportPage = new ConfirmDeleteReportPage(page)
-
-        // Login lands on the dashboard.
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
+          ])
+          const migrationResponse = await updateMigratedOrganisation(
+            organisationDetails.refNo,
+            [
+              {
+                regNumber: REG_NUMBER,
+                status: 'approved',
+                withoutAccreditation: true
+              }
+            ]
+          )
+          await createLinkAndLogin(
             page,
-            'Dashboard',
-            collector
-          ))
-        )
+            organisationDetails.refNo,
+            migrationResponse.email
+          )
 
-        await dashboardPage.selectTableLink(1, 1)
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Waste records',
-            collector
-          ))
-        )
+          const homePage = new HomePage(page)
+          const dashboardPage = new DashboardPage(page)
+          const wasteRecordsPage = new WasteRecordsPage(page)
+          const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+          const checkSummaryLogPage = new CheckSummaryLogPage(page)
+          const reportsPage = new ReportsPage(page)
+          const reportDetailPage = new ReportDetailPage(page)
+          const tonnesNotExportedPage = new TonnesNotExportedPage(page)
+          const reportSupportingInformationPage =
+            new ReportSupportingInformationPage(page)
+          const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
+          const confirmationPage = new ConfirmationPage(page)
+          const monthlyReportDraftDeclarationPage =
+            new MonthlyReportDraftDeclarationPage(page)
+          const reportSubmittedPage = new ReportSubmittedPage(page)
+          const confirmDeleteReportPage = new ConfirmDeleteReportPage(page)
 
-        await wasteRecordsPage.submitSummaryLogLink().click()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Upload summary log',
-            collector
-          ))
-        )
+          // Login lands on the dashboard.
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Dashboard',
+              collector
+            ))
+          )
 
-        await uploadSummaryLogPage.uploadFile('resources/exporter-regonly.xlsx')
-        await uploadSummaryLogPage.continue()
-        await checkBodyText(page, 'Your summary log is being checked', 30)
-        await checkBodyText(page, 'Upload your summary log', 30)
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Check summary log',
-            collector
-          ))
-        )
+          await dashboardPage.selectTableLink(1, 1)
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Waste records',
+              collector
+            ))
+          )
 
-        await checkSummaryLogPage.uploadButton().click()
-        await checkBodyText(page, 'Your waste records are being updated', 30)
-        await checkBodyText(page, 'Summary log uploaded', 30)
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Summary log uploaded (confirmation)',
-            collector
-          ))
-        )
+          await wasteRecordsPage.submitSummaryLogLink().click()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Upload summary log',
+              collector
+            ))
+          )
 
-        await uploadSummaryLogPage.returnToHomePageLink().click()
-        await navigateToReports(page)
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Reports list',
-            collector
-          ))
-        )
+          await uploadSummaryLogPage.uploadFile(
+            'resources/exporter-regonly.xlsx'
+          )
+          await uploadSummaryLogPage.continue()
+          await checkBodyText(page, 'Your summary log is being checked', 30)
+          await checkBodyText(page, 'Upload your summary log', 30)
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Check summary log',
+              collector
+            ))
+          )
 
-        await reportsPage.selectActiveActionLink(1)
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Report detail (summary log data)',
-            collector
-          ))
-        )
+          await checkSummaryLogPage.uploadButton().click()
+          await checkBodyText(page, 'Your waste records are being updated', 30)
+          await checkBodyText(page, 'Summary log uploaded', 30)
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Summary log uploaded (confirmation)',
+              collector
+            ))
+          )
 
-        await reportDetailPage.useThisData()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Tonnes not exported',
-            collector
-          ))
-        )
+          await uploadSummaryLogPage.returnToHomePageLink().click()
+          await navigateToReports(page)
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Reports list',
+              collector
+            ))
+          )
 
-        // Detour into the delete-report confirmation page and back, so it gets
-        // scanned without derailing the create/submit flow below.
-        await tonnesNotExportedPage.deleteReportLink().click()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Confirm delete report',
-            collector
-          ))
-        )
-        await confirmDeleteReportPage.confirmDeletion()
+          await reportsPage.selectActiveActionLink(1)
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Report detail (summary log data)',
+              collector
+            ))
+          )
 
-        await reportsPage.selectActiveActionLink(1)
-        await reportDetailPage.useThisData()
-        await tonnesNotExportedPage.enterTonnage('5.50')
-        await tonnesNotExportedPage.continue()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Supporting information',
-            collector
-          ))
-        )
+          await reportDetailPage.useThisData()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Tonnes not exported',
+              collector
+            ))
+          )
 
-        await reportSupportingInformationPage.continue()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Check your answers',
-            collector
-          ))
-        )
+          // Detour into the delete-report confirmation page and back, so it gets
+          // scanned without derailing the create/submit flow below.
+          await tonnesNotExportedPage.deleteReportLink().click()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Confirm delete report',
+              collector
+            ))
+          )
+          await confirmDeleteReportPage.confirmDeletion()
 
-        await reportCheckAnswersPage.createReport()
-        await checkBodyText(page, 'report created', 30)
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Report created (confirmation)',
-            collector
-          ))
-        )
+          await reportsPage.selectActiveActionLink(1)
+          await reportDetailPage.useThisData()
+          await tonnesNotExportedPage.enterTonnage('5.50')
+          await tonnesNotExportedPage.continue()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Supporting information',
+              collector
+            ))
+          )
 
-        await confirmationPage.goToReports().click()
-        await reportsPage.selectActiveActionLink(1)
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Confirm and submit report declaration',
-            collector
-          ))
-        )
+          await reportSupportingInformationPage.continue()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Check your answers',
+              collector
+            ))
+          )
 
-        await monthlyReportDraftDeclarationPage.confirmAndSubmit()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Report submitted (confirmation)',
-            collector
-          ))
-        )
+          await reportCheckAnswersPage.createReport()
+          await checkBodyText(page, 'report created', 30)
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Report created (confirmation)',
+              collector
+            ))
+          )
 
-        await reportSubmittedPage.returnToReportsLink().click()
-        await homePage.signOutLink().click()
-        await expect(page).toHaveTitle(/Signed out/)
-      }
-    )
+          await confirmationPage.goToReports().click()
+          await reportsPage.selectActiveActionLink(1)
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Confirm and submit report declaration',
+              collector
+            ))
+          )
 
-    await attachAccessibilityReport(collector)
+          await monthlyReportDraftDeclarationPage.confirmAndSubmit()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Report submitted (confirmation)',
+              collector
+            ))
+          )
+
+          await reportSubmittedPage.returnToReportsLink().click()
+          await homePage.signOutLink().click()
+          await expect(page).toHaveTitle(/Signed out/)
+        }
+      )
+    } finally {
+      // Attach whatever was collected even if the tour above threw, so a
+      // mid-tour failure doesn't discard the report when it's most needed.
+      await attachAccessibilityReport(collector)
+    }
+
     await assertNoSeriousOrCriticalViolations(violations)
   })
 
@@ -306,232 +318,239 @@ test.describe('WCAG Accessibility @smoketest', () => {
 
     await tagAccessibilityTest('Accredited reprocessor report and PRN flow')
 
-    await step(
-      '🌐 Page tour: Accredited reprocessor report and PRN flow',
-      async () => {
-        const organisationDetails = await createLinkedOrganisation([
-          {
-            material: 'Paper or board (R3)',
-            wasteProcessingType: 'Reprocessor'
-          }
-        ])
-        const migrationResponse = await updateMigratedOrganisation(
-          organisationDetails.refNo,
-          [
+    try {
+      await step(
+        '🌐 Page tour: Accredited reprocessor report and PRN flow',
+        async () => {
+          const organisationDetails = await createLinkedOrganisation([
             {
-              reprocessingType: 'output',
-              regNumber: REG_NUMBER,
-              accNumber: ACC_NUMBER,
-              status: 'approved'
+              material: 'Paper or board (R3)',
+              wasteProcessingType: 'Reprocessor'
             }
-          ]
-        )
-        await createLinkAndLogin(
-          page,
-          organisationDetails.refNo,
-          migrationResponse.email
-        )
-
-        const homePage = new HomePage(page)
-        const dashboardPage = new DashboardPage(page)
-        const wasteRecordsPage = new WasteRecordsPage(page)
-        const reportsPage = new ReportsPage(page)
-        const reportDetailPage = new ReportDetailPage(page)
-        const tonnesRecycledPage = new TonnesRecycledPage(page)
-        const tonnesNotRecycledPage = new TonnesNotRecycledPage(page)
-        const reprocessorPrnSummaryPage = new ReprocessorPrnSummaryPage(page)
-        const createPRNPage = new CreatePRNPage(page)
-        const checkBeforeCreatingPRNPage = new CheckBeforeCreatingPRNPage(page)
-        const prnCreatedPage = new PRNCreatedPage(page)
-        const prnDashboardPage = new PRNDashboardPage(page)
-        const prnViewPage = new PRNViewPage(page)
-        const prnIssuedPage = new PRNIssuedPage(page)
-        const confirmDeletePRNPage = new ConfirmDeletePRNPage(page)
-        const confirmCancelPrnPage = new ConfirmCancelPRNPage(page)
-        const prnCancelledPage = new PRNCancelledPage(page)
-
-        await uploadSummaryLogAndNavigateToReports(
-          page,
-          `resources/sanity/reprocessorOutput_${ACC_NUMBER}_${REG_NUMBER}.xlsx`
-        )
-
-        // --- Report wizard pages unique to the accredited reprocessor flow ---
-        await reportsPage.selectActiveActionLink(1)
-        await reportDetailPage.useThisData()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
+          ])
+          const migrationResponse = await updateMigratedOrganisation(
+            organisationDetails.refNo,
+            [
+              {
+                reprocessingType: 'output',
+                regNumber: REG_NUMBER,
+                accNumber: ACC_NUMBER,
+                status: 'approved'
+              }
+            ]
+          )
+          await createLinkAndLogin(
             page,
-            'Tonnes recycled',
-            collector
-          ))
-        )
+            organisationDetails.refNo,
+            migrationResponse.email
+          )
 
-        await tonnesRecycledPage.enterTonnage('15.02')
-        await tonnesRecycledPage.continue()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
+          const homePage = new HomePage(page)
+          const dashboardPage = new DashboardPage(page)
+          const wasteRecordsPage = new WasteRecordsPage(page)
+          const reportsPage = new ReportsPage(page)
+          const reportDetailPage = new ReportDetailPage(page)
+          const tonnesRecycledPage = new TonnesRecycledPage(page)
+          const tonnesNotRecycledPage = new TonnesNotRecycledPage(page)
+          const reprocessorPrnSummaryPage = new ReprocessorPrnSummaryPage(page)
+          const createPRNPage = new CreatePRNPage(page)
+          const checkBeforeCreatingPRNPage = new CheckBeforeCreatingPRNPage(
+            page
+          )
+          const prnCreatedPage = new PRNCreatedPage(page)
+          const prnDashboardPage = new PRNDashboardPage(page)
+          const prnViewPage = new PRNViewPage(page)
+          const prnIssuedPage = new PRNIssuedPage(page)
+          const confirmDeletePRNPage = new ConfirmDeletePRNPage(page)
+          const confirmCancelPrnPage = new ConfirmCancelPRNPage(page)
+          const prnCancelledPage = new PRNCancelledPage(page)
+
+          await uploadSummaryLogAndNavigateToReports(
             page,
-            'Tonnes not recycled',
-            collector
-          ))
-        )
+            `resources/sanity/reprocessorOutput_${ACC_NUMBER}_${REG_NUMBER}.xlsx`
+          )
 
-        await tonnesNotRecycledPage.enterTonnage('89.31')
-        await tonnesNotRecycledPage.continue()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Reprocessor PRN summary',
-            collector
-          ))
-        )
+          // --- Report wizard pages unique to the accredited reprocessor flow ---
+          await reportsPage.selectActiveActionLink(1)
+          await reportDetailPage.useThisData()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Tonnes recycled',
+              collector
+            ))
+          )
 
-        await reprocessorPrnSummaryPage.enterRevenue('1576.12')
-        await reprocessorPrnSummaryPage.continue()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Free PRNs',
-            collector
-          ))
-        )
+          await tonnesRecycledPage.enterTonnage('15.02')
+          await tonnesRecycledPage.continue()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Tonnes not recycled',
+              collector
+            ))
+          )
 
-        // Abandon the draft report here (report submission is already covered by
-        // the exporter flow above) and move on to the PRN pages. Navigate back to
-        // the dashboard explicitly first — we're still mid-wizard on Free PRNs,
-        // which has no dashboard table to click through.
-        await dashboardPage.open(organisationDetails.refNo)
+          await tonnesNotRecycledPage.enterTonnage('89.31')
+          await tonnesNotRecycledPage.continue()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Reprocessor PRN summary',
+              collector
+            ))
+          )
 
-        // --- Waste records page for an accredited registration (PRN links) ---
-        await dashboardPage.selectTableLink(1, 1)
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Waste records (accredited reprocessor)',
-            collector
-          ))
-        )
+          await reprocessorPrnSummaryPage.enterRevenue('1576.12')
+          await reprocessorPrnSummaryPage.continue()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Free PRNs',
+              collector
+            ))
+          )
 
-        // --- Create, view and delete a draft (awaiting authorisation) PRN ---
-        await wasteRecordsPage.createNewPRNLink().click()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Create PRN',
-            collector
-          ))
-        )
+          // Abandon the draft report here (report submission is already covered by
+          // the exporter flow above) and move on to the PRN pages. Navigate back to
+          // the dashboard explicitly first — we're still mid-wizard on Free PRNs,
+          // which has no dashboard table to click through.
+          await dashboardPage.open(organisationDetails.refNo)
 
-        await createPRNPage.createPrn(
-          tonnageWordings.integer,
-          tradingName,
-          'Testing'
-        )
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Check before creating PRN',
-            collector
-          ))
-        )
+          // --- Waste records page for an accredited registration (PRN links) ---
+          await dashboardPage.selectTableLink(1, 1)
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Waste records (accredited reprocessor)',
+              collector
+            ))
+          )
 
-        await checkBeforeCreatingPRNPage.createPRNButton().click()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'PRN created',
-            collector
-          ))
-        )
+          // --- Create, view and delete a draft (awaiting authorisation) PRN ---
+          await wasteRecordsPage.createNewPRNLink().click()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Create PRN',
+              collector
+            ))
+          )
 
-        await prnCreatedPage.returnToRegistrationPage().click()
-        await dashboardPage.selectTableLink(1, 1)
-        await wasteRecordsPage.managePRNsLink().click()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'PRN dashboard (awaiting authorisation)',
-            collector
-          ))
-        )
+          await createPRNPage.createPrn(
+            tonnageWordings.integer,
+            tradingName,
+            'Testing'
+          )
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Check before creating PRN',
+              collector
+            ))
+          )
 
-        await prnDashboardPage.selectAwaitingLink(1)
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'PRN view (awaiting authorisation)',
-            collector
-          ))
-        )
+          await checkBeforeCreatingPRNPage.createPRNButton().click()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'PRN created',
+              collector
+            ))
+          )
 
-        // Detour into the delete-PRN confirmation page and back.
-        await prnViewPage.deletePRNButton().click()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Confirm delete PRN',
-            collector
-          ))
-        )
-        await confirmDeletePRNPage.backLink().click()
+          await prnCreatedPage.returnToRegistrationPage().click()
+          await dashboardPage.selectTableLink(1, 1)
+          await wasteRecordsPage.managePRNsLink().click()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'PRN dashboard (awaiting authorisation)',
+              collector
+            ))
+          )
 
-        // --- Issue the PRN, then have the recipient (RPD) reject it so the
-        // cancellation confirmation pages can be scanned too ---
-        await prnViewPage.issuePRNButton().click()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'PRN issued',
-            collector
-          ))
-        )
+          await prnDashboardPage.selectAwaitingLink(1)
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'PRN view (awaiting authorisation)',
+              collector
+            ))
+          )
 
-        const prnNumber = await prnIssuedPage.prnNumberText()
-        await externalAPICancelPrn({ prnNumber })
+          // Detour into the delete-PRN confirmation page and back.
+          await prnViewPage.deletePRNButton().click()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Confirm delete PRN',
+              collector
+            ))
+          )
+          await confirmDeletePRNPage.backLink().click()
 
-        await prnIssuedPage.managePRNs().click()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'PRN dashboard (awaiting cancellation)',
-            collector
-          ))
-        )
+          // --- Issue the PRN, then have the recipient (RPD) reject it so the
+          // cancellation confirmation pages can be scanned too ---
+          await prnViewPage.issuePRNButton().click()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'PRN issued',
+              collector
+            ))
+          )
 
-        await prnDashboardPage.selectAwaitingLink(1)
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'PRN view (awaiting cancellation)',
-            collector
-          ))
-        )
+          const prnNumber = await prnIssuedPage.prnNumberText()
+          await externalAPICancelPrn({ prnNumber })
 
-        await prnViewPage.cancelPRNButton().click()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Confirm cancel PRN',
-            collector
-          ))
-        )
+          await prnIssuedPage.managePRNs().click()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'PRN dashboard (awaiting cancellation)',
+              collector
+            ))
+          )
 
-        await confirmCancelPrnPage.confirmCancelPrn()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'PRN cancelled',
-            collector
-          ))
-        )
+          await prnDashboardPage.selectAwaitingLink(1)
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'PRN view (awaiting cancellation)',
+              collector
+            ))
+          )
 
-        await prnCancelledPage.prnsPage().click()
-        await homePage.signOutLink().click()
-        await expect(page).toHaveTitle(/Signed out/)
-      }
-    )
+          await prnViewPage.cancelPRNButton().click()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'Confirm cancel PRN',
+              collector
+            ))
+          )
 
-    await attachAccessibilityReport(collector)
+          await confirmCancelPrnPage.confirmCancelPrn()
+          violations.push(
+            ...(await scanPageForAccessibilityViolations(
+              page,
+              'PRN cancelled',
+              collector
+            ))
+          )
+
+          await prnCancelledPage.prnsPage().click()
+          await homePage.signOutLink().click()
+          await expect(page).toHaveTitle(/Signed out/)
+        }
+      )
+    } finally {
+      // Attach whatever was collected even if the tour above threw, so a
+      // mid-tour failure doesn't discard the report when it's most needed.
+      await attachAccessibilityReport(collector)
+    }
+
     await assertNoSeriousOrCriticalViolations(violations)
   })
 })

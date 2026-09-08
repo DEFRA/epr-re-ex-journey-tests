@@ -96,12 +96,20 @@ function axeViolationsToReportItems(violations) {
 
 // Lighthouse's accessibility-category audits are themselves built on
 // axe-core, so a failing one carries the same `details.debugData`
-// (impact/tags) shape as a raw Axe violation - that's what lets this filter
-// out failing performance/SEO audits (which have no debugData) and leave
-// only genuine accessibility findings.
+// (impact/tags) shape as a raw Axe violation. Restricting to the category's
+// own auditRefs (rather than shape-sniffing debugData) is what keeps
+// performance insight audits (e.g. dom-size-insight, which also sets
+// debugData) out of this accessibility-only report.
 function lighthouseAuditsToReportItems(lhr) {
+  const accessibilityAuditIds = new Set(
+    (lhr.categories.accessibility?.auditRefs || []).map((ref) => ref.id)
+  )
+
   const failingAudits = Object.values(lhr.audits).filter(
-    (audit) => audit.score !== 1 && audit.scoreDisplayMode !== 'notApplicable'
+    (audit) =>
+      accessibilityAuditIds.has(audit.id) &&
+      audit.score !== 1 &&
+      audit.scoreDisplayMode !== 'notApplicable'
   )
 
   return failingAudits
@@ -138,16 +146,23 @@ function lighthouseAuditsToReportItems(lhr) {
     })
 }
 
+// Lighthouse's accessibility category audits are generated from axe-core and
+// keep the same rule id (e.g. 'color-contrast'), so grouping by title alone
+// - rather than `${tool}:${title}` - merges an Axe finding and Lighthouse's
+// audit of the same rule into one issue instead of double-counting it.
 function groupByIssueType(items) {
   const grouped = new Map()
 
   items.forEach((item) => {
-    const key = `${item.tool}:${item.title}`
+    const key = item.title
     if (!grouped.has(key)) {
       grouped.set(key, { ...item, elementXPath: [...item.elementXPath] })
     } else {
       const existing = grouped.get(key)
       existing.elementXPath = existing.elementXPath.concat(item.elementXPath)
+      if (!existing.tool.includes(item.tool)) {
+        existing.tool = `${existing.tool} + ${item.tool}`
+      }
     }
   })
 
@@ -198,12 +213,12 @@ function renderIssueAccordion(item, accordionId) {
   const html = `
     <div class="accordion-item ${severity.weight === 'critical' ? 'custom' : ''}">
       <div class="accordion-header" id="heading-${accordionId}">
-        <div class="accordion-button ${severity.headerClass} text-white text-opacity-75" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${accordionId}" aria-expanded="true" aria-controls="collapse-${accordionId}">
+        <button class="accordion-button collapsed ${severity.headerClass} text-white text-opacity-75" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${accordionId}" aria-expanded="false" aria-controls="collapse-${accordionId}">
           <div class="row col-12 g-2">
-            <div class="col-10 text-start">${item.tool}: ${item.title}</div>
+            <div class="col-10 text-start">${encodeHtml(item.tool)}: ${encodeHtml(item.title)}</div>
             <div class="col-2">${count} ${severity.label} impact</div>
           </div>
-        </div>
+        </button>
       </div>
       <div id="collapse-${accordionId}" class="accordion-collapse collapse" aria-labelledby="heading-${accordionId}">
         <div class="accordion-body">
@@ -261,7 +276,7 @@ function renderPageSection(pageResult, pageIndex, totals) {
 
   return `
     <div class="page-section"><div class="container mt-4 bg-light shadow-lg"><div class="container-fluid p-3">
-      <h6 class="text-secondary">Page ${pageIndex + 1} - ${pageResult.pageName} (${pageResult.url})</h6>
+      <h6 class="text-secondary">Page ${pageIndex + 1} - ${encodeHtml(pageResult.pageName)} (${encodeHtml(pageResult.url)})</h6>
       <div class="row mt-3">
         <div class="col-6"><div class="card block-color text-white text-opacity-75"><div class="card-body">
           <div class="stats-chart-row"><div class="h6">Conformance</div></div>
@@ -305,18 +320,14 @@ function buildPerformanceCard(metrics) {
   const metric = metrics.performance
   const diagnostics = metrics.diagnostics || []
 
+  // pickDiagnostics only ever includes audits with score !== 1, so every
+  // item here is a Fail (score null/0) or a Warn (score < 1) - never a Pass.
   const diagItemsHtml = diagnostics
     .map((audit) => {
-      let badgeClass = 'bg-success'
-      let label = 'Pass'
-      if (audit.score === null || audit.score === 0) {
-        badgeClass = 'bg-danger'
-        label = 'Fail'
-      } else if (audit.score < 1) {
-        badgeClass = 'bg-warning text-dark'
-        label = 'Warn'
-      }
-      return `<li class="mb-1"><span class="badge ${badgeClass} badge-pill me-1">${label}</span> ${audit.title || audit.id}</li>`
+      const isFail = audit.score === null || audit.score === 0
+      const badgeClass = isFail ? 'bg-danger' : 'bg-warning text-dark'
+      const label = isFail ? 'Fail' : 'Warn'
+      return `<li class="mb-1"><span class="badge ${badgeClass} badge-pill me-1">${label}</span> ${encodeHtml(audit.title || audit.id)}</li>`
     })
     .join('')
 
@@ -326,7 +337,7 @@ function buildPerformanceCard(metrics) {
         <div class="d-flex justify-content-between align-items-start">
           <div class="me-2">
             <div class="text-muted text-uppercase small">Page</div>
-            <div class="url-text">${metrics.pageName} (${metrics.url})</div>
+            <div class="url-text">${encodeHtml(metrics.pageName)} (${encodeHtml(metrics.url)})</div>
           </div>
           <div class="text-end">
             <div class="text-muted small">Scores</div>
