@@ -186,7 +186,9 @@ class PrnsDetailedViewPage extends Page {
     for (let index = 0; index < count; index++) {
       const cells = await rows.nth(index).locator(':is(th, td)').allInnerTexts()
 
-      read.push(new Map(headings.map((heading, cell) => [heading, cells[cell]])))
+      read.push(
+        new Map(headings.map((heading, cell) => [heading, cells[cell]]))
+      )
     }
 
     return read

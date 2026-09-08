@@ -262,10 +262,9 @@ test.describe('A regulator reading a registration @regulator', () => {
       [seeded.prnTonnage, seeded.cancellationPrnTonnage].sort((a, b) => a - b)
     )
 
-    expect(summaryNotes.map((note) => note.get('Status')).sort()).toStrictEqual([
-      'Awaiting authorisation',
-      'Awaiting cancellation'
-    ])
+    expect(summaryNotes.map((note) => note.get('Status')).sort()).toStrictEqual(
+      ['Awaiting authorisation', 'Awaiting cancellation']
+    )
 
     // The subheading names how many rows are shown rather than a fixed three.
     expect(await accreditationPage.prnsSubheadingText()).toContain('(2 items)')
@@ -328,7 +327,9 @@ test.describe('A regulator reading a registration @regulator', () => {
     const awaitingAuthorisation = await prnsPage.rows('awaiting-authorisation')
 
     expect(awaitingAuthorisation).toHaveLength(1)
-    expect(awaitingAuthorisation[0].get('Status')).toBe('Awaiting authorisation')
+    expect(awaitingAuthorisation[0].get('Status')).toBe(
+      'Awaiting authorisation'
+    )
     expect(tonnageOf(awaitingAuthorisation[0])).toBe(seeded.prnTonnage)
 
     // One note in the table, so the total is that note's tonnage - which is

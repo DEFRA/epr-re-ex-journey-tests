@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-import { PRNDashboardPage } from 'page-objects/prn.dashboard.page'
+import { PrnsDetailedViewPage } from 'page-objects/regulator/prns.detailed-view.page'
 import { PRNViewPage } from 'page-objects/prn.view.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
@@ -38,7 +38,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     const homePage = new RegulatorHomePage(page)
     const organisationPage = new RegulatorOrganisationPage(page)
     const detailsPage = new RegistrationDetailsPage(page)
-    const prnListPage = new PRNDashboardPage(page)
+    const prnsPage = new PrnsDetailedViewPage(page)
     const prnViewPage = new PRNViewPage(page)
     const reportsPage = new ReportsPage(page)
     const reportViewPage = new ReportViewPage(page)
@@ -140,18 +140,21 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     await page.goto(`${accreditationUrl}/packaging-recycling-notes`)
 
+    // PAE-1930 forks this address: a regulator now gets a page written for
+    // them rather than the operator's own list degraded to read-only links.
+    // The claim this journey makes of it is unchanged — every route out of it
+    // opens a note read-only — but the page asserted is the new one.
+    await expect(prnsPage.detailedView()).toBeVisible()
+
     // The note awaits authorisation, and the awaiting tables are the only
     // place such a note is filed. Reading the tonnage back off the row is what
-    // says the list rendered the operator's note rather than an empty section.
-    // The row read takes the DOM as it stands with no auto-wait, so settle on
-    // the row's action link before it.
-    const awaitingLink = prnListPage.awaitingLink(1)
-    await awaitingLink.waitFor()
+    // says the page rendered the operator's note rather than an empty section.
+    // It is formatted here, unlike on the operator's list, so the seeded
+    // figure is formatted to match rather than compared as it was written.
+    const awaitingRow = (await prnsPage.rows('awaiting-authorisation'))[0]
+    expect(awaitingRow.get('Tonnage')).toBe(seeded.prnTonnage.toFixed(2))
 
-    const awaitingRow = await prnListPage.getAwaitingRow(1)
-    expect(awaitingRow.get('Tonnage')).toBe(`${seeded.prnTonnage}`)
-
-    expect(await awaitingLink.innerText()).toBe('View')
+    const awaitingLink = prnsPage.actionLink('awaiting-authorisation', 1)
     expect(await awaitingLink.getAttribute('href')).toContain(
       `/packaging-recycling-notes/${seeded.prnId}/view`
     )
@@ -160,18 +163,17 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // built by the same code, so it takes the same decision about what a
     // session may do. A note awaiting cancellation appears nowhere else
     // either, so an empty cell here would strand it.
-    const cancellationRow = await prnListPage.getAwaitingRow(1, 2)
+    const cancellationRow = (await prnsPage.rows('awaiting-cancellation'))[0]
     expect(cancellationRow.get('Tonnage')).toBe(
-      `${seeded.cancellationPrnTonnage}`
+      seeded.cancellationPrnTonnage.toFixed(2)
     )
 
-    const cancellationLink = prnListPage.awaitingLink(1, 2)
-    expect(await cancellationLink.innerText()).toBe('View')
+    const cancellationLink = prnsPage.actionLink('awaiting-cancellation', 1)
     expect(await cancellationLink.getAttribute('href')).toContain(
       `/packaging-recycling-notes/${seeded.cancellationPrnId}/view`
     )
 
-    await prnListPage.selectAwaitingLink(1)
+    await awaitingLink.click()
 
     // The accreditation the note was drawn against. The note's own page is the
     // only page in this journey that renders it, so it says the note rendered
