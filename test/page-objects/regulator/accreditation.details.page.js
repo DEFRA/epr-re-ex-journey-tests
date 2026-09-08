@@ -1,6 +1,7 @@
 import { Page } from 'page-objects/page'
 
 const REPORTS_TABLE = '#main-content table[data-testid="reports-table"]'
+const PRNS_TABLE = '#main-content table[data-testid="prns-table"]'
 
 class AccreditationDetailsPage extends Page {
   /**
@@ -116,6 +117,98 @@ class AccreditationDetailsPage extends Page {
    */
   noReportsMessage() {
     return this.page.locator('#main-content [data-testid="no-reports"]')
+  }
+
+  /**
+   * The PRNs section's own heading. The service says PERN to an exporter, so
+   * both readings are accepted.
+   * @returns {import('@playwright/test').Locator}
+   */
+  prnsHeading() {
+    return this.page.getByRole('heading', {
+      level: 2,
+      name: /^(PRNs|PERNs)$/
+    })
+  }
+
+  /**
+   * The way on to the full list. It is a link rather than a button, so that
+   * changeControlCount() below stays at zero.
+   * @returns {import('@playwright/test').Locator}
+   */
+  prnsDetailedViewLink() {
+    return this.page.locator(
+      '#main-content [data-testid="prns-detailed-view-link"]'
+    )
+  }
+
+  /**
+   * The line naming how many of the accreditation's notes the table below it
+   * shows. It carries no testid of its own, so it is read as the heading
+   * immediately above the table.
+   * @returns {Promise<string>}
+   */
+  async prnsSubheadingText() {
+    return this.page
+      .locator(
+        'xpath=//table[@data-testid="prns-table"]/preceding-sibling::*[self::h2 or self::h3 or self::h4][1]'
+      )
+      .innerText()
+  }
+
+  /**
+   * @returns {Promise<string[]>}
+   */
+  async prnHeadings() {
+    return this.page.locator(`${PRNS_TABLE} > thead > tr th`).allInnerTexts()
+  }
+
+  /**
+   * Every row the PRNs section shows, keyed by column heading. The section
+   * summarises rather than totals, so every row here is a note.
+   *
+   * The wait settles on the first row, so a section that rendered none fails
+   * here rather than answering with an empty list a caller could read as a
+   * pass.
+   * @returns {Promise<Map<string, string>[]>}
+   */
+  async prns() {
+    const rows = this.page.locator(`${PRNS_TABLE} > tbody > tr`)
+    await rows.first().waitFor({ state: 'visible' })
+
+    const headings = await this.prnHeadings()
+
+    const count = await rows.count()
+    const notes = []
+
+    for (let index = 0; index < count; index++) {
+      const cells = await rows.nth(index).locator(':is(th, td)').allInnerTexts()
+
+      notes.push(
+        new Map(headings.map((heading, cell) => [heading, cells[cell]]))
+      )
+    }
+
+    return notes
+  }
+
+  /**
+   * @param {number} row
+   * @returns {import('@playwright/test').Locator}
+   */
+  prnActionLink(row) {
+    return this.page.locator(
+      `${PRNS_TABLE} > tbody > tr:nth-child(${row}) td:last-child a`
+    )
+  }
+
+  /**
+   * The paragraph the section renders in place of its subheading and table when
+   * the accreditation has issued nothing a regulator can see.
+   * @returns {import('@playwright/test').Locator}
+   */
+  noPrnsMessage() {
+    return this.page.locator('#main-content [data-testid="no-prns-summary"]')
   }
 
   /**

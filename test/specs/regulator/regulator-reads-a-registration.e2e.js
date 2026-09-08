@@ -1,13 +1,25 @@
 import { test, expect } from '@playwright/test'
 
 import { DashboardPage } from 'page-objects/dashboard.page'
+import { PRNViewPage } from 'page-objects/prn.view.page'
 import { AccreditationDetailsPage } from 'page-objects/regulator/accreditation.details.page'
+import { PrnsDetailedViewPage } from 'page-objects/regulator/prns.detailed-view.page'
 import { RegisteredOnlyPeriodPage } from 'page-objects/regulator/registered-only-period.page'
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { SEEDED_VALID_FROM } from '../../support/seeding/organisation.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
+
+/**
+ * The tonnage a row reads, as a number. Whether a table formats it to two
+ * decimal places is that page's to choose, so the figure is what is compared
+ * rather than the string it was written as.
+ * @param {Map<string, string>} row
+ * @returns {number}
+ */
+const tonnageOf = (row) => Number((row.get('Tonnage') ?? '').replace(/,/g, ''))
+
 test.describe('A regulator reading a registration @regulator', () => {
   test('walks from the organisation list to a registration, reads what it covers and the periods it holds, then opens each kind and comes back @regulatorRegistration @regulatorAccreditation @regulatorRegisteredOnly', async ({
     page
@@ -17,6 +29,8 @@ test.describe('A regulator reading a registration @regulator', () => {
     const dashboardPage = new DashboardPage(page)
     const detailsPage = new RegistrationDetailsPage(page)
     const accreditationPage = new AccreditationDetailsPage(page)
+    const prnsPage = new PrnsDetailedViewPage(page)
+    const prnViewPage = new PRNViewPage(page)
     const registeredOnlyPage = new RegisteredOnlyPeriodPage(page)
 
     const seeded = await seedAwaitingPrnAndSubmittedReport()
@@ -217,6 +231,150 @@ test.describe('A regulator reading a registration @regulator', () => {
     expect(
       await accreditationPage.reportActionLink(reports.length).count()
     ).toBe(0)
+
+    // The PRNs section is the accreditation's notes in summary. The seed drew
+    // two, so the section holds the whole list rather than the head of it.
+    await expect(accreditationPage.prnsHeading()).toBeVisible()
+
+    // The table and the empty state are alternatives here too, so the message
+    // being absent is the other half of the claim.
+    expect(await accreditationPage.noPrnsMessage().count()).toBe(0)
+
+    // Comparing the whole set is what says "and nothing else". Every note
+    // under one accreditation carries that accreditation's material, so a
+    // material column would repeat one value on every row - it is left out on
+    // purpose, and its arriving here would have to be justified.
+    expect(await accreditationPage.prnHeadings()).toStrictEqual([
+      'Producer or compliance scheme',
+      'Status',
+      'Date',
+      'Tonnage',
+      'Actions'
+    ])
+
+    const summaryNotes = await accreditationPage.prns()
+
+    expect(summaryNotes).toHaveLength(2)
+
+    // The two seeded notes carry different tonnages, which is what tells their
+    // rows apart without depending on the order the section put them in.
+    expect(summaryNotes.map(tonnageOf).sort((a, b) => a - b)).toStrictEqual(
+      [seeded.prnTonnage, seeded.cancellationPrnTonnage].sort((a, b) => a - b)
+    )
+
+    expect(summaryNotes.map((note) => note.get('Status')).sort()).toStrictEqual([
+      'Awaiting authorisation',
+      'Awaiting cancellation'
+    ])
+
+    // The subheading names how many rows are shown rather than a fixed three.
+    expect(await accreditationPage.prnsSubheadingText()).toContain('(2 items)')
+
+    // Each row opens its own note read-only, which is the only thing a row
+    // offers a regulator.
+    expect(
+      await accreditationPage.prnActionLink(1).getAttribute('href')
+    ).toMatch(/\/packaging-recycling-notes\/[0-9a-f]{24}\/view$/)
+
+    // The way back from the detailed view is asserted against where it was
+    // opened from, so the address is kept before the link is followed.
+    const accreditationUrl = page.url()
+
+    await accreditationPage.prnsDetailedViewLink().click()
+
+    // A regulator reaching the notes address gets a page written for them
+    // rather than the operator's list that lives at the same one.
+    await expect(prnsPage.detailedView()).toBeVisible()
+
+    const prnsCaption = await prnsPage.captionText()
+    expect(prnsCaption).toContain(seeded.companyName)
+    expect(prnsCaption).toContain(seeded.registrationNumber)
+    expect(prnsCaption).toContain(seeded.accreditationNumber)
+
+    // The trail carries on from the accreditation's rather than starting
+    // again, so the crumbs above this page are the four that page had.
+    expect((await prnsPage.breadcrumbs()).slice(0, 4)).toStrictEqual([
+      'All organisations',
+      seeded.companyName,
+      'Registration details',
+      'Accreditation details'
+    ])
+
+    // The tabs and the whole-page empty state are alternatives.
+    expect(await prnsPage.noPrnsMessage().count()).toBe(0)
+
+    await prnsPage.selectTab('Awaiting action')
+
+    const awaitingHeadings = await prnsPage.headings('awaiting-authorisation')
+
+    // A note awaiting authorisation has not been given a number and has not
+    // been issued, which is why its table carries neither column.
+    expect(awaitingHeadings).toContain('Date created')
+    expect(awaitingHeadings).not.toContain('Date issued')
+    expect(awaitingHeadings).not.toContain('PRN number')
+    expect(awaitingHeadings).not.toContain('Material')
+
+    const awaitingAuthorisation = await prnsPage.rows('awaiting-authorisation')
+
+    expect(awaitingAuthorisation).toHaveLength(1)
+    expect(awaitingAuthorisation[0].get('Status')).toBe('Awaiting authorisation')
+    expect(tonnageOf(awaitingAuthorisation[0])).toBe(seeded.prnTonnage)
+
+    // One note in the table, so the total is that note's tonnage - which is
+    // what says the row sums the table it sits under rather than the page.
+    expect(tonnageOf(await prnsPage.total('awaiting-authorisation'))).toBe(
+      seeded.prnTonnage
+    )
+
+    const awaitingCancellation = await prnsPage.rows('awaiting-cancellation')
+
+    expect(awaitingCancellation).toHaveLength(1)
+    expect(awaitingCancellation[0].get('Status')).toBe('Awaiting cancellation')
+    expect(tonnageOf(awaitingCancellation[0])).toBe(
+      seeded.cancellationPrnTonnage
+    )
+    expect(tonnageOf(await prnsPage.total('awaiting-cancellation'))).toBe(
+      seeded.cancellationPrnTonnage
+    )
+
+    // The seed leaves both its notes awaiting action and neither goes on to
+    // being issued, so the other two tabs are where the page says it holds
+    // nothing rather than where it draws rows.
+    await prnsPage.selectTab('Issued')
+
+    expect(await prnsPage.table('issued').count()).toBe(0)
+    expect(await prnsPage.tabEmptyStateText('Issued')).toMatch(/PRNs|PERNs/)
+
+    await prnsPage.selectTab('Cancelled')
+
+    expect(await prnsPage.table('cancelled').count()).toBe(0)
+    expect(await prnsPage.tabEmptyStateText('Cancelled')).toMatch(/PRNs|PERNs/)
+
+    // A regulator reads and does not write, the same claim the two pages above
+    // make for themselves.
+    expect(await prnsPage.changeControlCount()).toBe(0)
+
+    // The way back from the note is asserted against the list that opened it.
+    const detailedViewUrl = page.url()
+
+    // Opening a note and coming back to the list is an acceptance criterion,
+    // so the row's link is followed rather than merely read.
+    await prnsPage.selectTab('Awaiting action')
+    await prnsPage.actionLink('awaiting-authorisation', 1).click()
+
+    expect(page.url()).toContain(
+      `/packaging-recycling-notes/${seeded.prnId}/view`
+    )
+
+    await prnViewPage.backLink().click()
+    expect(new URL(page.url()).pathname).toBe(new URL(detailedViewUrl).pathname)
+
+    // And back from the list to the accreditation it hangs off, which is where
+    // the rest of this journey carries on from.
+    await prnsPage.backLink().click()
+    expect(new URL(page.url()).pathname).toBe(
+      new URL(accreditationUrl).pathname
+    )
 
     // Getting back to the registration is an acceptance criterion, so the
     // crumb is followed rather than merely asserted to be present.
