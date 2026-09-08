@@ -212,8 +212,16 @@ test.describe('@registeredOnly', () => {
     // refuses PRN events without an accreditation.
     expect(submission.get('Event')).toBe('Summary log submitted')
 
-    // No note to open without an accreditation.
-    expect(submission.get('Actions')).toBe('')
+    // No note to open without an accreditation, but the submission itself is
+    // downloadable - the file the operator uploaded, kept against the event
+    // it created.
+    expect(submission.get('Actions')).toContain('Download')
+
+    const actionTargets = await ledgerPage.actionTargets()
+    expect(actionTargets[0]).toMatch(
+      /^\/organisations\/[0-9a-f]{24}\/registrations\/[0-9a-f]{24}\/summary-logs\/files\/[0-9a-f-]{36}\/download$/
+    )
+
     expect(submission.get('Who')).toContain('@')
 
     // A regulator reads and does not write.
