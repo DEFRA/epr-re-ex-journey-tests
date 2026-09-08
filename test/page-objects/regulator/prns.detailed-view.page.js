@@ -71,17 +71,16 @@ class PrnsDetailedViewPage extends Page {
   }
 
   /**
-   * The line a tab shows in place of its table when the accreditation has
-   * nothing to put in it. The panel is found through the tab's own href rather
-   * than through a fixed id, so the page is free to name its panels.
+   * The line a table shows in its own place when the accreditation has nothing
+   * to put in it. Each carries the table's testid with `-none` on the end, so
+   * a tab holding two tables says so twice rather than once for the panel.
    * @param {string} name
-   * @returns {Promise<string>}
+   * @returns {import('@playwright/test').Locator}
    */
-  async tabEmptyStateText(name) {
-    const href = await this.tab(name).getAttribute('href')
-    const panelId = (href ?? '').replace('#', '')
-
-    return this.page.locator(`#${panelId} p`).first().innerText()
+  emptyState(name) {
+    return this.page.locator(
+      `#main-content [data-testid="prns-${name}-table-none"]`
+    )
   }
 
   /**

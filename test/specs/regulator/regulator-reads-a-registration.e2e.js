@@ -293,11 +293,14 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     // The trail carries on from the accreditation's rather than starting
     // again, so the crumbs above this page are the four that page had.
-    expect((await prnsPage.breadcrumbs()).slice(0, 4)).toStrictEqual([
+    // The trail carries on from the accreditation's rather than starting
+    // again, and ends on this page rather than linking at it.
+    expect(await prnsPage.breadcrumbs()).toStrictEqual([
       'All organisations',
       seeded.companyName,
       'Registration details',
-      'Accreditation details'
+      'Accreditation details',
+      'PRNs'
     ])
 
     // The tabs and the whole-page empty state are alternatives.
@@ -305,14 +308,22 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     await prnsPage.selectTab('Awaiting action')
 
-    const awaitingHeadings = await prnsPage.headings('awaiting-authorisation')
-
     // A note awaiting authorisation has not been given a number and has not
-    // been issued, which is why its table carries neither column.
-    expect(awaitingHeadings).toContain('Date created')
-    expect(awaitingHeadings).not.toContain('Date issued')
-    expect(awaitingHeadings).not.toContain('PRN number')
-    expect(awaitingHeadings).not.toContain('Material')
+    // been issued, which is why its table carries neither column. Comparing
+    // the whole set is what says "and no material column either", every note
+    // under one accreditation carrying that accreditation's material.
+    expect(await prnsPage.headings('awaiting-authorisation')).toStrictEqual([
+      'Producer or compliance scheme',
+      'Date created',
+      'Tonnage',
+      'Status',
+      'Actions'
+    ])
+
+    // The issued and cancelled tables carry a Number column and a Date issued
+    // one instead; neither renders here, because the seed leaves both its
+    // notes awaiting action. Their columns are covered by the frontend's own
+    // rendering tests rather than asserted against a table that is absent.
 
     const awaitingAuthorisation = await prnsPage.rows('awaiting-authorisation')
 
@@ -343,12 +354,12 @@ test.describe('A regulator reading a registration @regulator', () => {
     await prnsPage.selectTab('Issued')
 
     expect(await prnsPage.table('issued').count()).toBe(0)
-    expect(await prnsPage.tabEmptyStateText('Issued')).toMatch(/PRNs|PERNs/)
+    await expect(prnsPage.emptyState('issued')).toBeVisible()
 
     await prnsPage.selectTab('Cancelled')
 
     expect(await prnsPage.table('cancelled').count()).toBe(0)
-    expect(await prnsPage.tabEmptyStateText('Cancelled')).toMatch(/PRNs|PERNs/)
+    await expect(prnsPage.emptyState('cancelled')).toBeVisible()
 
     // A regulator reads and does not write, the same claim the two pages above
     // make for themselves.

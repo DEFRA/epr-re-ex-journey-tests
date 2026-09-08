@@ -144,15 +144,12 @@ class AccreditationDetailsPage extends Page {
 
   /**
    * The line naming how many of the accreditation's notes the table below it
-   * shows. It carries no testid of its own, so it is read as the heading
-   * immediately above the table.
+   * shows.
    * @returns {Promise<string>}
    */
   async prnsSubheadingText() {
     return this.page
-      .locator(
-        'xpath=//table[@data-testid="prns-table"]/preceding-sibling::*[self::h2 or self::h3 or self::h4][1]'
-      )
+      .locator('#main-content [data-testid="prns-most-recent"]')
       .innerText()
   }
 
