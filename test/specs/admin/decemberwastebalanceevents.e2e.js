@@ -8,8 +8,8 @@ import { WasteBalanceEventsPage } from 'page-objects/admin/waste.balance.events.
 import { seedDecemberWasteBalance } from '../../support/seeding/december-waste-balance.js'
 
 const NUMBER_COLUMN = 'Number'
-const DECEMBER_BALANCE_COLUMN = 'December closing balance'
-const DECEMBER_AVAILABLE_COLUMN = 'December closing available'
+const DECEMBER_BALANCE_COLUMN = 'December closing'
+const DECEMBER_AVAILABLE_COLUMN = 'December available'
 
 // Events count from one in submission order, so the first is the non-December
 // submission and the second is the December resubmission.
