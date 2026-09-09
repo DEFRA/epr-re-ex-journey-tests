@@ -17,6 +17,11 @@ import {
 } from '../support/checks.js'
 import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { CheckSummaryLogPage } from 'page-objects/check.summary.log.page.js'
+import { RegisteredOnlyPeriodPage } from 'page-objects/regulator/registered-only-period.page.js'
+import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page.js'
+import { RegulatorHomePage } from 'page-objects/regulator/home.page.js'
+import { RegulatorLoginPage } from 'page-objects/regulator/login.page.js'
+import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page.js'
 import {
   createLinkAndLogin,
   loginViaHomePage
@@ -133,6 +138,94 @@ test.describe('@registeredOnly', () => {
 
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
+
+    // A registration held without an accreditation files its submissions into
+    // a registered-only ledger rather than the waste balance one - a
+    // regulator reads the same event from the other side of the journey.
+    const regulatorLoginPage = new RegulatorLoginPage(page)
+    const regulatorHomePage = new RegulatorHomePage(page)
+    const regulatorDashboardPage = new DashboardPage(page)
+    const registrationDetailsPage = new RegistrationDetailsPage(page)
+    const registeredOnlyPeriodPage = new RegisteredOnlyPeriodPage(page)
+    const ledgerPage = new WasteBalanceLedgerPage(page)
+
+    await regulatorLoginPage.loginAsRegulator()
+
+    await regulatorHomePage.searchFor(
+      organisationDetails.organisation.companyName
+    )
+    await regulatorHomePage.actionLink(1).click()
+
+    expect(await regulatorDashboardPage.dashboardHeaderText()).toContain(
+      organisationDetails.organisation.companyName
+    )
+
+    // The organisation holds registrations across several sites, so the
+    // Reprocessor tab groups them into one table per site rather than a
+    // single list - the registration is found by its own number rather than
+    // by a row position that a site table wouldn't keep stable.
+    await page.getByRole('link', { name: 'View R26ER5000000002PA' }).click()
+
+    expect(await registrationDetailsPage.headingText()).toContain(
+      'Registration details'
+    )
+
+    // The page filters events by createdAt, so open the submission year.
+    const submissionYear = new Date().getUTCFullYear()
+    const periods = await registrationDetailsPage.registeredOnlyPeriods()
+    const submittedRow =
+      periods.findIndex((row) => row.get('Period') === String(submissionYear)) +
+      1
+
+    expect(submittedRow).toBeGreaterThan(0)
+
+    await registrationDetailsPage.registeredOnlyActionLink(submittedRow).click()
+
+    expect(await registeredOnlyPeriodPage.headingText()).toContain(
+      `${submissionYear} Registered-only periods`
+    )
+
+    // Never accredited, so the whole year is registered-only time.
+    await expect(registeredOnlyPeriodPage.noDataMessage()).toHaveCount(0)
+
+    // Not the accreditation page's "Waste balance ledger" - this page's own
+    // heading, so it is found by what it says rather than the shared page
+    // object's heading reader, which looks for the other page's words.
+    await expect(
+      page.getByRole('heading', { name: 'Ledger', exact: true })
+    ).toBeVisible()
+
+    const ledgerEvents = await ledgerPage.eventRows()
+
+    // No balance columns on this ledger - there is no accreditation to hold
+    // a balance against.
+    expect([...ledgerEvents[0].keys()]).toEqual([
+      'Date',
+      'Event',
+      'Who',
+      'Actions'
+    ])
+
+    const [submission] = ledgerEvents
+
+    // The only event kind a registered-only ledger can hold - the backend
+    // refuses PRN events without an accreditation.
+    expect(submission.get('Event')).toBe('Summary log submitted')
+
+    // No note to open without an accreditation, but the submission itself is
+    // downloadable - the file the operator uploaded, kept against the event
+    // it created.
+    expect(submission.get('Actions')).toContain('Download')
+
+    const actionTargets = await ledgerPage.actionTargets()
+    expect(actionTargets[0]).toMatch(
+      /^\/organisations\/[0-9a-f]{24}\/registrations\/[0-9a-f]{24}\/summary-logs\/files\/[0-9a-f-]{36}\/download$/
+    )
+
+    expect(submission.get('Who')).toContain('@')
+
+    // A regulator reads and does not write.
+    expect(await registeredOnlyPeriodPage.changeControlCount()).toBe(0)
   })
 
   test('should be able to upload Registered Only Exporter Summary Logs for registered-only operator and display unaccredited registrations alongside accredited ones @regOnlyExporter', async ({
