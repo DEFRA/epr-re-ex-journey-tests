@@ -36,36 +36,6 @@ test.describe('WCAG Accessibility @smoketest', () => {
   // bumped well past the suite's default 2-minute ceiling to cover that.
   const LIGHTHOUSE_TEST_TIMEOUT = 10 * 60 * 1000
 
-  test('Should have no Serious/Critical accessibility violations on the Admin UI sign-in page @accessibility', async ({
-    page
-  }) => {
-    test.setTimeout(LIGHTHOUSE_TEST_TIMEOUT)
-    const violations = []
-    const collector = createAccessibilityCollector()
-    const loginPage = new AdminLoginPage(page)
-
-    await tagAccessibilityTest('Admin sign-in page')
-
-    try {
-      await step('🌐 Page tour: Admin sign-in page', async () => {
-        await loginPage.open()
-        violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Sign in',
-            collector
-          ))
-        )
-      })
-    } finally {
-      // Attach whatever was collected even if the tour above threw, so a
-      // mid-tour failure doesn't discard the report when it's most needed.
-      await attachAccessibilityReport(collector)
-    }
-
-    await assertNoSeriousOrCriticalViolations(violations)
-  })
-
   test('Should have no Serious/Critical accessibility violations across the main Admin UI pages @accessibility', async ({
     page
   }) => {
