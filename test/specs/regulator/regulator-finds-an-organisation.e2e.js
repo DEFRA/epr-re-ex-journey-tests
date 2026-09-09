@@ -285,8 +285,10 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // the fourth one belongs to the note on the fourth row rather than to the
     // summary log below it. The paths come off the accreditation the journey
     // already reached, so they carry whatever prefix the running service uses.
+    // This ledger is a section of the accreditation page, so a note opened
+    // from a row carries the return that brings the reader back to it.
     const noteRoute = (prnId) =>
-      `${new URL(accreditationUrl).pathname}/packaging-recycling-notes/${prnId}/view`
+      `${new URL(accreditationUrl).pathname}/packaging-recycling-notes/${prnId}/view?from=accreditation`
 
     const targets = await ledgerPage.actionTargets()
 
