@@ -552,3 +552,17 @@ export async function getOrganisation(refNo) {
   )
   return await assertSuccessResponse(orgResponse, `/v1/organisations/${refNo}`)
 }
+
+// Whether the December Waste declaration window is open for an accreditation.
+export async function getDecemberPrnEligibility(
+  refNo,
+  registrationId,
+  accreditationId
+) {
+  const baseAPI = new BaseAPI()
+  const authClient = new AuthClient()
+  await authClient.authenticate()
+  const path = `/v1/organisations/${refNo}/registrations/${registrationId}/accreditations/${accreditationId}/packaging-recycling-notes/december-prn-eligibility`
+  const eligibilityResponse = await baseAPI.get(path, authClient.authHeader())
+  return await assertSuccessResponse(eligibilityResponse, path)
+}

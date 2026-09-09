@@ -9,7 +9,8 @@ import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
-  updateMigratedOrganisation
+  updateMigratedOrganisation,
+  getDecemberPrnEligibility
 } from './seeding/organisation.js'
 import { uploadAndSubmitSummaryLog } from './seeding/summary-logs.js'
 import { createPrnDetails } from './fixtures.js'
@@ -150,8 +151,14 @@ export async function runCreatePrnUnhappyPaths(
   let materialDetails = await createPRNPage.materialDetails()
   expect(materialDetails).toBe(`Material: ${materialDesc}`)
 
-  // December Waste radios are output-reprocessor-only; this shared flow
-  // covers input and exporter, so they must never appear here.
+  // Assert the window is open so the radios' absence is pinned to the
+  // reprocessing-type gate, not an accidentally-closed window.
+  const eligibility = await getDecemberPrnEligibility(
+    organisationDetails.refNo,
+    migrationResponse.registrationIds[0],
+    migrationResponse.accreditationIds[0]
+  )
+  expect(eligibility.eligible).toBe(true)
   expect(await createPRNPage.decemberWasteVisible()).toBe(false)
 
   // Empty-form validation errors
