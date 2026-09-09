@@ -140,17 +140,11 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     await page.goto(`${accreditationUrl}/packaging-recycling-notes`)
 
-    // PAE-1930 forks this address: a regulator now gets a page written for
-    // them rather than the operator's own list degraded to read-only links.
-    // The claim this journey makes of it is unchanged — every route out of it
-    // opens a note read-only — but the page asserted is the new one.
+    // PAE-1930 forks this address, so the page asserted is the regulator's.
+    // The claim is unchanged: every route out of it opens a note read-only.
     await expect(prnsPage.detailedView()).toBeVisible()
 
-    // The note awaits authorisation, and the awaiting tables are the only
-    // place such a note is filed. Reading the tonnage back off the row is what
-    // says the page rendered the operator's note rather than an empty section.
-    // It is formatted here, unlike on the operator's list, so the seeded
-    // figure is formatted to match rather than compared as it was written.
+    // Tonnage is formatted on this page, unlike on the operator's list.
     const awaitingRow = (await prnsPage.rows('awaiting-authorisation'))[0]
     expect(awaitingRow.get('Tonnage')).toBe(seeded.prnTonnage.toFixed(2))
 

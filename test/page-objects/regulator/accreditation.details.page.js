@@ -120,8 +120,7 @@ class AccreditationDetailsPage extends Page {
   }
 
   /**
-   * The PRNs section's own heading. The service says PERN to an exporter, so
-   * both readings are accepted.
+   * The PRNs section heading, which reads PERN for an exporter.
    * @returns {import('@playwright/test').Locator}
    */
   prnsHeading() {
@@ -132,8 +131,7 @@ class AccreditationDetailsPage extends Page {
   }
 
   /**
-   * The way on to the full list. It is a link rather than a button, so that
-   * changeControlCount() below stays at zero.
+   * A link rather than a button, so changeControlCount() stays at zero.
    * @returns {import('@playwright/test').Locator}
    */
   prnsDetailedViewLink() {
@@ -143,8 +141,7 @@ class AccreditationDetailsPage extends Page {
   }
 
   /**
-   * The line naming how many of the accreditation's notes the table below it
-   * shows.
+   * The line naming how many notes the table below it shows.
    * @returns {Promise<string>}
    */
   async prnsSubheadingText() {
@@ -161,12 +158,7 @@ class AccreditationDetailsPage extends Page {
   }
 
   /**
-   * Every row the PRNs section shows, keyed by column heading. The section
-   * summarises rather than totals, so every row here is a note.
-   *
-   * The wait settles on the first row, so a section that rendered none fails
-   * here rather than answering with an empty list a caller could read as a
-   * pass.
+   * The PRNs section's rows, keyed by column heading. It carries no total row.
    * @returns {Promise<Map<string, string>[]>}
    */
   async prns() {
@@ -200,8 +192,7 @@ class AccreditationDetailsPage extends Page {
   }
 
   /**
-   * The paragraph the section renders in place of its subheading and table when
-   * the accreditation has issued nothing a regulator can see.
+   * The line the section renders in place of its subheading and table.
    * @returns {import('@playwright/test').Locator}
    */
   noPrnsMessage() {

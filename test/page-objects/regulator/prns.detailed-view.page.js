@@ -1,9 +1,7 @@
 import { Page } from 'page-objects/page'
 
 /**
- * The four tables the page draws, keyed by the half of their data-testid that
- * tells them apart. A caller names a table by that key rather than by a
- * selector, so the testid contract lives in one place.
+ * A table by the middle of its data-testid, keeping selectors in one place.
  * @param {string} name
  * @returns {string}
  */
@@ -12,8 +10,7 @@ const tableSelector = (name) =>
 
 class PrnsDetailedViewPage extends Page {
   /**
-   * The page itself, so a journey can say it landed here rather than on the
-   * operator's list at the same address.
+   * The page itself, so a journey can tell it from the operator's list.
    * @returns {import('@playwright/test').Locator}
    */
   detailedView() {
@@ -29,7 +26,6 @@ class PrnsDetailedViewPage extends Page {
   }
 
   /**
-   * The breadcrumb sits outside the main content, so it is read on its own.
    * @returns {Promise<string[]>}
    */
   async breadcrumbs() {
@@ -41,8 +37,6 @@ class PrnsDetailedViewPage extends Page {
   }
 
   /**
-   * The way back to the accreditation. The crumbs above it stop at the
-   * registration, so the accreditation is the only crumb naming one.
    * @returns {import('@playwright/test').Locator}
    */
   accreditationLink() {
@@ -52,9 +46,8 @@ class PrnsDetailedViewPage extends Page {
   }
 
   /**
-   * The GOV.UK tabs component only assigns role="tab" once its JS enhances the
-   * plain anchors on load, so getByRole waits on the enhancement rather than
-   * racing it.
+   * `role="tab"` only exists once the GDS JS enhances the anchors, so
+   * `getByRole` waits on that enhancement rather than racing it.
    * @param {string} name
    * @returns {import('@playwright/test').Locator}
    */
@@ -71,9 +64,7 @@ class PrnsDetailedViewPage extends Page {
   }
 
   /**
-   * The line a table shows in its own place when the accreditation has nothing
-   * to put in it. Each carries the table's testid with `-none` on the end, so
-   * a tab holding two tables says so twice rather than once for the panel.
+   * A table's empty-state line, at its own testid plus `-none`.
    * @param {string} name
    * @returns {import('@playwright/test').Locator}
    */
@@ -84,8 +75,6 @@ class PrnsDetailedViewPage extends Page {
   }
 
   /**
-   * The table a tab draws, so a journey can say a tab holds none rather than
-   * that its rows are hidden.
    * @param {string} name
    * @returns {import('@playwright/test').Locator}
    */
@@ -104,13 +93,7 @@ class PrnsDetailedViewPage extends Page {
   }
 
   /**
-   * Every row a table holds bar its total, keyed by column heading. A table
-   * that renders at all carries a total row as its last, so the data rows are
-   * the ones before it.
-   *
-   * The period-style row header the reports table uses is not drawn here, but
-   * both cell types are read anyway so a table that gains one does not shift
-   * every remaining column one to the left.
+   * A table's data rows, keyed by column heading. The last row is its total.
    * @param {string} name
    * @returns {Promise<Map<string, string>[]>}
    */
@@ -119,7 +102,7 @@ class PrnsDetailedViewPage extends Page {
   }
 
   /**
-   * The bold row summing the tonnage of the table above it.
+   * The bold row summing the table's tonnage.
    * @param {string} name
    * @returns {Promise<Map<string, string>>}
    */
@@ -134,8 +117,6 @@ class PrnsDetailedViewPage extends Page {
   }
 
   /**
-   * The row's action anchor, so a journey can read what a row offers before it
-   * follows it.
    * @param {string} name
    * @param {number} row
    * @returns {import('@playwright/test').Locator}
@@ -147,8 +128,7 @@ class PrnsDetailedViewPage extends Page {
   }
 
   /**
-   * The paragraph the page renders in place of the tabs when the accreditation
-   * has issued nothing a regulator can see.
+   * The line the page renders in place of the tabs when it holds no notes.
    * @returns {import('@playwright/test').Locator}
    */
   noPrnsMessage() {
@@ -163,12 +143,8 @@ class PrnsDetailedViewPage extends Page {
   }
 
   /**
-   * Reads the rows a selector matches into maps keyed by the table's headings.
-   * `drop` is how many rows off the end to leave out, so the callers above can
-   * ask for the data rows without the total or for the total on its own.
-   *
-   * The wait settles on the first row, so a table that rendered none fails here
-   * rather than answering with an empty list a caller could read as a pass.
+   * Rows keyed by heading. `drop` is how many to leave off the end, so a
+   * caller can ask for the data rows without the total, or the total alone.
    * @param {string} name
    * @param {string} rowsSelector
    * @param {number} drop

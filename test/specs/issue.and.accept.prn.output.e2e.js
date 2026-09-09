@@ -266,10 +266,8 @@ test.describe('Issuing Packing Recycling Notes', () => {
     // either side of it.
     expect(await regulatorPrnViewPage.formCount()).toBe(0)
 
-    // The PRN list is the other route to the same note, filed beneath the
-    // accreditation rather than reached from the ledger. PAE-1930 forks that
-    // address: an operator keeps their own dashboard and a regulator gets a
-    // read-only page of their own, so this half asserts the regulator's.
+    // The other route to the same note. PAE-1930 forks this address, so a
+    // regulator gets their own read-only page rather than the operator's list.
     await currentPage.goto(`${accreditationUrl}/packaging-recycling-notes`)
 
     const regulatorPrnsPage = new PrnsDetailedViewPage(currentPage)
@@ -278,17 +276,14 @@ test.describe('Issuing Packing Recycling Notes', () => {
 
     await regulatorPrnsPage.selectTab('Issued')
 
-    // The regulator's issued table heads its first column "Number" rather
-    // than the operator's "PRN number", and formats the tonnage, so the row
-    // is read here rather than through the operator's PrnHelper.
+    // Read here rather than through PrnHelper: the regulator's table heads its
+    // first column "Number" and formats the tonnage and date differently.
     const issued = (await regulatorPrnsPage.rows('issued'))[0]
 
     expect(issued.get('Number')).toEqual(prnDetails.prnNumber)
     expect(issued.get('Producer or compliance scheme')).toEqual(
       prnDetails.tradingName
     )
-    // The regulator's pages abbreviate the month where the operator's spell it
-    // out, so the same day reads differently either side of the fork.
     expect(issued.get('Date issued')).toEqual(todayddMMMyyyy)
     expect(issued.get('Tonnage')).toEqual(
       Number(prnDetails.tonnageWordings.integer).toFixed(2)
