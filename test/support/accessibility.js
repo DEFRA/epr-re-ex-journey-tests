@@ -7,6 +7,8 @@ import {
   descriptionHtml
 } from 'allure-js-commons'
 import AxeBuilder from '@axe-core/playwright'
+import { runLighthouseAudit } from './lighthouse.js'
+import { buildAccessibilityHtmlReport } from './accessibility-report.js'
 
 // Impact isn't always present on a violation (axe-core's `impact` field is
 // optional), so anything unrecognised sorts after the known levels rather
@@ -95,14 +97,47 @@ export async function logViolationsToAllure(violations) {
 }
 
 /**
+ * @typedef {object} AccessibilityCollectorPage
+ * @property {string} pageName
+ * @property {string} url
+ * @property {Array<object>} axeViolations
+ * @property {object} [lhr]
+ * @property {object} [metrics]
+ */
+
+/**
+ * Creates a fresh accumulator for scanPageForAccessibilityViolations to
+ * collect per-page Axe + Lighthouse results into, for a later call to
+ * attachAccessibilityReport. Scoped per-test (not a module-level
+ * singleton) so parallel tests can't tread on each other's report data.
+ */
+export function createAccessibilityCollector() {
+  return {
+    startDateTime: new Date(),
+    /** @type {AccessibilityCollectorPage[]} */
+    pages: []
+  }
+}
+
+/**
  * Runs an axe scan against the page's current state, logs any violations to
  * Allure grouped under a step named for the page, and returns the violations
  * tagged with pageName so callers can accumulate them across a multi-page
  * tour and report every offending page in one assertion.
+ *
+ * When a collector (from createAccessibilityCollector) is passed, this also
+ * runs a Lighthouse audit (accessibility/performance/SEO) of the same page
+ * and records both tools' results against it, for attachAccessibilityReport
+ * to render later. Omit the collector to keep the scan Axe-only, as before.
  * @param {import('@playwright/test').Page} page
  * @param {string} pageName
+ * @param {ReturnType<typeof createAccessibilityCollector>} [collector]
  */
-export async function scanPageForAccessibilityViolations(page, pageName) {
+export async function scanPageForAccessibilityViolations(
+  page,
+  pageName,
+  collector
+) {
   const builder = new AxeBuilder({ page })
   const results = await builder.analyze()
 
@@ -110,7 +145,50 @@ export async function scanPageForAccessibilityViolations(page, pageName) {
     await logViolationsToAllure(results.violations)
   })
 
+  if (collector) {
+    const lighthouseResult = await runLighthouseAudit(page, pageName)
+    collector.pages.push({
+      pageName,
+      url: results.url,
+      axeViolations: results.violations,
+      lhr: lighthouseResult?.lhr,
+      metrics: lighthouseResult?.metrics
+    })
+  }
+
   return results.violations.map((violation) => ({ ...violation, pageName }))
+}
+
+/**
+ * Builds the combined Axe + Lighthouse HTML report for every page recorded
+ * in the collector and attaches it to the current Allure test result,
+ * wrapped in its own clearly-named, emoji-prefixed step so it stands out in
+ * the step tree rather than blending in as an anonymous attachment.
+ *
+ * An embedded <iframe> in the test's description (rendered above the step
+ * list - the most prominent spot on the page) was tried and reverted:
+ * Allure's report generator strips <iframe> tags from descriptionHtml
+ * server-side unconditionally, regardless of content or size - confirmed by
+ * feeding it a trivial, safe iframe on its own, which still came back empty
+ * in the generated report. There's no supported way to get this content
+ * into the description itself.
+ * @param {ReturnType<typeof createAccessibilityCollector>} collector
+ */
+export async function attachAccessibilityReport(collector) {
+  if (collector.pages.length === 0) return
+
+  const html = buildAccessibilityHtmlReport(collector)
+
+  await step(
+    '📊 Full accessibility & performance report (Axe + Lighthouse)',
+    async () => {
+      await attachment(
+        'Accessibility & performance report (Axe + Lighthouse)',
+        html,
+        'text/html'
+      )
+    }
+  )
 }
 
 // Sets the test's description to one table covering every violation found
