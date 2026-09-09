@@ -242,7 +242,7 @@ test.describe('A regulator reading a registration @regulator', () => {
       'Status',
       'Date',
       'Tonnage',
-      'Actions'
+      'Action'
     ])
 
     const summaryNotes = await accreditationPage.prns()
