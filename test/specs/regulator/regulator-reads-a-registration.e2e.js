@@ -260,11 +260,24 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     expect(await accreditationPage.prnsSubheadingText()).toContain('(2 items)')
 
+    // The parameter is what sends the note back here rather than to the full
+    // list, so it is part of the link rather than incidental to it.
     expect(
       await accreditationPage.prnActionLink(1).getAttribute('href')
-    ).toMatch(/\/packaging-recycling-notes\/[0-9a-f]{24}\/view$/)
+    ).toMatch(
+      /\/packaging-recycling-notes\/[0-9a-f]{24}\/view\?from=accreditation$/
+    )
 
     const accreditationUrl = page.url()
+
+    // Opening a note from here and coming back is the half of the criterion
+    // the full list below cannot cover.
+    await accreditationPage.prnActionLink(1).click()
+    await prnViewPage.backLink().click()
+
+    expect(new URL(page.url()).pathname).toBe(
+      new URL(accreditationUrl).pathname
+    )
 
     await accreditationPage.prnsDetailedViewLink().click()
 
