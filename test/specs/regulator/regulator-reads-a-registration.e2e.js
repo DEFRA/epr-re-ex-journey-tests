@@ -268,7 +268,8 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     await accreditationPage.prnsDetailedViewLink().click()
 
-    // The regulator's page, not the operator's list at the same address.
+    // The regulator's page, not the operator's list at the same address. The
+    // tabs and tables below are the operator's, shared so a note reads alike.
     await expect(prnsPage.detailedView()).toBeVisible()
 
     const prnsCaption = await prnsPage.captionText()
@@ -284,60 +285,33 @@ test.describe('A regulator reading a registration @regulator', () => {
       'PRNs'
     ])
 
-    expect(await prnsPage.noPrnsMessage().count()).toBe(0)
+    const awaitingLink = prnsPage.awaitingLink(1)
+    await awaitingLink.waitFor()
 
-    await prnsPage.selectTab('Awaiting action')
+    const awaitingRow = await prnsPage.getAwaitingRow(1)
 
-    // An awaiting note has neither a number nor an issue date.
-    expect(await prnsPage.headings('awaiting-authorisation')).toStrictEqual([
-      'Producer or compliance scheme',
-      'Date created',
-      'Tonnage',
-      'Status',
-      'Actions'
-    ])
+    expect(awaitingRow.get('Status')).toBe('Awaiting authorisation')
+    expect(awaitingRow.get('Tonnage')).toBe(`${seeded.prnTonnage}`)
 
-    const awaitingAuthorisation = await prnsPage.rows('awaiting-authorisation')
-
-    expect(awaitingAuthorisation).toHaveLength(1)
-    expect(awaitingAuthorisation[0].get('Status')).toBe(
-      'Awaiting authorisation'
-    )
-    expect(tonnageOf(awaitingAuthorisation[0])).toBe(seeded.prnTonnage)
-
-    // One note, so the total proves the row sums its own table.
-    expect(tonnageOf(await prnsPage.total('awaiting-authorisation'))).toBe(
-      seeded.prnTonnage
+    // A regulator gets the read link the operator's write-scoped session does
+    // not, which is the whole of what the fork changes about the tables.
+    expect(await awaitingLink.innerText()).toBe('View')
+    expect(await awaitingLink.getAttribute('href')).toContain(
+      `/packaging-recycling-notes/${seeded.prnId}/view`
     )
 
-    const awaitingCancellation = await prnsPage.rows('awaiting-cancellation')
+    const cancellationRow = await prnsPage.getAwaitingRow(1, 2)
 
-    expect(awaitingCancellation).toHaveLength(1)
-    expect(awaitingCancellation[0].get('Status')).toBe('Awaiting cancellation')
-    expect(tonnageOf(awaitingCancellation[0])).toBe(
-      seeded.cancellationPrnTonnage
+    expect(cancellationRow.get('Status')).toBe('Awaiting cancellation')
+    expect(cancellationRow.get('Tonnage')).toBe(
+      `${seeded.cancellationPrnTonnage}`
     )
-    expect(tonnageOf(await prnsPage.total('awaiting-cancellation'))).toBe(
-      seeded.cancellationPrnTonnage
-    )
-
-    // The seed leaves both notes awaiting action, so these two tabs are empty.
-    await prnsPage.selectTab('Issued')
-
-    expect(await prnsPage.table('issued').count()).toBe(0)
-    await expect(prnsPage.emptyState('issued')).toBeVisible()
-
-    await prnsPage.selectTab('Cancelled')
-
-    expect(await prnsPage.table('cancelled').count()).toBe(0)
-    await expect(prnsPage.emptyState('cancelled')).toBeVisible()
 
     expect(await prnsPage.changeControlCount()).toBe(0)
 
     const detailedViewUrl = page.url()
 
-    await prnsPage.selectTab('Awaiting action')
-    await prnsPage.actionLink('awaiting-authorisation', 1).click()
+    await awaitingLink.click()
 
     expect(page.url()).toContain(
       `/packaging-recycling-notes/${seeded.prnId}/view`
