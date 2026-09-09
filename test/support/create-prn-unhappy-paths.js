@@ -158,7 +158,7 @@ export async function runCreatePrnUnhappyPaths(
     migrationResponse.registrationIds[0],
     migrationResponse.accreditationIds[0]
   )
-  expect(eligibility.eligible).toBe(true)
+  expect(eligibility.windowOpen).toBe(true)
   expect(await createPRNPage.decemberWasteVisible()).toBe(false)
 
   // Empty-form validation errors
