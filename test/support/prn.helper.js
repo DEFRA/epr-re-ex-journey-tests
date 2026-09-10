@@ -40,6 +40,9 @@ export class PrnHelper {
       expectedPrnDetails.tonnageWordings.word
     )
     expect(prnDetails['Process to be used']).toBe(expectedPrnDetails.process)
+    expect(prnDetails['December waste?']).toBe(
+      expectedPrnDetails.decemberWaste ?? 'No'
+    )
     expect(prnDetails['Issuer notes']).toBe(
       expectedPrnDetails.issuerNotesToCheck
     )
@@ -78,7 +81,9 @@ export class PrnHelper {
     expect(prnViewDetails['Issuer notes']).toBe(expectedPrnDetails.issuerNotes)
     expect(prnViewDetails['Issued date']).toBe(expectedPrnDetails.issuedDate)
     expect(prnViewDetails.Status).toBe(expectedPrnDetails.status)
-    expect(prnViewDetails['December waste']).toBe('No')
+    expect(prnViewDetails['December waste?']).toBe(
+      expectedPrnDetails.decemberWaste ?? 'No'
+    )
     expect(prnViewDetails['Tonnage in words']).toBe(
       expectedPrnDetails.tonnageWordings.word
     )
@@ -115,7 +120,8 @@ export class PrnHelper {
     await this.createPRNPage.createPrn(
       prnDetails.tonnageWordings.integer,
       prnDetails.tradingName,
-      prnDetails.issuerNotes
+      prnDetails.issuerNotes,
+      prnDetails.selectDecemberWasteAnswer
     )
 
     if (prnDetails.issuerNotes === '') {

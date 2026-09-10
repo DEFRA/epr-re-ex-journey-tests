@@ -1,6 +1,7 @@
 import { Page } from 'page-objects/page'
 
 const REPORTS_TABLE = '#main-content table[data-testid="reports-table"]'
+const PRNS_TABLE = '#main-content table[data-testid="prns-table"]'
 
 class AccreditationDetailsPage extends Page {
   /**
@@ -116,6 +117,86 @@ class AccreditationDetailsPage extends Page {
    */
   noReportsMessage() {
     return this.page.locator('#main-content [data-testid="no-reports"]')
+  }
+
+  /**
+   * The PRNs section heading, which reads PERN for an exporter.
+   * @returns {import('@playwright/test').Locator}
+   */
+  prnsHeading() {
+    return this.page.getByRole('heading', {
+      level: 2,
+      name: /^(PRNs|PERNs)$/
+    })
+  }
+
+  /**
+   * A link rather than a button, so changeControlCount() stays at zero.
+   * @returns {import('@playwright/test').Locator}
+   */
+  prnsDetailedViewLink() {
+    return this.page.locator(
+      '#main-content [data-testid="prns-detailed-view-link"]'
+    )
+  }
+
+  /**
+   * The line naming how many notes the table below it shows.
+   * @returns {Promise<string>}
+   */
+  async prnsSubheadingText() {
+    return this.page
+      .locator('#main-content [data-testid="prns-most-recent"]')
+      .innerText()
+  }
+
+  /**
+   * @returns {Promise<string[]>}
+   */
+  async prnHeadings() {
+    return this.page.locator(`${PRNS_TABLE} > thead > tr th`).allInnerTexts()
+  }
+
+  /**
+   * The PRNs section's rows, keyed by column heading. It carries no total row.
+   * @returns {Promise<Map<string, string>[]>}
+   */
+  async prns() {
+    const rows = this.page.locator(`${PRNS_TABLE} > tbody > tr`)
+    await rows.first().waitFor({ state: 'visible' })
+
+    const headings = await this.prnHeadings()
+
+    const count = await rows.count()
+    const notes = []
+
+    for (let index = 0; index < count; index++) {
+      const cells = await rows.nth(index).locator(':is(th, td)').allInnerTexts()
+
+      notes.push(
+        new Map(headings.map((heading, cell) => [heading, cells[cell]]))
+      )
+    }
+
+    return notes
+  }
+
+  /**
+   * @param {number} row
+   * @returns {import('@playwright/test').Locator}
+   */
+  prnActionLink(row) {
+    return this.page.locator(
+      `${PRNS_TABLE} > tbody > tr:nth-child(${row}) td:last-child a`
+    )
+  }
+
+  /**
+   * The line the section renders in place of its subheading and table.
+   * @returns {import('@playwright/test').Locator}
+   */
+  noPrnsMessage() {
+    return this.page.locator('#main-content [data-testid="no-prns-summary"]')
   }
 
   /**
