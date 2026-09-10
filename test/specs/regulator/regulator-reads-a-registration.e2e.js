@@ -1,13 +1,25 @@
 import { test, expect } from '@playwright/test'
 
 import { DashboardPage } from 'page-objects/dashboard.page'
+import { PRNViewPage } from 'page-objects/prn.view.page'
 import { AccreditationDetailsPage } from 'page-objects/regulator/accreditation.details.page'
+import { PrnsDetailedViewPage } from 'page-objects/regulator/prns.detailed-view.page'
 import { RegisteredOnlyPeriodPage } from 'page-objects/regulator/registered-only-period.page'
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { SEEDED_VALID_FROM } from '../../support/seeding/organisation.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
+
+/**
+ * The tonnage a row reads, as a number. Whether a table formats it to two
+ * decimal places is that page's to choose, so the figure is what is compared
+ * rather than the string it was written as.
+ * @param {Map<string, string>} row
+ * @returns {number}
+ */
+const tonnageOf = (row) => Number((row.get('Tonnage') ?? '').replace(/,/g, ''))
+
 test.describe('A regulator reading a registration @regulator', () => {
   test('walks from the organisation list to a registration, reads what it covers and the periods it holds, then opens each kind and comes back @regulatorRegistration @regulatorAccreditation @regulatorRegisteredOnly', async ({
     page
@@ -17,6 +29,8 @@ test.describe('A regulator reading a registration @regulator', () => {
     const dashboardPage = new DashboardPage(page)
     const detailsPage = new RegistrationDetailsPage(page)
     const accreditationPage = new AccreditationDetailsPage(page)
+    const prnsPage = new PrnsDetailedViewPage(page)
+    const prnViewPage = new PRNViewPage(page)
     const registeredOnlyPage = new RegisteredOnlyPeriodPage(page)
 
     const seeded = await seedAwaitingPrnAndSubmittedReport()
@@ -217,6 +231,112 @@ test.describe('A regulator reading a registration @regulator', () => {
     expect(
       await accreditationPage.reportActionLink(reports.length).count()
     ).toBe(0)
+
+    await expect(accreditationPage.prnsHeading()).toBeVisible()
+
+    expect(await accreditationPage.noPrnsMessage().count()).toBe(0)
+
+    // The whole set, so a material column arriving would have to be justified.
+    expect(await accreditationPage.prnHeadings()).toStrictEqual([
+      'Producer or compliance scheme',
+      'Status',
+      'Date',
+      'Tonnage',
+      'Action'
+    ])
+
+    const summaryNotes = await accreditationPage.prns()
+
+    expect(summaryNotes).toHaveLength(2)
+
+    // The two seeded notes differ by tonnage, so order does not matter here.
+    expect(summaryNotes.map(tonnageOf).sort((a, b) => a - b)).toStrictEqual(
+      [seeded.prnTonnage, seeded.cancellationPrnTonnage].sort((a, b) => a - b)
+    )
+
+    expect(summaryNotes.map((note) => note.get('Status')).sort()).toStrictEqual(
+      ['Awaiting authorisation', 'Awaiting cancellation']
+    )
+
+    expect(await accreditationPage.prnsSubheadingText()).toContain('(2 items)')
+
+    // The parameter is what sends the note back here rather than to the full
+    // list, so it is part of the link rather than incidental to it.
+    expect(
+      await accreditationPage.prnActionLink(1).getAttribute('href')
+    ).toMatch(
+      /\/packaging-recycling-notes\/[0-9a-f]{24}\/view\?from=accreditation$/
+    )
+
+    const accreditationUrl = page.url()
+
+    // Opening a note from here and coming back is the half of the criterion
+    // the full list below cannot cover.
+    await accreditationPage.prnActionLink(1).click()
+    await prnViewPage.backLink().click()
+
+    expect(new URL(page.url()).pathname).toBe(
+      new URL(accreditationUrl).pathname
+    )
+
+    await accreditationPage.prnsDetailedViewLink().click()
+
+    // The regulator's page, not the operator's list at the same address. The
+    // tabs and tables below are the operator's, shared so a note reads alike.
+    await expect(prnsPage.detailedView()).toBeVisible()
+
+    const prnsCaption = await prnsPage.captionText()
+    expect(prnsCaption).toContain(seeded.companyName)
+    expect(prnsCaption).toContain(seeded.registrationNumber)
+    expect(prnsCaption).toContain(seeded.accreditationNumber)
+
+    expect(await prnsPage.breadcrumbs()).toStrictEqual([
+      'All organisations',
+      seeded.companyName,
+      'Registration details',
+      'Accreditation details',
+      'PRNs'
+    ])
+
+    const awaitingLink = prnsPage.awaitingLink(1)
+    await awaitingLink.waitFor()
+
+    const awaitingRow = await prnsPage.getAwaitingRow(1)
+
+    expect(awaitingRow.get('Status')).toBe('Awaiting authorisation')
+    expect(awaitingRow.get('Tonnage')).toBe(`${seeded.prnTonnage}`)
+
+    // A regulator gets the read link the operator's write-scoped session does
+    // not, which is the whole of what the fork changes about the tables.
+    expect(await awaitingLink.innerText()).toBe('View')
+    expect(await awaitingLink.getAttribute('href')).toContain(
+      `/packaging-recycling-notes/${seeded.prnId}/view`
+    )
+
+    const cancellationRow = await prnsPage.getAwaitingRow(1, 2)
+
+    expect(cancellationRow.get('Status')).toBe('Awaiting cancellation')
+    expect(cancellationRow.get('Tonnage')).toBe(
+      `${seeded.cancellationPrnTonnage}`
+    )
+
+    expect(await prnsPage.changeControlCount()).toBe(0)
+
+    const detailedViewUrl = page.url()
+
+    await awaitingLink.click()
+
+    expect(page.url()).toContain(
+      `/packaging-recycling-notes/${seeded.prnId}/view`
+    )
+
+    await prnViewPage.backLink().click()
+    expect(new URL(page.url()).pathname).toBe(new URL(detailedViewUrl).pathname)
+
+    await prnsPage.backLink().click()
+    expect(new URL(page.url()).pathname).toBe(
+      new URL(accreditationUrl).pathname
+    )
 
     // Getting back to the registration is an acceptance criterion, so the
     // crumb is followed rather than merely asserted to be present.
