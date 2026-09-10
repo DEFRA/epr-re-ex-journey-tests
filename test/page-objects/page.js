@@ -60,22 +60,15 @@ class Page {
     // (PAE-1921) in place of the single-balance banner. Test keeps that
     // window open all year (DECEMBER_WASTE_WINDOW_START=01-01T00:00), so
     // these operators always see the panel here. Wait for whichever the
-    // page renders, then read it.
-    await this.page
-      .locator(
-        '[data-testid="waste-balance-amount"], [data-testid="total-waste-balance"]'
-      )
-      .first()
-      .waitFor()
+    // page renders, then read the bare balance figure: the banner appends
+    // a " tonnes" unit, the panel total does not, so strip it either way.
+    await banner.or(total).first().waitFor()
 
-    if (await banner.count()) {
-      return banner.innerText()
-    }
+    const text = (await banner.isVisible())
+      ? await banner.innerText()
+      : await total.innerText()
 
-    // The panel's total row carries the same available figure the banner
-    // showed, as a bare number, so restate it in the "X.XX tonnes" form
-    // these assertions already expect.
-    return `${await total.innerText()} tonnes`
+    return text.replace(/\s*tonnes?$/i, '').trim()
   }
 
   async prnDetails() {
