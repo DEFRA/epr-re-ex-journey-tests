@@ -9,7 +9,8 @@ import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
-  updateMigratedOrganisation
+  updateMigratedOrganisation,
+  getDecemberPrnEligibility
 } from './seeding/organisation.js'
 import { uploadAndSubmitSummaryLog } from './seeding/summary-logs.js'
 import { createPrnDetails } from './fixtures.js'
@@ -149,6 +150,16 @@ export async function runCreatePrnUnhappyPaths(
   expect(createAPrnPageHeading).toBe(`Create a ${wording}`)
   let materialDetails = await createPRNPage.materialDetails()
   expect(materialDetails).toBe(`Material: ${materialDesc}`)
+
+  // Assert the window is open so the radios' absence is pinned to the
+  // reprocessing-type gate, not an accidentally-closed window.
+  const eligibility = await getDecemberPrnEligibility(
+    organisationDetails.refNo,
+    migrationResponse.registrationIds[0],
+    migrationResponse.accreditationIds[0]
+  )
+  expect(eligibility.windowOpen).toBe(true)
+  expect(await createPRNPage.decemberWasteVisible()).toBe(false)
 
   // Empty-form validation errors
   await createPRNPage.submitAndCheckDoubleClickPrevented()
