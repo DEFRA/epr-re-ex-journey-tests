@@ -140,7 +140,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
 
     // PRN Dashboard checks - Waste Balance Amount, Awaiting Authorisation table values
     let wasteBalanceAmount = await prnDashboardPage.wasteBalanceAmount()
-    expect(wasteBalanceAmount).toBe(expectedWasteBalance + ' tonnes')
+    expect(wasteBalanceAmount).toBe(expectedWasteBalance)
 
     // Check cancel hint text
     const cancelHintText = await prnDashboardPage.cancelHintText()
@@ -169,7 +169,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     await prnDashboardPage.backLink().click()
 
     wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
-    expect(wasteBalanceAmount).toBe(expectedWasteBalance + ' tonnes')
+    expect(wasteBalanceAmount).toBe(expectedWasteBalance)
 
     // Create a new PRN
     await wasteRecordsPage.createNewPRNLink().click()

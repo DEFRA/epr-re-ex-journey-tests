@@ -87,7 +87,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
     await dashboardPage.selectLink(1)
     let wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
 
-    expect(wasteBalanceAmount).toBe('3.00 tonnes')
+    expect(wasteBalanceAmount).toBe('3.00')
 
     await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
@@ -121,7 +121,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
     await dashboardPage.selectLink(1)
     wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
 
-    expect(wasteBalanceAmount).toBe('9.25 tonnes')
+    expect(wasteBalanceAmount).toBe('9.25')
 
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
