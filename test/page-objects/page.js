@@ -52,7 +52,30 @@ class Page {
   }
 
   async wasteBalanceAmount() {
-    return this.page.locator('[data-testid="waste-balance-amount"]').innerText()
+    const banner = this.page.locator('[data-testid="waste-balance-amount"]')
+    const total = this.page.locator('[data-testid="total-waste-balance"]')
+
+    // Within the December window an eligible operator (exporter or
+    // reprocessor-input) sees the Available waste balance breakdown panel
+    // (PAE-1921) in place of the single-balance banner. Test keeps that
+    // window open all year (DECEMBER_WASTE_WINDOW_START=01-01T00:00), so
+    // these operators always see the panel here. Wait for whichever the
+    // page renders, then read it.
+    await this.page
+      .locator(
+        '[data-testid="waste-balance-amount"], [data-testid="total-waste-balance"]'
+      )
+      .first()
+      .waitFor()
+
+    if (await banner.count()) {
+      return banner.innerText()
+    }
+
+    // The panel's total row carries the same available figure the banner
+    // showed, as a bare number, so restate it in the "X.XX tonnes" form
+    // these assertions already expect.
+    return `${await total.innerText()} tonnes`
   }
 
   async prnDetails() {
