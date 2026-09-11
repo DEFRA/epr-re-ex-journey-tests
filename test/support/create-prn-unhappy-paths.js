@@ -145,9 +145,10 @@ export async function runCreatePrnUnhappyPaths(
   await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
   await confirmDiscardPRNPage.discardAndCheckDoubleClickPrevented()
 
-  // Back on the Create page: check its heading and material
+  // Back on the Create page: check its caption, heading and material
   let createAPrnPageHeading = await createPRNPage.headingText()
-  expect(createAPrnPageHeading).toBe(`Create a ${wording}`)
+  expect(createAPrnPageHeading).toBe(`Enter ${wording} details`)
+  expect(await createPRNPage.captionText()).toBe(`Create ${wording}`)
   let materialDetails = await createPRNPage.materialDetails()
   expect(materialDetails).toBe(`Material: ${materialDesc}`)
 
@@ -177,15 +178,15 @@ export async function runCreatePrnUnhappyPaths(
     'The tonnage you entered exceeds your available waste balance'
   ])
 
-  // Check Create a PRN/PERN page is accessible from the PRN/PERN Dashboard button
+  // Check the create PRN/PERN page is accessible from the PRN/PERN Dashboard button
   await homePage.homeLink().click()
   await dashboardPage.selectTableLink(1, 1)
   await wasteRecordsPage[manageLinkName]().click()
   await prnDashboardPage.createAPrnButton().click()
 
-  // Check we are on the Create a PRN/PERN Page
+  // Check we are on the create PRN/PERN page
   createAPrnPageHeading = await createPRNPage.headingText()
-  expect(createAPrnPageHeading).toBe(`Create a ${wording}`)
+  expect(createAPrnPageHeading).toBe(`Enter ${wording} details`)
   materialDetails = await createPRNPage.materialDetails()
   expect(materialDetails).toBe(`Material: ${materialDesc}`)
 
