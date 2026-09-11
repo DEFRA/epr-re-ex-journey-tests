@@ -22,7 +22,7 @@ class MarketInsightsPage extends Page {
    * @returns {Promise<string>}
    */
   async captionText() {
-    return this.page.locator('h1 [class^="govuk-caption-"]').innerText()
+    return this.page.locator('h1 [class*="govuk-caption-"]').innerText()
   }
 
   /**
