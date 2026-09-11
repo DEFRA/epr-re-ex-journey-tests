@@ -39,6 +39,15 @@ class RegulatorHomePage extends Page {
   }
 
   /**
+   * The way on to the market insights preview. The service offers it here or
+   * nowhere, so a regulator who cannot see this link cannot reach the page.
+   * @returns {Locator}
+   */
+  marketInsightsLink() {
+    return this.page.getByRole('link', { name: 'Market insights' })
+  }
+
+  /**
    * Every heading the page puts above a section, in the order it renders them.
    * Reading the whole set is what says a section is present and named rather
    * than that one selector happened to match.
