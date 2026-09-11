@@ -25,6 +25,10 @@ export const tonnageWordings = {
  * @param {Object} [params.tonnageWordings]
  * @param {string} [params.selectDecemberWasteAnswer] - 'Yes' or 'No' to click on the create-PRN
  *   radios (only when the radios are expected to render); omit to leave them untouched.
+ * @param {string} [params.wasteBalancePool] - 'December' or 'Non-December' to
+ *   click on the create-PRN "Select which waste balance" radios (mutually
+ *   exclusive with selectDecemberWasteAnswer - an accreditation renders one
+ *   control or the other, never both); omit to leave them untouched.
  */
 export const createPrnDetails = ({
   process = 'R3',
@@ -38,7 +42,8 @@ export const createPrnDetails = ({
     integer: 203,
     word: 'Two hundred and three'
   },
-  selectDecemberWasteAnswer
+  selectDecemberWasteAnswer,
+  wasteBalancePool
 } = {}) => {
   const companyName = organisationDetails.organisation?.companyName ?? ''
   if (regAddress === '') {
@@ -59,8 +64,13 @@ export const createPrnDetails = ({
     process,
     createdDate: todayddMMMMyyyy,
     selectDecemberWasteAnswer,
+    wasteBalancePool,
     // The persisted value the check/view pages show, regardless of whether
-    // the radios were touched: unticked (or never rendered) always means No.
-    decemberWaste: selectDecemberWasteAnswer ?? 'No'
+    // either control was touched: unticked (or never rendered) always means
+    // No, and the pool radios set isDecemberWaste true only when December is
+    // chosen.
+    decemberWaste:
+      selectDecemberWasteAnswer ??
+      (wasteBalancePool === 'December' ? 'Yes' : 'No')
   }
 }
