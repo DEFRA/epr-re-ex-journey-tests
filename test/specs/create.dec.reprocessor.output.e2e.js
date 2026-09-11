@@ -47,13 +47,9 @@ test.describe('Marking a PRN as December Waste (Reprocessor Output)', () => {
     // TODO(PAE-1958): validFrom defaults to SEEDED_VALID_FROM (2026-01-01),
     // pinning the accreditation's relevant year to 2026. The December Waste
     // window closes 31 January 2027, so this spec starts failing after that
-    // date even though the feature works. Seeding validFrom from the current
-    // year instead would fix this but breaks the balance upload below: the
-    // sanity fixture's row dates are fixed to when it was generated, and
-    // isAccreditedAtDates would exclude them once validFrom moves past those
-    // dates. Needs generating the summary log on the fly (dates relative to
-    // "now") alongside a current-year validFrom, not just the validFrom change
-    // alone.
+    // date even though the feature works. Regenerate the fixture via
+    // generate-december-fixture.js's CLI (--year=<new year>) and re-seed this
+    // spec's validFrom to match when that happens.
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
