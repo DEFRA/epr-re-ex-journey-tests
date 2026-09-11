@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
+import { RegulatorStartPage } from 'page-objects/regulator/start.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { ServiceNavigation } from 'page-objects/service-navigation.page'
 import { signOutTitle } from '~/test/support/entra-login.js'
@@ -9,11 +9,11 @@ test.describe('Regulator login @regulator @smoketest', () => {
   test('Should be able to sign in as a regulator, reach the landing page, and sign out @regulatorLogin', async ({
     page
   }) => {
-    const loginPage = new RegulatorLoginPage(page)
+    const startPage = new RegulatorStartPage(page)
     const homePage = new RegulatorHomePage(page)
     const serviceNavigation = new ServiceNavigation(page)
 
-    await loginPage.loginAsRegulator()
+    await startPage.loginAsRegulator()
 
     // The landing page is the organisation list, which is what the heading
     // names. The route stays "Home".
