@@ -9,7 +9,7 @@ import {
 } from './organisation.js'
 import { createPrn, externalAPICancelPrn, updatePrnStatus } from './prns.js'
 import { seedReportSubmission } from './reports.js'
-import { uploadAndSubmitSummaryLog } from './summary-logs.js'
+import { summaryLogDatedAt, uploadAndSubmitSummaryLog } from './summary-logs.js'
 import { waitForWasteBalance } from './waiters.js'
 import { defraIdStub } from '../defra-id-stub.js'
 import { generateRegNumber, generateAccNumber } from '../reg-acc-number.js'
@@ -87,6 +87,20 @@ export async function seedAwaitingPrnAndSubmittedReport() {
   await linkDefraIdUser(organisation.refNo, user.userId, migrated.email)
   const defraAuthHeader = defraIdStub.authHeader(user.userId)
 
+  // An approved accreditation carrying a number puts the registration on the
+  // monthly cadence, which is what the reports calendar is built from.
+  const { year, period } = lastCompletedPeriod('monthly')
+  const reportPeriod = { year, cadence: 'monthly', period }
+
+  // The loads are dated into that same month rather than left on the fixture's
+  // own date. A page showing one reporting period at a time only holds this
+  // tonnage while the service is still reporting on the period the fixture was
+  // built in, so a fixed date is a failure waiting for a particular new year.
+  const datedFixture = await summaryLogDatedAt(
+    FIXTURE_PATH,
+    new Date(Date.UTC(year, period - 1, 1, 12))
+  )
+
   // A PRN draws its tonnage from the waste balance, which the summary log is
   // what produces - so the log has to be submitted and the balance computed
   // before the note can be created.
@@ -94,7 +108,7 @@ export async function seedAwaitingPrnAndSubmittedReport() {
     organisation.refNo,
     registrationId,
     defraAuthHeader,
-    FIXTURE_PATH
+    datedFixture
   )
   await waitForWasteBalance(
     organisation.refNo,
@@ -133,10 +147,6 @@ export async function seedAwaitingPrnAndSubmittedReport() {
   )
   await externalAPICancelPrn({ prnNumber: issued.prnNumber })
 
-  // An approved accreditation carrying a number puts the registration on the
-  // monthly cadence, which is what the reports calendar is built from.
-  const { year, period } = lastCompletedPeriod('monthly')
-  const reportPeriod = { year, cadence: 'monthly', period }
   await seedReportSubmission(
     organisation.refNo,
     registrationId,
