@@ -82,7 +82,10 @@ test.describe('A regulator reading a registered-only period @regulator', () => {
     // events without an accreditation.
     expect(submission.get('Event')).toBe('Summary log submitted')
 
-    expect(submission.get('Actions')).toContain('Download')
+    // Both formats of the same submission: the file as uploaded, and the
+    // records the service kept from it.
+    expect(submission.get('Actions')).toContain('Download XLSX')
+    expect(submission.get('Actions')).toContain('Download CSV')
 
     expect(submission.get('Who')).toContain('@')
 
@@ -108,6 +111,25 @@ test.describe('A regulator reading a registered-only period @regulator', () => {
     expect(attachment.contentDisposition).toMatch(
       new RegExp(
         `attachment; filename="${seeded.registrationNumber}-\\d{4}-\\d{2}-\\d{2}-\\d{6}\\.xlsx"`
+      )
+    )
+
+    // The CSV of the same submission: the records the service holds for it,
+    // rather than the workbook the operator sent.
+    const csvHref = await ledgerPage.csvDownloadLink().getAttribute('href')
+
+    expect(csvHref).toBeTruthy()
+
+    const csv = await registeredOnlyPage.fetchAttachment(csvHref ?? '')
+
+    expect(csv.status).toBe(200)
+    expect(csv.byteLength).toBeGreaterThan(0)
+
+    // The same name as its XLSX twin, so a submission's two downloads sit
+    // together wherever the regulator saves them.
+    expect(csv.contentDisposition).toMatch(
+      new RegExp(
+        `attachment; filename="${seeded.registrationNumber}-\\d{4}-\\d{2}-\\d{2}-\\d{6}\\.csv"`
       )
     )
   })
