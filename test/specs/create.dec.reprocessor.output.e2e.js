@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test'
 import { CreatePRNPage } from 'page-objects/create.prn.page.js'
 import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
+import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
+import { PRNIssuedPage } from 'page-objects/prn.issued.page.js'
+import { PRNViewPage } from 'page-objects/prn.view.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
@@ -8,23 +11,34 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
+import { externalAPICancelPrn } from '../support/seeding/prns.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { createPrnDetails } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'
+import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 
 test.describe('Marking a PRN as December Waste (Reprocessor Output)', () => {
   test('Should show the December waste question for an output reprocessor and record Yes @createDecPRNOutput', async ({
     page
   }) => {
+    let currentPage = page
     const regNumber = 'R26ER5000000001ST'
     const accNumber = 'A26ER5000000001ST'
 
+    let prnHelper, prnDashboardPage, prnIssuedPage, prnViewPage
     const createPRNPage = new CreatePRNPage(page)
     const prnCreatedPage = new PRNCreatedPage(page)
     const dashboardPage = new DashboardPage(page)
     const wasteRecordsPage = new WasteRecordsPage(page)
-    const prnHelper = new PrnHelper(page)
+
+    const rebindPageObjects = () => {
+      prnHelper = new PrnHelper(currentPage)
+      prnDashboardPage = new PRNDashboardPage(currentPage)
+      prnIssuedPage = new PRNIssuedPage(currentPage)
+      prnViewPage = new PRNViewPage(currentPage)
+    }
+    rebindPageObjects()
 
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Steel (R4)', wasteProcessingType: 'Reprocessor' }
@@ -84,5 +98,42 @@ test.describe('Marking a PRN as December Waste (Reprocessor Output)', () => {
 
     const message = await prnCreatedPage.messageText()
     expect(message).toContain('created from December waste')
+
+    await prnCreatedPage.returnToRegistrationPage().click()
+    await dashboardPage.selectTableLink(1, 1)
+    await wasteRecordsPage.managePRNsLink().click()
+
+    // Awaiting-action table should mark this note as December Waste.
+    await prnHelper.checkAwaitingRows(prnDetails, 1)
+
+    await prnDashboardPage.selectAwaitingLink(1)
+    await prnHelper.issuePrnAndUpdateDetails(prnDetails, 'WR')
+
+    await prnIssuedPage.returnToHomeLink().click()
+    await wasteRecordsPage.managePRNsLink().click()
+
+    // Issued table should carry the same December Waste marker through.
+    await prnDashboardPage.issuedTab().click()
+    await prnHelper.checkIssuedRows(prnDetails, 1)
+
+    // Check the issued PRN, then RPD requests cancellation
+    await prnDashboardPage.selectIssuedLink(1)
+    currentPage = await switchToNewTabAndClosePreviousTab(currentPage)
+    rebindPageObjects()
+
+    await externalAPICancelPrn(prnDetails)
+
+    await prnViewPage.returnToPRNList().click()
+
+    // Awaiting-action table should still carry the December Waste marker
+    // now the note is awaiting cancellation.
+    await prnHelper.checkAwaitingRows(prnDetails, 1)
+
+    await prnDashboardPage.selectAwaitingLink(1)
+    await prnHelper.cancelPRNAndReturnToPRNsDashboard(prnDetails)
+
+    // Cancelled table should still carry the December Waste marker.
+    await prnDashboardPage.cancelledTab().click()
+    await prnHelper.checkCancelledRows(prnDetails, 1)
   })
 })
