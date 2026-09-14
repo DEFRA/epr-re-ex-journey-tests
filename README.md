@@ -132,13 +132,12 @@ WITH_PROXY=true HTTP_PROXY=http://localhost:8888 npm run test:api
 ### Feature flags in journey tests
 
 **`compose.yml` is the single source of flag state.** Each `FEATURE_FLAG_*` env
-var defaults in `compose.yml` (for example `${FEATURE_FLAG_X:-true}`), and the
-suite runs and asserts that one configured state unconditionally. Nothing else
-sets flags in CI: the `run-journey-tests` action takes no flag inputs, so every
-caller (this repo's PR checks and the `epr-frontend`/`epr-backend`/
+var is a bare value in `compose.yml` (for example `FEATURE_FLAG_X: true`), and
+the suite runs and asserts that one configured state unconditionally. Nothing
+else sets flags in CI: the `run-journey-tests` action takes no flag inputs, so
+every caller (this repo's PR checks and the `epr-frontend`/`epr-backend`/
 `epr-re-ex-admin-frontend` PR checks alike) exercises the same state and
-cannot drift. Note the interpolation default only fires while the env var is
-unset, so do not export `FEATURE_FLAG_*` vars in workflow env blocks.
+cannot drift.
 
 Most flags stop there. An in-flight feature is typically tested flag-on in CI
 (ahead of the production flip) while the flag-off gating is covered by the
@@ -156,12 +155,16 @@ and the runner, and branch the affected specs on it. Cost is linear (`N + 1`
 passes for `N` overridden flags). Reach for this deliberately: most flags do
 not earn it.
 
-The plumbing, when a flag earns it: add an action input for the flag, have the
-action's first step write it once to `$GITHUB_ENV`
+The plumbing, when a flag earns it: switch its `compose.yml` entry to the
+interpolated form (`FEATURE_FLAG_X: ${FEATURE_FLAG_X:-true}`), add an action
+input for the flag, have the action's first step write it once to
+`$GITHUB_ENV`
 (`echo "FEATURE_FLAG_X=${{ inputs.feature-flag-x }}" >> "$GITHUB_ENV"`) so the
 same value reaches both the relevant app container (via `compose.yml`
 interpolation) and the Playwright runner (via `process.env`), then pass
-`${{ matrix.x || '<default>' }}` from the matrix step. Read the env var in one
+`${{ matrix.x || '<default>' }}` from the matrix step. The interpolation
+default only fires while the env var is unset, so do not export
+`FEATURE_FLAG_*` vars in workflow env blocks. Read the env var in one
 shared `test/support/flags.js` and branch specs on `flags.x`, for example
 letting the flag pick the assertion verb:
 `const assert = flags.x ? checkBodyText : checkBodyTextDoesNotInclude`. Once
