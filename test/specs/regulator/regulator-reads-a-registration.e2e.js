@@ -264,23 +264,20 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     expect(await accreditationPage.prnsSubheadingText()).toContain('(2 items)')
 
-    // The parameter is what sends the note back here rather than to the full
-    // list, so it is part of the link rather than incidental to it.
-    expect(
-      await accreditationPage.prnActionLink(1).getAttribute('href')
-    ).toMatch(
-      /\/packaging-recycling-notes\/[0-9a-f]{24}\/view\?from=accreditation$/
-    )
-
     const accreditationUrl = page.url()
 
     // Opening a note from here and coming back is the half of the criterion
     // the full list below cannot cover.
     await accreditationPage.prnActionLink(1).click()
-    await prnViewPage.backLink().click()
 
-    expect(new URL(page.url()).pathname).toBe(
-      new URL(accreditationUrl).pathname
+    await expect(prnViewPage.heading()).toHaveText(
+      'Packaging Waste Recycling Note'
+    )
+
+    await prnViewPage.crumbLink('Accreditation details').click()
+
+    expect(await accreditationPage.captionText()).toContain(
+      seeded.accreditationNumber
     )
 
     await accreditationPage.prnsDetailedViewLink().click()
@@ -326,16 +323,14 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     expect(await prnsPage.changeControlCount()).toBe(0)
 
-    const detailedViewUrl = page.url()
-
     await awaitingLink.click()
 
     expect(page.url()).toContain(
       `/packaging-recycling-notes/${seeded.prnId}/view`
     )
 
-    await prnViewPage.backLink().click()
-    expect(new URL(page.url()).pathname).toBe(new URL(detailedViewUrl).pathname)
+    await prnViewPage.crumbLink('PRNs').click()
+    await expect(prnsPage.detailedView()).toBeVisible()
 
     await prnsPage.backLink().click()
     expect(new URL(page.url()).pathname).toBe(
