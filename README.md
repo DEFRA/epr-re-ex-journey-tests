@@ -131,12 +131,11 @@ WITH_PROXY=true HTTP_PROXY=http://localhost:8888 npm run test:api
 
 ### Feature flags in journey tests
 
-**`compose.yml` is the single source of flag state.** Each `FEATURE_FLAG_*` env
-var is a bare value in `compose.yml` (for example `FEATURE_FLAG_X: true`)
-unless it has earned a matrix entry, described below, and the suite runs and
-asserts that one configured state unconditionally. Nothing else sets flags in
-CI: the `run-journey-tests` action takes no flag inputs, so every caller (this
-repo's PR checks and the `epr-frontend`/`epr-backend`/
+**`compose.yml` is the single source of flag state.** Set each `FEATURE_FLAG_*`
+env var as a bare value in `compose.yml` (for example `FEATURE_FLAG_X: true`);
+the suite runs and asserts that one configured state unconditionally. Nothing
+else sets flags in CI: the `run-journey-tests` action takes no flag inputs, so
+every caller (this repo's PR checks and the `epr-frontend`/`epr-backend`/
 `epr-re-ex-admin-frontend` PR checks alike) exercises the same state and
 cannot drift.
 
@@ -149,12 +148,11 @@ dropping the env var from `compose.yml`.
 **Named matrix passes are the escalation, not the default.**
 `check-pull-request.yml` runs the suite once per named entry in
 `matrix.include`. A permanent `baseline` entry runs the `compose.yml` defaults.
-If a flag's two states both genuinely warrant journey coverage (a risky or
-long-lived divergence, not just new messaging), give it a matrix entry that pins
-the non-default state, plumb the value through to the relevant app container(s)
+If a flag's two states both warrant journey coverage (a risky or long-lived
+divergence, not just new messaging), give it a matrix entry that pins the
+non-default state, plumb the value through to the relevant app container(s)
 and the runner, and branch the affected specs on it. Cost is linear (`N + 1`
-passes for `N` overridden flags). Reach for this deliberately: most flags do
-not earn it.
+passes for `N` overridden flags).
 
 The plumbing, when a flag earns it: switch its `compose.yml` entry to the
 interpolated form (`FEATURE_FLAG_X: ${FEATURE_FLAG_X:-true}`), add an action
