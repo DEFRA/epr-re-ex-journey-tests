@@ -178,12 +178,24 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // rather than the list still being on screen.
     await checkBodyText(page, seeded.accreditationNumber, 10)
 
-    // Back to the list is the only route the note offers a reader. The issue
-    // button posts to this same page, so its form is counted separately.
-    expect(await prnViewPage.offeredRoutes()).toEqual([
-      '/organisations/{id}/registrations/{id}/accreditations/{id}/packaging-recycling-notes'
-    ])
+    // A regulator is given the breadcrumb trail in place of the back and
+    // return links (PAE-1936), so the note's main content offers no route at
+    // all. The issue button posts to this same page, so its form is counted
+    // separately.
+    expect(await prnViewPage.offeredRoutes()).toEqual([])
     expect(await prnViewPage.formCount()).toBe(0)
+
+    // The trail is the way back, and its notes crumb reaches the list the
+    // reader just came from. A note still awaiting authorisation has no number
+    // yet, so the last crumb names it by its id, as the page title does.
+    expect(await prnViewPage.breadcrumbs()).toEqual([
+      'All organisations',
+      seeded.companyName,
+      'Registration details',
+      'Accreditation details',
+      'PRNs',
+      seeded.prnId
+    ])
 
     await page.goto(`${registrationUrl}/reports`)
 
@@ -285,10 +297,11 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // the fourth one belongs to the note on the fourth row rather than to the
     // summary log below it. The paths come off the accreditation the journey
     // already reached, so they carry whatever prefix the running service uses.
-    // This ledger is a section of the accreditation page, so a note opened
-    // from a row carries the return that brings the reader back to it.
+    // A row leads to the note's own address and nothing more: the return
+    // parameter went with the regulator's return link, which the breadcrumb
+    // trail replaced (PAE-1936).
     const noteRoute = (prnId) =>
-      `${new URL(accreditationUrl).pathname}/packaging-recycling-notes/${prnId}/view?from=accreditation`
+      `${new URL(accreditationUrl).pathname}/packaging-recycling-notes/${prnId}/view`
 
     const targets = await ledgerPage.actionTargets()
 

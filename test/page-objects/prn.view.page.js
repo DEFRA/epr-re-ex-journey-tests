@@ -52,6 +52,34 @@ class PRNViewPage extends Page {
   }
 
   /**
+   * The breadcrumb sits outside the main content, so it is read on its own and
+   * `offeredRoutes` above cannot see it. A regulator is given the trail in
+   * place of the back and return links; an operator gets neither crumb.
+   *
+   * @returns {Promise<string[]>}
+   */
+  async breadcrumbs() {
+    const texts = await this.page
+      .locator('.govuk-breadcrumbs__list-item')
+      .allInnerTexts()
+
+    return texts.map((text) => text.trim())
+  }
+
+  /**
+   * One crumb of the trail, by the name it reads. Matched on the name rather
+   * than the href: the accreditation and the notes list sit at addresses that
+   * share a prefix, so a substring match reaches both.
+   * @param {string} name
+   * @returns {import('@playwright/test').Locator}
+   */
+  crumbLink(name) {
+    return this.page
+      .locator('.govuk-breadcrumbs__list-item')
+      .getByRole('link', { name, exact: true })
+  }
+
+  /**
    * The issue button posts back to this page, so it carries no href of its own
    * and the routes above cannot see it. Its form is what says it is there.
    *

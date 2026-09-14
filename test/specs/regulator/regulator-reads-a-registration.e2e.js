@@ -264,20 +264,22 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     expect(await accreditationPage.prnsSubheadingText()).toContain('(2 items)')
 
-    // The parameter is what sends the note back here rather than to the full
-    // list, so it is part of the link rather than incidental to it.
+    // The link is the note's own address and nothing more: the return
+    // parameter went with the regulator's return link, which the breadcrumb
+    // trail replaced (PAE-1936).
     expect(
       await accreditationPage.prnActionLink(1).getAttribute('href')
-    ).toMatch(
-      /\/packaging-recycling-notes\/[0-9a-f]{24}\/view\?from=accreditation$/
-    )
+    ).toMatch(/\/packaging-recycling-notes\/[0-9a-f]{24}\/view$/)
 
     const accreditationUrl = page.url()
 
     // Opening a note from here and coming back is the half of the criterion
     // the full list below cannot cover.
     await accreditationPage.prnActionLink(1).click()
-    await prnViewPage.backLink().click()
+
+    // The trail is the regulator's way back now that the note offers them no
+    // back link (PAE-1936).
+    await prnViewPage.crumbLink('Accreditation details').click()
 
     expect(new URL(page.url()).pathname).toBe(
       new URL(accreditationUrl).pathname
@@ -334,7 +336,9 @@ test.describe('A regulator reading a registration @regulator', () => {
       `/packaging-recycling-notes/${seeded.prnId}/view`
     )
 
-    await prnViewPage.backLink().click()
+    // The notes crumb is what returns a regulator to the detailed list they
+    // opened the note from, the back link being theirs no longer (PAE-1936).
+    await prnViewPage.crumbLink('PRNs').click()
     expect(new URL(page.url()).pathname).toBe(new URL(detailedViewUrl).pathname)
 
     await prnsPage.backLink().click()
