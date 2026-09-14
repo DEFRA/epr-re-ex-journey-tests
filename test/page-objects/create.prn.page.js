@@ -60,16 +60,15 @@ class CreatePRNPage extends Page {
     return this.page.locator('#is-december-waste').isVisible()
   }
 
-  // Keyed off the same visible label wasteBalanceOptions() reads, not off
-  // the radios' ids: December/Non-December render order isn't otherwise
-  // pinned anywhere, so a click keyed off id and an assertion keyed off
-  // label text could silently drift apart if the render order ever changed.
+  // Scoped by accessible name, not a hardcoded id, so this can't drift from
+  // render order - a label click or getByLabel().click() hung here even
+  // though the target was present and clickable by hand.
   async selectWasteBalance(pool) {
     const label = pool === 'December' ? /^December/ : /^Non-December/
     await this.page
-      .locator('#main-content .govuk-radios__label')
-      .filter({ hasText: label })
-      .click()
+      .getByRole('group', { name: 'Select which waste balance' })
+      .getByRole('radio', { name: label })
+      .check()
   }
 
   async wasteBalanceOptions() {
