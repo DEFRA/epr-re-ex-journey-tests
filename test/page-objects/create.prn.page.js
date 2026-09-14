@@ -14,8 +14,12 @@ class CreatePRNPage extends Page {
     const headingElement = this.page.locator('h1.govuk-heading-xl')
     await expect
       .poll(() => headingElement.innerText(), { timeout: 10000 })
-      .toContain('Create a')
+      .toContain('details')
     return headingElement.innerText()
+  }
+
+  captionText() {
+    return this.page.locator('#main-content .govuk-caption-xl').innerText()
   }
 
   async createPrn(tonnage, producer, issuerNotes, decemberWasteAnswer) {

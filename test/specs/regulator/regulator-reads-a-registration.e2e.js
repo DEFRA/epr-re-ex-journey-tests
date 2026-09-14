@@ -148,6 +148,9 @@ test.describe('A regulator reading a registration @regulator', () => {
       /^\d{1,3}(,\d{3})*\.\d{2}$/
     )
 
+    // The registration's records, offered as a file.
+    expect(accreditationSummary['Waste records']).toBe('Download latest')
+
     // Comparing the whole set is what says "and nothing else". The total the
     // accreditation has ever held is deliberately not shown beside the
     // available figure, so it arriving here has to be justified rather than
@@ -155,7 +158,8 @@ test.describe('A regulator reading a registration @regulator', () => {
     expect(Object.keys(accreditationSummary)).toStrictEqual([
       'Accreditation status',
       'Accreditation number',
-      'Waste balance available (tonnes)'
+      'Waste balance available (tonnes)',
+      'Waste records'
     ])
 
     expect(await accreditationPage.breadcrumbs()).toStrictEqual([
