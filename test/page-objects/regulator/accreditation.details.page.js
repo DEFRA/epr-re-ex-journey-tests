@@ -22,18 +22,6 @@ class AccreditationDetailsPage extends Page {
   }
 
   /**
-   * The breadcrumb sits outside the main content, so it is read on its own.
-   * @returns {Promise<string[]>}
-   */
-  async breadcrumbs() {
-    const texts = await this.page
-      .locator('.govuk-breadcrumbs__list-item')
-      .allInnerTexts()
-
-    return texts.map((text) => text.trim())
-  }
-
-  /**
    * The way back to the registration. The organisation crumb above it stops at
    * the organisation, so the registration is the only crumb naming one.
    * @returns {import('@playwright/test').Locator}

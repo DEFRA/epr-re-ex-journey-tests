@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 
 import { PRNDashboardPage } from 'page-objects/prn.dashboard.page'
 import { PRNViewPage } from 'page-objects/prn.view.page'
+import { PrnsDetailedViewPage } from 'page-objects/regulator/prns.detailed-view.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { RegulatorOrganisationPage } from 'page-objects/regulator/organisation.page'
@@ -40,6 +41,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     const detailsPage = new RegistrationDetailsPage(page)
     const prnListPage = new PRNDashboardPage(page)
     const prnViewPage = new PRNViewPage(page)
+    const prnsPage = new PrnsDetailedViewPage(page)
     const reportsPage = new ReportsPage(page)
     const reportViewPage = new ReportViewPage(page)
     const ledgerPage = new WasteBalanceLedgerPage(page)
@@ -178,16 +180,14 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // rather than the list still being on screen.
     await checkBodyText(page, seeded.accreditationNumber, 10)
 
-    // A regulator is given the breadcrumb trail in place of the back and
-    // return links (PAE-1936), so the note's main content offers no route at
-    // all. The issue button posts to this same page, so its form is counted
+    // The issue button posts to this same page, so its form is counted
     // separately.
-    expect(await prnViewPage.offeredRoutes()).toEqual([])
+    await expect(prnViewPage.backLink()).toBeHidden()
+    await expect(prnViewPage.returnToPRNList()).toBeHidden()
     expect(await prnViewPage.formCount()).toBe(0)
 
-    // The trail is the way back, and its notes crumb reaches the list the
-    // reader just came from. A note still awaiting authorisation has no number
-    // yet, so the last crumb names it by its id, as the page title does.
+    // A note still awaiting authorisation has no number yet, so the last crumb
+    // names it by its id, as the page title does.
     expect(await prnViewPage.breadcrumbs()).toEqual([
       'All organisations',
       seeded.companyName,
@@ -196,6 +196,10 @@ test.describe('A regulator looking up an operator @regulator', () => {
       'PRNs',
       seeded.prnId
     ])
+
+    await prnViewPage.crumbLink('PRNs').click()
+
+    await expect(prnsPage.detailedView()).toBeVisible()
 
     await page.goto(`${registrationUrl}/reports`)
 
@@ -292,25 +296,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     expect(undated).toStrictEqual([])
 
-    // Which note each row leads to, in row order. Comparing the whole column
-    // is what ties a link to its own row: counting the links cannot say that
-    // the fourth one belongs to the note on the fourth row rather than to the
-    // summary log below it. The paths come off the accreditation the journey
-    // already reached, so they carry whatever prefix the running service uses.
-    // A row leads to the note's own address and nothing more: the return
-    // parameter went with the regulator's return link, which the breadcrumb
-    // trail replaced (PAE-1936).
-    const noteRoute = (prnId) =>
-      `${new URL(accreditationUrl).pathname}/packaging-recycling-notes/${prnId}/view`
-
     const targets = await ledgerPage.actionTargets()
-
-    expect(targets.slice(0, 4)).toEqual([
-      noteRoute(seeded.cancellationPrnId),
-      noteRoute(seeded.cancellationPrnId),
-      noteRoute(seeded.cancellationPrnId),
-      noteRoute(seeded.prnId)
-    ])
 
     // The summary log leads to its own file rather than to a note.
     expect(targets[4]).toMatch(

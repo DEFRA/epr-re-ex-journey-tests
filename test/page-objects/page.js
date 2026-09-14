@@ -22,6 +22,28 @@ class Page {
   }
 
   /**
+   * The breadcrumb sits outside the main content, so it is read on its own.
+   * @returns {Promise<string[]>}
+   */
+  async breadcrumbs() {
+    const texts = await this.page
+      .locator('.govuk-breadcrumbs__list-item')
+      .allInnerTexts()
+
+    return texts.map((text) => text.trim())
+  }
+
+  /**
+   * @param {string} name
+   * @returns {import('@playwright/test').Locator}
+   */
+  crumbLink(name) {
+    return this.page
+      .locator('.govuk-breadcrumbs__list-item')
+      .getByRole('link', { name, exact: true })
+  }
+
+  /**
    * Follows a download link as the signed-in user and answers what came back.
    * The body of a spreadsheet is not worth asserting, so only its size is.
    *
