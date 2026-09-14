@@ -19,7 +19,7 @@ import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 
 test.describe('Marking a PRN as December Waste (Reprocessor Output)', () => {
-  test('Should show the December waste question for an output reprocessor and record Yes @createDecPRNOutput', async ({
+  test('Should show the December waste question for an output reprocessor and record Yes @decWaste @createDecPRNOutput', async ({
     page
   }) => {
     let currentPage = page

@@ -14,7 +14,7 @@ import { createPrnDetails } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'
 
 test.describe('Choosing a waste balance pool for a PRN (Reprocessor Input)', () => {
-  test('Should show both balance options and move only the chosen pool @createDecPRNInput', async ({
+  test('Should show both balance options and move only the chosen pool @decWaste @createDecPRNInput', async ({
     page
   }) => {
     const regNumber = 'R26ER5000000000DEC'

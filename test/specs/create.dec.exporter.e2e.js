@@ -15,7 +15,7 @@ import { createPrnDetails } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'
 
 test.describe('Choosing a waste balance pool for a PERN (Exporter)', () => {
-  test('Should show both balance options and move only the chosen pool @createDecPRNExporter', async ({
+  test('Should show both balance options and move only the chosen pool @decWaste @createDecPRNExporter', async ({
     page
   }) => {
     const regNumber = 'R26EX5000000002DEC'
