@@ -20,9 +20,9 @@ test.describe('Regulator login @regulator @smoketest', () => {
     expect(await homePage.getHeadingText()).toBe('All organisations')
 
     // A regulator reads what operators record and records nothing, so the
-    // service names itself for reading and offers them no operator controls.
+    // service names itself for regulators and offers them no operator controls.
     expect(await serviceNavigation.serviceName()).toBe(
-      'Access reprocessed or exported packaging waste data'
+      'Record reprocessed or exported packaging waste: regulators'
     )
     expect(await serviceNavigation.serviceUrl()).toBe('/regulators/home')
     // The landing page is their home, so the navigation names it once.
