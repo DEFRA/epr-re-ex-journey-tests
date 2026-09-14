@@ -77,6 +77,54 @@ class CreatePRNPage extends Page {
       .allInnerTexts()
   }
 
+  // December is always rendered first (see resolve-december-waste-choice.js);
+  // asserting it here means every tonnage read below can key off content
+  // instead of re-deriving the same order assumption from a bare index.
+  assertWasteBalanceOrder(options) {
+    expect(options).toHaveLength(2)
+    expect(options[0]).toMatch(
+      /December waste balance \(\d[\d,]*\.\d{2} tonnes\)/
+    )
+    expect(options[1]).toMatch(
+      /Non-December waste balance \(\d[\d,]*\.\d{2} tonnes\)/
+    )
+  }
+
+  wasteBalanceTonnage(options, pool) {
+    const prefix = pool === 'December' ? 'December' : 'Non-December'
+    const option = options.find((text) => text.startsWith(prefix))
+    const [, tonnage] = option.match(/\(([\d,.]+) tonnes\)/)
+    return parseFloat(tonnage.replace(/,/g, ''))
+  }
+
+  async wasteBalances() {
+    const options = await this.wasteBalanceOptions()
+    return {
+      december: this.wasteBalanceTonnage(options, 'December'),
+      general: this.wasteBalanceTonnage(options, 'Non-December')
+    }
+  }
+
+  // Re-fetches both pool balances via a fresh create-page visit, the
+  // sequence every raise-then-recheck step in the December pool-choice
+  // specs otherwise repeats inline.
+  async reopenAndReadWasteBalances(
+    dashboardPage,
+    wasteRecordsPage,
+    orgRefNo,
+    isPern
+  ) {
+    await dashboardPage.open(orgRefNo)
+    await dashboardPage.selectTableLink(1, 1)
+    if (isPern) {
+      await wasteRecordsPage.createNewPERNLink().click()
+    } else {
+      await wasteRecordsPage.createNewPRNLink().click()
+    }
+    await this.headingText()
+    return this.wasteBalances()
+  }
+
   async enterTonnage(tonnes) {
     await this.page.locator('#tonnage').fill(String(tonnes))
   }

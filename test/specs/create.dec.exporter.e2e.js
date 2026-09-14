@@ -69,19 +69,19 @@ test.describe('Choosing a waste balance pool for a PERN (Exporter)', () => {
     await createPRNPage.headingText()
 
     const options = await createPRNPage.wasteBalanceOptions()
-    expect(options).toHaveLength(2)
-    expect(options[0]).toMatch(
-      /December waste balance \(\d[\d,]*\.\d{2} tonnes\)/
-    )
-    expect(options[1]).toMatch(
-      /Non-December waste balance \(\d[\d,]*\.\d{2} tonnes\)/
-    )
+    createPRNPage.assertWasteBalanceOrder(options)
 
     const insetText = await createPRNPage.wasteBalanceHint()
     expect(insetText).toContain('from either waste balance')
 
-    const [, decemberBefore] = options[0].match(/\(([\d,.]+) tonnes\)/)
-    const [, generalBefore] = options[1].match(/\(([\d,.]+) tonnes\)/)
+    const decemberBefore = createPRNPage.wasteBalanceTonnage(
+      options,
+      'December'
+    )
+    const generalBefore = createPRNPage.wasteBalanceTonnage(
+      options,
+      'Non-December'
+    )
 
     const prnDetails = createPrnDetails({
       accNumber,
@@ -100,18 +100,16 @@ test.describe('Choosing a waste balance pool for a PERN (Exporter)', () => {
     // Only the December pool should have moved: raising back on the create
     // page shows the general figure unchanged and the December figure
     // reduced by the raised tonnage.
-    await dashboardPage.open(organisationDetails.refNo)
-    await dashboardPage.selectTableLink(1, 1)
-    await wasteRecordsPage.createNewPERNLink().click()
-    await createPRNPage.headingText()
+    const { december: decemberAfter, general: generalAfter } =
+      await createPRNPage.reopenAndReadWasteBalances(
+        dashboardPage,
+        wasteRecordsPage,
+        organisationDetails.refNo,
+        true
+      )
 
-    const optionsAfter = await createPRNPage.wasteBalanceOptions()
-    const [, decemberAfter] = optionsAfter[0].match(/\(([\d,.]+) tonnes\)/)
-    const [, generalAfter] = optionsAfter[1].match(/\(([\d,.]+) tonnes\)/)
-
-    const toNumber = (s) => parseFloat(s.replace(/,/g, ''))
-    expect(toNumber(decemberAfter)).toBeCloseTo(toNumber(decemberBefore) - 2, 2)
-    expect(toNumber(generalAfter)).toBeCloseTo(toNumber(generalBefore), 2)
+    expect(decemberAfter).toBeCloseTo(decemberBefore - 2, 2)
+    expect(generalAfter).toBeCloseTo(generalBefore, 2)
 
     // Now raise from the other pool: proves the reverse direction too - a
     // non-December raise moves only the non-December figure, leaving the
@@ -130,24 +128,15 @@ test.describe('Choosing a waste balance pool for a PERN (Exporter)', () => {
     const secondMessage = await prnCreatedPage.messageText()
     expect(secondMessage).not.toContain('created from December waste')
 
-    await dashboardPage.open(organisationDetails.refNo)
-    await dashboardPage.selectTableLink(1, 1)
-    await wasteRecordsPage.createNewPERNLink().click()
-    await createPRNPage.headingText()
+    const { december: decemberAfterSecond, general: generalAfterSecond } =
+      await createPRNPage.reopenAndReadWasteBalances(
+        dashboardPage,
+        wasteRecordsPage,
+        organisationDetails.refNo,
+        true
+      )
 
-    const optionsAfterSecond = await createPRNPage.wasteBalanceOptions()
-    const [, decemberAfterSecond] =
-      optionsAfterSecond[0].match(/\(([\d,.]+) tonnes\)/)
-    const [, generalAfterSecond] =
-      optionsAfterSecond[1].match(/\(([\d,.]+) tonnes\)/)
-
-    expect(toNumber(generalAfterSecond)).toBeCloseTo(
-      toNumber(generalAfter) - 3,
-      2
-    )
-    expect(toNumber(decemberAfterSecond)).toBeCloseTo(
-      toNumber(decemberAfter),
-      2
-    )
+    expect(generalAfterSecond).toBeCloseTo(generalAfter - 3, 2)
+    expect(decemberAfterSecond).toBeCloseTo(decemberAfter, 2)
   })
 })
