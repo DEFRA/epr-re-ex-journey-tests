@@ -146,6 +146,9 @@ export class PrnHelper {
     expect(awaitingRow.get('Tonnage')).toEqual(
       `${prnDetails.tonnageWordings.integer}`
     )
+    expect(awaitingRow.get('December waste?')).toEqual(
+      prnDetails.decemberWaste ?? 'No'
+    )
     expect(awaitingRow.get('Status')).toEqual(prnDetails.status)
   }
 
@@ -159,6 +162,9 @@ export class PrnHelper {
     expect(tableRow.get('Date issued')).toEqual(prnDetails.issuedDate)
     expect(tableRow.get('Tonnage')).toEqual(
       `${prnDetails.tonnageWordings.integer}`
+    )
+    expect(tableRow.get('December waste?')).toEqual(
+      prnDetails.decemberWaste ?? 'No'
     )
     expect(tableRow.get('Status')).toEqual(prnDetails.status)
   }
