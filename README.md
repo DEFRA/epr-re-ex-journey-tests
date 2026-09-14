@@ -132,10 +132,11 @@ WITH_PROXY=true HTTP_PROXY=http://localhost:8888 npm run test:api
 ### Feature flags in journey tests
 
 **`compose.yml` is the single source of flag state.** Each `FEATURE_FLAG_*` env
-var is a bare value in `compose.yml` (for example `FEATURE_FLAG_X: true`), and
-the suite runs and asserts that one configured state unconditionally. Nothing
-else sets flags in CI: the `run-journey-tests` action takes no flag inputs, so
-every caller (this repo's PR checks and the `epr-frontend`/`epr-backend`/
+var is a bare value in `compose.yml` (for example `FEATURE_FLAG_X: true`)
+unless it has earned a matrix entry, described below, and the suite runs and
+asserts that one configured state unconditionally. Nothing else sets flags in
+CI: the `run-journey-tests` action takes no flag inputs, so every caller (this
+repo's PR checks and the `epr-frontend`/`epr-backend`/
 `epr-re-ex-admin-frontend` PR checks alike) exercises the same state and
 cannot drift.
 
