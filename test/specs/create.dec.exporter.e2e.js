@@ -112,5 +112,42 @@ test.describe('Choosing a waste balance pool for a PERN (Exporter)', () => {
     const toNumber = (s) => parseFloat(s.replace(/,/g, ''))
     expect(toNumber(decemberAfter)).toBeCloseTo(toNumber(decemberBefore) - 2, 2)
     expect(toNumber(generalAfter)).toBeCloseTo(toNumber(generalBefore), 2)
+
+    // Now raise from the other pool: proves the reverse direction too - a
+    // non-December raise moves only the non-December figure, leaving the
+    // December figure (already reduced above) untouched by this second raise.
+    const secondPrnDetails = createPrnDetails({
+      accNumber,
+      organisationDetails,
+      materialDesc: 'Wood',
+      process: 'R3',
+      tonnageWordings: { integer: 3, word: 'Three' },
+      wasteBalancePool: 'Non-December'
+    })
+
+    await prnHelper.createAndCheckPrnDetails(secondPrnDetails)
+
+    const secondMessage = await prnCreatedPage.messageText()
+    expect(secondMessage).not.toContain('created from December waste')
+
+    await dashboardPage.open(organisationDetails.refNo)
+    await dashboardPage.selectTableLink(1, 1)
+    await wasteRecordsPage.createNewPERNLink().click()
+    await createPRNPage.headingText()
+
+    const optionsAfterSecond = await createPRNPage.wasteBalanceOptions()
+    const [, decemberAfterSecond] =
+      optionsAfterSecond[0].match(/\(([\d,.]+) tonnes\)/)
+    const [, generalAfterSecond] =
+      optionsAfterSecond[1].match(/\(([\d,.]+) tonnes\)/)
+
+    expect(toNumber(generalAfterSecond)).toBeCloseTo(
+      toNumber(generalAfter) - 3,
+      2
+    )
+    expect(toNumber(decemberAfterSecond)).toBeCloseTo(
+      toNumber(decemberAfter),
+      2
+    )
   })
 })

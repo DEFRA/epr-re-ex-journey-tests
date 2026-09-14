@@ -60,14 +60,16 @@ class CreatePRNPage extends Page {
     return this.page.locator('#is-december-waste').isVisible()
   }
 
-  // Shares the same field/idPrefix as the manual Yes/No question
-  // (is-december-waste), but the two controls are mutually exclusive per
-  // accreditation and the pool radios render December first, the opposite
-  // order to selectDecemberWaste's Yes/No — so a separate method, not an
-  // overload, keeps each caller's id mapping honest.
+  // Keyed off the same visible label wasteBalanceOptions() reads, not off
+  // the radios' ids: December/Non-December render order isn't otherwise
+  // pinned anywhere, so a click keyed off id and an assertion keyed off
+  // label text could silently drift apart if the render order ever changed.
   async selectWasteBalance(pool) {
-    const id = pool === 'December' ? 'is-december-waste' : 'is-december-waste-2'
-    await this.page.locator(`label[for="${id}"]`).click()
+    const label = pool === 'December' ? /^December/ : /^Non-December/
+    await this.page
+      .locator('#main-content .govuk-radios__label')
+      .filter({ hasText: label })
+      .click()
   }
 
   async wasteBalanceOptions() {
