@@ -45,14 +45,15 @@ class WasteBalanceLedgerPage extends Page {
   }
 
   /**
-   * The way to the records behind a submission row, as CSV. A suffix match on
-   * `/download` does not match `/download.csv`, so this and `downloadLink`
-   * each find only their own format.
+   * The way to the records behind a submission row, as CSV.
    *
    * @returns {import('@playwright/test').Locator}
    */
   csvDownloadLink() {
-    return this.page.locator(`${LEDGER_TABLE} a[href$="/download.csv"]`).first()
+    return this.page
+      .locator(LEDGER_TABLE)
+      .getByRole('link', { name: 'Download CSV' })
+      .first()
   }
 
   /**
