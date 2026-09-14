@@ -45,6 +45,18 @@ class WasteBalanceLedgerPage extends Page {
   }
 
   /**
+   * The way to the records behind a submission row, as CSV.
+   *
+   * @returns {import('@playwright/test').Locator}
+   */
+  csvDownloadLink() {
+    return this.page
+      .locator(LEDGER_TABLE)
+      .getByRole('link', { name: 'Download CSV' })
+      .first()
+  }
+
+  /**
    * The way into a note, from every row that moved the balance because of it.
    * Each of those links reads the same to the eye, so the note's number is
    * what tells one from another - to a reader of the page as much as to this.
