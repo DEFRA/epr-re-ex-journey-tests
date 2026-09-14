@@ -22,7 +22,13 @@ class CreatePRNPage extends Page {
     return this.page.locator('#main-content .govuk-caption-xl').innerText()
   }
 
-  async createPrn(tonnage, producer, issuerNotes, decemberWasteAnswer) {
+  async createPrn(
+    tonnage,
+    producer,
+    issuerNotes,
+    decemberWasteAnswer,
+    wasteBalancePool
+  ) {
     // Wait for the heading before interacting with the recipient field: it
     // progressively enhances into an accessible-autocomplete widget, and
     // typing into it before that JS has run leaves the underlying select
@@ -30,6 +36,9 @@ class CreatePRNPage extends Page {
     await this.headingText()
     if (decemberWasteAnswer) {
       await this.selectDecemberWaste(decemberWasteAnswer)
+    }
+    if (wasteBalancePool) {
+      await this.selectWasteBalance(wasteBalancePool)
     }
     await this.enterTonnage(tonnage)
     await this.enterValue(producer)
@@ -49,6 +58,22 @@ class CreatePRNPage extends Page {
 
   decemberWasteVisible() {
     return this.page.locator('#is-december-waste').isVisible()
+  }
+
+  // Shares the same field/idPrefix as the manual Yes/No question
+  // (is-december-waste), but the two controls are mutually exclusive per
+  // accreditation and the pool radios render December first, the opposite
+  // order to selectDecemberWaste's Yes/No — so a separate method, not an
+  // overload, keeps each caller's id mapping honest.
+  async selectWasteBalance(pool) {
+    const id = pool === 'December' ? 'is-december-waste' : 'is-december-waste-2'
+    await this.page.locator(`label[for="${id}"]`).click()
+  }
+
+  async wasteBalanceOptions() {
+    return this.page
+      .locator('#main-content .govuk-radios__label')
+      .allInnerTexts()
   }
 
   async enterTonnage(tonnes) {
