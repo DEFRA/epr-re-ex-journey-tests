@@ -4,6 +4,7 @@ import { DashboardPage } from 'page-objects/dashboard.page'
 import { PRNViewPage } from 'page-objects/prn.view.page'
 import { AccreditationDetailsPage } from 'page-objects/regulator/accreditation.details.page'
 import { PrnsDetailedViewPage } from 'page-objects/regulator/prns.detailed-view.page'
+import { ReportsDetailedViewPage } from 'page-objects/regulator/reports.detailed-view.page'
 import { RegisteredOnlyPeriodPage } from 'page-objects/regulator/registered-only-period.page'
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
@@ -30,6 +31,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     const detailsPage = new RegistrationDetailsPage(page)
     const accreditationPage = new AccreditationDetailsPage(page)
     const prnsPage = new PrnsDetailedViewPage(page)
+    const reportsPage = new ReportsDetailedViewPage(page)
     const prnViewPage = new PRNViewPage(page)
     const registeredOnlyPage = new RegisteredOnlyPeriodPage(page)
 
@@ -236,6 +238,56 @@ test.describe('A regulator reading a registration @regulator', () => {
       await accreditationPage.reportActionLink(reports.length).count()
     ).toBe(0)
 
+    const accreditationUrl = page.url()
+
+    // The summary shows the most recent reports only, so the full list is
+    // reached through the link beside it.
+    expect(reports.length).toBeLessThanOrEqual(3)
+    expect(await accreditationPage.reportsSubheadingText()).toContain(
+      `(${reports.length} items)`
+    )
+
+    await expect(accreditationPage.reportsDetailedViewLink()).toBeVisible()
+    await accreditationPage.reportsDetailedViewLink().click()
+
+    await expect(reportsPage.detailedView()).toBeVisible()
+
+    const reportsCaption = await reportsPage.captionText()
+    expect(reportsCaption).toContain(seeded.companyName)
+    expect(reportsCaption).toContain(seeded.registrationNumber)
+    expect(reportsCaption).toContain(seeded.accreditationNumber)
+
+    expect(await reportsPage.breadcrumbs()).toStrictEqual([
+      'All organisations',
+      seeded.companyName,
+      'Registration details',
+      'Accreditation details',
+      'Reports'
+    ])
+
+    // The same table as the summary's, so the same columns.
+    expect(await reportsPage.reportHeadings()).toStrictEqual([
+      'Period',
+      'Due date',
+      'Submission date',
+      'Status',
+      'Actions'
+    ])
+
+    const allReports = await reportsPage.reports()
+
+    // Uncapped, so it holds at least what the summary did, in the same order.
+    expect(allReports.length).toBeGreaterThanOrEqual(reports.length)
+    expect(allReports[0].get('Period')).toBe(periodLabel)
+    expect(allReports[0].get('Status')).toBe('Submitted')
+
+    expect(await reportsPage.changeControlCount()).toBe(0)
+
+    await reportsPage.backLink().click()
+    expect(new URL(page.url()).pathname).toBe(
+      new URL(accreditationUrl).pathname
+    )
+
     await expect(accreditationPage.prnsHeading()).toBeVisible()
 
     expect(await accreditationPage.noPrnsMessage().count()).toBe(0)
@@ -263,8 +315,6 @@ test.describe('A regulator reading a registration @regulator', () => {
     )
 
     expect(await accreditationPage.prnsSubheadingText()).toContain('(2 items)')
-
-    const accreditationUrl = page.url()
 
     // Opening a note from here and coming back is the half of the criterion
     // the full list below cannot cover.
