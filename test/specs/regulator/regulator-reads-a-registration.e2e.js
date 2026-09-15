@@ -283,7 +283,10 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     expect(await reportsPage.changeControlCount()).toBe(0)
 
-    await reportsPage.backLink().click()
+    // A regulator page offers breadcrumbs or a back link, never both.
+    expect(await reportsPage.backLink().count()).toBe(0)
+
+    await reportsPage.crumbLink('Accreditation details').click()
     expect(new URL(page.url()).pathname).toBe(
       new URL(accreditationUrl).pathname
     )
@@ -382,7 +385,9 @@ test.describe('A regulator reading a registration @regulator', () => {
     await prnViewPage.crumbLink('PRNs').click()
     await expect(prnsPage.detailedView()).toBeVisible()
 
-    await prnsPage.backLink().click()
+    expect(await prnsPage.backLink().count()).toBe(0)
+
+    await prnsPage.crumbLink('Accreditation details').click()
     expect(new URL(page.url()).pathname).toBe(
       new URL(accreditationUrl).pathname
     )
