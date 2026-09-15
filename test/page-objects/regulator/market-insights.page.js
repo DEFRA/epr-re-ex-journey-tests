@@ -15,6 +15,10 @@ const TABLE = '[data-testid="app-page-body"] table.govuk-table'
 const ACCREDITATION_TYPE_CELL = 2
 const FIRST_FIGURE_CELL = 3
 
+// The row beneath the figures counts the monthly reports each month's figures
+// include. Its header spans the two columns that name every other row.
+const REPORTS_ROW_HEADER = 'Monthly reports included'
+
 class MarketInsightsPage extends Page {
   /**
    * The months the figures cover. The caption's size is the design's to
@@ -54,33 +58,65 @@ class MarketInsightsPage extends Page {
     return texts.map((text) => text.trim())
   }
 
+  reportsRowHeader() {
+    return this.page.getByRole('rowheader', { name: REPORTS_ROW_HEADER })
+  }
+
   /**
-   * The accreditation type of every row, in the order the table renders them.
-   * Other journeys seed their own operators while this one runs, so the set is
-   * read whole rather than by position.
+   * The rows that state a material's figures, which is every row of the body
+   * but the report count beneath them.
+   * @returns {import('@playwright/test').Locator}
+   */
+  figureRows() {
+    return this.page
+      .locator(`${TABLE} tbody tr`)
+      .filter({ hasNot: this.reportsRowHeader() })
+  }
+
+  /**
+   * The accreditation type of every figure row, in the order the table renders
+   * them. Other journeys seed their own operators while this one runs, so the
+   * set is read whole rather than by position.
    * @returns {Promise<string[]>}
    */
   async accreditationTypes() {
     await this.page.locator(TABLE).waitFor({ state: 'visible' })
 
-    const texts = await this.page
-      .locator(`${TABLE} tbody tr td:nth-child(${ACCREDITATION_TYPE_CELL})`)
+    const texts = await this.figureRows()
+      .locator(`td:nth-child(${ACCREDITATION_TYPE_CELL})`)
       .allInnerTexts()
     return texts.map((text) => text.trim())
   }
 
   /**
-   * Every figure the table states, read across all of its rows: the monthly
-   * net credits and the totals beside them. The page prints a zero where a
-   * month credited nothing, so a cell that reads as nothing at all is a fault
-   * rather than an absence, and reading them together is what catches one.
+   * Every figure the table states, read across all of its figure rows: the
+   * monthly net credits and the totals beside them. The page prints a zero
+   * where a month credited nothing, so a cell that reads as nothing at all is
+   * a fault rather than an absence, and reading them together is what catches
+   * one.
    * @returns {Promise<string[]>}
    */
   async figures() {
     await this.page.locator(TABLE).waitFor({ state: 'visible' })
 
+    const texts = await this.figureRows()
+      .locator(`td:nth-child(n + ${FIRST_FIGURE_CELL})`)
+      .allInnerTexts()
+    return texts.map((text) => text.trim())
+  }
+
+  /**
+   * How many of the monthly reports each month expected the figures include,
+   * one count per reporting month, then the period's.
+   * @returns {Promise<string[]>}
+   */
+  async reportCounts() {
+    await this.page.locator(TABLE).waitFor({ state: 'visible' })
+
     const texts = await this.page
-      .locator(`${TABLE} tbody tr td:nth-child(n + ${FIRST_FIGURE_CELL})`)
+      .locator(`${TABLE} tbody tr`)
+      .filter({ has: this.reportsRowHeader() })
+      .locator('td')
       .allInnerTexts()
     return texts.map((text) => text.trim())
   }
