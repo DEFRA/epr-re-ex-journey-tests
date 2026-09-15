@@ -149,7 +149,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     )
 
     // The registration's records, offered as a file.
-    expect(accreditationSummary['Waste records']).toBe('Download latest')
+    expect(accreditationSummary['Latest waste record CSV']).toBe('Download')
 
     // Comparing the whole set is what says "and nothing else". The total the
     // accreditation has ever held is deliberately not shown beside the
@@ -159,7 +159,7 @@ test.describe('A regulator reading a registration @regulator', () => {
       'Accreditation status',
       'Accreditation number',
       'Waste balance available (tonnes)',
-      'Waste records'
+      'Latest waste record CSV'
     ])
 
     expect(await accreditationPage.breadcrumbs()).toStrictEqual([
