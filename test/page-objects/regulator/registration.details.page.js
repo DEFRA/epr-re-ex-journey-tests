@@ -123,18 +123,6 @@ class RegistrationDetailsPage extends Page {
   }
 
   /**
-   * The breadcrumb sits outside the main content, so it is read on its own.
-   * @returns {Promise<string[]>}
-   */
-  async breadcrumbs() {
-    const texts = await this.page
-      .locator('.govuk-breadcrumbs__list-item')
-      .allInnerTexts()
-
-    return texts.map((text) => text.trim())
-  }
-
-  /**
    * @returns {Promise<string[]>}
    */
   async offeredRoutes() {
