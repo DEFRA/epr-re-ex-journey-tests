@@ -144,7 +144,7 @@ test.describe('Summary Logs Exporter', () => {
     await dashboardPage.selectLink(1)
     const wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
 
-    expect(wasteBalanceAmount).toBe('30.00 tonnes')
+    expect(wasteBalanceAmount).toBe('30.00')
 
     await wasteRecordsPage.submitSummaryLogLink().click()
 

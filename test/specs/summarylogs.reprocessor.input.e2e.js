@@ -116,7 +116,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
     await dashboardPage.selectLink(1)
     const wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
 
-    expect(wasteBalanceAmount).toBe('391.62 tonnes')
+    expect(wasteBalanceAmount).toBe('391.62')
 
     // PAE-743: Sign out link is visible, hence able to sign out
     await homePage.signOutLink().click()
