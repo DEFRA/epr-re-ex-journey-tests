@@ -64,6 +64,16 @@ test.describe('Choosing a waste balance pool for a PERN (Exporter)', () => {
     )
 
     await dashboardPage.selectTableLink(1, 1)
+
+    // PAE-1921: in-window the single-balance banner gives way to the
+    // Available waste balance breakdown panel. Its three figures must be
+    // internally consistent and agree with the pool radios read below.
+    const panelBefore = await wasteRecordsPage.decemberBalanceBreakdown()
+    expect(panelBefore.total).toBeCloseTo(
+      panelBefore.december + panelBefore.nonDecember,
+      2
+    )
+
     await wasteRecordsPage.createNewPERNLink().click()
 
     await createPRNPage.headingText()
@@ -82,6 +92,9 @@ test.describe('Choosing a waste balance pool for a PERN (Exporter)', () => {
       options,
       'Non-December'
     )
+
+    expect(panelBefore.december).toBeCloseTo(decemberBefore, 2)
+    expect(panelBefore.nonDecember).toBeCloseTo(generalBefore, 2)
 
     const prnDetails = createPrnDetails({
       accNumber,
@@ -138,5 +151,16 @@ test.describe('Choosing a waste balance pool for a PERN (Exporter)', () => {
 
     expect(generalAfterSecond).toBeCloseTo(generalAfter - 3, 2)
     expect(decemberAfterSecond).toBeCloseTo(decemberAfter, 2)
+
+    // The panel must move with the raises too: back on the registration
+    // page it shows the same reduced figures the create-page radios do,
+    // with the total down by the five tonnes raised across both pools.
+    await dashboardPage.open(organisationDetails.refNo)
+    await dashboardPage.selectTableLink(1, 1)
+
+    const panelAfter = await wasteRecordsPage.decemberBalanceBreakdown()
+    expect(panelAfter.december).toBeCloseTo(decemberAfterSecond, 2)
+    expect(panelAfter.nonDecember).toBeCloseTo(generalAfterSecond, 2)
+    expect(panelAfter.total).toBeCloseTo(panelBefore.total - 5, 2)
   })
 })
