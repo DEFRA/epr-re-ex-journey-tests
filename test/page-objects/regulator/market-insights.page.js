@@ -15,9 +15,9 @@ const TABLE = '[data-testid="app-page-body"] table.govuk-table'
 const ACCREDITATION_TYPE_CELL = 2
 const FIRST_FIGURE_CELL = 3
 
-// The row beneath the figures counts the monthly reports each month's figures
-// include. Its header spans the two columns that name every other row.
-const REPORTS_ROW_HEADER = 'Monthly reports included'
+// The row beneath the figures counts the monthly reports submitted against
+// those due. Its header spans the two columns that name every other row.
+const REPORTS_ROW_HEADER = 'Monthly reports submitted'
 
 class MarketInsightsPage extends Page {
   /**
