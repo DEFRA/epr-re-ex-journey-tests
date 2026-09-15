@@ -124,9 +124,8 @@ test.describe('A regulator reading market insights @regulator', () => {
     expect(figures.some((figure) => asNumber(figure) > 0)).toBe(true)
 
     // Beneath the figures, each month says how many of the monthly reports it
-    // expected the figures include, and the period says the same under the
-    // total, so a thin month can be told from one whose reporters have not
-    // all filed.
+    // expected were submitted, and the period says the same under the total,
+    // so a thin month can be told from one whose reporters have not all filed.
     const reportCounts = await marketInsightsPage.reportCounts()
 
     expect(reportCounts).toHaveLength(months.length + 1)
