@@ -96,6 +96,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     // Tonnage value expected from Summary Log files upload
     // Paper and board	40,608.86
     const expectedWasteBalance = '40,405.86'
+    const originalWasteBalance = '40,608.86'
 
     await dashboardPage.selectTableLink(1, 1)
 
@@ -109,7 +110,6 @@ test.describe('Issuing Packing Recycling Notes', () => {
 
     await wasteRecordsPage.createNewPRNLink().click()
 
-    const originalWasteBalance = '40,608.86'
     const wasteBalanceHint = await createPRNPage.wasteBalanceHint()
     expect(wasteBalanceHint).toBe(
       `Your waste balance available for creating PRNs is ${originalWasteBalance} tonnes.`

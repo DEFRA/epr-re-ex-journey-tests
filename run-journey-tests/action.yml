@@ -17,6 +17,15 @@ inputs:
   test-scope:
     description: which specs to run - 'admin' (test/specs/admin only), 'frontend' (everything except test/specs/admin), or 'all'
     default: 'all'
+  december-scope:
+    description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - applies when test-scope is 'all' or 'frontend'"
+    default: 'all'
+  december-window-start:
+    description: explicit override for DECEMBER_WASTE_WINDOW_START; empty lets the action derive one from december-scope (see "Resolve the December window" below)
+    default: ''
+  artifact-suffix:
+    description: appended to this run's uploaded artifact names, so parallel matrix legs don't collide
+    default: ''
 
 runs:
   using: 'composite'
@@ -205,6 +214,21 @@ runs:
         }
       shell: bash
 
+    # windowStart is MM-DDTHH:mm with no year, so it recurs annually against
+    # the accreditation's own relevant year. Callers that want the window
+    # closed (december-scope: exclude) don't need to compute a value
+    # themselves: when no explicit december-window-start is given, this
+    # derives one - tomorrow's MM-DD is strictly later than today on all 365
+    # days, where a fixed 12-31 bound would open on 31 December itself. A
+    # december-scope: only caller gets an empty value here, which Start
+    # docker compose below then leaves for compose.yml's own always-open
+    # default to take over.
+    - name: Resolve the December window
+      if: inputs.december-window-start == '' && inputs.december-scope == 'exclude'
+      id: december-window
+      shell: bash
+      run: echo "start=$(date -u -d tomorrow +%m-%d)T00:00" >> "$GITHUB_OUTPUT"
+
     # Each EPR_* value below prefers the caller-supplied commit, falls back to
     # the branch-matched build's short SHA, and falls back again (empty
     # string) to compose.yml's own :latest default when neither applies.
@@ -214,6 +238,7 @@ runs:
         EPR_FRONTEND=${{ inputs.epr-frontend || steps.docker-frontend-branch.outputs.image }} \
         EPR_BACKEND=${{ inputs.epr-backend || steps.docker-backend-branch.outputs.image }} \
         EPR_RE_EX_ADMIN_FRONTEND=${{ inputs.epr-re-ex-admin-frontend || steps.docker-admin-frontend-branch.outputs.image }} \
+        DECEMBER_WASTE_WINDOW_START="${{ inputs.december-window-start || steps.december-window.outputs.start }}" \
         docker compose up --wait-timeout 300 -d --quiet-pull
 
     - name: Wait for services to be ready
@@ -231,8 +256,20 @@ runs:
       run: |
         case "${{ inputs.test-scope }}" in
           admin) npm run test:github:admin ;;
-          frontend) npm run test:github:frontend ;;
-          *) npm run test:github ;;
+          frontend)
+            case "${{ inputs.december-scope }}" in
+              only) npm run test:github:frontend:december ;;
+              exclude) npm run test:github:frontend:non-december ;;
+              *) npm run test:github:frontend ;;
+            esac
+            ;;
+          *)
+            case "${{ inputs.december-scope }}" in
+              only) npm run test:github:december ;;
+              exclude) npm run test:github:non-december ;;
+              *) npm run test:github ;;
+            esac
+            ;;
         esac
         npm run report
 
@@ -257,14 +294,14 @@ runs:
       if: always()
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
-        name: allure-report
+        name: allure-report${{ inputs.artifact-suffix }}
         path: ./allure-report
 
     - name: Upload docker compose logs
       if: always()
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
-        name: docker-compose-logs
+        name: docker-compose-logs${{ inputs.artifact-suffix }}
         path: ./logs.txt
 
     - name: Fail this step if FAILED file exists
