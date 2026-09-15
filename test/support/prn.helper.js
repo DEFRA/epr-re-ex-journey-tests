@@ -121,7 +121,8 @@ export class PrnHelper {
       prnDetails.tonnageWordings.integer,
       prnDetails.tradingName,
       prnDetails.issuerNotes,
-      prnDetails.selectDecemberWasteAnswer
+      prnDetails.selectDecemberWasteAnswer,
+      prnDetails.wasteBalancePool
     )
 
     if (prnDetails.issuerNotes === '') {
