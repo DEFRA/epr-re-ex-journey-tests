@@ -79,9 +79,12 @@ class Page {
 
     // Within the December window an eligible operator (exporter or
     // reprocessor-input) sees the Available waste balance breakdown panel
-    // (PAE-1921) in place of the single-balance banner. Test keeps that
-    // window open all year (DECEMBER_WASTE_WINDOW_START=01-01T00:00), so
-    // these operators always see the panel here. Wait for whichever the
+    // (PAE-1921) in place of the single-balance banner, even with zero
+    // December tonnage. Which rendering this getter meets depends on the
+    // run: this repo's PR-check baseline leg derives a closed window
+    // (banner), its december leg runs only @decWaste specs, and
+    // december-scope 'all' callers (FE/BE repo CI, local runs) get
+    // compose.yml's always-open default (panel). Wait for whichever the
     // page renders, then read the bare balance figure: the banner appends
     // a " tonnes" unit, the panel total does not, so strip it either way.
     await banner.or(total).first().waitFor()
@@ -91,6 +94,24 @@ class Page {
       : await total.innerText()
 
     return text.replace(/\s*tonnes?$/i, '').trim()
+  }
+
+  // The PAE-1921 breakdown panel's three figures as numbers. Only meaningful
+  // in-window for an eligible operator (the @decWaste specs): out of window
+  // the panel is absent and the first read times out.
+  async decemberBalanceBreakdown() {
+    const read = async (testId) => {
+      const text = await this.page
+        .locator(`[data-testid="${testId}"]`)
+        .innerText()
+      return parseFloat(text.replace(/,/g, ''))
+    }
+
+    return {
+      december: await read('december-waste-balance'),
+      nonDecember: await read('non-december-waste-balance'),
+      total: await read('total-waste-balance')
+    }
   }
 
   async prnDetails() {
