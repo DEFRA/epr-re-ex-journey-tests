@@ -18,7 +18,7 @@ inputs:
     description: which specs to run - 'admin' (test/specs/admin only), 'frontend' (everything except test/specs/admin), or 'all'
     default: 'all'
   december-scope:
-    description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - only applies when test-scope is 'all'"
+    description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - applies when test-scope is 'all' or 'frontend'"
     default: 'all'
   december-window-start:
     description: explicit override for DECEMBER_WASTE_WINDOW_START; empty lets the action derive one from december-scope (see "Resolve the December window" below)
@@ -256,7 +256,13 @@ runs:
       run: |
         case "${{ inputs.test-scope }}" in
           admin) npm run test:github:admin ;;
-          frontend) npm run test:github:frontend ;;
+          frontend)
+            case "${{ inputs.december-scope }}" in
+              only) npm run test:github:frontend:december ;;
+              exclude) npm run test:github:frontend:non-december ;;
+              *) npm run test:github:frontend ;;
+            esac
+            ;;
           *)
             case "${{ inputs.december-scope }}" in
               only) npm run test:github:december ;;
