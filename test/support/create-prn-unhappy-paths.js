@@ -9,8 +9,7 @@ import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
-  updateMigratedOrganisation,
-  getDecemberPrnEligibility
+  updateMigratedOrganisation
 } from './seeding/organisation.js'
 import { uploadAndSubmitSummaryLog } from './seeding/summary-logs.js'
 import { createPrnDetails } from './fixtures.js'
@@ -152,14 +151,10 @@ export async function runCreatePrnUnhappyPaths(
   let materialDetails = await createPRNPage.materialDetails()
   expect(materialDetails).toBe(`Material: ${materialDesc}`)
 
-  // Assert the window is open so the radios' absence is pinned to the
-  // reprocessing-type gate, not an accidentally-closed window.
-  const eligibility = await getDecemberPrnEligibility(
-    organisationDetails.refNo,
-    migrationResponse.registrationIds[0],
-    migrationResponse.accreditationIds[0]
-  )
-  expect(eligibility.windowOpen).toBe(true)
+  // Neither Exporter nor Reprocessor Input shows December waste controls
+  // outside the declaration window - CI keeps the window closed for this
+  // pass (see run-journey-tests' december-scope split), so this pins their
+  // absence rather than assuming it.
   expect(await createPRNPage.decemberWasteVisible()).toBe(false)
 
   // Empty-form validation errors
@@ -171,7 +166,8 @@ export async function runCreatePrnUnhappyPaths(
   ])
 
   // An over-balance tonnage is refused at the create step itself: the create
-  // page re-renders with the balance error rather than the draft being created.
+  // page re-renders with the balance error rather than the draft being
+  // created.
   await createPRNPage.createPrn(9999999, prnDetails.tradingName, 'Testing')
   const balanceErrors = await createPRNPage.errorMessages(1)
   expect(balanceErrors).toEqual([

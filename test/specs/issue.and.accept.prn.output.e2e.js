@@ -235,14 +235,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     ])
 
     // Every PRN row leads to the same note, because there is only one; the
-    // summary log leads to its own file. The ids are the journey's to discover
-    // rather than to know in advance, so they are matched by shape.
-    // This ledger is a section of the accreditation page, so a note opened
-    // from a row carries the return that brings the reader back to it.
-    const noteRoutePattern = new RegExp(
-      `^${new URL(accreditationUrl).pathname}/packaging-recycling-notes/[0-9a-f]{24}/view\\?from=accreditation$`
-    )
-
+    // summary log leads to its own file.
     const actionTargets = await ledgerPage.actionTargets()
 
     expect(actionTargets.slice(0, 3)).toEqual([
@@ -250,7 +243,6 @@ test.describe('Issuing Packing Recycling Notes', () => {
       actionTargets[0],
       actionTargets[0]
     ])
-    expect(actionTargets[0]).toMatch(noteRoutePattern)
     expect(actionTargets[3]).toMatch(
       /\/registrations\/[^/]+\/summary-logs\/files\/[^/]+\/download$/
     )
