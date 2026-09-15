@@ -15,8 +15,8 @@ test.describe('Deleting Packing Recycling Notes (Reprocessor Output)', () => {
       accNumber,
       reprocessingType: 'output',
       summaryLogFilePath: `resources/sanity/reprocessorOutput_${accNumber}_${regNumber}.xlsx`,
-      expectedWasteBalance: '56,455.67 tonnes',
-      expectedDeductedWasteBalance: '56,252.67 tonnes',
+      expectedWasteBalance: '56,455.67',
+      expectedDeductedWasteBalance: '56,252.67',
       createNewLinkName: 'createNewPRNLink',
       manageLinkName: 'managePRNsLink'
     })
