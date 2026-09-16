@@ -99,6 +99,26 @@ class AccreditationDetailsPage extends Page {
   }
 
   /**
+   * A link rather than a button, so changeControlCount() stays at zero.
+   * @returns {import('@playwright/test').Locator}
+   */
+  reportsDetailedViewLink() {
+    return this.page.locator(
+      '#main-content [data-testid="reports-detailed-view-link"]'
+    )
+  }
+
+  /**
+   * The line naming how many reports the table below it shows.
+   * @returns {Promise<string>}
+   */
+  async reportsSubheadingText() {
+    return this.page
+      .locator('#main-content [data-testid="reports-most-recent"]')
+      .innerText()
+  }
+
+  /**
    * The paragraph the page renders in place of the table when there is
    * nothing to report on.
    * @returns {import('@playwright/test').Locator}
