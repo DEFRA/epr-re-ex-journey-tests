@@ -106,26 +106,33 @@ Everything else you'll see in a test title (`@delPRNExp`, `@summaryLogReprocesso
 
 A journey test earns its confidence by resembling what a user does, so a spec reads like the user's story: land on an entry page, follow the links and buttons, and check what the page now shows. Playwright's user-facing locators (`getByRole`, `getByLabel`, `getByText`) are the default.
 
-**Find elements by what the user perceives.** Role and accessible name first: `getByRole('button', { name: 'Continue' })`, `getByRole('link', { name: 'Reports' })`, `getByRole('heading', { name: 'Upload your summary log' })`. Then `getByLabel` for a form field and `getByText` for other visible text. GOV.UK components fit this: a radio or checkbox is found by its label, the error summary is the `alert` whose heading is "There is a problem", the notification banner is a `region` named by its title, or an `alert` when it is the success variant. Reach for a `data-testid`, an id, a `govuk-*` class or an `nth-child` only when no user-facing query can express the target. A role query that finds nothing usually means a screen reader user could not find it either, so fix the page rather than write the selector.
+**Find elements by what the user perceives.** Role and accessible name first: `getByRole('button', { name: 'Continue' })`, `getByRole('link', { name: 'Reports' })`, `getByRole('heading', { name: 'Upload your summary log' })`. Then `getByLabel` for a form field and `getByText` for other visible text. GOV.UK components fit this: a radio or checkbox is found by its label, the error summary is `getByRole('alert')` with its heading "There is a problem" inside it, the notification banner is named by its title and is a `region`, or an `alert` when it is the success variant. Reach for a `data-testid`, an id, a `govuk-*` class or an `nth-child` only when no user-facing query can express the target. A role query that finds nothing usually means a screen reader user could not find it either, so raise it with the app that owns the page rather than write the selector. The bar applies wherever the locator lives, page objects included.
 
 **Navigate the way the user does.** Open the entry page, then click through. A `page.goto` deep into a journey skips the journey the spec claims to cover; keep it for the entry point and for a page the user would genuinely reach by URL.
 
 **Assert on what the user sees.** The heading of the page you arrived on, the row in the table, the error message, the confirmation panel. Not the URL, not a cookie, not a data attribute. Assert a URL only when the URL is itself the user-facing thing, such as a page they would bookmark or be sent a link to.
 
-**Wait for user-visible state.** `await expect(locator).toBeVisible()` on the heading or message you expect, not `waitForURL` or a network response.
+**Wait for user-visible state.** `await expect(locator).toBeVisible()` on the heading or message you expect, not `waitForURL` or a network response. The default expect timeout is five seconds, so pass one when the page is waiting on processing, such as a summary log being checked.
 
 ```js
 // reaches past the user
-await page.goto(`/organisations/${refNo}/summary-logs/upload`)
-await page.locator('[data-testid="upload-button"]').click()
-await expect(page).toHaveURL(/\/summary-logs\/check/)
+await page.goto(
+  `/organisations/${orgId}/registrations/${regId}/summary-logs/upload`
+)
+await page.locator('#summary-log-upload').setInputFiles(filePath)
+await page.locator('button[type=submit]').click()
+await expect(page).toHaveURL(/\/summary-logs\/.+\/check/)
 
-// what the user does and sees
-await page.getByRole('link', { name: 'Upload a summary log' }).click()
-await page.getByRole('button', { name: 'Upload' }).click()
+// what the user does and sees, from the page sign-in landed on
+await page.getByRole('link', { name: 'Upload your summary log' }).click()
+await page.getByLabel('Choose XLSX file').setInputFiles(filePath)
+await page.getByRole('button', { name: 'Continue' }).click()
 await expect(
-  page.getByRole('heading', { name: 'Check your summary log' })
+  page.getByRole('heading', { name: 'Your summary log is being checked' })
 ).toBeVisible()
+await expect(
+  page.getByRole('heading', { name: 'Upload your summary log' })
+).toBeVisible({ timeout: 30_000 })
 ```
 
 ### Running with Proxy
