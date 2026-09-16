@@ -103,9 +103,7 @@ class AccreditationDetailsPage extends Page {
    * @returns {import('@playwright/test').Locator}
    */
   reportsDetailedViewLink() {
-    return this.page.locator(
-      '#main-content [data-testid="reports-detailed-view-link"]'
-    )
+    return this.page.getByRole('button', { name: 'View all reports' })
   }
 
   /**
@@ -143,9 +141,7 @@ class AccreditationDetailsPage extends Page {
    * @returns {import('@playwright/test').Locator}
    */
   prnsDetailedViewLink() {
-    return this.page.locator(
-      '#main-content [data-testid="prns-detailed-view-link"]'
-    )
+    return this.page.getByRole('button', { name: /^View all (PRNs|PERNs)$/ })
   }
 
   /**
@@ -205,6 +201,14 @@ class AccreditationDetailsPage extends Page {
    */
   noPrnsMessage() {
     return this.page.locator('#main-content [data-testid="no-prns-summary"]')
+  }
+
+  /**
+   * A link rather than a button, so changeControlCount() stays at zero.
+   * @returns {import('@playwright/test').Locator}
+   */
+  ledgerDetailedViewLink() {
+    return this.page.getByRole('button', { name: 'View all ledger events' })
   }
 
   /**

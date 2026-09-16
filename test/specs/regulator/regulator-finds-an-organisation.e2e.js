@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 
+import { AccreditationDetailsPage } from 'page-objects/regulator/accreditation.details.page'
 import { PRNDashboardPage } from 'page-objects/prn.dashboard.page'
 import { PRNViewPage } from 'page-objects/prn.view.page'
 import { PrnsDetailedViewPage } from 'page-objects/regulator/prns.detailed-view.page'
@@ -39,6 +40,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     const homePage = new RegulatorHomePage(page)
     const organisationPage = new RegulatorOrganisationPage(page)
     const detailsPage = new RegistrationDetailsPage(page)
+    const accreditationPage = new AccreditationDetailsPage(page)
     const prnListPage = new PRNDashboardPage(page)
     const prnViewPage = new PRNViewPage(page)
     const prnsPage = new PrnsDetailedViewPage(page)
@@ -228,10 +230,13 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     // The waste balance ledger is the third thing a regulator reads of this
     // registration. It is filed on the accreditation the balance belongs to,
-    // beneath that accreditation's reports. The seed submitted a summary log
-    // and drew two notes against the balance it credited, so every one of
-    // those movements is here.
+    // which shows the most recent events only - so the whole record is read on
+    // the page behind that section's link. The seed submitted a summary log and
+    // drew two notes against the balance it credited, so every one of those
+    // movements is here.
     await page.goto(accreditationUrl)
+
+    await accreditationPage.ledgerDetailedViewLink().click()
 
     await expect(ledgerPage.heading()).toBeVisible()
 
