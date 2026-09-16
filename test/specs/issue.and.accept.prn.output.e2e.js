@@ -145,8 +145,8 @@ test.describe('Issuing Packing Recycling Notes', () => {
     await expect(currentPage).toHaveTitle(/Signed out/)
 
     // A regulator holds no PRN id of their own to build a path from, so they
-    // reach the same PRN by two routes: the balance it moved on the
-    // accreditation, and the PRN dashboard filed beneath that accreditation.
+    // reach the same PRN by two routes: the accreditation's waste balance
+    // ledger, and the PRN dashboard filed beneath that accreditation.
     const regulatorLoginPage = new RegulatorLoginPage(currentPage)
     const regulatorHomePage = new RegulatorHomePage(currentPage)
     const regulatorDashboardPage = new DashboardPage(currentPage)
@@ -196,8 +196,10 @@ test.describe('Issuing Packing Recycling Notes', () => {
     expect(await accreditationDetailsPage.changeControlCount()).toBe(0)
 
     // The waste balance ledger is the accreditation's own record of the PRN's
-    // whole life. It shares the accreditation page above rather than a route
-    // of its own, so no navigation is needed to reach it.
+    // whole life. The accreditation page above shows its most recent events
+    // only, so the whole record is read on the page behind that section's link.
+    await accreditationDetailsPage.ledgerDetailedViewLink().click()
+
     await expect(ledgerPage.heading()).toBeVisible()
 
     const ledgerEvents = await ledgerPage.eventRows()

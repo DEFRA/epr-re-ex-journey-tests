@@ -9,6 +9,7 @@ import { RegisteredOnlyPeriodPage } from 'page-objects/regulator/registered-only
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
+import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page'
 import { SEEDED_VALID_FROM } from '../../support/seeding/organisation.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
 
@@ -32,6 +33,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     const accreditationPage = new AccreditationDetailsPage(page)
     const prnsPage = new PrnsDetailedViewPage(page)
     const reportsPage = new ReportsDetailedViewPage(page)
+    const ledgerPage = new WasteBalanceLedgerPage(page)
     const prnViewPage = new PRNViewPage(page)
     const registeredOnlyPage = new RegisteredOnlyPeriodPage(page)
 
@@ -388,6 +390,41 @@ test.describe('A regulator reading a registration @regulator', () => {
     expect(await prnsPage.backLink().count()).toBe(0)
 
     await prnsPage.crumbLink('Accreditation details').click()
+    expect(new URL(page.url()).pathname).toBe(
+      new URL(accreditationUrl).pathname
+    )
+
+    // The ledger the balance above moved in. The seed made five movements and
+    // the section shows the most recent events only, so what is here is the
+    // cap rather than the whole record.
+    const ledgerEvents = await ledgerPage.eventRows()
+
+    expect(ledgerEvents).toHaveLength(3)
+
+    await accreditationPage.ledgerDetailedViewLink().click()
+
+    // The caption sits inside the h1, so the heading carries it.
+    const ledgerHeading = ledgerPage.heading()
+    await expect(ledgerHeading).toContainText(seeded.companyName)
+    await expect(ledgerHeading).toContainText(seeded.registrationNumber)
+    await expect(ledgerHeading).toContainText(seeded.accreditationNumber)
+
+    expect(await ledgerPage.breadcrumbs()).toStrictEqual([
+      'All organisations',
+      seeded.companyName,
+      'Registration details',
+      'Accreditation details',
+      'Waste balance ledger'
+    ])
+
+    // Uncapped, so it holds at least what the section did.
+    const allLedgerEvents = await ledgerPage.eventRows()
+    expect(allLedgerEvents.length).toBeGreaterThanOrEqual(ledgerEvents.length)
+
+    // A regulator page offers breadcrumbs or a back link, never both.
+    expect(await ledgerPage.backLink().count()).toBe(0)
+
+    await ledgerPage.crumbLink('Accreditation details').click()
     expect(new URL(page.url()).pathname).toBe(
       new URL(accreditationUrl).pathname
     )

@@ -5,9 +5,11 @@ const LEDGER_TABLE =
 
 class WasteBalanceLedgerPage extends Page {
   /**
-   * The heading the ledger sits under. It shares the accreditation page with
-   * that page's own title and with the reports above it, so it is found by
-   * what it says rather than by its level or its place on the page.
+   * The heading the ledger sits under, on the accreditation page's capped
+   * section and on the ledger page alike. On the accreditation page it shares
+   * the page with that page's own title and with the reports above it, so it
+   * is found by what it says rather than by its level or its place on the
+   * page.
    *
    * @returns {import('@playwright/test').Locator}
    */
