@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test'
 
 import { MarketInsightsPage } from 'page-objects/regulator/market-insights.page'
+import { MarketInsightsUkPage } from 'page-objects/regulator/market-insights-uk.page'
+import { MarketInsightsWasteBalancePage } from 'page-objects/regulator/market-insights-waste-balance.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import {
@@ -29,12 +31,24 @@ const MONTHS_OF_THE_YEAR = [
   'December'
 ]
 
-// A tonnage as the page states one: two decimal places, and thousands grouped.
-const TONNAGE = /^-?\d{1,3}(,\d{3})*\.\d{2}$/
+// An amount as every page states one: two decimal places, and thousands
+// grouped.
+const AMOUNT = String.raw`-?\d{1,3}(,\d{3})*\.\d{2}`
+
+// A tonnage as the waste balance states one.
+const TONNAGE = new RegExp(`^${AMOUNT}$`)
+
+// A figure as the reprocessor and exporter tables state one, which is a
+// tonnage or a sum of money.
+const FIGURE = new RegExp(`^£?${AMOUNT}$`)
 
 // A report count as the page states one: how many were submitted of how many
 // were expected.
 const REPORT_COUNT = /^\d+ of \d+$/
+
+// The period the figures cover, as the heading states it above the page's own
+// name, with the reporting year on the end.
+const PERIOD = /^[A-Z][a-z]+( to [A-Z][a-z]+)? (\d{4})$/
 
 // When a set of figures was taken, as the page stamps it.
 const DATA_TAKEN_AT = /^Data taken at .+ on .+$/
@@ -48,15 +62,17 @@ const DATA_TAKEN_AT = /^Data taken at .+ on .+$/
 const asNumber = (figure) => Number(figure.replaceAll(',', ''))
 
 test.describe('A regulator reading market insights @regulator', () => {
-  test('follows the link out of the regulator area and reads the waste balance figures @regulatorMarketInsights', async ({
+  test('follows the link out of the regulator area and reads each set of published figures @regulatorMarketInsights', async ({
     page
   }) => {
     const homePage = new RegulatorHomePage(page)
     const loginPage = new RegulatorLoginPage(page)
     const marketInsightsPage = new MarketInsightsPage(page)
+    const wasteBalancePage = new MarketInsightsWasteBalancePage(page)
+    const ukPage = new MarketInsightsUkPage(page)
     const violations = []
 
-    await tagAccessibilityTest('Regulator Market insights page')
+    await tagAccessibilityTest('Regulator Market insights pages')
 
     // The figures are the UK's rather than one operator's, so the seed is not
     // asserted back by name. What it is here for is tonnage: a summary log
@@ -70,32 +86,41 @@ test.describe('A regulator reading market insights @regulator', () => {
     expect(await homePage.getHeadingText()).toBe('All organisations')
 
     // Typing the address is not the journey. The regulator area offering the
-    // link is the only way a regulator finds the page at all.
+    // link is the only way a regulator finds the pages at all.
     await homePage.marketInsightsLink().click()
 
-    await expect(page).toHaveURL(/\/regulators\/market-insights$/)
+    expect(await marketInsightsPage.headingText()).toContain('Market insights')
+
+    // Each set of figures the publication carries gets its own page, and this
+    // one is how a regulator reaches any of them.
+    expect(await marketInsightsPage.figureSetNames()).toEqual([
+      'UK waste balance',
+      'Reprocessor and exporter figures: UK'
+    ])
+
+    violations.push(
+      ...(await scanPageForAccessibilityViolations(
+        page,
+        'Regulator market insights'
+      ))
+    )
+
+    await marketInsightsPage.figureSetLink('UK waste balance').click()
 
     // The caption renders inside the heading, so it comes back with it. The
     // two are pinned apart: the words the page calls itself by here, and the
     // period below.
-    expect(await marketInsightsPage.headingText()).toContain('Market insights')
+    expect(await wasteBalancePage.headingText()).toContain('UK waste balance')
 
-    expect(await marketInsightsPage.captionText()).toMatch(
-      /^[A-Z][a-z]+( to [A-Z][a-z]+)? \d{4}$/
-    )
+    // The heading says which months the figures cover and the stamp says when
+    // they were taken, which a regulator holding the page beside the published
+    // workbook reads to tell whether the two were cut over the same span.
+    const period = await wasteBalancePage.periodText()
 
-    // Collecting the stamps that fail names them in the failure instead of
-    // reporting that one of them did.
-    const dataTakenAt = await marketInsightsPage.dataTakenAtTexts()
+    expect(period).toMatch(PERIOD)
+    expect(await wasteBalancePage.dataTakenAtText()).toMatch(DATA_TAKEN_AT)
 
-    expect(dataTakenAt.length).toBeGreaterThan(0)
-    expect(dataTakenAt.filter((stamp) => !DATA_TAKEN_AT.test(stamp))).toEqual(
-      []
-    )
-
-    expect(await marketInsightsPage.tableCaptionText()).toBe('Waste balance')
-
-    const headings = await marketInsightsPage.columnHeadings()
+    const headings = await wasteBalancePage.columnHeadings()
     const months = headings.slice(2, -1)
 
     expect([headings[0], headings[1], headings.at(-1)]).toEqual([
@@ -112,15 +137,13 @@ test.describe('A regulator reading market insights @regulator', () => {
     // The seeded operator reprocesses, so its tonnage reaches the page under
     // that accreditation type. Other journeys seed their own operators while
     // this one runs, so the column is read whole rather than by row.
-    expect(await marketInsightsPage.accreditationTypes()).toContain(
-      'Reprocessor'
-    )
+    expect(await wasteBalancePage.accreditationTypes()).toContain('Reprocessor')
 
     // Every cell states a tonnage to two decimal places, grouped in thousands,
     // including the months a row credited nothing, which the publication
     // prints as zero rather than leaving blank. Collecting the cells that fail
     // names them in the failure instead of reporting that one of them did.
-    const figures = await marketInsightsPage.figures()
+    const figures = await wasteBalancePage.figures()
 
     expect(figures.filter((figure) => !TONNAGE.test(figure))).toEqual([])
 
@@ -132,7 +155,7 @@ test.describe('A regulator reading market insights @regulator', () => {
     // expected the figures include, and the period says the same under the
     // total, so a thin month can be told from one whose reporters have not
     // all filed.
-    const reportCounts = await marketInsightsPage.reportCounts()
+    const reportCounts = await wasteBalancePage.reportCounts()
 
     expect(reportCounts).toHaveLength(months.length + 1)
     expect(reportCounts.filter((count) => !REPORT_COUNT.test(count))).toEqual(
@@ -142,7 +165,51 @@ test.describe('A regulator reading market insights @regulator', () => {
     violations.push(
       ...(await scanPageForAccessibilityViolations(
         page,
-        'Regulator market insights'
+        'Regulator market insights waste balance'
+      ))
+    )
+
+    // The trail back is the only way on to the other sets of figures, so the
+    // journey walks it rather than addressing the next page directly.
+    await wasteBalancePage.crumbLink('Market insights').click()
+    await marketInsightsPage
+      .figureSetLink('Reprocessor and exporter figures: UK')
+      .click()
+
+    expect(await ukPage.headingText()).toContain(
+      'Reprocessor and exporter figures'
+    )
+
+    // Both pages cover the period the clock decides, so the figures a
+    // regulator reads here are the ones the waste balance was cut over.
+    expect(await ukPage.periodText()).toBe(period)
+    expect(await ukPage.dataTakenAtText()).toMatch(DATA_TAKEN_AT)
+
+    // Every month of the period brings a reprocessor table and an exporter
+    // table, each naming the month it covers. Naming the whole set is what
+    // catches a month that arrived twice or not at all, which counting them
+    // would not.
+    const year = /** @type {RegExpMatchArray} */ (period.match(PERIOD))[2]
+
+    expect(await ukPage.tableCaptions()).toEqual(
+      months.flatMap((month) => [
+        `Reprocessor data for ${month} ${year}`,
+        `Exporter data for ${month} ${year}`
+      ])
+    )
+
+    // Every cell states a tonnage or a sum of money, including the ones
+    // nothing was reported against, which the publication prints as zero
+    // rather than leaving blank.
+    const ukFigures = await ukPage.figures()
+
+    expect(ukFigures.length).toBeGreaterThan(0)
+    expect(ukFigures.filter((figure) => !FIGURE.test(figure))).toEqual([])
+
+    violations.push(
+      ...(await scanPageForAccessibilityViolations(
+        page,
+        'Regulator market insights UK figures'
       ))
     )
 
