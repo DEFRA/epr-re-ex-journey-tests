@@ -104,7 +104,7 @@ Everything else you'll see in a test title (`@delPRNExp`, `@summaryLogReprocesso
 
 ### Writing a spec
 
-A journey test earns its confidence by resembling what a user does, so a spec reads like the user's story: land on an entry page, follow the links and buttons, and check what the page now shows. Playwright's user-facing locators (`getByRole`, `getByLabel`, `getByText`) are the default.
+A journey test earns its confidence by resembling what a user does. A spec that reaches past the user, to a test id, a deep link or a URL check, can pass while the user is stuck: the button is mislabelled, the link is missing, the page at the right address is an error. So a spec reads like the user's story: land on an entry page, follow the links and buttons, and check what the page now shows, using Playwright's user-facing locators (`getByRole`, `getByLabel`, `getByText`).
 
 **Find elements by what the user perceives.** Role and accessible name first: `getByRole('button', { name: 'Continue' })`, `getByRole('link', { name: 'Reports' })`, `getByRole('heading', { name: 'Upload your summary log' })`. Then `getByLabel` for a form field and `getByText` for other visible text. Reach for a `data-testid`, an id, a `govuk-*` class or an `nth-child` only when no user-facing query can express the target. A role query that finds nothing usually means a screen reader user could not find it either, so raise it with the app that owns the page rather than write the selector. The bar applies wherever the locator lives, page objects included.
 
@@ -116,12 +116,10 @@ A journey test earns its confidence by resembling what a user does, so a spec re
 
 ```js
 // reaches past the user
-await page.goto(
-  `/organisations/${orgId}/registrations/${regId}/summary-logs/upload`
-)
+await page.goto(`/registrations/${regId}/summary-logs/upload`)
 await page.locator('#summary-log-upload').setInputFiles(filePath)
 await page.locator('button[type=submit]').click()
-await expect(page).toHaveURL(/\/summary-logs\/.+\/check/)
+await expect(page).toHaveURL(/\/summary-logs\/check/)
 
 // what the user does and sees
 await page.getByRole('link', { name: 'Upload your summary log' }).click()
