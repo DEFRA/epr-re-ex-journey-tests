@@ -36,6 +36,9 @@ const TONNAGE = /^-?\d{1,3}(,\d{3})*\.\d{2}$/
 // were expected.
 const REPORT_COUNT = /^\d+ of \d+$/
 
+// When a set of figures was taken, as the page stamps it.
+const DATA_TAKEN_AT = /^Data taken at .+ on .+$/
+
 /**
  * The value a stated tonnage carries. The grouping is there to be read rather
  * than parsed, so it comes out before the number does.
@@ -77,15 +80,17 @@ test.describe('A regulator reading market insights @regulator', () => {
     // period below.
     expect(await marketInsightsPage.headingText()).toContain('Market insights')
 
-    // Both lines say which figures these are: the months they cover, and the
-    // moment they were taken. A regulator holding the page beside the
-    // published workbook reads them to tell whether the two were cut over the
-    // same span.
     expect(await marketInsightsPage.captionText()).toMatch(
       /^[A-Z][a-z]+( to [A-Z][a-z]+)? \d{4}$/
     )
-    expect(await marketInsightsPage.dataTakenAtText()).toMatch(
-      /^Data taken at .+ on .+$/
+
+    // Collecting the stamps that fail names them in the failure instead of
+    // reporting that one of them did.
+    const dataTakenAt = await marketInsightsPage.dataTakenAtTexts()
+
+    expect(dataTakenAt.length).toBeGreaterThan(0)
+    expect(dataTakenAt.filter((stamp) => !DATA_TAKEN_AT.test(stamp))).toEqual(
+      []
     )
 
     expect(await marketInsightsPage.tableCaptionText()).toBe('Waste balance')

@@ -19,6 +19,9 @@ const FIRST_FIGURE_CELL = 3
 // those due. Its header spans the two columns that name every other row.
 const REPORTS_ROW_HEADER = 'Monthly reports submitted'
 
+// How every set of figures on the page stamps the moment it was taken.
+const DATA_TAKEN_AT = /^Data taken at /
+
 class MarketInsightsPage extends Page {
   /**
    * The months the figures cover. The caption's size is the design's to
@@ -31,11 +34,13 @@ class MarketInsightsPage extends Page {
 
   /**
    * When the figures were taken, which a regulator holding the page beside the
-   * workbook reads to tell whether the two were cut over the same span.
-   * @returns {Promise<string>}
+   * workbook reads to tell whether the two were cut over the same span. The
+   * page states one of these per set of figures it serves, so they are read
+   * together.
+   * @returns {Promise<string[]>}
    */
-  async dataTakenAtText() {
-    return this.page.locator('main p.govuk-body-s').innerText()
+  async dataTakenAtTexts() {
+    return this.page.getByText(DATA_TAKEN_AT).allInnerTexts()
   }
 
   /**
