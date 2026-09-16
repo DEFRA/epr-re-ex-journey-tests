@@ -15,8 +15,8 @@ test.describe('Deleting Packing Recycling Notes (Exporter)', () => {
       accNumber,
       seedOverseasSites: true,
       summaryLogFilePath: `resources/sanity/exporter_${accNumber}_${regNumber}.xlsx`,
-      expectedWasteBalance: '1,580.71 tonnes',
-      expectedDeductedWasteBalance: '1,377.71 tonnes',
+      expectedWasteBalance: '1,580.71',
+      expectedDeductedWasteBalance: '1,377.71',
       isPern: true,
       createNewLinkName: 'createNewPERNLink',
       manageLinkName: 'managePERNsLink'
