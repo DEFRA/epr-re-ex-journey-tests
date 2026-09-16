@@ -13,6 +13,7 @@ separate journey-test repos, one per app.
     - [Mise](#mise)
   - [Setup](#setup)
   - [Running local tests](#running-local-tests)
+  - [Writing a spec](#writing-a-spec)
   - [Running with Proxy](#running-with-proxy)
   - [Feature flags in journey tests](#feature-flags-in-journey-tests)
   - [Generating test organisation data](#generating-test-organisation-data)
@@ -100,6 +101,32 @@ Tags are for `--grep` spec selection, not documentation. Every tag is camelCase 
 - `@extTestOnly` - specs that only work against the ext-test environment, typically because they sign in through a real, non-stubbed identity provider that's only wired up there (see the Defra ID note in `test/config/config.js`). These still guard themselves with a runtime `test.skip` keyed off `process.env.ENVIRONMENT`, so an accidental run elsewhere skips rather than fails - the tag is for selecting or excluding this slice by concern (e.g. `GREP='@extTestOnly'`), not a substitute for the runtime guard.
 
 Everything else you'll see in a test title (`@delPRNExp`, `@summaryLogReprocessorInput`, `@registrationTransitions`, ...) is a free-form, per-spec grep handle, not a category: `--grep` matches title text, so a short unique word lets you target one spec or scenario (see the `GREP=` examples above) without needing to type its full sentence. Beyond the shared camelCase rule, these aren't standardized - they aren't guaranteed to mean anything outside their own file, and shouldn't be used to select CI runs by concern - only the category tags above are held to that bar. `@admin` used to be one of these masquerading as a category (tagging 2 of the many specs under `specs/admin/`, duplicating what the path-based `test:local:admin` script already selects); it's been retired rather than fixed, since nothing needed the extra selector once you had the path.
+
+### Writing a spec
+
+A journey test earns its confidence by resembling what a user does, so a spec reads like the user's story: land on an entry page, follow the links and buttons, and check what the page now shows. Playwright's user-facing locators (`getByRole`, `getByLabel`, `getByText`) are the default.
+
+**Find elements by what the user perceives.** Role and accessible name first: `getByRole('button', { name: 'Continue' })`, `getByRole('link', { name: 'Reports' })`, `getByRole('heading', { name: 'Upload your summary log' })`. Then `getByLabel` for a form field and `getByText` for other visible text. GOV.UK components fit this: a radio or checkbox is found by its label, the error summary is the `alert` whose heading is "There is a problem", the notification banner is a `region` named by its title, or an `alert` when it is the success variant. Reach for a `data-testid`, an id, a `govuk-*` class or an `nth-child` only when no user-facing query can express the target. A role query that finds nothing usually means a screen reader user could not find it either, so fix the page rather than write the selector.
+
+**Navigate the way the user does.** Open the entry page, then click through. A `page.goto` deep into a journey skips the journey the spec claims to cover; keep it for the entry point and for a page the user would genuinely reach by URL.
+
+**Assert on what the user sees.** The heading of the page you arrived on, the row in the table, the error message, the confirmation panel. Not the URL, not a cookie, not a data attribute. Assert a URL only when the URL is itself the user-facing thing, such as a page they would bookmark or be sent a link to.
+
+**Wait for user-visible state.** `await expect(locator).toBeVisible()` on the heading or message you expect, not `waitForURL` or a network response.
+
+```js
+// reaches past the user
+await page.goto(`/organisations/${refNo}/summary-logs/upload`)
+await page.locator('[data-testid="upload-button"]').click()
+await expect(page).toHaveURL(/\/summary-logs\/check/)
+
+// what the user does and sees
+await page.getByRole('link', { name: 'Upload a summary log' }).click()
+await page.getByRole('button', { name: 'Upload' }).click()
+await expect(
+  page.getByRole('heading', { name: 'Check your summary log' })
+).toBeVisible()
+```
 
 ### Running with Proxy
 
