@@ -47,11 +47,11 @@ const FIGURE = new RegExp(`^£?${AMOUNT}$`)
 // were expected.
 const REPORT_COUNT = /^\d+ of \d+$/
 
-// A count of outstanding returns as the page states one: a whole number, and a
+// A count of outstanding reports as the page states one: a whole number, and a
 // zero where nothing is outstanding rather than a blank.
 const OUTSTANDING_COUNT = /^\d+$/
 
-// The tonnage bands every outstanding returns table states down its side, in
+// The tonnage bands every outstanding reports table states down its side, in
 // the order the published tab lists them. Sorting them by their words would
 // put the largest at the top, so the order is asserted rather than the set.
 const TONNAGE_BANDS = [
@@ -114,7 +114,7 @@ test.describe('A regulator reading market insights @regulator', () => {
     expect(await marketInsightsPage.figureSetNames()).toEqual([
       'UK waste balance',
       'Reprocessor and exporter figures: UK',
-      'Outstanding monthly returns: UK'
+      'Outstanding monthly reports: UK'
     ])
 
     violations.push(
@@ -234,11 +234,11 @@ test.describe('A regulator reading market insights @regulator', () => {
 
     await ukPage.crumbLink('Market insights').click()
     await marketInsightsPage
-      .figureSetLink('Outstanding monthly returns: UK')
+      .figureSetLink('Outstanding monthly reports: UK')
       .click()
 
     expect(await outstandingReturnsPage.headingText()).toContain(
-      'Outstanding monthly returns'
+      'Outstanding monthly reports'
     )
 
     // Every set of figures covers the period the clock decides, so this page
@@ -256,7 +256,7 @@ test.describe('A regulator reading market insights @regulator', () => {
     expect(captions.length).toBeGreaterThan(0)
     expect(
       captions.filter(
-        (caption) => !caption.startsWith('Returns not submitted for ')
+        (caption) => !caption.startsWith('Reports not submitted for ')
       )
     ).toEqual([])
 
@@ -281,7 +281,7 @@ test.describe('A regulator reading market insights @regulator', () => {
     violations.push(
       ...(await scanPageForAccessibilityViolations(
         page,
-        'Regulator market insights outstanding returns'
+        'Regulator market insights outstanding reports'
       ))
     )
 

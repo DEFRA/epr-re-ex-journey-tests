@@ -1,7 +1,7 @@
 import { MarketInsightsFiguresPage } from 'page-objects/regulator/market-insights-figures.page'
 
 /**
- * The count of monthly returns owed and not submitted, laid out the way the
+ * The count of monthly reports owed and not submitted, laid out the way the
  * published tab is: a table per material, the tonnage bands down the side and
  * the reporting months across.
  */
