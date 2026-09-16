@@ -208,6 +208,26 @@ class AccreditationDetailsPage extends Page {
   }
 
   /**
+   * A link rather than a button, so changeControlCount() stays at zero.
+   * @returns {import('@playwright/test').Locator}
+   */
+  ledgerDetailedViewLink() {
+    return this.page.locator(
+      '#main-content [data-testid="ledger-detailed-view-link"]'
+    )
+  }
+
+  /**
+   * The line naming how many events the table below it shows.
+   * @returns {Promise<string>}
+   */
+  async ledgerSubheadingText() {
+    return this.page
+      .locator('#main-content [data-testid="ledger-most-recent"]')
+      .innerText()
+  }
+
+  /**
    * @returns {Promise<number>}
    */
   async changeControlCount() {
