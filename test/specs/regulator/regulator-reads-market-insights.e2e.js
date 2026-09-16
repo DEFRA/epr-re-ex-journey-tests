@@ -84,12 +84,8 @@ test.describe('A regulator reading market insights @regulator', () => {
       /^[A-Z][a-z]+( to [A-Z][a-z]+)? \d{4}$/
     )
 
-    // The caption says which months the figures cover and the stamps say when
-    // they were taken, which a regulator holding the page beside the published
-    // workbook reads to tell whether the two were cut over the same span. Each
-    // set of figures the page serves stamps its own moment, so they are read
-    // together. Collecting the ones that fail names them in the failure
-    // instead of reporting that one of them did.
+    // Collecting the stamps that fail names them in the failure instead of
+    // reporting that one of them did.
     const dataTakenAt = await marketInsightsPage.dataTakenAtTexts()
 
     expect(dataTakenAt.length).toBeGreaterThan(0)
