@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 import { MarketInsightsPage } from 'page-objects/regulator/market-insights.page'
+import { MarketInsightsOutstandingReturnsPage } from 'page-objects/regulator/market-insights-outstanding-returns.page'
 import { MarketInsightsUkPage } from 'page-objects/regulator/market-insights-uk.page'
 import { MarketInsightsWasteBalancePage } from 'page-objects/regulator/market-insights-waste-balance.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
@@ -46,6 +47,20 @@ const FIGURE = new RegExp(`^£?${AMOUNT}$`)
 // were expected.
 const REPORT_COUNT = /^\d+ of \d+$/
 
+// A count of outstanding returns as the page states one: a whole number, and a
+// zero where nothing is outstanding rather than a blank.
+const OUTSTANDING_COUNT = /^\d+$/
+
+// The tonnage bands every outstanding returns table states down its side, in
+// the order the published tab lists them. Sorting them by their words would
+// put the largest at the top, so the order is asserted rather than the set.
+const TONNAGE_BANDS = [
+  'Up to 500 tonnes',
+  'Up to 5,000 tonnes',
+  'Up to 10,000 tonnes',
+  'Over 10,000 tonnes'
+]
+
 // The period the figures cover, as the heading states it above the page's own
 // name, with the reporting year on the end.
 const PERIOD = /^[A-Z][a-z]+( to [A-Z][a-z]+)? (\d{4})$/
@@ -70,6 +85,9 @@ test.describe('A regulator reading market insights @regulator', () => {
     const marketInsightsPage = new MarketInsightsPage(page)
     const wasteBalancePage = new MarketInsightsWasteBalancePage(page)
     const ukPage = new MarketInsightsUkPage(page)
+    const outstandingReturnsPage = new MarketInsightsOutstandingReturnsPage(
+      page
+    )
     const violations = []
 
     await tagAccessibilityTest('Regulator Market insights pages')
@@ -95,7 +113,8 @@ test.describe('A regulator reading market insights @regulator', () => {
     // one is how a regulator reaches any of them.
     expect(await marketInsightsPage.figureSetNames()).toEqual([
       'UK waste balance',
-      'Reprocessor and exporter figures: UK'
+      'Reprocessor and exporter figures: UK',
+      'Outstanding monthly returns: UK'
     ])
 
     violations.push(
@@ -210,6 +229,59 @@ test.describe('A regulator reading market insights @regulator', () => {
       ...(await scanPageForAccessibilityViolations(
         page,
         'Regulator market insights UK figures'
+      ))
+    )
+
+    await ukPage.crumbLink('Market insights').click()
+    await marketInsightsPage
+      .figureSetLink('Outstanding monthly returns: UK')
+      .click()
+
+    expect(await outstandingReturnsPage.headingText()).toContain(
+      'Outstanding monthly returns'
+    )
+
+    // Every set of figures covers the period the clock decides, so this page
+    // was cut over the span the other two were.
+    expect(await outstandingReturnsPage.periodText()).toBe(period)
+    expect(await outstandingReturnsPage.dataTakenAtText()).toMatch(
+      DATA_TAKEN_AT
+    )
+
+    // A table per material, each one naming the material it counts. Naming
+    // the whole set is what catches a material that arrived twice or not at
+    // all, which counting them would not.
+    const captions = await outstandingReturnsPage.tableCaptions()
+
+    expect(captions.length).toBeGreaterThan(0)
+    expect(
+      captions.filter(
+        (caption) => !caption.startsWith('Returns not submitted for ')
+      )
+    ).toEqual([])
+
+    // Every table carries the same four bands in the same order, and the same
+    // months as the waste balance, so a regulator reads one period across all
+    // three pages.
+    expect(await outstandingReturnsPage.tonnageBands()).toEqual(
+      captions.map(() => TONNAGE_BANDS)
+    )
+    expect(await outstandingReturnsPage.columnHeadings()).toEqual(
+      captions.map(() => ['Tonnage band', ...months])
+    )
+
+    // Every cell states a whole number, including the bands nothing is
+    // outstanding in, which the publication prints as zero rather than
+    // leaving blank.
+    const counts = await outstandingReturnsPage.counts()
+
+    expect(counts.length).toBeGreaterThan(0)
+    expect(counts.filter((count) => !OUTSTANDING_COUNT.test(count))).toEqual([])
+
+    violations.push(
+      ...(await scanPageForAccessibilityViolations(
+        page,
+        'Regulator market insights outstanding returns'
       ))
     )
 
