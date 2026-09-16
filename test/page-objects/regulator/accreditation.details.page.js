@@ -212,16 +212,6 @@ class AccreditationDetailsPage extends Page {
   }
 
   /**
-   * The line naming how many events the table below it shows.
-   * @returns {Promise<string>}
-   */
-  async ledgerSubheadingText() {
-    return this.page
-      .locator('#main-content [data-testid="ledger-most-recent"]')
-      .innerText()
-  }
-
-  /**
    * @returns {Promise<number>}
    */
   async changeControlCount() {

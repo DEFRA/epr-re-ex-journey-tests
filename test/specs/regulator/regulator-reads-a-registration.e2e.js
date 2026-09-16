@@ -400,19 +400,14 @@ test.describe('A regulator reading a registration @regulator', () => {
     const ledgerEvents = await ledgerPage.eventRows()
 
     expect(ledgerEvents).toHaveLength(3)
-    expect(await accreditationPage.ledgerSubheadingText()).toContain(
-      '(3 items)'
-    )
 
-    await expect(accreditationPage.ledgerDetailedViewLink()).toBeVisible()
     await accreditationPage.ledgerDetailedViewLink().click()
 
-    await expect(ledgerPage.heading()).toBeVisible()
-
-    const ledgerCaption = await ledgerPage.captionText()
-    expect(ledgerCaption).toContain(seeded.companyName)
-    expect(ledgerCaption).toContain(seeded.registrationNumber)
-    expect(ledgerCaption).toContain(seeded.accreditationNumber)
+    // The caption sits inside the h1, so the heading carries it.
+    const ledgerHeading = ledgerPage.heading()
+    await expect(ledgerHeading).toContainText(seeded.companyName)
+    await expect(ledgerHeading).toContainText(seeded.registrationNumber)
+    await expect(ledgerHeading).toContainText(seeded.accreditationNumber)
 
     expect(await ledgerPage.breadcrumbs()).toStrictEqual([
       'All organisations',

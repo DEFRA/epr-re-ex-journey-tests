@@ -18,15 +18,6 @@ class WasteBalanceLedgerPage extends Page {
   }
 
   /**
-   * The caption's size is the design's to choose, so any size is read.
-   *
-   * @returns {Promise<string>}
-   */
-  async captionText() {
-    return this.page.locator('h1 [class^="govuk-caption-"]').innerText()
-  }
-
-  /**
    * Every event the ledger holds, newest first, each row keyed by its column
    * heading. The wait settles on the first row, so a ledger that rendered no
    * rows fails here rather than returning an empty list a caller could read
