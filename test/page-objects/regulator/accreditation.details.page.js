@@ -103,7 +103,7 @@ class AccreditationDetailsPage extends Page {
    * @returns {import('@playwright/test').Locator}
    */
   reportsDetailedViewLink() {
-    return this.page.getByRole('link', { name: 'View all reports' })
+    return this.page.getByRole('button', { name: 'View all reports' })
   }
 
   /**
@@ -141,7 +141,7 @@ class AccreditationDetailsPage extends Page {
    * @returns {import('@playwright/test').Locator}
    */
   prnsDetailedViewLink() {
-    return this.page.getByRole('link', { name: /^View all (PRNs|PERNs)$/ })
+    return this.page.getByRole('button', { name: /^View all (PRNs|PERNs)$/ })
   }
 
   /**
@@ -208,7 +208,7 @@ class AccreditationDetailsPage extends Page {
    * @returns {import('@playwright/test').Locator}
    */
   ledgerDetailedViewLink() {
-    return this.page.getByRole('link', { name: 'View all ledger events' })
+    return this.page.getByRole('button', { name: 'View all ledger events' })
   }
 
   /**
