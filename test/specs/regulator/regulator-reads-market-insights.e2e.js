@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 
 import { MarketInsightsPage } from 'page-objects/regulator/market-insights.page'
 import { MarketInsightsOutstandingReturnsPage } from 'page-objects/regulator/market-insights-outstanding-returns.page'
-import { MarketInsightsUkPage } from 'page-objects/regulator/market-insights-uk.page'
+import { MarketInsightsReprocessorExporterPage } from 'page-objects/regulator/market-insights-reprocessor-exporter.page'
 import { MarketInsightsWasteBalancePage } from 'page-objects/regulator/market-insights-waste-balance.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
@@ -84,7 +84,9 @@ test.describe('A regulator reading market insights @regulator', () => {
     const loginPage = new RegulatorLoginPage(page)
     const marketInsightsPage = new MarketInsightsPage(page)
     const wasteBalancePage = new MarketInsightsWasteBalancePage(page)
-    const ukPage = new MarketInsightsUkPage(page)
+    // One reader for both figures pages. Nothing binds an instance to an
+    // address, so it reads whichever of them the journey is standing on.
+    const figuresPage = new MarketInsightsReprocessorExporterPage(page)
     const outstandingReturnsPage = new MarketInsightsOutstandingReturnsPage(
       page
     )
@@ -114,6 +116,7 @@ test.describe('A regulator reading market insights @regulator', () => {
     expect(await marketInsightsPage.figureSetNames()).toEqual([
       'UK waste balance',
       'Reprocessor and exporter figures: UK',
+      'Reprocessor and exporter figures: England',
       'Outstanding monthly reports: UK'
     ])
 
@@ -195,14 +198,14 @@ test.describe('A regulator reading market insights @regulator', () => {
       .figureSetLink('Reprocessor and exporter figures: UK')
       .click()
 
-    expect(await ukPage.headingText()).toContain(
-      'Reprocessor and exporter figures'
+    expect(await figuresPage.headingText()).toContain(
+      'Reprocessor and exporter figures: UK'
     )
 
     // Both pages cover the period the clock decides, so the figures a
     // regulator reads here are the ones the waste balance was cut over.
-    expect(await ukPage.periodText()).toBe(period)
-    expect(await ukPage.dataTakenAtText()).toMatch(DATA_TAKEN_AT)
+    expect(await figuresPage.periodText()).toBe(period)
+    expect(await figuresPage.dataTakenAtText()).toMatch(DATA_TAKEN_AT)
 
     // Every month of the period brings a reprocessor table and an exporter
     // table, each naming the month it covers. Naming the whole set is what
@@ -210,7 +213,7 @@ test.describe('A regulator reading market insights @regulator', () => {
     // would not.
     const year = /** @type {RegExpMatchArray} */ (period.match(PERIOD))[2]
 
-    expect(await ukPage.tableCaptions()).toEqual(
+    expect(await figuresPage.tableCaptions()).toEqual(
       months.flatMap((month) => [
         `Reprocessor data for ${month} ${year}`,
         `Exporter data for ${month} ${year}`
@@ -220,7 +223,7 @@ test.describe('A regulator reading market insights @regulator', () => {
     // Every cell states a tonnage or a sum of money, including the ones
     // nothing was reported against, which the publication prints as zero
     // rather than leaving blank.
-    const ukFigures = await ukPage.figures()
+    const ukFigures = await figuresPage.figures()
 
     expect(ukFigures.length).toBeGreaterThan(0)
     expect(ukFigures.filter((figure) => !FIGURE.test(figure))).toEqual([])
@@ -232,7 +235,47 @@ test.describe('A regulator reading market insights @regulator', () => {
       ))
     )
 
-    await ukPage.crumbLink('Market insights').click()
+    await figuresPage.crumbLink('Market insights').click()
+    await marketInsightsPage
+      .figureSetLink('Reprocessor and exporter figures: England')
+      .click()
+
+    expect(await figuresPage.headingText()).toContain(
+      'Reprocessor and exporter figures: England'
+    )
+
+    expect(await figuresPage.periodText()).toBe(period)
+    expect(await figuresPage.dataTakenAtText()).toMatch(DATA_TAKEN_AT)
+
+    // Every month of the period brings both tables here too. A nation is a
+    // filter on the figures rather than on the months, so a month that came
+    // back missing would be the service dropping it, not England having
+    // nothing to report in it.
+    expect(await figuresPage.tableCaptions()).toEqual(
+      months.flatMap((month) => [
+        `Reprocessor data for ${month} ${year}`,
+        `Exporter data for ${month} ${year}`
+      ])
+    )
+
+    // Every material is served for every month whether or not anything was
+    // reported into it, so England fills its tables the way the UK figures do
+    // even where it has nothing to report. What lands in the cells depends on
+    // which regulator the seeded operator registered with, which this journey
+    // does not pin, so they are read for their form rather than their value.
+    const englandFigures = await figuresPage.figures()
+
+    expect(englandFigures.length).toBeGreaterThan(0)
+    expect(englandFigures.filter((figure) => !FIGURE.test(figure))).toEqual([])
+
+    violations.push(
+      ...(await scanPageForAccessibilityViolations(
+        page,
+        'Regulator market insights England figures'
+      ))
+    )
+
+    await figuresPage.crumbLink('Market insights').click()
     await marketInsightsPage
       .figureSetLink('Outstanding monthly reports: UK')
       .click()
@@ -242,7 +285,7 @@ test.describe('A regulator reading market insights @regulator', () => {
     )
 
     // Every set of figures covers the period the clock decides, so this page
-    // was cut over the span the other two were.
+    // was cut over the span the others were.
     expect(await outstandingReturnsPage.periodText()).toBe(period)
     expect(await outstandingReturnsPage.dataTakenAtText()).toMatch(
       DATA_TAKEN_AT
@@ -261,8 +304,8 @@ test.describe('A regulator reading market insights @regulator', () => {
     ).toEqual([])
 
     // Every table carries the same four bands in the same order, and the same
-    // months as the waste balance, so a regulator reads one period across all
-    // three pages.
+    // months as the waste balance, so a regulator reads one period across every
+    // page.
     expect(await outstandingReturnsPage.tonnageBands()).toEqual(
       captions.map(() => TONNAGE_BANDS)
     )
