@@ -16,12 +16,22 @@
 x-fake-clock: &fake-clock
   volumes:
     - ./test/support/simulator/clock:/fake-clock:ro
-  environment:
+  environment: &fake-clock-env
     NODE_OPTIONS: --require /fake-clock/fake-clock.cjs
     FAKE_CLOCK_FILE: /fake-clock/clock.txt
 
 services:
-  defra-id-stub: *fake-clock
+  # The stub ages a registration out after three days, a lifetime meant for a
+  # stub rather than for a year of simulated activity. Past that it answers its
+  # sign-in page instead of a redirect, with no error, and re-registering mints
+  # a new Defra ID organisation that has lost the scopes the backend linked.
+  # 400 days in milliseconds.
+  defra-id-stub:
+    <<: *fake-clock
+    environment:
+      <<: *fake-clock-env
+      REGISTRATIONS_STORE_TTL: '34560000000'
+
   entra-stub: *fake-clock
   cognito-stub: *fake-clock
   cdp-uploader: *fake-clock

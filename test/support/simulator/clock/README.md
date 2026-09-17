@@ -48,4 +48,23 @@ Mongo's TTL monitor runs on real time, so it would reap an unsubmitted summary
 log whose simulated expiry is in the real past, within a minute of the upload.
 The override starts mongod with `ttlMonitorEnabled=false`.
 
+The Defra ID stub ages a registration out after three days, a lifetime meant for
+a stub rather than for a year of activity. It reads the clock, so three
+simulated days is all it takes. Past that it answers its sign-in page instead of
+a redirect, with no error, and registering again mints a new Defra ID
+organisation that has lost the scopes the backend linked. The override raises
+`REGISTRATIONS_STORE_TTL` to 400 days.
+
 `npm run test:unit` checks the preload.
+
+## What the clock does not reach
+
+The HTTP `Date` response header stays on real time. Node stamps it from a
+snapshot taken at bootstrap, which replacing the global cannot reach, so the
+header and the log line for the same request disagree. Nothing reads it.
+
+Redis is not a Node process, so its keys expire on real time. The Defra ID
+stub's session keys carry a six-hour real expiry while the stub writes simulated
+timestamps into their contents. A simulated jump never trips this. A run taking
+more than six real hours to execute does, on a schedule that has nothing to do
+with the dates being simulated.
