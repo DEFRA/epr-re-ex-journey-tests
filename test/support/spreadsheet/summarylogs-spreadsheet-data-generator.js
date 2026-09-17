@@ -190,6 +190,8 @@ export async function generateSpreadsheetData(options = {}) {
     logger.level = 'silent'
   }
 
+  let seededAnyRow = false
+
   try {
     logger.info('Reading spreadsheet template...')
 
@@ -226,7 +228,16 @@ export async function generateSpreadsheetData(options = {}) {
       templateFile = filename
     }
 
-    let seededAnyRow = false
+    if (rows !== null) {
+      const renderable = worksheets.map((worksheet) => worksheet.name)
+      for (const worksheetName of Object.keys(rows)) {
+        if (!renderable.includes(worksheetName)) {
+          throw new Error(
+            `A ${wasteProcessingType} workbook has no worksheet named '${worksheetName}'`
+          )
+        }
+      }
+    }
 
     // Create workbook and read the template
     const workbook = new ExcelJS.Workbook()
@@ -313,11 +324,8 @@ export async function generateSpreadsheetData(options = {}) {
 
           if (worksheetConfig) {
             rowData.B = `${plannedRow.rowId ?? worksheetConfig.rowId + rowOffset + i}`
-            worksheetConfig.tonnage?.(rowData)
+            worksheetConfig.tonnage?.(rowData, plannedCells)
           }
-
-          // A planned field is the last word, over the value derived for it.
-          Object.assign(rowData, plannedCells)
 
           // Insert data only into specified columns
           Object.entries(rowData).forEach(([columnLetter, value]) => {
@@ -338,12 +346,6 @@ export async function generateSpreadsheetData(options = {}) {
           `Generated ${plannedRows.length} rows for ${worksheet.name} (rows ${FIRST_DATA_ROW + rowOffset}-${currentRow - 1})`
         )
       }
-    }
-
-    // Leaving faker on a plan's seed would make every later draw in this
-    // process follow from it, including other callers' rows.
-    if (seededAnyRow) {
-      faker.seed()
     }
 
     if (unreadable) {
@@ -380,6 +382,12 @@ export async function generateSpreadsheetData(options = {}) {
     logger.error('Error generating spreadsheet:', error.message)
     logger.error(error.stack)
     throw error
+  } finally {
+    // Leaving faker on a plan's seed would make every later draw in this
+    // process follow from it, including other callers' rows.
+    if (seededAnyRow) {
+      faker.seed()
+    }
   }
 }
 

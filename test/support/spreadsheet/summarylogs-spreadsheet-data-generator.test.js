@@ -139,6 +139,18 @@ describe('summary log spreadsheet generator', () => {
     it('lets a pinned field outrank the value derived for it', () => {
       assert.equal(field(sheet, 'NET_WEIGHT', 8), 12.5)
     })
+
+    it('derives the tonnage from the pinned field, not the value it replaced', () => {
+      const bailingWire = field(sheet, 'BAILING_WIRE_PROTOCOL', 8)
+      const nonTarget = field(sheet, 'WEIGHT_OF_NON_TARGET_MATERIALS', 8)
+      const proportion = field(sheet, 'RECYCLABLE_PROPORTION_PERCENTAGE', 8)
+      const lossAllowance = bailingWire === 'Yes' ? 0.9985 : 1
+
+      assert.equal(
+        field(sheet, 'TONNAGE_RECEIVED_FOR_RECYCLING', 8),
+        (12.5 - nonTarget) * lossAllowance * proportion
+      )
+    })
   })
 
   it('restates a row id the plan repeats, so a later upload amends it', async () => {
@@ -213,6 +225,13 @@ describe('summary log spreadsheet generator', () => {
         rows: { [RECEIVED]: [{ rowId: 1000, fields: { NOT_A_FIELD: 1 } }] }
       }),
       /NOT_A_FIELD/
+    )
+  })
+
+  it('rejects a worksheet this workbook would never render', async () => {
+    await assert.rejects(
+      render({ rows: { 'Received (sections 1 and 2)': [{ rowId: 1000 }] } }),
+      /Received \(sections 1 and 2\)/
     )
   })
 

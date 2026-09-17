@@ -134,9 +134,18 @@ export async function uploadAndValidateSummaryLog(
   return uploaded
 }
 
-// Initiate (backend) → multipart file POST (cdp-uploader), stopping before the
-// outcome. A workbook the service rejects never reaches 'validated', so a
-// caller wanting one waits for the status it expects itself.
+/**
+ * Initiate (backend) → multipart file POST (cdp-uploader), stopping before the
+ * outcome. A workbook the service rejects never reaches 'validated', so a
+ * caller wanting one waits for the status it expects itself.
+ *
+ * @param {string} refNo
+ * @param {string} registrationId
+ * @param {Record<string, string | undefined>} defraAuthHeader
+ * @param {string} filePath
+ * @param {BaseAPI} [baseAPI]
+ * @returns {Promise<{ summaryLogId: string, summaryLogPath: string, baseAPI: BaseAPI }>}
+ */
 export async function uploadSummaryLog(
   refNo,
   registrationId,

@@ -22,6 +22,8 @@ import {
 import { generateSpreadsheetData } from '../support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
 import { WORKSHEET_CONFIG } from '../support/spreadsheet/spreadsheet-config.js'
 
+/** @typedef {import('../support/spreadsheet/summarylogs-spreadsheet-data-generator.js').PlannedRow} PlannedRow */
+
 // Proves the spreadsheet generator against the service it feeds: a workbook
 // rendered from a planned row list validates clean on every stream, and each
 // problem an operator hits in production comes back as its own named outcome.
@@ -95,8 +97,10 @@ async function seedRegistration(stream) {
  *
  * @param {string} wasteProcessingType
  * @param {number} count
+ * @returns {{ rows: Record<string, PlannedRow[]>, rowIds: string }}
  */
 function planRows(wasteProcessingType, count) {
+  /** @type {Record<string, PlannedRow[]>} */
   const rows = {}
   const ids = []
   for (const [worksheet, { rowId }] of Object.entries(
@@ -123,21 +127,63 @@ const RECEIVED_SHEET = 'Received (sections 1, 2 and 3)'
 const PRN_ISSUED_FIELD = 'WERE_PRN_OR_PERN_ISSUED_ON_THIS_WASTE'
 
 /**
+ * Pins fields on the one planned row carrying `rowId`, so a test states the
+ * single thing it is changing about an otherwise ordinary plan.
+ *
+ * @param {Record<string, PlannedRow[]>} rows
+ * @param {string} worksheet
+ * @param {number} rowId
+ * @param {Record<string, string | number>} fields
+ * @returns {Record<string, PlannedRow[]>}
+ */
+function pinFields(rows, worksheet, rowId, fields) {
+  return Object.fromEntries(
+    Object.entries(rows).map(([name, plannedRows]) => [
+      name,
+      name === worksheet
+        ? plannedRows.map((row) =>
+            row.rowId === rowId
+              ? { ...row, fields: { ...row.fields, ...fields } }
+              : row
+          )
+        : plannedRows
+    ])
+  )
+}
+
+/**
  * A reprocessor input plan that renders identically every time: each row drawn
  * from a seed of its own row id, and dated to the given day. That is what lets
  * a later upload restate a row and have only the field the plan changed read
  * as an amendment.
+ *
+ * @param {number} count
+ * @param {string} date
+ * @param {string} prnIssued - the first received row's PRN answer, the one
+ *   field a later upload changes to amend that row
+ * @param {number} [omitRowId] - a row the plan leaves out, as an operator
+ *   deleting a row they have already submitted
+ * @returns {Record<string, PlannedRow[]>}
  */
-function planStableRows(count, date) {
+function planStableRows(count, date, prnIssued, omitRowId) {
   const { rows } = planRows('reprocessorInput', count)
-  for (const [worksheet, plannedRows] of Object.entries(rows)) {
-    for (const row of plannedRows) {
-      row.seed = row.rowId
-      row.fields = { [REPROCESSOR_INPUT_DATE_FIELD[worksheet]]: date }
-    }
-  }
-  rows[RECEIVED_SHEET][0].fields[PRN_ISSUED_FIELD] = 'No'
-  return rows
+  return Object.fromEntries(
+    Object.entries(rows).map(([worksheet, plannedRows]) => [
+      worksheet,
+      plannedRows
+        .filter((row) => row.rowId !== omitRowId)
+        .map((row, index) => ({
+          ...row,
+          seed: row.rowId,
+          fields: {
+            [REPROCESSOR_INPUT_DATE_FIELD[worksheet]]: date,
+            ...(worksheet === RECEIVED_SHEET && index === 0
+              ? { [PRN_ISSUED_FIELD]: prnIssued }
+              : {})
+          }
+        }))
+    ])
+  )
 }
 
 function renderWorkbook(wasteProcessingType, stream, rows, extra = {}) {
@@ -188,8 +234,14 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
 
     const stream = STREAMS.reprocessorInput
     const { refNo, registrationId, authHeader } = await seedRegistration(stream)
-    const { rows } = planRows('reprocessorInput', 3)
-    rows['Received (sections 1, 2 and 3)'][1].fields = { EWC_CODE: '' }
+    const rows = pinFields(
+      planRows('reprocessorInput', 3).rows,
+      RECEIVED_SHEET,
+      1001,
+      {
+        EWC_CODE: ''
+      }
+    )
 
     const workbook = await renderWorkbook('reprocessorInput', stream, rows)
     const { summaryLogPath, baseAPI } = await uploadAndValidateSummaryLog(
@@ -228,10 +280,12 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
 
     const stream = STREAMS.reprocessorInput
     const { refNo, registrationId, authHeader } = await seedRegistration(stream)
-    const { rows } = planRows('reprocessorInput', 3)
-    rows['Received (sections 1, 2 and 3)'][2].fields = {
-      DATE_RECEIVED_FOR_REPROCESSING: 'TBC'
-    }
+    const rows = pinFields(
+      planRows('reprocessorInput', 3).rows,
+      RECEIVED_SHEET,
+      1002,
+      { DATE_RECEIVED_FOR_REPROCESSING: 'TBC' }
+    )
 
     const workbook = await renderWorkbook('reprocessorInput', stream, rows)
     const { summaryLogPath, baseAPI } = await uploadSummaryLog(
@@ -265,11 +319,10 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
 
     const stream = STREAMS.reprocessorInput
     const { refNo, registrationId, authHeader } = await seedRegistration(stream)
-    const received = RECEIVED_SHEET
 
     const date = new Date().toLocaleDateString('en-GB')
 
-    const first = planStableRows(3, date)
+    const first = planStableRows(3, date, 'No')
     const firstWorkbook = await renderWorkbook(
       'reprocessorInput',
       stream,
@@ -296,8 +349,7 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
 
     // The same row ids again, with one row's PRN answer changed: the service
     // reads a restated row id as an amendment of the load it already holds.
-    const amended = planStableRows(3, date)
-    amended[received][0].fields[PRN_ISSUED_FIELD] = 'Yes'
+    const amended = planStableRows(3, date, 'Yes')
     const amendedWorkbook = await renderWorkbook(
       'reprocessorInput',
       stream,
@@ -334,11 +386,7 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
 
     // The same plan with one row dropped: a row id the operator has already
     // submitted cannot go away again.
-    const shortened = planStableRows(3, date)
-    shortened[received][0].fields[PRN_ISSUED_FIELD] = 'Yes'
-    shortened[received] = shortened[received].filter(
-      (row) => row.rowId !== 1001
-    )
+    const shortened = planStableRows(3, date, 'Yes', 1001)
     const shortenedWorkbook = await renderWorkbook(
       'reprocessorInput',
       stream,
