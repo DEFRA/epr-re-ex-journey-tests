@@ -1,10 +1,11 @@
 import { MarketInsightsFiguresPage } from 'page-objects/regulator/market-insights-figures.page'
 
 /**
- * The UK reprocessor and exporter figures laid out the way the published tab
- * is, a reprocessor table and an exporter table for every month of the period.
+ * The reprocessor and exporter figures laid out the way the published tab is,
+ * a reprocessor table and an exporter table for every month of the period.
+ * One page serves the UK and each published nation, so this reads either.
  */
-class MarketInsightsUkPage extends MarketInsightsFiguresPage {
+class MarketInsightsReprocessorExporterPage extends MarketInsightsFiguresPage {
   /**
    * What each table calls itself, above its own headings, in the order the
    * page renders them. The page serves a reprocessor table and an exporter
@@ -40,4 +41,4 @@ class MarketInsightsUkPage extends MarketInsightsFiguresPage {
   }
 }
 
-export { MarketInsightsUkPage }
+export { MarketInsightsReprocessorExporterPage }
