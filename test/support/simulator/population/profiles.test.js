@@ -113,7 +113,162 @@ describe('archetypes', () => {
             uploads: { ...FIXTURE.activity.uploads, rejectionRate: 0.5 }
           }
         }),
-      /rejectionRate.*not a probability/
+      /rejectionRate.*not a probability.*0\.417 or under/
+    )
+  })
+
+  /**
+   * The rates that go right are spread by scaling their failure side, so those
+   * have a floor rather than a ceiling. A measured producer acceptance below it
+   * is an ordinary figure to find in an overlay, so the refusal has to name the
+   * bound it wants rather than only the value it reached.
+   */
+  it('refuse a calibration whose good rate cannot be bettered', () => {
+    assert.throws(
+      () =>
+        buildArchetypes({
+          ...FIXTURE,
+          activity: {
+            ...FIXTURE.activity,
+            prn: { ...FIXTURE.activity.prn, producerAcceptRate: 0.55 }
+          }
+        }),
+      /producerAcceptRate.*not a probability.*0\.583 or over/
+    )
+  })
+
+  it('refuse a calibration whose lateness spreads past every return', () => {
+    assert.throws(
+      () =>
+        buildArchetypes({
+          ...FIXTURE,
+          punctuality: {
+            ...FIXTURE.punctuality,
+            onTime: 0.55,
+            lateWithin7: 0.2,
+            lateWithin30: 0.15,
+            lateBeyond30: 0.1
+          }
+        }),
+      /punctuality.*not a probability/
+    )
+  })
+})
+
+/**
+ * The claim the spread exists to make is that the `production` mix averages
+ * back to the calibration exactly, and that is arithmetic over three numbers,
+ * not a property of a sampled population. Drawing 4000 operators and asserting
+ * the mean within a tolerance cannot tell an exact spread from a nearly-right
+ * one: widening the tardy factor from 2.4 to 2.6 still lands inside it.
+ */
+describe('spreading a calibration across the archetypes', () => {
+  const mixMean = (read) =>
+    Object.entries(PROFILE_MIXES.production).reduce(
+      (total, [name, share]) => total + share * read(ARCHETYPES[name]),
+      0
+    )
+
+  const exactly = (actual, expected, of) =>
+    assert.ok(
+      Math.abs(actual - expected) < 1e-12,
+      `the mix averages ${of} to ${actual}, not to the calibrated ${expected}`
+    )
+
+  /**
+   * @type {[
+   *   string,
+   *   (archetype: import('./profiles.js').Archetypes[string]) => number,
+   *   (calibration: typeof FIXTURE) => number
+   * ][]}
+   */
+  const spreadRates = [
+    [
+      'missedReturnRate',
+      (a) => a.reporting.missedReturnRate,
+      (c) => c.activity.missedReturnRate
+    ],
+    [
+      'restatementRate',
+      (a) => a.reporting.restatementRate,
+      (c) => c.activity.restatementRate
+    ],
+    [
+      'rejectionRate',
+      (a) => a.uploads.rejectionRate,
+      (c) => c.activity.uploads.rejectionRate
+    ],
+    [
+      'fatalShare',
+      (a) => a.uploads.fatalShare,
+      (c) => c.activity.uploads.fatalShare
+    ],
+    [
+      'abandonRate',
+      (a) => a.uploads.abandonRate,
+      (c) => c.activity.uploads.abandonRate
+    ],
+    ['deleteRate', (a) => a.prn.deleteRate, (c) => c.activity.prn.deleteRate],
+    [
+      'discardRate',
+      (a) => a.prn.discardRate,
+      (c) => c.activity.prn.discardRate
+    ],
+    ['cancelRate', (a) => a.prn.cancelRate, (c) => c.activity.prn.cancelRate],
+    [
+      'producerAcceptRate',
+      (a) => a.prn.producerAcceptRate,
+      (c) => c.activity.prn.producerAcceptRate
+    ],
+    [
+      'sameMonthAcceptanceShare',
+      (a) => a.prn.sameMonthAcceptanceShare,
+      (c) => c.activity.prn.sameMonthAcceptanceShare
+    ],
+    ['onTime', (a) => a.submission.onTime, (c) => c.punctuality.onTime],
+    [
+      'lateWithin7',
+      (a) => a.submission.lateWithin7,
+      (c) => c.punctuality.lateWithin7
+    ],
+    [
+      'lateWithin30',
+      (a) => a.submission.lateWithin30,
+      (c) => c.punctuality.lateWithin30
+    ],
+    [
+      'lateBeyond30',
+      (a) => a.submission.lateBeyond30,
+      (c) => c.punctuality.lateBeyond30
+    ]
+  ]
+
+  for (const [name, fromArchetype, fromCalibration] of spreadRates) {
+    it(`averages ${name} back to the calibration`, () => {
+      exactly(mixMean(fromArchetype), fromCalibration(FIXTURE), name)
+    })
+  }
+
+  /**
+   * Early filing is a share of the on-time returns rather than of the estate,
+   * so the mix has to weight it by how much on-time volume each archetype
+   * carries. A plain mix average would come out wrong wherever the archetypes
+   * differ on punctuality, which is always.
+   */
+  it('averages earlyShare back to the calibration, weighted by on-time volume', () => {
+    exactly(
+      mixMean((a) => a.submission.onTime * a.submission.earlyShare) /
+        mixMean((a) => a.submission.onTime),
+      FIXTURE.punctuality.earlyShare,
+      'earlyShare'
+    )
+  })
+
+  it('averages weekend working back to the calibrated share of upload volume', () => {
+    exactly(
+      mixMean((a) => a.weekendChance) * WEEKEND_SHARE_OF_A_WORKING_WEEK,
+      FIXTURE.activity.uploads.weekendVolumeShare,
+      'weekendVolumeShare'
     )
   })
 })

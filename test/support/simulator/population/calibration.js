@@ -67,11 +67,28 @@ const REGISTER = {
     'Up to 10,000 tonnes': 35
   },
 
-  /** 265 registrations went active on the first day of 2026; the rest are scattered to the end of June. */
+  /**
+   * When a registration went active. 265 of them on the first day of the
+   * scheme, and the rest by the month the register dates them to, which thins
+   * out from a January tail rather than spreading evenly.
+   *
+   * These count the 369 rows carrying an active date, so they are a shape
+   * rather than a total: a registered-only row has no date to read.
+   */
   activeFrom: {
     goLive: '2026-01-01',
     goLiveCount: 265,
-    scatteredUntil: '2026-06-30'
+    scatteredByMonth: {
+      '2026-01': 40,
+      '2026-02': 11,
+      '2026-03': 8,
+      '2026-04': 9,
+      '2026-05': 7,
+      '2026-06': 15,
+      '2026-07': 7,
+      '2026-08': 6,
+      '2026-09': 1
+    }
   },
 
   /** The whole estate carries two cancelled registrations. */
@@ -142,7 +159,12 @@ const ACTIVITY = {
     weekendVolumeShare: 0.035
   },
 
-  /** PRNs raised a month per accreditation, before the operator's volume factor. Nominal. */
+  /**
+   * PRNs raised a month per accreditation, before the operator's volume factor.
+   * Nominal. The monthly aggregated workbook publishes the tonnage PRNs were
+   * issued against, not how many notes carried it, and a note has no fixed
+   * size, so it cannot answer this.
+   */
   prnsPerAccreditationPerMonth: 2,
 
   /** Nothing published follows a PRN past issue, so all of these are nominal. */
@@ -197,7 +219,7 @@ const PUNCTUALITY = {
  * @property {Record<string, Counts>} rowsByTypeAndMaterial
  * @property {Counts} accreditationStatus
  * @property {Counts} tonnageBand
- * @property {{goLive: string, goLiveCount: number, scatteredUntil: string}} activeFrom
+ * @property {{goLive: string, goLiveCount: number, scatteredByMonth: Counts}} activeFrom
  * @property {number} cancelledRegistrations
  */
 
@@ -234,17 +256,37 @@ const PUNCTUALITY = {
  * @property {PunctualityShape} punctuality
  */
 
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+const isBranch = (value) =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+/**
+ * `loadCalibration` hands back the defaults themselves where no overlay is
+ * named, and shares every branch an overlay leaves alone, so a run that wrote
+ * through what it was given would recalibrate every later run in the process.
+ *
+ * @template T
+ * @param {T} value
+ * @returns {T}
+ */
+function deepFreeze(value) {
+  if (!isBranch(value)) return value
+
+  Object.values(value).forEach(deepFreeze)
+  return Object.freeze(value)
+}
+
 /** @type {Calibration} */
-export const DEFAULT_CALIBRATION = {
+export const DEFAULT_CALIBRATION = deepFreeze({
   agencyNations: AGENCY_NATIONS,
   register: REGISTER,
   tonnageBandPrnWeight: TONNAGE_BAND_PRN_WEIGHT,
   activity: ACTIVITY,
   punctuality: PUNCTUALITY
-}
-
-const isBranch = (value) =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
+})
 
 /**
  * Lay an overlay over the defaults, key by key.
@@ -314,5 +356,5 @@ export function loadCalibration(env = process.env) {
     throw new Error(`The calibration overlay at ${path} is not an object`)
   }
 
-  return merge(DEFAULT_CALIBRATION, overlay, '')
+  return deepFreeze(merge(DEFAULT_CALIBRATION, overlay, ''))
 }

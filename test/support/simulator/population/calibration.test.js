@@ -42,11 +42,26 @@ describe('loadCalibration', () => {
     assert.deepEqual(calibration.register, DEFAULT_CALIBRATION.register)
   })
 
-  it('leaves the defaults themselves alone', () => {
-    const before = DEFAULT_CALIBRATION.activity.missedReturnRate
-    loadCalibration(withOverlay({ activity: { missedReturnRate: 0.9 } }))
+  /**
+   * A calibration with no overlay is the defaults themselves, and one with an
+   * overlay still shares every branch the overlay left alone. So a run that
+   * wrote through what it was handed would recalibrate every later run in the
+   * process, and a planner is pure only until that happens.
+   */
+  it('hands back a calibration nothing can write through', () => {
+    for (const calibration of [
+      loadCalibration({}),
+      loadCalibration(withOverlay({ activity: { missedReturnRate: 0.9 } }))
+    ]) {
+      assert.throws(() => {
+        calibration.register.organisations = 7
+      })
+      assert.throws(() => {
+        calibration.activity.uploads.rejectionRate = 0.99
+      })
+    }
 
-    assert.equal(DEFAULT_CALIBRATION.activity.missedReturnRate, before)
+    assert.equal(DEFAULT_CALIBRATION.register.organisations, 293)
   })
 
   /**

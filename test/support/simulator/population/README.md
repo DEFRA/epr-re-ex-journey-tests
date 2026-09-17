@@ -53,7 +53,7 @@ A registration:
 | `material`       | The whole entry from `test/support/materials.js`, so `material`, `suffix`, `name`, `prnName`, `process` and, for glass, `glassRecyclingProcess`. |
 | `siteId`         | Which of the operator's sites it reprocesses at. `null` for an exporting registration.                                                           |
 | `status`         | `approved`, or `cancelled` for the couple the register carries.                                                                                  |
-| `activeFrom`     | ISO date. Most are the first day of 2026; the rest are scattered to the end of June.                                                             |
+| `activeFrom`     | ISO date. Most are the first day of 2026; the rest fall in the month the register dates them to.                                                 |
 | `accreditation`  | `null` where the operator is registered but not accredited. Twenty of the 389 are.                                                               |
 
 An accreditation carries `status` (`approved`, `suspended` or `cancelled`), its
@@ -169,19 +169,29 @@ planPopulation({ seed: 'run-42', calibration: loadCalibration() })
 The file holds only the settings it changes, nested as the calibration is. It
 may not introduce a setting the defaults do not already carry, and may not
 change one's type, so a misspelling is refused rather than leaving a run
-quietly on the defaults. Such a file is never committed.
+quietly on the defaults. That holds inside the count maps too, so an overlay
+can reweight an agency or a tonnage band but cannot add one. A calibration that
+needs a shape the register does not have is passed to `planPopulation` directly
+instead. Such a file is never committed.
 
 The planner does not call `loadCalibration` itself, so planning stays pure and a
 seed replays the same population whether or not a machine has the overlay. The
 caller decides.
 
 Anything the register gives as a count is handed out as a quota and then
-shuffled. That puts organisation type,
-registrations and materials per operator, accreditation status, tonnage band
-and the go-live date exactly on the register at full scale, and keeps them in
-proportion at a tenth. Materials have to be drawn, because each operator is
-held to the number of distinct materials the register gave it, so those are
-tested as a mean over a spread of seeds.
+shuffled. That puts organisation type, registrations per operator,
+accreditation status, tonnage band and the go-live share exactly on the
+register at full scale, and keeps them in proportion at a tenth.
+
+Active dates are quotas by month rather than one window drawn across evenly.
+The register's own dates thin out from a January tail and run to September, and
+the simulator counts monthly returns from this date, so an evenly drawn one
+would hand a registration returns it never owed.
+
+The material spread lands within one organisation rather than exactly on the
+register. An operator holding nothing it can register for a processing type
+takes on a material it can, which on about one seed in eighty moves a single
+operator up a bucket.
 
 Two marginals are near rather than exact, both because an operator is held to
 the materials and sites it has the registrations to carry: aluminium and steel

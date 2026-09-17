@@ -17,6 +17,8 @@ const accreditations = registrations
   .map((registration) => registration.accreditation)
   .filter(Boolean)
 
+const sum = (values) => values.reduce((total, value) => total + value, 0)
+
 const tally = (members, read) => {
   /** @type {Record<string, number>} */
   const counts = {}
@@ -70,11 +72,31 @@ describe('the planned register at full scale', () => {
     )
   })
 
+  /**
+   * Within one organisation rather than exactly, and over a spread of seeds
+   * rather than the one the rest of this block reads. An organisation holding
+   * nothing it can register for a processing type takes on a material it can,
+   * which on about one seed in eighty moves a single organisation up a bucket.
+   * Asserting the spread exactly would pass here and fail in CI on the next
+   * change to the draw order.
+   */
   it('gives organisations the spread of materials the register shows', () => {
-    assert.deepEqual(
-      tally(organisations, (organisation) => organisation.materials.length),
-      REGISTER.materialsPerOrganisation
-    )
+    for (let seed = 0; seed < 20; seed++) {
+      const spread = tally(
+        planPopulation({ seed: `materials-${seed}` }).organisations,
+        (organisation) => organisation.materials.length
+      )
+
+      assert.deepEqual(
+        Object.keys(spread).sort(),
+        Object.keys(REGISTER.materialsPerOrganisation).sort()
+      )
+      for (const [held, count] of Object.entries(
+        REGISTER.materialsPerOrganisation
+      )) {
+        near(spread[held], count, 1)
+      }
+    }
   })
 
   it('never strands a site with nothing registered at it', () => {
@@ -164,22 +186,42 @@ describe('the planned register at full scale', () => {
     )
   })
 
-  it('opens most registrations on the first day of the scheme and scatters the rest', () => {
+  /**
+   * The register dates 369 of its 389 rows, so these counts are a shape handed
+   * out over the whole estate rather than a total to reproduce. What has to
+   * hold is the proportion, and that each scattered registration lands in the
+   * month the register put it in: drawing evenly across the window instead
+   * would move one the register places in August back to March, and the
+   * simulator counts monthly returns from this date.
+   */
+  it('opens most registrations on the first day of the scheme and scatters the rest by month', () => {
+    const { goLive, goLiveCount, scatteredByMonth } = REGISTER.activeFrom
+    const dated = goLiveCount + sum(Object.values(scatteredByMonth))
     const counts = tally(
       registrations,
       (registration) => registration.activeFrom
     )
 
-    assert.equal(
-      counts[REGISTER.activeFrom.goLive],
-      REGISTER.activeFrom.goLiveCount
+    const share = (count) => (count / dated) * registrations.length
+    // The quota settles its leftover on the largest remainders, so a month
+    // lands within one of its share rather than exactly on it.
+    near(counts[goLive], share(goLiveCount), 1)
+
+    const scattered = registrations.filter(
+      (registration) => registration.activeFrom !== goLive
     )
+    const byMonth = tally(scattered, (registration) =>
+      registration.activeFrom.slice(0, 7)
+    )
+    assert.deepEqual(
+      Object.keys(byMonth).sort(),
+      Object.keys(scatteredByMonth).sort()
+    )
+    for (const [month, count] of Object.entries(scatteredByMonth)) {
+      near(byMonth[month], share(count), 1)
+    }
     assert.ok(
-      registrations.every(
-        (registration) =>
-          registration.activeFrom >= REGISTER.activeFrom.goLive &&
-          registration.activeFrom <= REGISTER.activeFrom.scatteredUntil
-      )
+      scattered.every((registration) => registration.activeFrom > goLive)
     )
   })
 
@@ -651,6 +693,72 @@ describe('planning against a supplied calibration', () => {
       plan.organisations.every(
         (organisation) => organisation.profile.uploads.rejectionRate === 0
       )
+    )
+  })
+
+  /**
+   * Putting the rarities back takes rows off the commonest status, and the
+   * smallest runs have barely any to take. A run with nothing approved has
+   * nothing to report against or raise a note from, which is every use the
+   * simulator has.
+   */
+  it('keeps an approved accreditation however small the run', () => {
+    for (let scale = 1; scale <= 12; scale++) {
+      const plan = planPopulation({
+        seed: `small-${scale}`,
+        scale: scale / REGISTER.organisations
+      })
+      const accreditations = plan.organisations
+        .flatMap((organisation) => organisation.registrations)
+        .map((registration) => registration.accreditation)
+
+      assert.ok(
+        accreditations.some(
+          (accreditation) => accreditation?.status === 'approved'
+        ),
+        `a ${scale}-organisation run planned nothing approved`
+      )
+    }
+  })
+
+  it('plans no status the calibration gives no registrations to', () => {
+    const settled = {
+      ...DEFAULT_CALIBRATION,
+      register: {
+        ...REGISTER,
+        accreditationStatus: {
+          approved: 387,
+          none: 2,
+          cancelled: 0,
+          suspended: 0
+        }
+      }
+    }
+    const plan = planPopulation({ seed: 'settled', calibration: settled })
+    const statuses = new Set(
+      plan.organisations
+        .flatMap((organisation) => organisation.registrations)
+        .map((registration) => registration.accreditation?.status ?? 'none')
+    )
+
+    assert.deepEqual([...statuses].sort(), ['approved', 'none'])
+  })
+
+  /**
+   * An agency the calibration registers rows against but never names a nation
+   * for otherwise plans a whole estate whose nation is undefined, and says so
+   * nowhere until something downstream reads it.
+   */
+  it('refuses an agency it has no nation for', () => {
+    assert.throws(
+      () =>
+        planPopulation({
+          calibration: {
+            ...DEFAULT_CALIBRATION,
+            register: { ...REGISTER, agencyRows: { EA: 200, XYZ: 189 } }
+          }
+        }),
+      /"XYZ".*no nation/
     )
   })
 })

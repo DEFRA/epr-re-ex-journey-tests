@@ -83,6 +83,11 @@ export function allocate(distribution, total, random) {
   }
 
   const weightTotal = entries.reduce((sum, [, weight]) => sum + weight, 0)
+  if (weightTotal <= 0) {
+    throw new Error(
+      `Cannot allocate across ${entries.map(([key]) => `"${key}"`).join(', ')}, which have no share between them`
+    )
+  }
 
   const allocated = []
   const shortfalls = []

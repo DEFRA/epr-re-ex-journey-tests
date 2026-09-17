@@ -57,20 +57,32 @@ const EXTRA_ATTEMPTS = { punctual: 1, typical: 1, tardy: 2 }
 
 /** @typedef {Record<string, Omit<BehaviourProfile, 'archetype' | 'volumeFactor' | 'worksWeekends'> & {weekendChance: number}>} Archetypes */
 
-function asProbability(value, of) {
+/**
+ * The spread multiplies, so it only reaches so far: a calibration whose own
+ * rate is high enough cannot be made worse and stay a probability. The message
+ * names the bound on the calibrated input, not just the value it reached,
+ * because the reader has an overlay to fix rather than a spread.
+ */
+function asProbability(value, of, bound = '') {
   if (!(value >= 0 && value <= 1)) {
     throw new Error(
-      `Spreading the calibrated ${of} across the archetypes reaches ${value}, which is not a probability`
+      `Spreading the calibrated ${of} across the archetypes reaches ${value}, which is not a probability${bound && `. This spread needs a calibrated ${of} of ${bound}`}`
     )
   }
   return value
 }
 
 /** A rate that rises as an archetype gets less reliable. */
-const worse = (rate, factor, of) => asProbability(rate * factor, of)
+const worse = (rate, factor, of) =>
+  asProbability(rate * factor, of, `${(1 / factor).toFixed(3)} or under`)
 
 /** A rate that falls instead, because it is the side that goes right. */
-const better = (rate, factor, of) => asProbability(1 - (1 - rate) * factor, of)
+const better = (rate, factor, of) =>
+  asProbability(
+    1 - (1 - rate) * factor,
+    of,
+    `${(1 - 1 / factor).toFixed(3)} or over`
+  )
 
 /** The calibrated shares are rounded separately and need not sum to one. */
 function normalised(punctuality) {

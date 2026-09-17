@@ -73,6 +73,11 @@ const addDays = (from, days) =>
 
 const endOfYear = (date) => `${date.slice(0, 4)}-12-31`
 
+const addMonth = (date) => {
+  const [year, month] = date.split('-').map(Number)
+  return `${month === 12 ? year + 1 : year}-${String(month === 12 ? 1 : month + 1).padStart(2, '0')}-01`
+}
+
 /**
  * Fit one spread inside another, largest to largest, so nothing is asked to
  * hold more than it has room for.
@@ -239,7 +244,9 @@ function assignMaterials(register, processingTypes, materialCount, random) {
  */
 function withEveryStatus(statuses, distribution, random) {
   const present = new Set(statuses)
-  const missing = Object.keys(distribution).filter((key) => !present.has(key))
+  const missing = Object.keys(distribution).filter(
+    (key) => distribution[key] > 0 && !present.has(key)
+  )
   if (missing.length === 0) return statuses
 
   const commonest = Object.keys(distribution).sort(
@@ -252,8 +259,11 @@ function withEveryStatus(statuses, distribution, random) {
       .map(({ index }) => index)
   )
 
+  // Keep one row on the commonest status. A run whose every registration was
+  // taken for a rarity has nothing approved to report against, which at the
+  // smallest scales is every run.
   const filled = [...statuses]
-  missing.slice(0, spare.length).forEach((key, rank) => {
+  missing.slice(0, spare.length - 1).forEach((key, rank) => {
     filled[spare[rank]] = key
   })
   return filled
@@ -261,22 +271,27 @@ function withEveryStatus(statuses, distribution, random) {
 
 /**
  * Most registrations opened on the first day of the scheme and the rest are
- * scattered over the following months.
+ * handed out by the month the register dates them to, then given a day within
+ * it. Drawing the rest evenly across the whole window instead would put a
+ * registration the register places in August into March, owing five monthly
+ * returns it never owed.
  */
 function assignActiveFrom(register, registrationCount, random) {
-  const { goLive, goLiveCount, scatteredUntil } = register.activeFrom
-  const scatterable = dayCount(goLive, scatteredUntil)
+  const { goLive, goLiveCount, scatteredByMonth } = register.activeFrom
 
   return allocate(
-    {
-      goLive: goLiveCount,
-      scattered: register.registrations - goLiveCount
-    },
+    { goLive: goLiveCount, ...scatteredByMonth },
     registrationCount,
     random
-  ).map((when) =>
-    when === 'goLive' ? goLive : addDays(goLive, random.int(1, scatterable))
-  )
+  ).map((when) => {
+    if (when === 'goLive') return goLive
+    const firstOfMonth = `${when}-01`
+    const days = dayCount(firstOfMonth, addMonth(firstOfMonth))
+    // The go-live day is a bucket of its own, so a scattered registration in
+    // that month opened on some later day.
+    const first = when === goLive.slice(0, 7) ? 1 : 0
+    return addDays(firstOfMonth, random.int(first, days - 1))
+  })
 }
 
 /**
@@ -324,6 +339,15 @@ export function planPopulation({
   }
 
   const { register, agencyNations } = calibration
+  const unnamedAgency = Object.keys(register.agencyRows).find(
+    (agency) => !(agency in agencyNations)
+  )
+  if (unnamedAgency) {
+    throw new Error(
+      `The calibration registers rows against "${unnamedAgency}" but gives it no nation`
+    )
+  }
+
   const random = createRandom(seed)
   const organisationCount = Math.max(
     1,

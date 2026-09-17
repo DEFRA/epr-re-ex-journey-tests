@@ -134,6 +134,19 @@ describe('allocate', () => {
   })
 
   /**
+   * A distribution zeroed all the way across has no proportions to allocate on,
+   * and dividing by its total reaches every key with a share of nothing. Left
+   * alone it throws on an array length, which names neither the calibration nor
+   * the block that is empty.
+   */
+  it('refuses a distribution with no share in it at all', () => {
+    assert.throws(
+      () => allocate({ a: 0, b: 0 }, 10, createRandom('zeroed')),
+      /"a", "b".*no share between them/
+    )
+  })
+
+  /**
    * A calibration whose counts disagree with each other subtracts its way to a
    * negative share. Saying so beats handing back a plan quietly short of the
    * members that share was meant to carry.
