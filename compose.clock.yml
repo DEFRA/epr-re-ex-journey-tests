@@ -1,0 +1,35 @@
+################################################################################
+# Opt-in override that puts the whole local stack on a simulated clock, for the
+# operator activity simulator. Bring the stack up with:
+#
+#   docker compose -f compose.yml -f compose.clock.yml up -d
+#
+# and set the date with `npm run clock -- <date>`. A plain `docker compose up`
+# does not read this file, so ordinary test runs are on real time.
+#
+# See test/support/simulator/clock/README.md.
+################################################################################
+
+# Every Node process in the stack shares the clock. A stub left on real time
+# mints tokens the backend rejects: the Defra ID stub sets `nbf`, and the
+# backend allows only 15 seconds of skew.
+x-fake-clock: &fake-clock
+  volumes:
+    - ./test/support/simulator/clock:/fake-clock:ro
+  environment:
+    NODE_OPTIONS: --require /fake-clock/fake-clock.cjs
+    FAKE_CLOCK_FILE: /fake-clock/clock.txt
+
+services:
+  defra-id-stub: *fake-clock
+  entra-stub: *fake-clock
+  cognito-stub: *fake-clock
+  cdp-uploader: *fake-clock
+  epr-backend: *fake-clock
+  epr-frontend: *fake-clock
+  epr-re-ex-admin-frontend: *fake-clock
+
+  # The TTL monitor runs on real time, so it reaps an unsubmitted summary log
+  # whose simulated expiry is in the real past, within a minute of the upload.
+  mongodb:
+    command: ['mongod', '--setParameter', 'ttlMonitorEnabled=false']

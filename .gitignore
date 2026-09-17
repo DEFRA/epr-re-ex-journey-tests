@@ -17,3 +17,7 @@ FAILED
 # distinct from resources/templates/, which holds its committed source
 # templates.
 data/
+
+# The simulated clock's state, written by `npm run clock` and read by every
+# Node process in the stack.
+test/support/simulator/clock/clock.txt
