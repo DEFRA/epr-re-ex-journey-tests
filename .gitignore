@@ -18,5 +18,9 @@ FAILED
 # templates.
 data/
 
+# The simulated clock's state, written by `npm run clock` and read by every
+# Node process in the stack.
+test/support/simulator/clock/clock.txt*
+
 # A simulator calibration overlay, named by SIMULATOR_CALIBRATION. Never committed.
 simulator-calibration*.json
