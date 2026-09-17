@@ -206,16 +206,14 @@ describe('summary log spreadsheet generator', () => {
     })
 
     it('changes only the field the plan changed', () => {
+      assert.equal(firstRender.length, secondRender.length)
+      assert.ok(firstRender.length > 40, 'too few cells for this to mean much')
+
       const changed = firstRender
         .filter((cell, i) => cell !== secondRender[i])
         .map((cell) => cell.split('=')[0])
 
       assert.deepEqual(changed, ['J4'])
-    })
-
-    it('renders every other field the same way twice', () => {
-      assert.equal(firstRender.length, secondRender.length)
-      assert.ok(firstRender.length > 40)
     })
   })
 
@@ -225,6 +223,36 @@ describe('summary log spreadsheet generator', () => {
         rows: { [RECEIVED]: [{ rowId: 1000, fields: { NOT_A_FIELD: 1 } }] }
       }),
       /NOT_A_FIELD/
+    )
+  })
+
+  it('derives the tonnage of another stream from its pinned field', async () => {
+    const sheet = await renderSheet(
+      {
+        wasteProcessingType: 'reprocessorOutput',
+        sheets: [1],
+        rows: {
+          'Reprocessed (sections 3 and 4)': [
+            { rowId: 3000, fields: { PRODUCT_TONNAGE: 40 } }
+          ]
+        }
+      },
+      'Reprocessed (sections 3 and 4)'
+    )
+
+    assert.equal(
+      field(sheet, 'PRODUCT_UK_PACKAGING_WEIGHT_PROPORTION', 4),
+      40 * field(sheet, 'UK_PACKAGING_WEIGHT_PERCENTAGE', 4)
+    )
+  })
+
+  it('rejects a worksheet this render leaves out', async () => {
+    await assert.rejects(
+      render({
+        sheets: [0],
+        rows: { 'Sent on (sections 5, 6 and 7)': [{ rowId: 5000 }] }
+      }),
+      /Sent on \(sections 5, 6 and 7\)/
     )
   })
 

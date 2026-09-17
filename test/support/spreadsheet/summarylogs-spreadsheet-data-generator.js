@@ -229,11 +229,13 @@ export async function generateSpreadsheetData(options = {}) {
     }
 
     if (rows !== null) {
-      const renderable = worksheets.map((worksheet) => worksheet.name)
+      const renderable = worksheets
+        .filter((_, index) => sheets === null || sheets.includes(index))
+        .map((worksheet) => worksheet.name)
       for (const worksheetName of Object.keys(rows)) {
         if (!renderable.includes(worksheetName)) {
           throw new Error(
-            `A ${wasteProcessingType} workbook has no worksheet named '${worksheetName}'`
+            `This ${wasteProcessingType} workbook renders no worksheet named '${worksheetName}'`
           )
         }
       }
@@ -301,7 +303,7 @@ export async function generateSpreadsheetData(options = {}) {
         })
 
         const worksheetConfig =
-          WORKSHEET_CONFIG[wasteProcessingType]?.[worksheet.name]
+          WORKSHEET_CONFIG[wasteProcessingType][worksheet.name]
         /** @type {PlannedRow[]} */
         const plannedRows =
           rows === null
@@ -322,10 +324,8 @@ export async function generateSpreadsheetData(options = {}) {
           )
           Object.assign(rowData, plannedCells)
 
-          if (worksheetConfig) {
-            rowData.B = `${plannedRow.rowId ?? worksheetConfig.rowId + rowOffset + i}`
-            worksheetConfig.tonnage?.(rowData, plannedCells)
-          }
+          rowData.B = `${plannedRow.rowId ?? worksheetConfig.rowId + rowOffset + i}`
+          worksheetConfig.tonnage?.(rowData, plannedCells)
 
           // Insert data only into specified columns
           Object.entries(rowData).forEach(([columnLetter, value]) => {

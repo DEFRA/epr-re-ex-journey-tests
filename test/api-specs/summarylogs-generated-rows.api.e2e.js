@@ -234,14 +234,9 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
 
     const stream = STREAMS.reprocessorInput
     const { refNo, registrationId, authHeader } = await seedRegistration(stream)
-    const rows = pinFields(
-      planRows('reprocessorInput', 3).rows,
-      RECEIVED_SHEET,
-      1001,
-      {
-        EWC_CODE: ''
-      }
-    )
+    const { rows: planned, rowIds } = planRows('reprocessorInput', 3)
+    const rows = pinFields(planned, RECEIVED_SHEET, 1001, { EWC_CODE: '' })
+    const stillValid = rowIds.split(',').filter((rowId) => rowId !== '1001')
 
     const workbook = await renderWorkbook('reprocessorInput', stream, rows)
     const { summaryLogPath, baseAPI } = await uploadAndValidateSummaryLog(
@@ -271,6 +266,11 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
       ]
     )
     assertLoads(responseData.loads, [
+      {
+        loadType: 'added.valid',
+        count: stillValid.length,
+        rowIds: stillValid.join(',')
+      },
       { loadType: 'added.invalid', count: 1, rowIds: '1001' }
     ])
   })
