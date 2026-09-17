@@ -38,6 +38,7 @@
     "test:github:frontend:december": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.config.js 'specs/(regulator/)?[^/]+\\.e2e\\.js$' --grep \"@decWaste\" || touch FAILED",
     "test:github:frontend:non-december": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.config.js 'specs/(regulator/)?[^/]+\\.e2e\\.js$' --grep-invert \"@decWaste\" || touch FAILED",
     "test:github:browserstack": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' node_modules/.bin/browserstack-node-sdk playwright test --config=playwright.browserstack.config.js || touch FAILED",
+    "test:unit": "node --test \"test/**/*.test.js\"",
     "test:api": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.api.config.js",
     "test:api:grep": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.api.config.js --grep \"$GREP\"",
     "generatedata": "node test/support/data-generator/data-generator.js",
