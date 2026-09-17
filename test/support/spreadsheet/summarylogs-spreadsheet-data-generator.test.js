@@ -53,6 +53,20 @@ function field(sheet, marker, row) {
   return valueOf(sheet.getCell(`${columnOf(sheet, marker)}${row}`))
 }
 
+/** Every filled cell of the sheet's data rows, as `<address>=<value>`. */
+function cellsOf(sheet) {
+  const cells = []
+  sheet.eachRow((row, rowNumber) => {
+    if (rowNumber < FIRST_DATA_ROW) {
+      return
+    }
+    row.eachCell((cell) => {
+      cells.push(`${cell.address}=${JSON.stringify(valueOf(cell))}`)
+    })
+  })
+  return cells
+}
+
 function rowIds(sheet, count) {
   return Array.from({ length: count }, (_, i) =>
     valueOf(sheet.getCell(`B${FIRST_DATA_ROW + i}`))
@@ -145,6 +159,52 @@ describe('summary log spreadsheet generator', () => {
       field(sheet, 'WERE_PRN_OR_PERN_ISSUED_ON_THIS_WASTE', 4),
       'Yes'
     )
+  })
+
+  describe('given a seeded plan, rendered twice', () => {
+    // What an amendment needs: the service reads any changed field as an
+    // adjustment, so a restated row has to come back identical but for the
+    // field the plan changed.
+    const plan = (prnIssued) => ({
+      rows: {
+        [RECEIVED]: [
+          {
+            rowId: 1000,
+            seed: 7,
+            fields: {
+              DATE_RECEIVED_FOR_REPROCESSING: '03/03/2026',
+              WERE_PRN_OR_PERN_ISSUED_ON_THIS_WASTE: prnIssued
+            }
+          },
+          {
+            rowId: 1001,
+            seed: 8,
+            fields: { DATE_RECEIVED_FOR_REPROCESSING: '04/03/2026' }
+          }
+        ]
+      }
+    })
+
+    let firstRender
+    let secondRender
+
+    before(async () => {
+      firstRender = cellsOf(await renderSheet(plan('No')))
+      secondRender = cellsOf(await renderSheet(plan('Yes')))
+    })
+
+    it('changes only the field the plan changed', () => {
+      const changed = firstRender
+        .filter((cell, i) => cell !== secondRender[i])
+        .map((cell) => cell.split('=')[0])
+
+      assert.deepEqual(changed, ['J4'])
+    })
+
+    it('renders every other field the same way twice', () => {
+      assert.equal(firstRender.length, secondRender.length)
+      assert.ok(firstRender.length > 40)
+    })
   })
 
   it('rejects a field the template does not carry', async () => {

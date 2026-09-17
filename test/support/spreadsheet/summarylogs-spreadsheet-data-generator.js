@@ -39,6 +39,12 @@ import pino from 'pino'
  *   worksheet's own series, as an unplanned workbook numbers its rows.
  * @property {Record<string, string | number>} [fields] - cells to pin, keyed
  *   by template marker.
+ * @property {number} [seed] - draws the fields this row leaves unplanned from
+ *   this seed rather than at random, so the row renders the same way every
+ *   time. An amendment depends on it: the service reads any changed field as
+ *   an adjustment, so a row restated in a later upload has to come back
+ *   identical but for the field the plan changed. Date fields still move with
+ *   the clock under a seed, so a row that must hold still pins its dates too.
  */
 
 /** The worksheet row carrying the template's field markers. */
@@ -220,6 +226,8 @@ export async function generateSpreadsheetData(options = {}) {
       templateFile = filename
     }
 
+    let seededAnyRow = false
+
     // Create workbook and read the template
     const workbook = new ExcelJS.Workbook()
     await workbook.xlsx.readFile(templateFile)
@@ -291,6 +299,10 @@ export async function generateSpreadsheetData(options = {}) {
         const columns = fieldColumns(sheet)
 
         for (const [i, plannedRow] of plannedRows.entries()) {
+          if (plannedRow.seed !== undefined) {
+            faker.seed(plannedRow.seed)
+            seededAnyRow = true
+          }
           const rowData = worksheet.fn(material)
           const plannedCells = cellsForFields(
             plannedRow.fields ?? {},
@@ -326,6 +338,12 @@ export async function generateSpreadsheetData(options = {}) {
           `Generated ${plannedRows.length} rows for ${worksheet.name} (rows ${FIRST_DATA_ROW + rowOffset}-${currentRow - 1})`
         )
       }
+    }
+
+    // Leaving faker on a plan's seed would make every later draw in this
+    // process follow from it, including other callers' rows.
+    if (seededAnyRow) {
+      faker.seed()
     }
 
     if (unreadable) {

@@ -116,6 +116,34 @@ export async function uploadAndValidateSummaryLog(
   filePath,
   baseAPI = new BaseAPI()
 ) {
+  const uploaded = await uploadSummaryLog(
+    refNo,
+    registrationId,
+    defraAuthHeader,
+    filePath,
+    baseAPI
+  )
+
+  await waitForSummaryLogStatus(
+    baseAPI,
+    uploaded.summaryLogPath,
+    defraAuthHeader,
+    'validated'
+  )
+
+  return uploaded
+}
+
+// Initiate (backend) → multipart file POST (cdp-uploader), stopping before the
+// outcome. A workbook the service rejects never reaches 'validated', so a
+// caller wanting one waits for the status it expects itself.
+export async function uploadSummaryLog(
+  refNo,
+  registrationId,
+  defraAuthHeader,
+  filePath,
+  baseAPI = new BaseAPI()
+) {
   const summaryLogsPath = `/v1/organisations/${refNo}/registrations/${registrationId}/summary-logs`
 
   const initiateResponse = await baseAPI.post(
@@ -153,15 +181,11 @@ export async function uploadAndValidateSummaryLog(
     )
   }
 
-  const summaryLogPath = `${summaryLogsPath}/${summaryLogId}`
-  await waitForSummaryLogStatus(
-    baseAPI,
-    summaryLogPath,
-    defraAuthHeader,
-    'validated'
-  )
-
-  return { summaryLogId, summaryLogPath, baseAPI }
+  return {
+    summaryLogId,
+    summaryLogPath: `${summaryLogsPath}/${summaryLogId}`,
+    baseAPI
+  }
 }
 
 // On submit the backend flags any restated closed periods as requiring
