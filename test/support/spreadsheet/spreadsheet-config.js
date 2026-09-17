@@ -19,12 +19,16 @@ import {
   generateRegOnlyReprocessorSentOnRow
 } from './reprocessor.reg.only.js'
 
-function calculateTonnage(rowData) {
-  rowData.N = rowData.K - (rowData.L + rowData.M)
+// A tonnage function derives a row's weight columns from the rest of the row.
+// It takes the cells the caller pinned so that a pinned weight stands, and
+// anything derived from it follows the pinned value rather than the one this
+// would otherwise have calculated.
+function calculateTonnage(rowData, pinned = {}) {
+  rowData.N = pinned.N ?? rowData.K - (rowData.L + rowData.M)
   if (rowData.O === 'Yes') {
-    rowData.S = (rowData.N - rowData.Q) * 0.9985 * rowData.R
+    rowData.S = pinned.S ?? (rowData.N - rowData.Q) * 0.9985 * rowData.R
   } else {
-    rowData.S = (rowData.N - rowData.Q) * rowData.R
+    rowData.S = pinned.S ?? (rowData.N - rowData.Q) * rowData.R
   }
 }
 
@@ -44,8 +48,8 @@ export const WORKSHEET_CONFIG = {
     },
     'Reprocessed (sections 3 and 4)': {
       rowId: 3000,
-      tonnage: (r) => {
-        r.J = r.H * r.I
+      tonnage: (r, pinned = {}) => {
+        r.J = pinned.J ?? r.H * r.I
       }
     },
     'Sent on (sections 5 and 6)': { rowId: 5000 }
@@ -60,8 +64,8 @@ export const WORKSHEET_CONFIG = {
   regOnlyReprocessor: {
     'Received (section 1)': {
       rowId: 1000,
-      tonnage: (r) => {
-        r.K = r.H * r.J
+      tonnage: (r, pinned = {}) => {
+        r.K = pinned.K ?? r.H * r.J
       }
     },
     'Sent on (section 2)': { rowId: 5000 }
@@ -69,8 +73,8 @@ export const WORKSHEET_CONFIG = {
   regOnlyExporter: {
     'Received (section 1)': {
       rowId: 1000,
-      tonnage: (r) => {
-        r.Q = r.N * r.P
+      tonnage: (r, pinned = {}) => {
+        r.Q = pinned.Q ?? r.N * r.P
       }
     },
     'Exported (sections 2 and 3)': { rowId: 2000 },

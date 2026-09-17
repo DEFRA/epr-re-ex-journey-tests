@@ -207,5 +207,5 @@ async function generateFixturesCli() {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  generateFixturesCli()
+  generateFixturesCli().catch(() => process.exit(1))
 }
