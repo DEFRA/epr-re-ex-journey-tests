@@ -21,11 +21,24 @@ let lastMtimeMs = -1
 let lastCheckedAt = 0
 
 const readOffset = () => {
+  let fd
   try {
-    const { mtimeMs } = fs.statSync(clockFile)
+    // The mtime and the contents have to come from one open file. The writer
+    // renames a new file over this one, so a stat and a read taken separately
+    // can straddle a jump and pair one instant with the other's mtime.
+    fd = fs.openSync(clockFile, 'r')
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error
+    offsetMs = 0
+    lastMtimeMs = -1
+    return
+  }
+
+  try {
+    const { mtimeMs } = fs.fstatSync(fd)
     if (mtimeMs === lastMtimeMs) return
     lastMtimeMs = mtimeMs
-    const text = fs.readFileSync(clockFile, 'utf8').trim()
+    const text = fs.readFileSync(fd, 'utf8').trim()
     if (!text) {
       offsetMs = 0
       return
@@ -37,13 +50,8 @@ const readOffset = () => {
     // pino converts Date.now() with BigInt at load, which throws on a
     // fractional value, so the offset has to be whole milliseconds.
     offsetMs = Math.round(target - mtimeMs)
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      offsetMs = 0
-      lastMtimeMs = -1
-      return
-    }
-    throw error
+  } finally {
+    fs.closeSync(fd)
   }
 }
 

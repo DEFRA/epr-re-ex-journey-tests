@@ -1,4 +1,4 @@
-import { rmSync, writeFileSync } from 'node:fs'
+import { renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -7,13 +7,12 @@ import logger from '../../logger.js'
 /**
  * The instant the stack believes is now. Written here, read by the fake-clock
  * preload in this process and in every Node container that mounts this
- * directory. Its mtime is what anchors the offset, so it is rewritten in place
- * and never renamed over.
+ * directory. A process pointed at another copy through FAKE_CLOCK_FILE is
+ * controlled through that one instead.
  */
-export const clockFile = join(
-  dirname(fileURLToPath(import.meta.url)),
-  'clock.txt'
-)
+export const clockFile =
+  process.env.FAKE_CLOCK_FILE ??
+  join(dirname(fileURLToPath(import.meta.url)), 'clock.txt')
 
 /**
  * Move the whole stack to an instant. Takes effect within a quarter of a
@@ -26,7 +25,13 @@ export const setSimulatedNow = (instant) => {
   if (Number.isNaN(target.getTime())) {
     throw new Error(`Cannot simulate "${instant}": not a date`)
   }
-  writeFileSync(clockFile, target.toISOString())
+  // Written aside and renamed into place, because a reader that catches the
+  // file between truncation and write reads an empty one and falls back to
+  // real time. The replacement carries its own mtime, which is what anchors
+  // the offset.
+  const pending = `${clockFile}.${process.pid}`
+  writeFileSync(pending, target.toISOString())
+  renameSync(pending, clockFile)
   return target
 }
 
