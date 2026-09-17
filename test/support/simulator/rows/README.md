@@ -40,16 +40,16 @@ const plan = planSummaryLogRows({ population })
 
 A row:
 
-| Field          | Meaning                                                                                           |
-| -------------- | ------------------------------------------------------------------------------------------------- |
-| `rowId`        | The `ROW_ID` it carries. Unique within its worksheet and only ever climbing through the year.     |
-| `worksheet`    | The worksheet it is rendered into, named as the template names it.                                |
-| `period`       | The month it belongs to, `YYYY-MM`.                                                               |
-| `date`         | The day it happened, ISO. Every date cell it pins is this day or an offset from it.               |
-| `contribution` | `credit`, `debit` or `none` — what it does to the registration's waste balance.                   |
-| `tonnage`      | What it moves, once the service has read the cells. `0` where it moves nothing.                   |
-| `fields`       | Cells to pin, keyed by template marker.                                                           |
-| `seed`         | Draws every cell the plan leaves alone, so the row renders identically every time it is uploaded. |
+| Field          | Meaning                                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------------------ |
+| `rowId`        | The `ROW_ID` it carries. Unique within its worksheet and only ever climbing through the year.          |
+| `worksheet`    | The worksheet it is rendered into, named as the template names it.                                     |
+| `period`       | The month it belongs to, `YYYY-MM`.                                                                    |
+| `date`         | The day it happened, ISO. Every date cell it pins is this day or an offset from it.                    |
+| `contribution` | `credit`, `debit` or `none` — what it does to the registration's waste balance.                        |
+| `tonnage`      | What it moves on the balance. `0` on a worksheet the service never classifies, and on an excluded row. |
+| `fields`       | Cells to pin, keyed by template marker.                                                                |
+| `seed`         | Draws every cell the plan leaves alone, so the row renders identically every time it is uploaded.      |
 
 `rowsForUpload(rows)` hands a selection of them to `generateSpreadsheetData` in
 the shape it takes, keyed by worksheet. Pass whichever rows an upload carries;
@@ -61,7 +61,10 @@ A row must render identically every time it is uploaded, or an amendment reads
 as a wholesale restatement: the service compares each field against what it held
 before, so a second upload restating one row comes back with every row adjusted.
 The seed is half of that and the dates are the other half — a date the generator
-draws relative to now moves with the simulated clock even under a fixed seed.
+draws relative to now moves with the simulated clock even under a fixed seed. A
+plan can only hold a date still by naming it, so every date marker a template
+carries is pinned, including one whose value is empty because the row never
+needed it.
 
 ## What a row has to carry to count
 
@@ -167,6 +170,9 @@ and `activity.rowsPerSubmission` gives the rows an upload carries.
 operator's volume factor, spread across the stream's worksheets. A registration
 answers one monthly return, so a month's worth is one upload's worth; how many
 uploads carry them is the calendar planner's to decide.
+
+A worksheet the calibration names and the templates do not, or the other way
+round, is refused rather than silently planning no rows for it.
 
 **Tonnage per row** is not calibrated directly. It is whatever makes the
 estate's year land on the tonnage the calibration reports for that worksheet,

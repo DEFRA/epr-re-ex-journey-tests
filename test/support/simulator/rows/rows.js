@@ -14,6 +14,7 @@ import { CONTRIBUTION, SHEETS } from './sheets.js'
 
 /** @import {PlannedPopulation, PlannedRegistration} from '../population/population.js' */
 /** @import {Calibration} from '../population/calibration.js' */
+/** @import {Random} from '../population/random.js' */
 
 export { CONTRIBUTION }
 
@@ -36,6 +37,29 @@ export { CONTRIBUTION }
  * @property {string} stream - which of the generator's five templates it renders as
  * @property {{id: number, validFrom: string} | null} overseasSite - the site every exported row names; null off the exporting streams
  * @property {PlannedLogRow[]} rows - the whole year, in the order the log requires
+ */
+
+/**
+ * @typedef {Object} SheetPlan - one entry of `SHEETS`, keyed by worksheet
+ * @property {'credit' | 'debit' | 'none'} contribution
+ * @property {Record<string, number>} [dateFields] - date markers, each with its offset in days from the row's day
+ * @property {string[]} [monthFields] - markers a registered-only template takes as a month
+ * @property {Record<string, string | number>} [fields] - cells pinned whatever the row carries
+ * @property {(tonnage: number, random: Random, calibration: Calibration) => {fields: Record<string, string | number>, tonnage: number}} [load]
+ */
+
+/**
+ * @typedef {Object} ReportingMonth - a month of a registration's year, cut to its accreditation window
+ * @property {Date} first
+ * @property {Date} last
+ */
+
+/**
+ * @typedef {Object} RegistrationPlan - everything one registration's rows are drawn from
+ * @property {PlannedRegistration} registration
+ * @property {string} stream
+ * @property {ReportingMonth[]} months
+ * @property {Record<string, number>} rowCounts - rows per month, keyed by worksheet
  */
 
 /**
@@ -99,6 +123,9 @@ export function streamFor(registration, reprocessorStream) {
  * output streams as a quota, so every scale lands on the calibrated split
  * rather than drifting from it on a small run.
  *
+ * @param {PlannedRegistration[]} registrations
+ * @param {Calibration} calibration
+ * @param {Random} random
  * @returns {Map<string, string>} registration id to stream
  */
 function allocateStreams(registrations, calibration, random) {
@@ -118,6 +145,33 @@ function allocateStreams(registrations, calibration, random) {
 }
 
 /**
+ * The worksheets of a stream, refusing a calibration that names a different set
+ * from the templates.
+ *
+ * A worksheet the calibration omits would otherwise plan no rows at all and say
+ * nothing, and one it misspells would be ignored the same way — the silence the
+ * calibration's own overlay guard exists to prevent.
+ *
+ * @param {string} stream
+ * @param {Calibration} calibration
+ * @returns {Record<string, SheetPlan>}
+ */
+function sheetsOf(stream, calibration) {
+  const planned = SHEETS[stream]
+  const calibrated = calibration.activity.summaryLogSheets[stream] ?? {}
+  const disagreements = [
+    ...Object.keys(planned).filter((name) => !(name in calibrated)),
+    ...Object.keys(calibrated).filter((name) => !(name in planned))
+  ]
+  if (disagreements.length) {
+    throw new Error(
+      `Calibration and templates disagree on ${stream} worksheets: ${disagreements.join(', ')}`
+    )
+  }
+  return planned
+}
+
+/**
  * The months a registration reports, which start when it went active and stop
  * at the end of its accreditation window.
  *
@@ -127,7 +181,7 @@ function allocateStreams(registrations, calibration, random) {
  *
  * @param {PlannedRegistration} registration
  * @param {number} year
- * @returns {{first: Date, last: Date}[]}
+ * @returns {ReportingMonth[]}
  */
 function reportingMonths(registration, year) {
   const opened = new Date(`${registration.activeFrom}T00:00:00Z`)
@@ -154,6 +208,11 @@ function reportingMonths(registration, year) {
  * The calibrated figure is the rows an accepted upload carries, and a
  * registration answers one monthly return, so a month's worth is one upload's
  * worth. How many uploads carry them is the calendar planner's to decide.
+ *
+ * @param {string} stream
+ * @param {number} volumeFactor
+ * @param {Calibration} calibration
+ * @returns {Record<string, number>} rows per month, keyed by worksheet
  */
 function rowsPerMonth(stream, volumeFactor, calibration) {
   const key = stream.startsWith('regOnly') ? REGISTERED_ONLY : stream
@@ -163,13 +222,12 @@ function rowsPerMonth(stream, volumeFactor, calibration) {
       calibration.activity.rowsPerSubmission[key].created * volumeFactor
     )
   )
+  const calibrated = calibration.activity.summaryLogSheets[stream]
   return Object.fromEntries(
-    Object.entries(calibration.activity.summaryLogSheets[stream]).map(
-      ([worksheet, { rowShare }]) => [
-        worksheet,
-        Math.max(1, Math.round(total * rowShare))
-      ]
-    )
+    Object.keys(sheetsOf(stream, calibration)).map((worksheet) => [
+      worksheet,
+      Math.max(1, Math.round(total * calibrated[worksheet].rowShare))
+    ])
   )
 }
 
@@ -182,6 +240,9 @@ function rowsPerMonth(stream, volumeFactor, calibration) {
  * follows that raising the rows a submission carries shrinks the load behind
  * each row rather than inflating the year's tonnage.
  *
+ * @param {RegistrationPlan[]} plans
+ * @param {number} scale
+ * @param {Calibration} calibration
  * @returns {Map<string, number>} `<stream>/<worksheet>` to tonnes per row
  */
 function tonnagePerRow(plans, scale, calibration) {
@@ -269,6 +330,10 @@ export function planSummaryLogRows({
  * One registration's year, worksheet by worksheet within each month, so the
  * rows come out in the order the log requires and a row id only ever climbs.
  *
+ * @param {RegistrationPlan} plan
+ * @param {Map<string, number>} perRow
+ * @param {Calibration} calibration
+ * @param {Random} random
  * @returns {PlannedRegistrationRows}
  */
 function planRegistration(plan, perRow, calibration, random) {
@@ -277,7 +342,9 @@ function planRegistration(plan, perRow, calibration, random) {
   const rows = []
 
   for (const month of months) {
-    for (const [worksheet, sheet] of Object.entries(SHEETS[stream])) {
+    for (const [worksheet, sheet] of Object.entries(
+      sheetsOf(stream, calibration)
+    )) {
       for (let index = 0; index < rowCounts[worksheet]; index++) {
         const rowId =
           nextRowId.get(worksheet) ?? WORKSHEET_CONFIG[stream][worksheet].rowId
@@ -327,6 +394,10 @@ export function rowsForUpload(rows) {
   return byWorksheet
 }
 
+/**
+ * @param {PlannedLogRow[]} rows
+ * @returns {string}
+ */
 const earliestDate = (rows) =>
   rows.reduce(
     (earliest, row) => (row.date < earliest ? row.date : earliest),
@@ -341,6 +412,14 @@ const earliestDate = (rows) =>
  * moves with the simulated clock even under a fixed seed, and a row that moves
  * between uploads reads as an amendment rather than a restatement.
  *
+ * @param {Object} options
+ * @param {number} options.rowId
+ * @param {string} options.worksheet
+ * @param {SheetPlan} options.sheet
+ * @param {ReportingMonth} options.month
+ * @param {Random} options.random
+ * @param {number} [options.tonnage] - tonnes this row carries, absent where the worksheet reports none
+ * @param {Calibration} options.calibration
  * @returns {PlannedLogRow}
  */
 function planRow({
@@ -361,11 +440,13 @@ function planRow({
   for (const marker of sheet.monthFields ?? []) {
     fields[marker] = ukDate(dayOf(day.getUTCFullYear(), day.getUTCMonth(), 1))
   }
+  Object.assign(fields, sheet.fields)
 
   const load =
     sheet.load && tonnage !== undefined
       ? sheet.load(tonnage, random, calibration)
       : null
+  const moves = load?.tonnage ?? 0
 
   return {
     rowId,
@@ -373,9 +454,10 @@ function planRow({
     period: iso(day).slice(0, 7),
     date: iso(day),
     // What the row does, not where it sits: a stopped or refused load is on a
-    // crediting worksheet and still moves nothing.
-    contribution: load?.tonnage ? sheet.contribution : CONTRIBUTION.NONE,
-    tonnage: load?.tonnage ?? 0,
+    // crediting worksheet and still moves nothing, and a sheet the service
+    // never classifies reports a tonnage that reaches no balance at all.
+    contribution: moves ? sheet.contribution : CONTRIBUTION.NONE,
+    tonnage: sheet.contribution === CONTRIBUTION.NONE ? 0 : moves,
     fields: { ...fields, ...load?.fields },
     seed: random.int(1, 2 ** 31 - 1)
   }
@@ -386,6 +468,11 @@ function planRow({
  * take, so nothing has to be clamped into disagreeing with the day it follows.
  * A window of a few days at the edge of an accreditation has no such room, and
  * there the clamp is what keeps every date inside it.
+ *
+ * @param {ReportingMonth} month
+ * @param {SheetPlan} sheet
+ * @param {Random} random
+ * @returns {Date}
  */
 function dayWithin(month, sheet, random) {
   const offsets = Object.values(sheet.dateFields ?? {})
@@ -397,7 +484,13 @@ function dayWithin(month, sheet, random) {
     : addDays(earliest, random.int(0, span))
 }
 
-/** Holds a date inside the month it belongs to, so an offset cannot leave the window. */
+/**
+ * Holds a date inside the month it belongs to, so an offset cannot leave the window.
+ *
+ * @param {Date} date
+ * @param {ReportingMonth} month
+ * @returns {Date}
+ */
 function clamp(date, month) {
   if (date < month.first) return month.first
   if (date > month.last) return month.last

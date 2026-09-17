@@ -160,6 +160,10 @@ function sentOnLoad(tonnage) {
 /**
  * Whether an exported load was stopped or refused in transit, drawn from the
  * one number so no load can be both.
+ *
+ * @param {Random} random
+ * @param {import('../population/calibration.js').Calibration} calibration
+ * @returns {{stopped: boolean, refused: boolean}}
  */
 function exportOutcome(random, calibration) {
   const { stoppedShare, refusedShare } = calibration.activity.exportLoadOutcome
@@ -170,12 +174,24 @@ function exportOutcome(random, calibration) {
   }
 }
 
+/**
+ * Both exporting templates carry a repatriation date, which their generators
+ * draw relative to now and which would therefore move under the simulated
+ * clock. A load that was neither stopped nor refused was never repatriated, so
+ * the cell is empty, which is also what holds it still.
+ */
+const REPATRIATION_UNNEEDED = { DATE_THE_REFUSED_STOPPED_WASTE_REPATRIATED: '' }
+
 const receivedSheet = {
   contribution: CONTRIBUTION.CREDIT,
   dateFields: { DATE_RECEIVED_FOR_REPROCESSING: 0 },
   load: receivedLoad
 }
 
+/**
+ * @param {'credit' | 'debit' | 'none'} contribution
+ * @returns {import('./rows.js').SheetPlan}
+ */
 const sentOnSheet = (contribution) => ({
   contribution,
   dateFields: { DATE_LOAD_LEFT_SITE: 0 },
@@ -190,6 +206,8 @@ const sentOnSheet = (contribution) => ({
  * `dateFields` gives each date marker's offset in days from the row's own day.
  * `monthFields` names the markers a registered-only template takes as a month
  * rather than a day, which the template writes as the first of that month.
+ * `fields` pins whatever else the sheet holds still, whether or not the row
+ * carries a tonnage.
  */
 export const SHEETS = {
   exporter: {
@@ -203,6 +221,7 @@ export const SHEETS = {
         DATE_OF_EXPORT: 0,
         DATE_RECEIVED_BY_OSR: 21
       },
+      fields: REPATRIATION_UNNEEDED,
       load: exportedLoad
     },
     'Sent on (sections 4 and 5)': sentOnSheet(CONTRIBUTION.NONE)
@@ -234,7 +253,8 @@ export const SHEETS = {
     },
     'Exported (sections 2 and 3)': {
       contribution: CONTRIBUTION.NONE,
-      dateFields: { DATE_OF_EXPORT: 0 }
+      dateFields: { DATE_OF_EXPORT: 0 },
+      fields: REPATRIATION_UNNEEDED
     },
     'Sent on (section 4)': sentOnSheet(CONTRIBUTION.NONE)
   },

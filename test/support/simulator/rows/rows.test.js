@@ -43,13 +43,29 @@ const creditRows = (plan, stream) =>
     .flatMap((r) => r.rows)
     .filter((r) => r.contribution === CONTRIBUTION.CREDIT)
 
-/** What the whole estate moves in a month through one worksheet. */
+/** The tonnage cell a worksheet reports its load through. */
+const TONNAGE_CELL = {
+  'Exported (sections 1, 2 and 3)': 'TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED',
+  'Received (sections 1, 2 and 3)': 'TONNAGE_RECEIVED_FOR_RECYCLING',
+  'Reprocessed (sections 3 and 4)': 'PRODUCT_UK_PACKAGING_WEIGHT_PROPORTION',
+  'Sent on (sections 4 and 5)': 'TONNAGE_OF_UK_PACKAGING_WASTE_SENT_ON',
+  'Sent on (sections 5, 6 and 7)': 'TONNAGE_OF_UK_PACKAGING_WASTE_SENT_ON'
+}
+
+/**
+ * What the whole estate reports in a month through one worksheet, read off the
+ * cell rather than off the balance movement. The published workbook aggregates
+ * what operators report, which includes a worksheet the service never
+ * classifies and a load that was stopped in transit.
+ */
 function monthlyTonnage(plan, stream, worksheet) {
+  const cell = TONNAGE_CELL[worksheet]
+  assert.ok(cell, `no tonnage cell known for ${worksheet}`)
   const total = plan.registrations
     .filter((r) => r.stream === stream)
     .flatMap((r) => r.rows)
     .filter((r) => r.worksheet === worksheet)
-    .reduce((sum, row) => sum + row.tonnage, 0)
+    .reduce((sum, row) => sum + Number(row.fields[cell]), 0)
   return total / 12
 }
 
@@ -58,6 +74,18 @@ const tonnageFromWeights = (f) =>
   (f.NET_WEIGHT - f.WEIGHT_OF_NON_TARGET_MATERIALS) *
   (f.BAILING_WIRE_PROTOCOL === 'Yes' ? 0.9985 : 1) *
   f.RECYCLABLE_PROPORTION_PERCENTAGE
+
+/**
+ * A row's date cells that carry a date. A cell deliberately left empty, like a
+ * repatriation date on a load that was never stopped, is pinned and so holds
+ * still, but has no day to check.
+ */
+const pinnedDates = (row) =>
+  Object.entries(row.fields).filter(
+    ([marker, value]) =>
+      (marker.startsWith('DATE_') || marker.startsWith('MONTH_')) &&
+      value !== ''
+  )
 
 /** The service compares a calculated field against its terms to within this. */
 const TOLERANCE = 1e-9
@@ -205,9 +233,7 @@ describe('planSummaryLogRows', () => {
 describe('a planned row that has to count', () => {
   it('pins every date, so the simulated clock cannot move it', () => {
     for (const row of everyRow(plan)) {
-      const dates = Object.entries(row.fields).filter(
-        ([marker]) => marker.startsWith('DATE_') || marker.startsWith('MONTH_')
-      )
+      const dates = pinnedDates(row)
       assert.ok(
         dates.length > 0,
         `${row.worksheet} row ${row.rowId} pins no date`
@@ -229,9 +255,7 @@ describe('a planned row that has to count', () => {
       ).registration
       if (!accreditation) continue
       for (const row of registration.rows) {
-        for (const [marker, value] of Object.entries(row.fields)) {
-          if (!marker.startsWith('DATE_') && !marker.startsWith('MONTH_'))
-            continue
+        for (const [marker, value] of pinnedDates(row)) {
           const day = String(value).split('/').reverse().join('-')
           assert.ok(
             day >= accreditation.validFrom && day <= accreditation.validTo,
@@ -280,6 +304,17 @@ describe('a planned row that has to count', () => {
     )
     for (const row of stopped.concat(refused)) {
       assert.equal(row.tonnage, 0, 'an excluded load still carries tonnage')
+    }
+  })
+
+  it('moves nothing where the service never classifies the worksheet', () => {
+    for (const row of everyRow(plan)) {
+      if (row.contribution !== CONTRIBUTION.NONE) continue
+      assert.equal(
+        row.tonnage,
+        0,
+        `${row.worksheet} row ${row.rowId} moves ${row.tonnage} and contributes nothing`
+      )
     }
   })
 
@@ -353,6 +388,20 @@ describe('the arithmetic the service recomputes', () => {
   })
 })
 
+/** Every date marker a rendered worksheet carries, read off its marker row. */
+function dateMarkersOf(workbook, worksheetName) {
+  const sheet = workbook.getWorksheet(worksheetName)
+  assert.ok(sheet, `no worksheet named ${worksheetName}`)
+  const markers = []
+  sheet.getRow(1).eachCell((cell) => {
+    const marker = String(cell.value)
+    if (marker.startsWith('DATE_') || marker.startsWith('MONTH_')) {
+      markers.push(marker)
+    }
+  })
+  return markers
+}
+
 describe('a planned row rendered into a workbook', () => {
   const tenth = planSummaryLogRows({
     population: planPopulation({ seed: SEED, scale: 0.1 })
@@ -384,6 +433,20 @@ describe('a planned row rendered into a workbook', () => {
       const sheet = workbook.getWorksheet(rows[0].worksheet)
       assert.ok(sheet, `no worksheet named ${rows[0].worksheet}`)
       assert.equal(String(sheet.getCell('B4').value), String(rows[0].rowId))
+
+      // The plan can only hold a date still by naming it, so a template date
+      // the plan does not name is one the generator will redraw against the
+      // clock on the next upload. Reading the markers off the template is what
+      // catches that; reading them off the plan cannot.
+      for (const row of rows) {
+        const planned = Object.keys(row.fields)
+        for (const marker of dateMarkersOf(workbook, row.worksheet)) {
+          assert.ok(
+            planned.includes(marker),
+            `${stream} ${row.worksheet} leaves ${marker} unpinned`
+          )
+        }
+      }
     })
   }
 
@@ -399,6 +462,35 @@ describe('a planned row rendered into a workbook', () => {
         silentLogging: true
       }),
       /no field marked NOT_A_FIELD/
+    )
+  })
+})
+
+describe('a calibration that names different worksheets', () => {
+  /** The defaults with one exporter worksheet renamed, as a misspelling would. */
+  function misspelt() {
+    const sheets = DEFAULT_CALIBRATION.activity.summaryLogSheets
+    const { 'Sent on (sections 4 and 5)': sentOn, ...rest } = sheets.exporter
+    return {
+      ...DEFAULT_CALIBRATION,
+      activity: {
+        ...DEFAULT_CALIBRATION.activity,
+        summaryLogSheets: {
+          ...sheets,
+          exporter: { ...rest, 'Sent on (sections 4 and 6)': sentOn }
+        }
+      }
+    }
+  }
+
+  it('is refused rather than quietly planning no rows', () => {
+    assert.throws(
+      () =>
+        planSummaryLogRows({
+          population: planPopulation({ seed: SEED, scale: 0.1 }),
+          calibration: misspelt()
+        }),
+      /disagree on exporter worksheets: Sent on \(sections 4 and 5\), Sent on \(sections 4 and 6\)/
     )
   })
 })
