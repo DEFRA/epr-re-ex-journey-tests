@@ -338,6 +338,17 @@ export function planSummaryLogRows({
  */
 function planRegistration(plan, perRow, calibration, random) {
   const { registration, stream, months, rowCounts } = plan
+  const identity = {
+    registrationId: registration.id,
+    organisationId: registration.organisationId,
+    stream
+  }
+  if (months.length === 0) return { ...identity, overseasSite: null, rows: [] }
+
+  const window = {
+    first: months[0].first,
+    last: months[months.length - 1].last
+  }
   const nextRowId = new Map()
   const rows = []
 
@@ -355,6 +366,7 @@ function planRegistration(plan, perRow, calibration, random) {
             worksheet,
             sheet,
             month,
+            window,
             random,
             tonnage: perRow.get(`${stream}/${worksheet}`),
             calibration
@@ -366,9 +378,7 @@ function planRegistration(plan, perRow, calibration, random) {
 
   const exporting = stream === 'exporter' || stream === 'regOnlyExporter'
   return {
-    registrationId: registration.id,
-    organisationId: registration.organisationId,
-    stream,
+    ...identity,
     overseasSite: exporting
       ? { id: OVERSEAS_SITE_ID, validFrom: earliestDate(rows) }
       : null,
@@ -401,7 +411,7 @@ export function rowsForUpload(rows) {
 const earliestDate = (rows) =>
   rows.reduce(
     (earliest, row) => (row.date < earliest ? row.date : earliest),
-    '9999-12-31'
+    rows[0].date
   )
 
 /**
@@ -417,6 +427,7 @@ const earliestDate = (rows) =>
  * @param {string} options.worksheet
  * @param {SheetPlan} options.sheet
  * @param {ReportingMonth} options.month
+ * @param {ReportingMonth} options.window - every month the registration reports
  * @param {Random} options.random
  * @param {number} [options.tonnage] - tonnes this row carries, absent where the worksheet reports none
  * @param {Calibration} options.calibration
@@ -427,15 +438,16 @@ function planRow({
   worksheet,
   sheet,
   month,
+  window,
   random,
   tonnage,
   calibration
 }) {
-  const day = dayWithin(month, sheet, random)
+  const day = dayWithin(month, random)
   const fields = {}
 
   for (const [marker, offset] of Object.entries(sheet.dateFields ?? {})) {
-    fields[marker] = ukDate(clamp(addDays(day, offset), month))
+    fields[marker] = ukDate(clamp(addDays(day, offset), window))
   }
   for (const marker of sheet.monthFields ?? []) {
     fields[marker] = ukDate(dayOf(day.getUTCFullYear(), day.getUTCMonth(), 1))
@@ -464,35 +476,28 @@ function planRow({
 }
 
 /**
- * A day inside the month, leaving room for the offsets the sheet's other dates
- * take, so nothing has to be clamped into disagreeing with the day it follows.
- * A window of a few days at the edge of an accreditation has no such room, and
- * there the clamp is what keeps every date inside it.
+ * Any day of the month the row is reported for.
  *
  * @param {ReportingMonth} month
- * @param {SheetPlan} sheet
  * @param {Random} random
  * @returns {Date}
  */
-function dayWithin(month, sheet, random) {
-  const offsets = Object.values(sheet.dateFields ?? {})
-  const earliest = addDays(month.first, -Math.min(0, ...offsets, 0))
-  const latest = addDays(month.last, -Math.max(0, ...offsets, 0))
-  const span = daysBetween(earliest, latest)
-  return span < 0
-    ? addDays(month.first, random.int(0, daysBetween(month.first, month.last)))
-    : addDays(earliest, random.int(0, span))
-}
+const dayWithin = (month, random) =>
+  addDays(month.first, random.int(0, daysBetween(month.first, month.last)))
 
 /**
- * Holds a date inside the month it belongs to, so an offset cannot leave the window.
+ * Holds a date inside the registration's reporting window rather than inside
+ * the month, because that is the boundary the service enforces: an exported
+ * row is checked for accreditation on both its export date and the date the
+ * overseas reprocessor received it, and a receipt three weeks after an export
+ * late in the month falls in the month after it without being late.
  *
  * @param {Date} date
- * @param {ReportingMonth} month
+ * @param {ReportingMonth} window
  * @returns {Date}
  */
-function clamp(date, month) {
-  if (date < month.first) return month.first
-  if (date > month.last) return month.last
+function clamp(date, window) {
+  if (date < window.first) return window.first
+  if (date > window.last) return window.last
   return date
 }

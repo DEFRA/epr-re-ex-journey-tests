@@ -98,6 +98,14 @@ describe('planSummaryLogRows', () => {
     )
   })
 
+  it('plans nothing for a year before the register opened', () => {
+    const empty = planSummaryLogRows({ population, year: 2000 })
+    for (const registration of empty.registrations) {
+      assert.deepEqual(registration.rows, [])
+      assert.equal(registration.overseasSite, null)
+    }
+  })
+
   it('splits the accredited reprocessors between input and output', () => {
     const counts = {}
     for (const { stream } of plan.registrations) {
@@ -264,6 +272,13 @@ describe('a planned row that has to count', () => {
         }
       }
     }
+  })
+
+  it('dates exports across the whole month, not only where a receipt fits', () => {
+    const days = new Set(
+      creditRows(plan, 'exporter').map((row) => Number(row.date.slice(8)))
+    )
+    assert.ok(days.has(1) && days.has(28), [...days].sort().join(','))
   })
 
   it('never says a note was already issued against the waste', () => {

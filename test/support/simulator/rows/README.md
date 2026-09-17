@@ -68,7 +68,7 @@ needed it.
 
 ## What a row has to carry to count
 
-Only four of the fifteen worksheets reach a waste balance at all:
+Only four of the thirteen worksheets reach a waste balance at all:
 
 | Stream              | Worksheet                      | What it does |
 | ------------------- | ------------------------------ | ------------ |
@@ -179,3 +179,10 @@ estate's year land on the tonnage the calibration reports for that worksheet,
 scaled with the population so a tenth-scale run credits a tenth of it. It
 follows that raising the rows a submission carries shrinks the load behind each
 row rather than inflating the year's tonnage.
+
+Only a worksheet the calibration gives a monthly tonnage is anchored that way,
+and those are the five the published workbook aggregates. Every other
+worksheet's weights are whatever the generator draws from the row's seed. They
+hold still and they validate, and they are not a production quantity: summing
+tonnage received or product tonnage across the estate reports the fixture, not
+the country.

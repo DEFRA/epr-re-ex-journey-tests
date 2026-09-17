@@ -132,9 +132,10 @@ const ACTIVITY = {
     reprocessorInput: { created: 200, updated: 100 },
     reprocessorOutput: { created: 500, updated: 500 },
     /**
-     * A registered-but-unaccredited operator reports on a shorter template and
-     * quarterly rather than monthly. Nominal, and low because neither the shape
-     * nor the cadence of what they report is published.
+     * A registered-but-unaccredited operator reports on a shorter template.
+     * A month's worth, as the accredited figures are, whether the calendar
+     * sends it monthly or holds it for a quarterly return. Nominal, and low
+     * because nothing published says what they report.
      */
     registeredOnly: { created: 20, updated: 10 }
   },

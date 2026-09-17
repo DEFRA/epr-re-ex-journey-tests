@@ -199,7 +199,7 @@ const sentOnSheet = (contribution) => ({
 })
 
 /**
- * Only four of the fifteen worksheets reach a waste balance at all. The rest are
+ * Only four of the thirteen worksheets reach a waste balance at all. The rest are
  * reported and read back but never classified, so planning tonnage into one
  * plans nothing.
  *
@@ -236,8 +236,8 @@ export const SHEETS = {
   },
   reprocessorOutput: {
     'Received (sections 1 and 2)': {
-      ...receivedSheet,
-      contribution: CONTRIBUTION.NONE
+      contribution: CONTRIBUTION.NONE,
+      dateFields: receivedSheet.dateFields
     },
     'Reprocessed (sections 3 and 4)': {
       contribution: CONTRIBUTION.CREDIT,
