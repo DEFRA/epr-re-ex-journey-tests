@@ -17,3 +17,6 @@ FAILED
 # distinct from resources/templates/, which holds its committed source
 # templates.
 data/
+
+# A simulator calibration overlay, named by SIMULATOR_CALIBRATION. Never committed.
+simulator-calibration*.json
