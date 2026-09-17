@@ -14,6 +14,101 @@ import { mkdir } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import pino from 'pino'
 
+/**
+ * A row the caller has planned, rather than one this generator invents.
+ *
+ * `fields` names cells by the template marker in the worksheet's marker row -
+ * EWC_CODE, GROSS_WEIGHT, DATE_RECEIVED_FOR_REPROCESSING - so a plan survives
+ * the same field sitting in a different column of each template. A planned
+ * field is the last word: it outranks both the random draw and the tonnage
+ * the generator derives from it.
+ *
+ * The problems operators hit in production are plans, not modes:
+ *
+ * - a blank required field is `{ EWC_CODE: '' }`, giving FIELD_REQUIRED
+ * - a bad date is any non-date text in a DATE_ field, giving INVALID_DATE
+ * - an amended row is a later upload restating a rowId with a changed field
+ * - a removed row is a later upload omitting a rowId it submitted before,
+ *   giving SEQUENTIAL_ROW_REMOVED
+ *
+ * A workbook the service cannot read at all is the one exception, since no
+ * row can express it - see the `unreadable` option.
+ *
+ * @typedef {object} PlannedRow
+ * @property {number} [rowId] - the ROW_ID this row carries. Defaults to the
+ *   worksheet's own series, as an unplanned workbook numbers its rows.
+ * @property {Record<string, string | number>} [fields] - cells to pin, keyed
+ *   by template marker.
+ */
+
+/** The worksheet row carrying the template's field markers. */
+const MARKER_ROW = 1
+
+/** The first row of a worksheet that holds data rather than headings. */
+const FIRST_DATA_ROW = 4
+
+/**
+ * Column letters of a worksheet's fields, keyed by their template marker.
+ *
+ * @param {import('exceljs').Worksheet} sheet
+ * @returns {Record<string, string>}
+ */
+function fieldColumns(sheet) {
+  const columns = {}
+  sheet.getRow(MARKER_ROW).eachCell((cell, column) => {
+    const marker = String(cell.value)
+    if (!marker.startsWith('__EPR')) {
+      columns[marker] = sheet.getColumn(column).letter
+    }
+  })
+  return columns
+}
+
+/**
+ * Re-keys a planned row's fields from template markers to column letters.
+ *
+ * @param {Record<string, string | number>} fields
+ * @param {Record<string, string>} columns
+ * @param {string} worksheetName
+ * @returns {Record<string, string | number>}
+ */
+function cellsForFields(fields, columns, worksheetName) {
+  return Object.fromEntries(
+    Object.entries(fields).map(([marker, value]) => {
+      const column = columns[marker]
+      if (!column) {
+        throw new Error(
+          `Worksheet '${worksheetName}' has no field marked ${marker}`
+        )
+      }
+      return [column, value]
+    })
+  )
+}
+
+/**
+ * Puts a copy of the Cover's first metadata marker into the cell that should
+ * hold that marker's value. The parser rejects the whole workbook on a marker
+ * in a value position, so nothing in it can be read - the same failure as an
+ * operator uploading the wrong template.
+ *
+ * @param {import('exceljs').Worksheet} coverSheet
+ * @returns {void}
+ */
+function misplaceMetadataMarker(coverSheet) {
+  for (let rowNumber = 1; rowNumber <= coverSheet.rowCount; rowNumber++) {
+    const row = coverSheet.getRow(rowNumber)
+    for (let column = 1; column <= row.cellCount; column++) {
+      const marker = String(row.getCell(column).value)
+      if (marker.startsWith('__EPR_META_')) {
+        row.getCell(column + 1).value = marker
+        return
+      }
+    }
+  }
+  throw new Error('Cover sheet carries no metadata marker to misplace')
+}
+
 function sanitiseFilenameComponent(input) {
   if (typeof input !== 'string') {
     return ''
@@ -42,6 +137,30 @@ function generateAccNumber(wasteProcessingType, suffix, nation, orgId) {
   })
 }
 
+/**
+ * Renders a summary log workbook, either from rows the caller has planned or
+ * from rows this generator invents.
+ *
+ * @param {object} options
+ * @param {string} [options.wasteProcessingType]
+ * @param {number} [options.numberOfRows] - rows to invent per worksheet.
+ *   Ignored when `rows` is given.
+ * @param {string} [options.materialSuffix]
+ * @param {string} [options.nation]
+ * @param {number|string} [options.orgId]
+ * @param {string} [options.accNumber]
+ * @param {string} [options.regNumber]
+ * @param {number[]|null} [options.sheets] - worksheet indexes to fill.
+ * @param {string|null} [options.filename] - a workbook to fill instead of the
+ *   processing type's template, letting an upload extend the one before it.
+ * @param {number} [options.rowOffset] - rows already filled in `filename`.
+ * @param {Record<string, PlannedRow[]>|null} [options.rows] - the rows to
+ *   render, keyed by worksheet name. A worksheet the plan omits gets none.
+ * @param {boolean} [options.unreadable] - render a workbook the service
+ *   rejects wholesale rather than validates.
+ * @param {boolean} [options.silentLogging]
+ * @returns {Promise<string>} the path the workbook was written to
+ */
 export async function generateSpreadsheetData(options = {}) {
   const {
     wasteProcessingType,
@@ -54,6 +173,8 @@ export async function generateSpreadsheetData(options = {}) {
     sheets = null,
     filename = null,
     rowOffset = 0,
+    rows = null,
+    unreadable = false,
     silentLogging = false
   } = options
 
@@ -73,10 +194,9 @@ export async function generateSpreadsheetData(options = {}) {
         (m) => m.suffix === materialSuffix.toUpperCase()
       )
       if (!material) {
-        logger.error(
+        throw new Error(
           `Material with suffix '${materialSuffix}' not found. Available: ${MATERIALS.map((m) => m.suffix).join(', ')}`
         )
-        process.exit(1)
       }
     } else {
       material = faker.helpers.arrayElement(MATERIALS)
@@ -89,10 +209,10 @@ export async function generateSpreadsheetData(options = {}) {
       accNumber ||
       generateAccNumber(wasteProcessingType, material.suffix, nation, orgId)
 
-    const config = PROCESSING_TYPE_CONFIG[wasteProcessingType]
-    if (!config) {
+    if (!wasteProcessingType || !PROCESSING_TYPE_CONFIG[wasteProcessingType]) {
       throw new Error(`Unknown wasteProcessingType: ${wasteProcessingType}`)
     }
+    const config = PROCESSING_TYPE_CONFIG[wasteProcessingType]
 
     let { templateFile, worksheets } = config
 
@@ -136,7 +256,7 @@ export async function generateSpreadsheetData(options = {}) {
         }
         logger.info(`Generating data for ${worksheet.name}...`)
 
-        let currentRow = 4 + rowOffset // Start from row 4
+        let currentRow = FIRST_DATA_ROW + rowOffset
 
         let targetCols = ['B']
         if (
@@ -161,15 +281,31 @@ export async function generateSpreadsheetData(options = {}) {
           })
         })
 
-        for (let i = rowOffset; i < numberOfRows + rowOffset; i++) {
-          const rowData = worksheet.fn(material)
+        const worksheetConfig =
+          WORKSHEET_CONFIG[wasteProcessingType]?.[worksheet.name]
+        /** @type {PlannedRow[]} */
+        const plannedRows =
+          rows === null
+            ? Array.from({ length: numberOfRows }, () => ({}))
+            : (rows[worksheet.name] ?? [])
+        const columns = fieldColumns(sheet)
 
-          // Retrieve worksheet configuration and calculate formula
-          const config = WORKSHEET_CONFIG[wasteProcessingType]?.[worksheet.name]
-          if (config) {
-            rowData.B = `${config.rowId + i}`
-            config.tonnage?.(rowData)
+        for (const [i, plannedRow] of plannedRows.entries()) {
+          const rowData = worksheet.fn(material)
+          const plannedCells = cellsForFields(
+            plannedRow.fields ?? {},
+            columns,
+            worksheet.name
+          )
+          Object.assign(rowData, plannedCells)
+
+          if (worksheetConfig) {
+            rowData.B = `${plannedRow.rowId ?? worksheetConfig.rowId + rowOffset + i}`
+            worksheetConfig.tonnage?.(rowData)
           }
+
+          // A planned field is the last word, over the value derived for it.
+          Object.assign(rowData, plannedCells)
 
           // Insert data only into specified columns
           Object.entries(rowData).forEach(([columnLetter, value]) => {
@@ -187,9 +323,20 @@ export async function generateSpreadsheetData(options = {}) {
         }
 
         logger.info(
-          `Generated ${numberOfRows} rows for ${worksheet.name} (rows ${4 + rowOffset}-${currentRow - 1})`
+          `Generated ${plannedRows.length} rows for ${worksheet.name} (rows ${FIRST_DATA_ROW + rowOffset}-${currentRow - 1})`
         )
       }
+    }
+
+    if (unreadable) {
+      const coverSheet = workbook.getWorksheet('Cover')
+      if (!coverSheet) {
+        throw new Error('Cover sheet not found')
+      }
+      misplaceMetadataMarker(coverSheet)
+      logger.info(
+        'Misplaced a Cover metadata marker: this workbook is unreadable'
+      )
     }
 
     const safeType = sanitiseFilenameComponent(wasteProcessingType)
@@ -214,7 +361,7 @@ export async function generateSpreadsheetData(options = {}) {
   } catch (error) {
     logger.error('Error generating spreadsheet:', error.message)
     logger.error(error.stack)
-    process.exit(1)
+    throw error
   }
 }
 
@@ -274,5 +421,5 @@ args.forEach((arg) => {
 })
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  generateSpreadsheetData(options)
+  generateSpreadsheetData(options).catch(() => process.exit(1))
 }

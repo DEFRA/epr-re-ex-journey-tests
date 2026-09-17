@@ -73,6 +73,7 @@ test.describe('Automated scaling - Summary Logs Reprocessor on Input @automatedS
       config.dockerLogParser.containerName
     )
 
+    /** @type {string | null} */
     let filename = null
     for (
       let rowOffset = 0;
