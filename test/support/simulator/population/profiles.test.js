@@ -65,14 +65,14 @@ describe('archetypes', () => {
   it('spend the whole of every return somewhere on the punctuality scale', () => {
     for (const archetype of Object.values(ARCHETYPES)) {
       const { onTime, lateWithin7, lateWithin30, lateBeyond30 } =
-        archetype.submission
+        archetype.reporting
       near(onTime + lateWithin7 + lateWithin30 + lateBeyond30, 1, 0.000001)
     }
   })
 
   it('run from most to least reliable in the order they are declared', () => {
     const onTimeShares = Object.values(ARCHETYPES).map(
-      (archetype) => archetype.submission.onTime
+      (archetype) => archetype.reporting.onTime
     )
 
     assert.deepEqual(
@@ -83,8 +83,7 @@ describe('archetypes', () => {
 
   it('keep every rate a probability, on the calibration this repository ships', () => {
     const rates = Object.values(buildArchetypes(DEFAULT_CALIBRATION)).flatMap(
-      ({ submission, reporting, uploads, prn, weekendChance }) => [
-        ...Object.values(submission),
+      ({ reporting, uploads, prn, weekendChance }) => [
         ...Object.values(reporting),
         uploads.rejectionRate,
         uploads.fatalShare,
@@ -225,20 +224,20 @@ describe('spreading a calibration across the archetypes', () => {
       (a) => a.prn.sameMonthAcceptanceShare,
       (c) => c.activity.prn.sameMonthAcceptanceShare
     ],
-    ['onTime', (a) => a.submission.onTime, (c) => c.punctuality.onTime],
+    ['onTime', (a) => a.reporting.onTime, (c) => c.punctuality.onTime],
     [
       'lateWithin7',
-      (a) => a.submission.lateWithin7,
+      (a) => a.reporting.lateWithin7,
       (c) => c.punctuality.lateWithin7
     ],
     [
       'lateWithin30',
-      (a) => a.submission.lateWithin30,
+      (a) => a.reporting.lateWithin30,
       (c) => c.punctuality.lateWithin30
     ],
     [
       'lateBeyond30',
-      (a) => a.submission.lateBeyond30,
+      (a) => a.reporting.lateBeyond30,
       (c) => c.punctuality.lateBeyond30
     ]
   ]
@@ -257,8 +256,8 @@ describe('spreading a calibration across the archetypes', () => {
    */
   it('averages earlyShare back to the calibration, weighted by on-time volume', () => {
     exactly(
-      mixMean((a) => a.submission.onTime * a.submission.earlyShare) /
-        mixMean((a) => a.submission.onTime),
+      mixMean((a) => a.reporting.onTime * a.reporting.earlyShare) /
+        mixMean((a) => a.reporting.onTime),
       FIXTURE.punctuality.earlyShare,
       'earlyShare'
     )
@@ -281,22 +280,22 @@ describe('the production profile mix', () => {
       FIXTURE.punctuality
 
     near(
-      meanOf(profiles, (p) => p.submission.onTime),
+      meanOf(profiles, (p) => p.reporting.onTime),
       onTime,
       0.02
     )
     near(
-      meanOf(profiles, (p) => p.submission.lateWithin7),
+      meanOf(profiles, (p) => p.reporting.lateWithin7),
       lateWithin7,
       0.02
     )
     near(
-      meanOf(profiles, (p) => p.submission.lateWithin30),
+      meanOf(profiles, (p) => p.reporting.lateWithin30),
       lateWithin30,
       0.02
     )
     near(
-      meanOf(profiles, (p) => p.submission.lateBeyond30),
+      meanOf(profiles, (p) => p.reporting.lateBeyond30),
       lateBeyond30,
       0.02
     )
@@ -310,12 +309,12 @@ describe('the production profile mix', () => {
    */
   it('reproduces the calibrated share of on-time returns filed early', () => {
     const onTime = profiles.reduce(
-      (sum, profile) => sum + profile.submission.onTime,
+      (sum, profile) => sum + profile.reporting.onTime,
       0
     )
     const early = profiles.reduce(
       (sum, profile) =>
-        sum + profile.submission.onTime * profile.submission.earlyShare,
+        sum + profile.reporting.onTime * profile.reporting.earlyShare,
       0
     )
 
@@ -416,8 +415,8 @@ describe('the other profile mixes', () => {
     const production = populationOf('production')
 
     assert.ok(
-      meanOf(punctual, (p) => p.submission.onTime) >
-        meanOf(production, (p) => p.submission.onTime)
+      meanOf(punctual, (p) => p.reporting.onTime) >
+        meanOf(production, (p) => p.reporting.onTime)
     )
     assert.ok(
       meanOf(punctual, (p) => p.uploads.rejectionRate) <
@@ -430,8 +429,8 @@ describe('the other profile mixes', () => {
     const production = populationOf('production')
 
     assert.ok(
-      meanOf(chaotic, (p) => p.submission.onTime) <
-        meanOf(production, (p) => p.submission.onTime)
+      meanOf(chaotic, (p) => p.reporting.onTime) <
+        meanOf(production, (p) => p.reporting.onTime)
     )
     assert.ok(
       meanOf(chaotic, (p) => p.uploads.abandonRate) >

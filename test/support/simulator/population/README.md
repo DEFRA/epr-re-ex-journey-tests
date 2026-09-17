@@ -91,21 +91,19 @@ what an individual operator carries depends on which archetype it drew. Under
 the `production` mix the estate average comes back to the calibration exactly.
 Read the calibration for the values; read this for what each one means.
 
-**Submission**, drawn per monthly return. The four shares always add to one.
-
-| Field                     | What it means                                                  |
-| ------------------------- | -------------------------------------------------------------- |
-| `submission.onTime`       | Filed by the 21st of the month after the period.               |
-| `submission.earlyShare`   | Of the on-time ones, the share filed more than ten days early. |
-| `submission.lateWithin7`  | Up to a week late.                                             |
-| `submission.lateWithin30` | Up to a month late.                                            |
-| `submission.lateBeyond30` | More than a month late.                                        |
-
-**Reporting.**
+**Reporting**, drawn per report. A report is the per-period aggregation, not the
+summary log upload that triggers one: an upload answers no calendar, so its
+punctuality is not here and nothing published measures it. The four punctuality
+shares always add to one.
 
 | Field                        | What it means                                                        |
 | ---------------------------- | -------------------------------------------------------------------- |
-| `reporting.missedReturnRate` | Returns that never arrive at all.                                    |
+| `reporting.onTime`           | Filed by the 21st of the month after the period.                     |
+| `reporting.earlyShare`       | Of the on-time ones, the share filed more than ten days early.       |
+| `reporting.lateWithin7`      | Up to a week late.                                                   |
+| `reporting.lateWithin30`     | Up to a month late.                                                  |
+| `reporting.lateBeyond30`     | More than a month late.                                              |
+| `reporting.missedReturnRate` | Reports that never arrive at all.                                    |
 | `reporting.restatementRate`  | How often it reopens a period it has already closed and files again. |
 
 **Uploads**, drawn per summary log upload.
@@ -149,7 +147,7 @@ what it uses when it is given none.
 That default is built from the pEPR public register of 10 September 2026 alone.
 Its counts are read straight off the register. Punctuality, the weekend share of
 uploads and the missed-return rate are computed from the register's own
-submission dates. Everything else is a nominal placeholder, round enough to read
+report dates. Everything else is a nominal placeholder, round enough to read
 as one, because nothing published measures how a spreadsheet upload fares, how
 often a return is restated, or what becomes of a PRN once it is raised. Each
 figure says which it is where it stands.

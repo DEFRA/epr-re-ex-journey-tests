@@ -49,8 +49,7 @@ const EXTRA_ATTEMPTS = { punctual: 1, typical: 1, tardy: 2 }
  * @property {string} archetype - which archetype this operator draws its disposition from
  * @property {number} volumeFactor - how much this operator reports and issues, relative to the estate mean of 1
  * @property {boolean} worksWeekends - whether it uploads and issues on Saturdays and Sundays
- * @property {{onTime: number, earlyShare: number, lateWithin7: number, lateWithin30: number, lateBeyond30: number}} submission
- * @property {{missedReturnRate: number, restatementRate: number}} reporting
+ * @property {{onTime: number, earlyShare: number, lateWithin7: number, lateWithin30: number, lateBeyond30: number, missedReturnRate: number, restatementRate: number}} reporting
  * @property {{rejectionRate: number, fatalShare: number, extraAttemptsWhenRejected: number, abandonRate: number}} uploads
  * @property {{deleteRate: number, discardRate: number, cancelRate: number, producerAcceptRate: number, sameMonthAcceptanceShare: number}} prn
  */
@@ -161,11 +160,12 @@ export function buildArchetypes(calibration) {
     Object.entries(SPREAD).map(([name, factor]) => [
       name,
       {
-        submission: {
-          ...lateness[name],
-          earlyShare: asProbability(base.earlyShare * early[name], 'earlyShare')
-        },
         reporting: {
+          ...lateness[name],
+          earlyShare: asProbability(
+            base.earlyShare * early[name],
+            'earlyShare'
+          ),
           missedReturnRate: worse(
             activity.missedReturnRate,
             factor,
@@ -244,7 +244,6 @@ export function buildProfile({ archetypes, archetype, volumeFactor, random }) {
     archetype,
     volumeFactor: volumeFactor * jitter,
     worksWeekends: random.float() < source.weekendChance,
-    submission: { ...source.submission },
     reporting: { ...source.reporting },
     uploads: { ...source.uploads },
     prn: { ...source.prn }

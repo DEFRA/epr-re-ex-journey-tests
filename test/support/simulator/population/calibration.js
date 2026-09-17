@@ -118,8 +118,8 @@ const TONNAGE_BAND_PRN_WEIGHT = {
 /**
  * Base rates the later planners apply a per-operator profile factor to.
  *
- * The register carries a submission date per registration per month, so what
- * can be read off those dates is computed from them and says so. The rest is a
+ * The register carries a report date per registration per month, so what can be
+ * read off those dates is computed from them and says so. The rest is a
  * nominal placeholder, round enough to read as one: nothing published measures
  * how a spreadsheet upload fares, how often a return is restated, or what
  * becomes of a PRN once it is raised. A run that wants those on real behaviour
@@ -134,11 +134,16 @@ const ACTIVITY = {
   },
 
   /**
-   * Monthly returns that never arrive. From the register: the share of periods
+   * Monthly reports that never arrive. From the register: the share of periods
    * a registration was already active for whose cell is still empty, over the
    * same April to July window as `PUNCTUALITY`, ignoring cancelled
-   * accreditations. It reads a return still outstanding at the snapshot as
+   * accreditations. It reads a report still outstanding at the snapshot as
    * missed, so it is a floor rather than a measurement.
+   *
+   * Only accredited registrations report monthly; a registered-only one reports
+   * quarterly, so its empty monthly cells are cadence rather than a miss. What
+   * keeps those out is the active date, which the register gives to
+   * accreditations alone. Widen that condition and this measures cadence.
    */
   missedReturnRate: 0.01,
 
@@ -154,7 +159,7 @@ const ACTIVITY = {
     abandonRate: 0.05,
     /**
      * The share of upload volume landing on a Saturday or Sunday, from the
-     * weekday of each register submission date over April to July.
+     * weekday of each register report date over April to July.
      */
     weekendVolumeShare: 0.035
   },
@@ -180,8 +185,12 @@ const ACTIVITY = {
 }
 
 /**
- * Submission punctuality across the estate, computed from the register's own
- * submission dates against the 21st of the month following each period.
+ * Report punctuality across the estate, computed from the register's own
+ * report dates against the 21st of the month following each period.
+ *
+ * A report is the per-period aggregation, not the summary log upload that
+ * triggers one: an upload answers no calendar, so nothing published measures
+ * how punctually an operator uploads.
  *
  * April to July 2026, over the cells that carry a date, so this is the shape of
  * the returns that arrived rather than of the ones that were due. The go-live
