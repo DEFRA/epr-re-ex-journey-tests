@@ -212,7 +212,13 @@ function assignMaterials(register, processingTypes, materialCount, random) {
   })
 
   // The draw can repeat itself and leave the organisation holding fewer
-  // materials than the register gave it.
+  // materials than the register gave it, so a duplicated row moves onto a
+  // material it has not got.
+  //
+  // That is what holds the estate on the register's materials per
+  // organisation, and the material row totals are what pays for it. The row
+  // moved is most often the commonest material and it never moves onto one, so
+  // plastic comes out a few per cent light and every other material heavy.
   while (held.size < materialCount) {
     const counts = timesEach(suffixes)
     const duplicated = suffixes
@@ -367,6 +373,13 @@ export function planPopulation({
 
   const fittedMaterialCounts = fitBySize(registrationCounts, materialCounts)
   const types = assignTypes(register, registrationCounts, random)
+  // An operator is regulated by one agency and its registrations inherit it,
+  // so the register's rows per agency is a quota over organisations rather
+  // than over rows. Across seeds each agency lands on its register count, and
+  // lands tighter than drawing every row on its own would, because the quota
+  // is exact and most organisations hold a single registration. One run still
+  // reads light or heavy on a small agency: over 200 seeds of the committed
+  // calibration, Northern Ireland's 45 rows came out anywhere from 35 to 62.
   const agencies = allocate(register.agencyRows, organisationCount, random)
 
   const planned = registrationCounts.map((registrationCount, index) => {

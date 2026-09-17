@@ -181,6 +181,15 @@ shuffled. That puts organisation type, registrations per operator,
 accreditation status, tonnage band and the go-live share exactly on the
 register at full scale, and keeps them in proportion at a tenth.
 
+A seed varies the arrangement rather than the quotas. Each count is worked out
+from the distribution and the total, the rounding leftover included, so every
+seed at a given scale hands out the same numbers and changes only which
+operator gets which. That is what makes a calibration true of every run instead
+of the average one, and it is not what a seeded generator usually gives: more
+seeds will not show a differently shaped estate, only a differently arranged
+one. What a seed does move is what is drawn rather than allocated, which is the
+materials.
+
 Active dates are quotas by month rather than one window drawn across evenly.
 The register's own dates thin out from a January tail and run to September, and
 the simulator counts monthly returns from this date, so an evenly drawn one
@@ -192,8 +201,10 @@ takes on a material it can, which on about one seed in eighty moves a single
 operator up a bucket.
 
 Two marginals are near rather than exact, both because an operator is held to
-the materials and sites it has the registrations to carry: aluminium and steel
-run a little above their register share, and the whole site spread shifts by an
+the materials and sites it has the registrations to carry. Plastic runs a few
+per cent under its register share and every other material a few per cent over,
+because holding an operator to a count of distinct materials moves its
+duplicated rows onto materials it has not got. The site spread shifts by an
 organisation or two, leaving the estate a few sites short of the register's 176.
 `population.test.js` states the tolerance on each.
 

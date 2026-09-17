@@ -66,7 +66,11 @@ export function createRandom(seed) {
  * Hand out `total` members so their counts match `distribution`'s proportions,
  * then shuffle. Drawing each member independently would let a small run drift
  * far from the register figures; allocating the quota first means every scale
- * lands on the distribution and only the leftover from rounding is random.
+ * lands on the distribution exactly.
+ *
+ * The leftover from rounding goes to the largest shortfalls, so nothing here
+ * is random but the order the members come out in. A given distribution and
+ * total always give the same counts, whatever the seed.
  *
  * @param {Record<string, number>} distribution - keys to their share, in any units
  * @param {number} total - how many members to hand out
