@@ -20,7 +20,12 @@ npm run clock -- 2026-02-16
 Time flows at the real rate from there. Run `npm run clock` again to jump to
 another date; it takes effect everywhere within a quarter of a second, with no
 restart. Only move forwards — nothing in the stack expects to see time go
-backwards. `npm run clock -- off` hands the stack back to real time.
+backwards. A jump of more than an hour lands beyond the lifetime of any token
+already issued, so whoever is signed in has to sign in again.
+
+`npm run clock -- off` hands the stack back to real time, which is itself a jump
+backwards of however far the run had got. It ends the run: bring the stack down
+rather than carrying on against it.
 
 A process of your own joins the clock through the same preload:
 
@@ -32,6 +37,10 @@ node your-script.js
 
 `simulated-clock.js` exports `setSimulatedNow` and `clearSimulatedClock` for a
 process that moves the clock itself.
+
+Playwright and the browser it drives are not on the clock. A journey spec run
+against a simulated stack still reaches services that believe the simulated
+date, but any date the spec works out for itself is today's.
 
 ## What the override does besides mounting the preload
 

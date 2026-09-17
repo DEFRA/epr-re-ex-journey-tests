@@ -19,6 +19,17 @@ const RECHECK_MS = 250
 let offsetMs = 0
 let lastMtimeMs = -1
 let lastCheckedAt = 0
+let loading = true
+
+/** @param {string} message */
+const fail = (message) => {
+  if (loading) throw new Error(message)
+  // Past load, a throw would surface from inside whichever Date.now() happened
+  // to read it, and the process would carry on stamping the instant before the
+  // one it cannot read. Leaving is the only way an operator sees this.
+  process.stderr.write(`${message}\n`)
+  process.exit(1)
+}
 
 const readOffset = () => {
   let fd
@@ -37,16 +48,18 @@ const readOffset = () => {
   try {
     const { mtimeMs } = fs.fstatSync(fd)
     if (mtimeMs === lastMtimeMs) return
-    lastMtimeMs = mtimeMs
     const text = fs.readFileSync(fd, 'utf8').trim()
     if (!text) {
+      lastMtimeMs = mtimeMs
       offsetMs = 0
       return
     }
     const target = RealDate.parse(text)
     if (Number.isNaN(target)) {
-      throw new Error(`fake-clock: cannot parse "${text}" in ${clockFile}`)
+      fail(`fake-clock: cannot parse "${text}" in ${clockFile}`)
+      return
     }
+    lastMtimeMs = mtimeMs
     // pino converts Date.now() with BigInt at load, which throws on a
     // fractional value, so the offset has to be whole milliseconds.
     offsetMs = Math.round(target - mtimeMs)
@@ -64,20 +77,16 @@ const fakeNow = () => {
   return real + offsetMs
 }
 
-class FakeDate extends RealDate {
-  constructor(...args) {
-    if (args.length === 0) {
-      super(fakeNow())
-    } else {
-      super(...args)
-    }
-  }
+// Proxied rather than subclassed, so Date.prototype stays the real one: a date
+// that arrives from a worker thread or a structuredClone still satisfies
+// instanceof, and Date() without new still answers with a string.
+globalThis.Date = new Proxy(RealDate, {
+  construct: (target, args, newTarget) =>
+    Reflect.construct(target, args.length ? args : [fakeNow()], newTarget),
+  apply: () => new RealDate(fakeNow()).toString(),
+  get: (target, property, receiver) =>
+    property === 'now' ? fakeNow : Reflect.get(target, property, receiver)
+})
 
-  static now() {
-    return fakeNow()
-  }
-}
-
-Object.defineProperty(FakeDate, 'name', { value: 'Date' })
-globalThis.Date = FakeDate
 readOffset()
+loading = false

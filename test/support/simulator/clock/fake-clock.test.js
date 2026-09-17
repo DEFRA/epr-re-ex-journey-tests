@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync, spawn } from 'node:child_process'
+import { once } from 'node:events'
 import {
   existsSync,
   mkdtempSync,
@@ -26,12 +27,19 @@ const { setSimulatedNow, clearSimulatedClock } =
 after(() => rmSync(scratch, { recursive: true, force: true }))
 
 /** @param {string} script */
+const startUnderClock = (script) =>
+  spawn(process.execPath, ['--require', preload, '-e', script], {
+    env: { ...process.env, FAKE_CLOCK_FILE: clockFile },
+    // Captured rather than inherited, so the failures these tests provoke on
+    // purpose do not print stack traces over a passing run.
+    stdio: ['ignore', 'pipe', 'pipe']
+  })
+
+/** @param {string} script */
 const runUnderClock = (script) =>
   execFileSync(process.execPath, ['--require', preload, '-e', script], {
     env: { ...process.env, FAKE_CLOCK_FILE: clockFile },
     encoding: 'utf8',
-    // Captured rather than inherited, so the failure one test provokes on
-    // purpose does not print a stack trace over a passing run.
     stdio: ['ignore', 'pipe', 'pipe']
   }).trim()
 
@@ -44,7 +52,26 @@ describe('the simulated clock', () => {
     assert.equal(now.toISOString().slice(0, 16), '2026-02-16T09:30')
   })
 
-  it('publishes an instant without leaving a half-written file behind', () => {
+  it('starts a late joiner where the stack has got to, not at the instant set', async () => {
+    const set = setSimulatedNow('2026-02-16T09:30:00Z')
+    const realStart = Date.now()
+
+    await delay(1200)
+    const now = new Date(runUnderClock('console.log(new Date().toISOString())'))
+    const realElapsed = Date.now() - realStart
+
+    const simulatedElapsed = now.getTime() - set.getTime()
+    assert.ok(
+      simulatedElapsed > 1000,
+      `a process joining a second later reported ${now.toISOString()}, as though the clock had just been set`
+    )
+    assert.ok(
+      simulatedElapsed <= realElapsed + 500,
+      `${simulatedElapsed}ms of simulated time passed while ${realElapsed}ms of real time did`
+    )
+  })
+
+  it('leaves no pending file beside the one it publishes', () => {
     setSimulatedNow('2026-02-16T09:30:00Z')
 
     assert.deepEqual(readdirSync(scratch), ['clock.txt'])
@@ -72,15 +99,8 @@ describe('the simulated clock', () => {
 
   it('jumps a running process to a new instant', async () => {
     setSimulatedNow('2026-02-16T09:30:00Z')
-    const child = spawn(
-      process.execPath,
-      [
-        '--require',
-        preload,
-        '-e',
-        'setInterval(() => console.log(new Date().toISOString()), 50)'
-      ],
-      { env: { ...process.env, FAKE_CLOCK_FILE: clockFile } }
+    const child = startUnderClock(
+      'setInterval(() => console.log(new Date().toISOString()), 50)'
     )
     /** @type {string[]} */
     const dates = []
@@ -109,6 +129,23 @@ describe('the simulated clock', () => {
 
   it('refuses to simulate something that is not a date', () => {
     assert.throws(() => setSimulatedNow('the ides of March'), /not a date/)
+  })
+
+  it('stops a running process whose clock file stops making sense', async () => {
+    setSimulatedNow('2026-02-16T09:30:00Z')
+    const child = startUnderClock('setInterval(() => new Date(), 50)')
+    let stderr = ''
+    child.stderr.on('data', (/** @type {Buffer} */ chunk) => {
+      stderr += chunk
+    })
+    const closed = once(child, 'close', { signal: AbortSignal.timeout(10_000) })
+
+    await delay(300)
+    writeFileSync(clockFile, 'the ides of March')
+    const [code] = await closed
+
+    assert.equal(code, 1, `the child exited ${code}`)
+    assert.match(stderr, /fake-clock: cannot parse "the ides of March"/)
   })
 
   it('stops a process whose clock file it cannot read', () => {
