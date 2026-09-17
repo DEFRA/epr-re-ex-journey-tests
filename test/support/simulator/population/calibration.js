@@ -9,7 +9,9 @@
  * through `loadCalibration`.
  *
  * The register block is the pEPR public register of 10 September 2026, which is
- * published in full. Two of its counts are derived rather than read off. Sites
+ * published in full at
+ * https://www.gov.uk/government/publications/public-register-of-reprocessors-and-exporters-of-uk-packaging-waste.
+ * Two of its counts are derived rather than read off. Sites
  * total 148, which is the reprocessor-only organisations plus the ones doing
  * both. Tonnage bands total 369, which is 389 less the 20 registered-only
  * registrations, so a tonnage band belongs to an accreditation rather than to a
@@ -155,11 +157,16 @@ const ACTIVITY = {
    * upload holds, and the tonnage the whole UK reports through it in a month.
    *
    * The tonnages are the mean of January to June 2026 on the "UK" sheet of the
-   * GOV.UK monthly aggregated workbook, whose grand totals are per month and
-   * per side of the process. A reprocessor's tonnage received for recycling is
-   * read as the input stream's and its tonnage recycled as the output
-   * stream's, because that is how the two templates divide the same operator's
-   * year. A worksheet with no figure reports nothing the workbook aggregates.
+   * accredited packaging waste monthly aggregated data workbook, 25 August
+   * 2026 edition, at
+   * https://www.gov.uk/government/statistical-data-sets/packaging-waste-data-reported-by-reprocessors-and-exporters.
+   * Its grand totals are per month and per side of the process. July is in
+   * the edition and left out: the newest month of a provisional dataset is the
+   * one late submissions have yet to reach. A reprocessor's tonnage received
+   * for recycling is read as the input stream's and its tonnage recycled as
+   * the output stream's, because that is how the two templates divide the same
+   * operator's year. A worksheet with no figure reports nothing the workbook
+   * aggregates.
    *
    * The row shares are a judgement, save that a sent-on share is set near the
    * ratio the workbook gives between tonnage sent on and tonnage received,
@@ -169,23 +176,23 @@ const ACTIVITY = {
     exporter: {
       'Exported (sections 1, 2 and 3)': {
         rowShare: 0.94,
-        monthlyTonnage: 430597
+        monthlyTonnage: 336289
       },
-      'Sent on (sections 4 and 5)': { rowShare: 0.06, monthlyTonnage: 24620 }
+      'Sent on (sections 4 and 5)': { rowShare: 0.06, monthlyTonnage: 22220 }
     },
     reprocessorInput: {
       'Received (sections 1, 2 and 3)': {
         rowShare: 0.6,
-        monthlyTonnage: 304930
+        monthlyTonnage: 308213
       },
       'Reprocessed (section 4)': { rowShare: 0.38 },
-      'Sent on (sections 5, 6 and 7)': { rowShare: 0.02, monthlyTonnage: 4371 }
+      'Sent on (sections 5, 6 and 7)': { rowShare: 0.02, monthlyTonnage: 4302 }
     },
     reprocessorOutput: {
       'Received (sections 1 and 2)': { rowShare: 0.48 },
       'Reprocessed (sections 3 and 4)': {
         rowShare: 0.5,
-        monthlyTonnage: 305500
+        monthlyTonnage: 307563
       },
       'Sent on (sections 5 and 6)': { rowShare: 0.02 }
     },
@@ -202,13 +209,13 @@ const ACTIVITY = {
 
   /**
    * How often an exported load is stopped or refused in transit, which
-   * excludes it from the waste balance. Read off the monthly aggregated
-   * workbook as a share of tonnage exported that was stopped, and refused,
-   * against tonnage received for exporting, over January to June 2026. Both
+   * excludes it from the waste balance. Read off the same edition and months
+   * of the workbook as `summaryLogSheets`, as a share of tonnage exported that
+   * was stopped, and refused, against tonnage received for exporting. Both
    * are around one load in ten thousand, so a run that draws them evenly
    * excludes nearly everything it reports.
    */
-  exportLoadOutcome: { stoppedShare: 0.00013, refusedShare: 0.000025 },
+  exportLoadOutcome: { stoppedShare: 0.00017, refusedShare: 0.000032 },
 
   /**
    * Monthly reports that never arrive. From the register: the share of periods
