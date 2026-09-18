@@ -374,6 +374,58 @@ describe('summary log uploads', () => {
     )
   })
 
+  /**
+   * An amendment is drawn from rows submitted before in periods still open,
+   * and a period closes as soon as it is reported, so what an upload can amend
+   * is capped by a month or two of rows. The rate is held where the cap does
+   * not bind, and the cap itself is held to bind on no more than a fifth of
+   * what the calibration asks for.
+   */
+  it('amends the calibrated share of a month’s rows on each upload', () => {
+    const settled = landed.filter(
+      (upload) =>
+        upload.amendments &&
+        upload.cutoff >= '2026-04-01' &&
+        upload.cutoff <= MEASURED_UNTIL &&
+        registrationOf(upload).accreditation?.status === 'approved'
+    )
+    assert.ok(settled.length > 100)
+    const measured = settled.map((upload) => {
+      const { profile } = operatorOf(upload)
+      const planned = rowsOf(upload.registrationId)
+      const sequence = uploadsOf(upload.registrationId)
+      const previous = sequence
+        .slice(0, sequence.indexOf(upload))
+        .filter((earlier) => earlier.outcome === UPLOAD_OUTCOME.SUBMITTED)
+        .at(-1)
+      const open = planned.rows.filter(
+        (row) =>
+          row.date <= must(previous).cutoff &&
+          !upload.closedPeriods.includes(row.period)
+      ).length
+      const rate =
+        (ACTIVITY.rowsPerSubmission[planned.stream].updated *
+          profile.volumeFactor) /
+        profile.uploads.perReportingPeriod
+      return { count: must(upload.amendments).count, rate, open }
+    })
+    const uncapped = measured.filter(({ rate, open }) => open >= rate)
+    assert.ok(uncapped.length > 100)
+    near(
+      mean(uncapped.map(({ count }) => count)) /
+        mean(uncapped.map(({ rate }) => rate)),
+      1,
+      0.05,
+      'amendments per upload'
+    )
+    assert.ok(
+      mean(measured.map(({ count }) => count)) /
+        mean(measured.map(({ rate }) => rate)) >
+        0.8,
+      'the open periods cap too much of the calibrated rate'
+    )
+  })
+
   it('carries every upload to its own day, and no earlier than the one before', () => {
     for (const registration of registrations) {
       let cutoff = ''
@@ -586,6 +638,22 @@ describe('the rows an upload carries', () => {
         }
         if (upload.outcome === UPLOAD_OUTCOME.SUBMITTED) cutoff = upload.cutoff
       }
+    }
+  })
+
+  it('changes a restated row whether or not the upload amends anything', () => {
+    const restating = must(landed.find((upload) => upload.restated.length > 0))
+    const planned = rowsOf(restating.registrationId)
+    const sequence = uploadsOf(restating.registrationId)
+    const before = sequence.slice(0, sequence.indexOf(restating))
+    const unamended = { ...restating, amendments: null }
+    const view = byKey(
+      uploadRows({ registration: planned, uploads: [...before, unamended] })
+    )
+    const original = byKey(planned.rows)
+    for (const ref of restating.restated) {
+      const key = rowKey(ref)
+      assert.notEqual(must(view.get(key)).seed, must(original.get(key)).seed)
     }
   })
 

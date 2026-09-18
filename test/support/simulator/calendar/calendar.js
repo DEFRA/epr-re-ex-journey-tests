@@ -114,6 +114,16 @@ const today = () => iso(new Date())
 /** @param {RowRef} row */
 const rowKey = (row) => `${row.worksheet}/${row.rowId}`
 
+/**
+ * The seed an amended row draws its unpinned cells from, so that the same row
+ * amended by the same upload always lands the same way.
+ *
+ * @param {PlannedLogRow} row
+ * @param {string} by - what amends it: the upload's amendment seed, or its cutoff for a restatement
+ */
+const reseed = (row, by) =>
+  createRandom(`${row.seed}/${by}`).int(1, 2 ** 31 - 1)
+
 /** @param {PlannedLogRow} row @returns {RowRef} */
 const refOf = ({ worksheet, rowId }) => ({ worksheet, rowId })
 
@@ -870,24 +880,20 @@ export function uploadRows({ registration, uploads }) {
           row.date <= submittedCutoff &&
           !closed.has(row.period)
       )
-      const drawn = createRandom(seed).shuffle(pool).slice(0, count)
-      const restated = earlierUpload.restated.map((ref) => {
-        const row = registration.rows.find(
-          (row) => row.worksheet === ref.worksheet && row.rowId === ref.rowId
-        )
-        if (!row) {
-          throw new Error(
-            `${registration.registrationId} restates row ${ref.rowId} of ${ref.worksheet}, which it never planned`
-          )
-        }
-        return row
-      })
-      for (const row of [...drawn, ...restated]) {
-        seeds.set(
-          rowKey(row),
-          createRandom(`${row.seed}/${seed}`).int(1, 2 ** 31 - 1)
+      for (const row of createRandom(seed).shuffle(pool).slice(0, count)) {
+        seeds.set(rowKey(row), reseed(row, seed))
+      }
+    }
+    for (const ref of earlierUpload.restated) {
+      const row = registration.rows.find(
+        (row) => row.worksheet === ref.worksheet && row.rowId === ref.rowId
+      )
+      if (!row) {
+        throw new Error(
+          `${registration.registrationId} restates row ${ref.rowId} of ${ref.worksheet}, which it never planned`
         )
       }
+      seeds.set(rowKey(row), reseed(row, earlierUpload.cutoff))
     }
     if (rendering) break
     submittedCutoff = earlierUpload.cutoff
