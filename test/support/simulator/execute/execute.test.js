@@ -23,7 +23,7 @@ import {
 import { nationLetter } from './join.js'
 
 /** @import {PlannedRegistration} from '../population/population.js' */
-/** @import {UploadEvent, ReportEvent} from '../calendar/events.js' */
+/** @import {RegistrationEvent, UploadEvent, ReportEvent} from '../calendar/events.js' */
 
 const population = planPopulation({ seed: 'execute', scale: 0.1 })
 const rows = planSummaryLogRows({ population })
@@ -146,14 +146,19 @@ function recordingSeeders() {
   return seeders
 }
 
-/** @param {PlannedRegistration} registration */
-const approved = (registration, at = `${registration.activeFrom}T09:00:00Z`) =>
-  /** @type {const} */ ({
-    type: EVENT.REGISTRATION_APPROVED,
-    at,
-    organisationId: registration.organisationId,
-    registrationId: registration.id
-  })
+/**
+ * @param {PlannedRegistration} registration
+ * @returns {RegistrationEvent}
+ */
+const approved = (
+  registration,
+  at = `${registration.activeFrom}T09:00:00Z`
+) => ({
+  type: EVENT.REGISTRATION_APPROVED,
+  at,
+  organisationId: registration.organisationId,
+  registrationId: registration.id
+})
 
 /**
  * @param {PlannedRegistration} registration

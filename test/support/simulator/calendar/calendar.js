@@ -204,10 +204,21 @@ function periodContaining(day, cadence, dueDay) {
     period,
     end: lastDayOfMonth(year, endMonth),
     due: `${monthOf(dueYear, dueMonth)}-${String(dueDay).padStart(2, '0')}`,
-    months: Array.from({ length: months }, (_, index) =>
-      monthOf(year, endMonth - months + index + 1)
-    )
+    months: monthsOfPeriod({ year, cadence, period })
   }
+}
+
+/**
+ * The months a reporting period covers, as `YYYY-MM`.
+ *
+ * @param {{year: number, cadence: 'monthly' | 'quarterly', period: number}} period
+ * @returns {string[]}
+ */
+export function monthsOfPeriod({ year, cadence, period }) {
+  const months = MONTHS_PER_PERIOD[cadence]
+  return Array.from({ length: months }, (_, index) =>
+    monthOf(year, (period - 1) * months + index + 1)
+  )
 }
 
 /**

@@ -27,7 +27,7 @@ import { createRun, executeEvent } from './execute.js'
 
 /** @import {PlannedRegistration} from '../population/population.js' */
 /** @import {PlannedLogRow, PlannedRegistrationRows} from '../rows/rows.js' */
-/** @import {CalendarEvent, RowRef} from '../calendar/events.js' */
+/** @import {CalendarEvent, ReportEvent, RowRef, UploadEvent, UploadIssues} from '../calendar/events.js' */
 
 /** How long every process on the clock takes to notice a jump. */
 const CLOCK_SETTLE_MS = 500
@@ -105,37 +105,50 @@ function eventsFor(registration, planned, ending) {
     (row) => row.period === '2026-02' && row.date > '2026-02-02'
   )
 
-  /** @param {string} at @param {Partial<import('../calendar/events.js').UploadEvent>} upload */
-  const uploaded = (at, upload) =>
-    /** @type {CalendarEvent} */ ({
-      type: EVENT.SUMMARY_LOG_UPLOADED,
-      at,
-      organisationId,
-      registrationId,
-      cutoff: '2026-03-02',
-      outcome: UPLOAD_OUTCOME.REJECTED,
-      issues: null,
-      amendments: null,
-      restated: [],
-      closedPeriods: ['2026-01'],
-      ...upload
-    })
+  /**
+   * @param {string} at
+   * @param {Partial<UploadEvent>} upload
+   * @returns {UploadEvent}
+   */
+  const uploaded = (at, upload) => ({
+    type: EVENT.SUMMARY_LOG_UPLOADED,
+    at,
+    organisationId,
+    registrationId,
+    cutoff: '2026-03-02',
+    outcome: UPLOAD_OUTCOME.REJECTED,
+    issues: null,
+    amendments: null,
+    restated: [],
+    closedPeriods: ['2026-01'],
+    ...upload
+  })
+  /**
+   * @param {UploadIssues['severity']} severity
+   * @param {UploadIssues['kind']} kind
+   * @param {RowRef[]} planted
+   * @returns {Partial<UploadEvent>}
+   */
   const rejected = (severity, kind, planted) => ({
     outcome: UPLOAD_OUTCOME.REJECTED,
     issues: { severity, kind, rows: planted }
   })
-  /** @param {string} at @param {number} period @param {number} submissionNumber */
-  const reported = (at, period, submissionNumber) =>
-    /** @type {CalendarEvent} */ ({
-      type: EVENT.REPORT_SUBMITTED,
-      at,
-      organisationId,
-      registrationId,
-      year: 2026,
-      cadence: 'monthly',
-      period,
-      submissionNumber
-    })
+  /**
+   * @param {string} at
+   * @param {number} period
+   * @param {number} submissionNumber
+   * @returns {ReportEvent}
+   */
+  const reported = (at, period, submissionNumber) => ({
+    type: EVENT.REPORT_SUBMITTED,
+    at,
+    organisationId,
+    registrationId,
+    year: 2026,
+    cadence: 'monthly',
+    period,
+    submissionNumber
+  })
 
   return [
     {

@@ -7,7 +7,7 @@
  * See README.md beside this file.
  */
 
-import { uploadRows } from '../calendar/calendar.js'
+import { monthsOfPeriod, uploadRows } from '../calendar/calendar.js'
 import {
   EVENT,
   ISSUE_KIND,
@@ -32,8 +32,6 @@ import { liveSeeders } from './seeders.js'
 /** A Defra ID token lasts an hour, and a clock jump can spend most of that at once. */
 const TOKEN_LIFETIME_MS = 60 * 60 * 1000
 const TOKEN_MARGIN_MS = 5 * 60 * 1000
-
-const MONTHS_PER_PERIOD = { monthly: 1, quarterly: 3 }
 
 /**
  * @typedef {Object} PlannedRegistrationRecord - a planned registration with the operator and rows it belongs with
@@ -362,20 +360,6 @@ async function uploadSummaryLog(run, event) {
 }
 
 /**
- * The months a report covers, as the rows name them.
- *
- * @param {ReportEvent} report
- * @returns {string[]}
- */
-function periodsOf({ year, cadence, period }) {
-  const months = MONTHS_PER_PERIOD[cadence]
-  return Array.from({ length: months }, (_, offset) => {
-    const month = (period - 1) * months + offset + 1
-    return `${year}-${String(month).padStart(2, '0')}`
-  })
-}
-
-/**
  * What the operator types into a report beyond what the service aggregates
  * from the summary log: the tonnage a reprocessor recycled, which is what its
  * uploads credited over the period, and the figures the PRN executor is yet
@@ -394,7 +378,7 @@ export function reportFields(registration, rows, report) {
     return accredited ? prn : { tonnageNotExported: 0 }
   }
 
-  const periods = new Set(periodsOf(report))
+  const periods = new Set(monthsOfPeriod(report))
   const recycled = rows
     .filter(
       (row) =>
