@@ -499,7 +499,9 @@ async function draftNote(run, event) {
     accreditationId,
     authHeader
   )
-  const available = Number(balance[accreditationId]?.availableAmount)
+  const { availableAmount, nonDecemberAvailableAmount } =
+    balance[accreditationId] ?? {}
+  const available = Number(nonDecemberAvailableAmount ?? availableAmount)
   const tonnage = Math.floor(available * NOTE_SHARE_OF_AVAILABLE)
   if (!(tonnage >= 1)) {
     throw new Error(

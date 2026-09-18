@@ -60,7 +60,7 @@ export async function waitForSummaryLogStatus(
  * @param {string} accreditationId
  * @param {Record<string, string | undefined>} defraAuthHeader
  * @param {number} [timeoutMs]
- * @returns {Promise<Record<string, {amount: string, availableAmount: string}>>} by accreditation id
+ * @returns {Promise<Record<string, any>>} by accreditation id, as the route sends it
  */
 export async function waitForWasteBalance(
   orgId,

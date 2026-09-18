@@ -151,13 +151,21 @@ function recordingSeeders() {
       status: 'submitted'
     })),
     seedReportSubmission: record('seedReportSubmission', () => undefined),
-    /** @type {string | undefined} what the next balance read reports available, as the service writes it */
-    available: '100.5',
+    /** @type {number | undefined} what the next balance read reports available, or nothing for the accreditation */
+    available: 100.5,
+    /** @type {number | undefined} what of that is outside the December portion, when there is one */
+    nonDecemberAvailable: undefined,
     waitForWasteBalance: record(
       'waitForWasteBalance',
-      (refNo, accreditationId) => ({
-        [accreditationId]: { availableAmount: seeders.available }
-      })
+      (refNo, accreditationId) =>
+        seeders.available === undefined
+          ? {}
+          : {
+              [accreditationId]: {
+                availableAmount: seeders.available,
+                nonDecemberAvailableAmount: seeders.nonDecemberAvailable
+              }
+            }
     ),
     createPrn: record('createPrn', (refNo, registrationId, accreditationId) => {
       notes += 1
@@ -595,9 +603,18 @@ describe('a run', () => {
       ])
     })
 
+    it('is drafted from what is outside the December portion when the service marks one', async () => {
+      await executeEvent(run, approved(exporter))
+      seeders.nonDecemberAvailable = 30
+      await executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED))
+
+      const [draft] = seeders.of('createPrn')
+      assert.equal(draft.args[4], 10)
+    })
+
     it('stops when under a tonne is available', async () => {
       await executeEvent(run, approved(exporter))
-      seeders.available = '2.9'
+      seeders.available = 2.9
       await assert.rejects(
         executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED)),
         /2.9 t available/
@@ -605,7 +622,7 @@ describe('a run', () => {
       assert.equal(seeders.of('createPrn').length, 0)
     })
 
-    it('stops when the balance read holds no amount', async () => {
+    it('stops when the balance read names no such accreditation', async () => {
       await executeEvent(run, approved(exporter))
       seeders.available = undefined
       await assert.rejects(
