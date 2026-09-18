@@ -61,6 +61,10 @@ const TONNAGE_BANDS = [
   'Over 10,000 tonnes'
 ]
 
+// The nations whose figures get a page of their own, in the order the listing
+// offers them.
+const NATIONS = ['England', 'Wales', 'Scotland', 'Northern Ireland']
+
 // The period the figures cover, as the heading states it above the page's own
 // name, with the reporting year on the end.
 const PERIOD = /^[A-Z][a-z]+( to [A-Z][a-z]+)? (\d{4})$/
@@ -116,7 +120,7 @@ test.describe('A regulator reading market insights @regulator', () => {
     expect(await marketInsightsPage.figureSetNames()).toEqual([
       'UK waste balance',
       'Reprocessor and exporter figures: UK',
-      'Reprocessor and exporter figures: England',
+      ...NATIONS.map((nation) => `Reprocessor and exporter figures: ${nation}`),
       'Outstanding monthly reports: UK'
     ])
 
@@ -235,45 +239,48 @@ test.describe('A regulator reading market insights @regulator', () => {
       ))
     )
 
-    await figuresPage.crumbLink('Market insights').click()
-    await marketInsightsPage
-      .figureSetLink('Reprocessor and exporter figures: England')
-      .click()
+    for (const nation of NATIONS) {
+      await figuresPage.crumbLink('Market insights').click()
+      await marketInsightsPage
+        .figureSetLink(`Reprocessor and exporter figures: ${nation}`)
+        .click()
 
-    expect(await figuresPage.headingText()).toContain(
-      'Reprocessor and exporter figures: England'
-    )
+      expect(await figuresPage.headingText()).toContain(
+        `Reprocessor and exporter figures: ${nation}`
+      )
 
-    expect(await figuresPage.periodText()).toBe(period)
-    expect(await figuresPage.dataTakenAtText()).toMatch(DATA_TAKEN_AT)
+      expect(await figuresPage.periodText()).toBe(period)
+      expect(await figuresPage.dataTakenAtText()).toMatch(DATA_TAKEN_AT)
 
-    // Every month of the period brings both tables here too. A nation is a
-    // filter on the figures rather than on the months, so a month that came
-    // back missing would be the service dropping it, not England having
-    // nothing to report in it.
-    expect(await figuresPage.tableCaptions()).toEqual(
-      months.flatMap((month) => [
-        `Reprocessor data for ${month} ${year}`,
-        `Exporter data for ${month} ${year}`
-      ])
-    )
+      // Every month of the period brings both tables here too. A nation is a
+      // filter on the figures rather than on the months, so a month that came
+      // back missing would be the service dropping it, not the nation having
+      // nothing to report in it.
+      expect(await figuresPage.tableCaptions()).toEqual(
+        months.flatMap((month) => [
+          `Reprocessor data for ${month} ${year}`,
+          `Exporter data for ${month} ${year}`
+        ])
+      )
 
-    // Every material is served for every month whether or not anything was
-    // reported into it, so England fills its tables the way the UK figures do
-    // even where it has nothing to report. What lands in the cells depends on
-    // which regulator the seeded operator registered with, which this journey
-    // does not pin, so they are read for their form rather than their value.
-    const englandFigures = await figuresPage.figures()
+      // Every material is served for every month whether or not anything was
+      // reported into it, so a nation fills its tables the way the UK figures
+      // do even where it has nothing to report. What lands in the cells
+      // depends on which regulator the seeded operator registered with, which
+      // this journey does not pin, so they are read for their form rather
+      // than their value.
+      const nationFigures = await figuresPage.figures()
 
-    expect(englandFigures.length).toBeGreaterThan(0)
-    expect(englandFigures.filter((figure) => !FIGURE.test(figure))).toEqual([])
+      expect(nationFigures.length).toBeGreaterThan(0)
+      expect(nationFigures.filter((figure) => !FIGURE.test(figure))).toEqual([])
 
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(
-        page,
-        'Regulator market insights England figures'
-      ))
-    )
+      violations.push(
+        ...(await scanPageForAccessibilityViolations(
+          page,
+          `Regulator market insights ${nation} figures`
+        ))
+      )
+    }
 
     await figuresPage.crumbLink('Market insights').click()
     await marketInsightsPage
