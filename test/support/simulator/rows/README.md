@@ -172,7 +172,9 @@ answers one monthly return, so a month's worth is one upload's worth; how many
 uploads carry them is the calendar planner's to decide.
 
 A worksheet the calibration names and the templates do not, or the other way
-round, is refused rather than silently planning no rows for it.
+round, is refused rather than silently planning no rows for it. So is a monthly
+tonnage on a worksheet whose rows carry no load, such as the input template's
+reprocessed worksheet, rather than silently planning rows that carry none of it.
 
 **Tonnage per row** is not calibrated directly. It is whatever makes the
 estate's year land on the tonnage the calibration reports for that worksheet,

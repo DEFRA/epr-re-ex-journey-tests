@@ -78,9 +78,9 @@ describe('loadCalibration', () => {
   })
 
   it('lets an overlay add a monthly tonnage to a worksheet the defaults leave without one', () => {
-    const sheet = 'Reprocessed (section 4)'
+    const sheet = 'Sent on (section 4)'
     assert.equal(
-      DEFAULT_CALIBRATION.activity.summaryLogSheets.reprocessorInput[sheet]
+      DEFAULT_CALIBRATION.activity.summaryLogSheets.regOnlyExporter[sheet]
         .monthlyTonnage,
       undefined
     )
@@ -89,20 +89,20 @@ describe('loadCalibration', () => {
       withOverlay({
         activity: {
           summaryLogSheets: {
-            reprocessorInput: { [sheet]: { monthlyTonnage: 12345 } }
+            regOnlyExporter: { [sheet]: { monthlyTonnage: 12345 } }
           }
         }
       })
     )
 
     assert.equal(
-      calibration.activity.summaryLogSheets.reprocessorInput[sheet]
+      calibration.activity.summaryLogSheets.regOnlyExporter[sheet]
         .monthlyTonnage,
       12345
     )
     assert.equal(
-      calibration.activity.summaryLogSheets.reprocessorInput[sheet].rowShare,
-      DEFAULT_CALIBRATION.activity.summaryLogSheets.reprocessorInput[sheet]
+      calibration.activity.summaryLogSheets.regOnlyExporter[sheet].rowShare,
+      DEFAULT_CALIBRATION.activity.summaryLogSheets.regOnlyExporter[sheet]
         .rowShare
     )
   })

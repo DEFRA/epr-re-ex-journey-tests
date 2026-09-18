@@ -13,6 +13,7 @@ import {
 import { CONTRIBUTION } from './sheets.js'
 
 /** @import {PlannedOperator} from '../population/population.js' */
+/** @import {Calibration} from '../population/calibration.js' */
 
 const SEED = 'rows'
 const STREAMS = [
@@ -728,6 +729,44 @@ describe('a calibration that names different worksheets', () => {
           calibration: misspelt()
         }),
       /disagree on exporter worksheets: Sent on \(sections 4 and 5\), Sent on \(sections 4 and 6\)/
+    )
+  })
+})
+
+describe('a calibration that gives a tonnage to a worksheet without a load', () => {
+  /**
+   * The defaults with a figure on the input worksheet the workbook leaves blank.
+   *
+   * @returns {Calibration}
+   */
+  function withReprocessedTonnage() {
+    const sheets = DEFAULT_CALIBRATION.activity.summaryLogSheets
+    return {
+      ...DEFAULT_CALIBRATION,
+      activity: {
+        ...DEFAULT_CALIBRATION.activity,
+        summaryLogSheets: {
+          ...sheets,
+          reprocessorInput: {
+            ...sheets.reprocessorInput,
+            'Reprocessed (section 4)': {
+              ...sheets.reprocessorInput['Reprocessed (section 4)'],
+              monthlyTonnage: 1000
+            }
+          }
+        }
+      }
+    }
+  }
+
+  it('is refused rather than quietly planning rows that carry none of it', () => {
+    assert.throws(
+      () =>
+        planSummaryLogRows({
+          population: planPopulation({ seed: SEED, scale: 0.1 }),
+          calibration: withReprocessedTonnage()
+        }),
+      /gives reprocessorInput worksheet "Reprocessed \(section 4\)" a monthlyTonnage, but no row on it carries a load/
     )
   })
 })

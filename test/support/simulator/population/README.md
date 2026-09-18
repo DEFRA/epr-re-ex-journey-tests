@@ -174,7 +174,9 @@ quietly on the defaults. That holds inside the count maps too, so an overlay
 can reweight an agency or a tonnage band but cannot add one. The one exception
 is a worksheet's `monthlyTonnage`: the defaults carry it only where the monthly
 aggregated workbook publishes a figure, so an overlay may add it, as a number,
-to a worksheet that has none. A calibration that needs a shape the register does not have is
+to a worksheet that has none. The row planner refuses it on a worksheet whose
+rows carry no load, since no row could report it; which worksheets those are
+is the sheet table's to say. A calibration that needs a shape the register does not have is
 passed to `planPopulation` directly instead. Such a file is never committed.
 
 The planner does not call `loadCalibration` itself, so planning stays pure and a
