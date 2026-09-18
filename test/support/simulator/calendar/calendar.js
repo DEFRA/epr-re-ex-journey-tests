@@ -24,7 +24,7 @@ import {
 /** @import {PlannedRows, PlannedRegistrationRows, PlannedLogRow} from '../rows/rows.js' */
 /** @import {Calibration} from '../population/calibration.js' */
 /** @import {Random} from '../population/random.js' */
-/** @import {CalendarEvent, UploadEvent, RowRef, UploadIssues, Drafted} from './events.js' */
+/** @import {CalendarEvent, UploadEvent, PrnEvent, RowRef, UploadIssues, Drafted} from './events.js' */
 
 /**
  * @typedef {Object} PlannedCalendar
@@ -87,20 +87,31 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const MINUTE_MS = 60 * 1000
 const SECOND_MS = 1000
 
+/** @param {string} day - ISO date */
 const parse = (day) => new Date(`${day}T00:00:00Z`)
+/** @param {Date} date */
 const iso = (date) => date.toISOString().slice(0, 10)
+/** @param {string} day @param {number} days */
 const addDays = (day, days) =>
   iso(new Date(parse(day).getTime() + days * DAY_MS))
+/** @param {string} from @param {string} to */
 const daysBetween = (from, to) =>
   Math.round((parse(to).getTime() - parse(from).getTime()) / DAY_MS)
+/** @param {string} a @param {string} b */
 const later = (a, b) => (a > b ? a : b)
+/** @param {string} a @param {string} b */
 const earlier = (a, b) => (a < b ? a : b)
+/** @param {string} day */
 const isWeekend = (day) => [0, 6].includes(parse(day).getUTCDay())
+/** @param {string} day @returns {string} `YYYY-MM` */
 const monthKey = (day) => day.slice(0, 7)
+/** @param {number} year @param {number} month - 1 to 12 */
 const monthOf = (year, month) => `${year}-${String(month).padStart(2, '0')}`
+/** @param {number} year @param {number} month - 1 to 12 */
 const lastDayOfMonth = (year, month) => iso(new Date(Date.UTC(year, month, 0)))
 const today = () => iso(new Date())
 
+/** @param {RowRef} row */
 const rowKey = (row) => `${row.worksheet}/${row.rowId}`
 
 /** @param {PlannedLogRow} row @returns {RowRef} */
@@ -121,6 +132,7 @@ function onWorkingDay(day, notBefore, notAfter) {
   if (!isWeekend(day)) return day
   const preferred = addDays(day, parse(day).getUTCDay() === 6 ? -1 : 1)
   const other = addDays(day, parse(day).getUTCDay() === 6 ? 2 : -2)
+  /** @param {string} candidate */
   const within = (candidate) => candidate >= notBefore && candidate <= notAfter
   if (within(preferred)) return preferred
   if (within(other)) return other
@@ -438,10 +450,11 @@ function draftUploadAttempts(context, upload, submitted, added) {
  *
  * @param {RegistrationContext} context
  * @param {Period[]} periods
- * @param {string} activityEnd - the last day anything happens
+ * @param {string} activityEnd - the last day a load is recorded
+ * @param {string} filingEnd - the last day an upload or report is made
  */
-function draftReporting(context, periods, activityEnd) {
-  const { random, operator, registration, rows, to } = context
+function draftReporting(context, periods, activityEnd, filingEnd) {
+  const { random, operator, registration, rows } = context
   const { profile } = operator
   const allRows = rows?.rows ?? []
   const stream = rows?.stream ?? ''
@@ -454,11 +467,11 @@ function draftReporting(context, periods, activityEnd) {
   for (const period of periods) {
     const owed = period.end <= activityEnd
     const filed = owed ? reportDay(period, profile, random) : null
-    const report = filed && filed <= activityEnd ? filed : null
+    const report = filed && filed <= filingEnd ? filed : null
     if (report) reports.push({ day: report, period })
 
     const count = uploadCount(profile.uploads.perReportingPeriod, random)
-    const closingBy = report ?? earlier(period.due, activityEnd)
+    const closingBy = report ?? earlier(period.due, filingEnd)
     const closingFrom = addDays(period.end, 1)
     const ranges = [
       ...Array.from({ length: count - 1 }, () => [period.first, period.last]),
@@ -539,7 +552,7 @@ function draftReporting(context, periods, activityEnd) {
       random,
       profile.worksWeekends
     )
-    if (!resubmitted || resubmitted > earlier(to, activityEnd)) continue
+    if (!resubmitted || resubmitted > filingEnd) continue
     draft(context, resubmitted, {
       type: EVENT.REPORT_SUBMITTED,
       registrationId: registration.id,
@@ -561,6 +574,7 @@ function draftReporting(context, periods, activityEnd) {
  * @param {string} activityEnd
  */
 function draftPrns(context, first, activityEnd) {
+  if (first > activityEnd) return
   const { random, operator, registration, calibration } = context
   const { profile } = operator
   const { prn } = profile
@@ -568,7 +582,12 @@ function draftPrns(context, first, activityEnd) {
     calibration.activity.prnsPerAccreditationPerMonth * profile.volumeFactor
   let serial = 0
 
-  /** A step later in the chain, or null once it falls off the end of the window. */
+  /**
+   * A step later in the chain, or null once it falls off the end of the window.
+   *
+   * @param {string} day
+   * @param {number} within - days
+   */
   const step = (day, within) => {
     const moved = addDays(day, random.int(within === 0 ? 0 : 1, within))
     const landed = profile.worksWeekends
@@ -576,7 +595,13 @@ function draftPrns(context, first, activityEnd) {
       : onWorkingDay(moved, moved, addDays(moved, 7))
     return landed <= activityEnd ? landed : null
   }
+  /**
+   * @param {string} prnId
+   * @param {string} from
+   * @param {[PrnEvent['type'], number][]} steps - each type and the days it takes
+   */
   const chain = (prnId, from, steps) => {
+    /** @type {string | null} */
     let day = from
     for (const [type, within] of steps) {
       day = day && step(day, within)
@@ -694,6 +719,7 @@ function planRegistration(context, from) {
     })
   }
   const activityEnd = change ? addDays(change.day, -1) : last
+  const filingEnd = change ? activityEnd : to
 
   if (first <= activityEnd) {
     draftReporting(
@@ -704,9 +730,13 @@ function planRegistration(context, from) {
         activityEnd,
         calibration.punctuality.dueDay
       ),
-      activityEnd
+      activityEnd,
+      filingEnd
     )
-    if (registration.accreditation) draftPrns(context, first, activityEnd)
+    const { accreditation } = registration
+    if (accreditation) {
+      draftPrns(context, later(first, accreditation.validFrom), activityEnd)
+    }
   }
 
   return timestamp(context.drafts, context.operator.id, random)
@@ -816,6 +846,7 @@ export function uploadRows({ registration, uploads }) {
   const upload = uploads[uploads.length - 1]
   if (!upload) throw new Error('No upload to render the rows of')
 
+  /** @type {Map<string, number>} */
   const seeds = new Map()
   /** @type {string | null} */
   let submittedCutoff = null
@@ -858,9 +889,10 @@ export function uploadRows({ registration, uploads }) {
 
   const carried = registration.rows
     .filter((row) => row.date <= upload.cutoff)
-    .map((row) =>
-      seeds.has(rowKey(row)) ? { ...row, seed: seeds.get(rowKey(row)) } : row
-    )
+    .map((row) => {
+      const seed = seeds.get(rowKey(row))
+      return seed === undefined ? row : { ...row, seed }
+    })
   return withIssues(carried, registration.stream, upload.issues)
 }
 

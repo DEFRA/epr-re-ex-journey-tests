@@ -67,7 +67,9 @@ the population ended it suspended or cancelled. The population states only
 where each accreditation ended up; the day is drawn here, at least a month into
 the registration's year, and nothing that registration does is planned after
 it. A registration is cancelled exactly where its accreditation is, so one
-event carries both.
+event carries both. An accreditation that runs out is different: its loads
+stop on its last day, but the uploads and reports for what it did carry on to
+`to`, so a period that ended with the accreditation is still filed.
 
 `prnId` ties the events of one note together and is the plan's own identifier,
 not the number the service assigns. What tonnage a note carries is not planned:
@@ -164,8 +166,8 @@ submitted upload carries one of the period's rows in `restated`, and a second
 ## PRNs
 
 Each accredited registration drafts `activity.prnsPerAccreditationPerMonth`
-notes a month, times the operator's volume factor, spread evenly either side of
-that. A note is raised the day it is drafted and issued within three days, then
+notes a month from the day its accreditation starts, times the operator's
+volume factor, spread evenly either side of that. A note is raised the day it is drafted and issued within three days, then
 accepted at `prn.producerAcceptRate`, in the month of issue at
 `prn.sameMonthAcceptanceShare` and the month after otherwise, or left awaiting
 acceptance. The exits are drawn where they happen: discarded as a draft at

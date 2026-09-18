@@ -46,18 +46,21 @@ const must = (value) => {
 const registrations = population.organisations.flatMap(
   (operator) => operator.registrations
 )
+/** @param {{registrationId?: string}} event */
 const registrationOf = (event) =>
   must(
     registrations.find(
       (registration) => registration.id === event.registrationId
     )
   )
+/** @param {{organisationId: string}} event */
 const operatorOf = (event) =>
   must(
     population.organisations.find(
       (operator) => operator.id === event.organisationId
     )
   )
+/** @param {string} registrationId */
 const rowsOf = (registrationId) =>
   must(
     rows.registrations.find(
@@ -108,18 +111,35 @@ const landed = uploads.filter(
 const reports = ofType(EVENT.REPORT_SUBMITTED)
 const prnEvents = events.filter(isPrnEvent)
 
+/**
+ * @param {number} actual
+ * @param {number} target
+ * @param {number} tolerance
+ * @param {string} [of]
+ */
 const near = (actual, target, tolerance, of = '') =>
   assert.ok(
     Math.abs(actual - target) <= tolerance,
     `${of} ${actual} is not within ${tolerance} of ${target}`.trim()
   )
 
+/**
+ * @template T
+ * @param {T[]} members
+ * @param {(member: T) => boolean} predicate
+ */
 const share = (members, predicate) =>
   members.filter(predicate).length / members.length
 
+/** @param {number[]} values */
 const mean = (values) =>
   values.reduce((sum, value) => sum + value, 0) / values.length
 
+/**
+ * @template T
+ * @param {T[]} members
+ * @param {(member: T) => string} read
+ */
 const tally = (members, read) => {
   /** @type {Record<string, number>} */
   const counts = {}
@@ -130,15 +150,21 @@ const tally = (members, read) => {
   return counts
 }
 
+/** @param {{at: string}} event */
 const day = (event) => event.at.slice(0, 10)
+/** @param {{at: string}} event */
 const month = (event) => event.at.slice(0, 7)
+/** @param {{at: string}} event */
 const isWeekend = (event) => [0, 6].includes(new Date(event.at).getUTCDay())
+/** @param {string} from @param {string} to */
 const daysBetween = (from, to) =>
   Math.round((Date.parse(to) - Date.parse(from)) / 86400000)
 
+/** @param {string} registrationId */
 const uploadsOf = (registrationId) =>
   uploads.filter((upload) => upload.registrationId === registrationId)
 
+/** @param {{worksheet: string, rowId: number}} row */
 const rowKey = (row) => `${row.worksheet}/${row.rowId}`
 
 /** @param {PlannedLogRow[]} view */
@@ -156,7 +182,11 @@ const viewOf = (registration, upload) => {
   })
 }
 
-/** The last day of a report's period, and the day it was due. */
+/**
+ * The last day of a report's period, and the day it was due.
+ *
+ * @param {ReportEvent} report
+ */
 function periodBounds(report) {
   const months = report.cadence === CADENCE.MONTHLY ? 1 : 3
   const endMonth = report.period * months
@@ -168,7 +198,11 @@ function periodBounds(report) {
   }
 }
 
-/** Months a registration was active for, up to and including December. */
+/**
+ * Months a registration was active for, up to and including December.
+ *
+ * @param {PlannedRegistration} registration
+ */
 const activeMonths = (registration) =>
   13 - Number(registration.activeFrom.slice(5, 7))
 
@@ -329,6 +363,10 @@ describe('summary log uploads', () => {
     }
   })
 
+  /**
+   * @param {UploadEvent} upload
+   * @param {UploadEvent['outcome']} outcome
+   */
   const attemptsBefore = (upload, outcome) =>
     uploads.some(
       (other) =>
@@ -556,6 +594,7 @@ describe('reports', () => {
       periodBounds(report).end <= MEASURED_UNTIL &&
       registrationOf(report).accreditation?.status === 'approved'
   )
+  /** @param {ReportEvent} report */
   const lateness = (report) =>
     daysBetween(periodBounds(report).due, day(report))
 
@@ -688,6 +727,7 @@ describe('PRNs', () => {
   for (const event of prnEvents) {
     byPrn.set(event.prnId, [...(byPrn.get(event.prnId) ?? []), event])
   }
+  /** @param {PlannedRegistration} registration */
   const volumeOf = (registration) =>
     must(
       population.organisations.find(
@@ -701,6 +741,7 @@ describe('PRNs', () => {
    * registrations, so the expectation is the rate scaled by each
    * registration's own factor over the months it was live.
    */
+  /** @param {PlannedRegistration[]} members */
   const expectedPerMonth = (members) =>
     (ACTIVITY.prnsPerAccreditationPerMonth *
       members.reduce(
@@ -709,6 +750,7 @@ describe('PRNs', () => {
         0
       )) /
     members.reduce((sum, registration) => sum + activeMonths(registration), 0)
+  /** @param {PlannedRegistration[]} members */
   const draftedPerMonth = (members) =>
     drafted.filter((event) =>
       members.some((registration) => registration.id === event.registrationId)
@@ -900,6 +942,26 @@ describe('the period planned', () => {
     }
   })
 
+  it('files the last period of an expired accreditation after it expires', () => {
+    const planned = planCalendar({ population, rows, to: '2027-02-28' })
+    const later = planned.operators.flatMap((operator) => operator.events)
+    const expired = registrations.filter(
+      (registration) => registration.accreditation?.status === 'approved'
+    )
+    const december = eventsOfType(later, EVENT.REPORT_SUBMITTED).filter(
+      (event) =>
+        event.cadence === CADENCE.MONTHLY &&
+        event.period === 12 &&
+        expired.some((registration) => registration.id === event.registrationId)
+    )
+    assert.ok(december.length > expired.length * 0.9, `${december.length}`)
+    for (const event of later) {
+      const { accreditation } = registrationOf(event)
+      if (!accreditation || !event.type.startsWith('prn.')) continue
+      assert.ok(day(event) <= accreditation.validTo, event.at)
+    }
+  })
+
   it('refuses a window that ends before it starts', () => {
     assert.throws(
       () =>
@@ -995,6 +1057,9 @@ describe('cadenceAt', () => {
       rows,
       to: TO
     })
+    for (const event of planned.operators[0].events.filter(isPrnEvent)) {
+      assert.ok(day(event) >= '2026-05-01', event.at)
+    }
     const filed = eventsOfType(
       planned.operators[0].events,
       EVENT.REPORT_SUBMITTED
