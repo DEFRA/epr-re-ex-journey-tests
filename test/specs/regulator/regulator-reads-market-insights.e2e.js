@@ -109,231 +109,230 @@ test.describe('A regulator reading market insights @regulator', () => {
 
     expect(await homePage.getHeadingText()).toBe('All organisations')
 
-    // Typing the address is not the journey. The regulator area offering the
-    // link is the only way a regulator finds the pages at all.
-    await homePage.marketInsightsLink().click()
+    // One walk, but each page is its own step, and what is read off a page is
+    // asserted softly, so a wrong figure on one page is reported against that
+    // page without hiding the pages after it. Arriving on a page stays a hard
+    // check, since nothing on a page that did not arrive can be read, and so
+    // does anything a later page is checked against.
+    await test.step('Market insights', async () => {
+      // Typing the address is not the journey. The regulator area offering the
+      // link is the only way a regulator finds the pages at all.
+      await homePage.marketInsightsLink().click()
 
-    expect(await marketInsightsPage.headingText()).toContain('Market insights')
+      expect(await marketInsightsPage.headingText()).toContain(
+        'Market insights'
+      )
 
-    // Each set of figures the publication carries gets its own page, and this
-    // one is how a regulator reaches any of them.
-    expect(await marketInsightsPage.figureSetNames()).toEqual([
-      'UK waste balance',
-      'Reprocessor and exporter figures: UK',
-      ...NATIONS.map((nation) => `Reprocessor and exporter figures: ${nation}`),
-      'Outstanding monthly reports: UK'
-    ])
-
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(
-        page,
-        'Regulator market insights'
-      ))
-    )
-
-    await marketInsightsPage.figureSetLink('UK waste balance').click()
-
-    // The caption renders inside the heading, so it comes back with it. The
-    // two are pinned apart: the words the page calls itself by here, and the
-    // period below.
-    expect(await wasteBalancePage.headingText()).toContain('UK waste balance')
-
-    // The heading says which months the figures cover and the stamp says when
-    // they were taken, which a regulator holding the page beside the published
-    // workbook reads to tell whether the two were cut over the same span.
-    const period = await wasteBalancePage.periodText()
-
-    expect(period).toMatch(PERIOD)
-    expect(await wasteBalancePage.dataTakenAtText()).toMatch(DATA_TAKEN_AT)
-
-    const headings = await wasteBalancePage.columnHeadings()
-    const months = headings.slice(2, -1)
-
-    expect([headings[0], headings[1], headings.at(-1)]).toEqual([
-      'Material',
-      'Accreditation type',
-      'Total'
-    ])
-
-    // The columns run from January to the last complete month, so they are the
-    // opening stretch of the calendar with nothing skipped.
-    expect(months.length).toBeGreaterThan(0)
-    expect(months).toEqual(MONTHS_OF_THE_YEAR.slice(0, months.length))
-
-    // The seeded operator reprocesses, so its tonnage reaches the page under
-    // that accreditation type. Other journeys seed their own operators while
-    // this one runs, so the column is read whole rather than by row.
-    expect(await wasteBalancePage.accreditationTypes()).toContain('Reprocessor')
-
-    // Every cell states a tonnage to two decimal places, grouped in thousands,
-    // including the months a row credited nothing, which the publication
-    // prints as zero rather than leaving blank. Collecting the cells that fail
-    // names them in the failure instead of reporting that one of them did.
-    const figures = await wasteBalancePage.figures()
-
-    expect(figures.filter((figure) => !TONNAGE.test(figure))).toEqual([])
-
-    // The seeded summary log credits a complete month of the reporting year,
-    // so the page is showing real tonnage rather than a table of zeroes.
-    expect(figures.some((figure) => asNumber(figure) > 0)).toBe(true)
-
-    // Beneath the figures, each month says how many of the monthly reports it
-    // expected the figures include, and the period says the same under the
-    // total, so a thin month can be told from one whose reporters have not
-    // all filed.
-    const reportCounts = await wasteBalancePage.reportCounts()
-
-    expect(reportCounts).toHaveLength(months.length + 1)
-    expect(reportCounts.filter((count) => !REPORT_COUNT.test(count))).toEqual(
-      []
-    )
-
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(
-        page,
-        'Regulator market insights waste balance'
-      ))
-    )
-
-    // The trail back is the only way on to the other sets of figures, so the
-    // journey walks it rather than addressing the next page directly.
-    await wasteBalancePage.crumbLink('Market insights').click()
-    await marketInsightsPage
-      .figureSetLink('Reprocessor and exporter figures: UK')
-      .click()
-
-    expect(await figuresPage.headingText()).toContain(
-      'Reprocessor and exporter figures: UK'
-    )
-
-    // Both pages cover the period the clock decides, so the figures a
-    // regulator reads here are the ones the waste balance was cut over.
-    expect(await figuresPage.periodText()).toBe(period)
-    expect(await figuresPage.dataTakenAtText()).toMatch(DATA_TAKEN_AT)
-
-    // Every month of the period brings a reprocessor table and an exporter
-    // table, each naming the month it covers. Naming the whole set is what
-    // catches a month that arrived twice or not at all, which counting them
-    // would not.
-    const year = /** @type {RegExpMatchArray} */ (period.match(PERIOD))[2]
-
-    expect(await figuresPage.tableCaptions()).toEqual(
-      months.flatMap((month) => [
-        `Reprocessor data for ${month} ${year}`,
-        `Exporter data for ${month} ${year}`
+      // Each set of figures the publication carries gets its own page, and
+      // this one is how a regulator reaches any of them, so every page after
+      // this is reached by one of these names.
+      expect(await marketInsightsPage.figureSetNames()).toEqual([
+        'UK waste balance',
+        'Reprocessor and exporter figures: UK',
+        ...NATIONS.map(
+          (nation) => `Reprocessor and exporter figures: ${nation}`
+        ),
+        'Outstanding monthly reports: UK'
       ])
-    )
-
-    // Every cell states a tonnage or a sum of money, including the ones
-    // nothing was reported against, which the publication prints as zero
-    // rather than leaving blank.
-    const ukFigures = await figuresPage.figures()
-
-    expect(ukFigures.length).toBeGreaterThan(0)
-    expect(ukFigures.filter((figure) => !FIGURE.test(figure))).toEqual([])
-
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(
-        page,
-        'Regulator market insights UK figures'
-      ))
-    )
-
-    for (const nation of NATIONS) {
-      await figuresPage.crumbLink('Market insights').click()
-      await marketInsightsPage
-        .figureSetLink(`Reprocessor and exporter figures: ${nation}`)
-        .click()
-
-      expect(await figuresPage.headingText()).toContain(
-        `Reprocessor and exporter figures: ${nation}`
-      )
-
-      expect(await figuresPage.periodText()).toBe(period)
-      expect(await figuresPage.dataTakenAtText()).toMatch(DATA_TAKEN_AT)
-
-      // Every month of the period brings both tables here too. A nation is a
-      // filter on the figures rather than on the months, so a month that came
-      // back missing would be the service dropping it, not the nation having
-      // nothing to report in it.
-      expect(await figuresPage.tableCaptions()).toEqual(
-        months.flatMap((month) => [
-          `Reprocessor data for ${month} ${year}`,
-          `Exporter data for ${month} ${year}`
-        ])
-      )
-
-      // Every material is served for every month whether or not anything was
-      // reported into it, so a nation fills its tables the way the UK figures
-      // do even where it has nothing to report. What lands in the cells
-      // depends on which regulator the seeded operator registered with, which
-      // this journey does not pin, so they are read for their form rather
-      // than their value.
-      const nationFigures = await figuresPage.figures()
-
-      expect(nationFigures.length).toBeGreaterThan(0)
-      expect(nationFigures.filter((figure) => !FIGURE.test(figure))).toEqual([])
 
       violations.push(
         ...(await scanPageForAccessibilityViolations(
           page,
-          `Regulator market insights ${nation} figures`
+          'Regulator market insights'
         ))
       )
+    })
+
+    const { period, months } = await test.step('UK waste balance', async () => {
+      await marketInsightsPage.figureSetLink('UK waste balance').click()
+
+      // The caption renders inside the heading, so it comes back with it. The
+      // two are pinned apart: the words the page calls itself by here, and the
+      // period below.
+      expect(await wasteBalancePage.headingText()).toContain('UK waste balance')
+
+      // The heading says which months the figures cover and the stamp says
+      // when they were taken, which a regulator holding the page beside the
+      // published workbook reads to tell whether the two were cut over the
+      // same span.
+      const period = await wasteBalancePage.periodText()
+
+      expect(period).toMatch(PERIOD)
+      expect
+        .soft(await wasteBalancePage.dataTakenAtText())
+        .toMatch(DATA_TAKEN_AT)
+
+      const headings = await wasteBalancePage.columnHeadings()
+      const months = headings.slice(2, -1)
+
+      expect
+        .soft([headings[0], headings[1], headings.at(-1)])
+        .toEqual(['Material', 'Accreditation type', 'Total'])
+
+      // The columns run from January to the last complete month, so they are
+      // the opening stretch of the calendar with nothing skipped. Every other
+      // page is checked against these months, so they are settled here.
+      expect(months.length).toBeGreaterThan(0)
+      expect(months).toEqual(MONTHS_OF_THE_YEAR.slice(0, months.length))
+
+      // The seeded operator reprocesses, so its tonnage reaches the page under
+      // that accreditation type. Other journeys seed their own operators while
+      // this one runs, so the column is read whole rather than by row.
+      expect
+        .soft(await wasteBalancePage.accreditationTypes())
+        .toContain('Reprocessor')
+
+      // Every cell states a tonnage to two decimal places, grouped in
+      // thousands, including the months a row credited nothing, which the
+      // publication prints as zero rather than leaving blank. Collecting the
+      // cells that fail names them in the failure instead of reporting that
+      // one of them did.
+      const figures = await wasteBalancePage.figures()
+
+      expect.soft(figures.filter((figure) => !TONNAGE.test(figure))).toEqual([])
+
+      // The seeded summary log credits a complete month of the reporting
+      // year, so the page is showing real tonnage rather than a table of
+      // zeroes.
+      expect.soft(figures.some((figure) => asNumber(figure) > 0)).toBe(true)
+
+      // Beneath the figures, each month says how many of the monthly reports
+      // it expected the figures include, and the period says the same under
+      // the total, so a thin month can be told from one whose reporters have
+      // not all filed.
+      const reportCounts = await wasteBalancePage.reportCounts()
+
+      expect.soft(reportCounts).toHaveLength(months.length + 1)
+      expect
+        .soft(reportCounts.filter((count) => !REPORT_COUNT.test(count)))
+        .toEqual([])
+
+      violations.push(
+        ...(await scanPageForAccessibilityViolations(
+          page,
+          'Regulator market insights waste balance'
+        ))
+      )
+
+      // The trail back is the only way on to the other sets of figures, so
+      // the journey walks it rather than addressing the next page directly.
+      await wasteBalancePage.crumbLink('Market insights').click()
+
+      return { period, months }
+    })
+
+    const year = /** @type {RegExpMatchArray} */ (period.match(PERIOD))[2]
+    const tableCaptionsForThePeriod = months.flatMap((month) => [
+      `Reprocessor data for ${month} ${year}`,
+      `Exporter data for ${month} ${year}`
+    ])
+
+    // The UK figures and each nation's are read the same way. Every page
+    // covers the period the clock decides, so the figures a regulator reads
+    // here are the ones the waste balance was cut over, and a nation is a
+    // filter on the figures rather than on the months, so a month that came
+    // back missing would be the service dropping it, not the nation having
+    // nothing to report in it.
+    for (const region of ['UK', ...NATIONS]) {
+      const figureSet = `Reprocessor and exporter figures: ${region}`
+
+      await test.step(figureSet, async () => {
+        await marketInsightsPage.figureSetLink(figureSet).click()
+
+        expect(await figuresPage.headingText()).toContain(figureSet)
+
+        expect.soft(await figuresPage.periodText()).toBe(period)
+        expect.soft(await figuresPage.dataTakenAtText()).toMatch(DATA_TAKEN_AT)
+
+        // Every month of the period brings a reprocessor table and an
+        // exporter table, each naming the month it covers. Naming the whole
+        // set is what catches a month that arrived twice or not at all, which
+        // counting them would not.
+        expect
+          .soft(await figuresPage.tableCaptions())
+          .toEqual(tableCaptionsForThePeriod)
+
+        // Every material is served for every month whether or not anything
+        // was reported into it, and every cell states a tonnage or a sum of
+        // money, with a zero where nothing was reported rather than a blank.
+        // What lands in a nation's cells depends on which regulator the seeded
+        // operator registered with, which this journey does not pin, so they
+        // are read for their form rather than their value.
+        const figures = await figuresPage.figures()
+
+        expect.soft(figures.length).toBeGreaterThan(0)
+        expect
+          .soft(figures.filter((figure) => !FIGURE.test(figure)))
+          .toEqual([])
+
+        violations.push(
+          ...(await scanPageForAccessibilityViolations(
+            page,
+            `Regulator market insights ${region} figures`
+          ))
+        )
+
+        await figuresPage.crumbLink('Market insights').click()
+      })
     }
 
-    await figuresPage.crumbLink('Market insights').click()
-    await marketInsightsPage
-      .figureSetLink('Outstanding monthly reports: UK')
-      .click()
+    await test.step('Outstanding monthly reports: UK', async () => {
+      await marketInsightsPage
+        .figureSetLink('Outstanding monthly reports: UK')
+        .click()
 
-    expect(await outstandingReturnsPage.headingText()).toContain(
-      'Outstanding monthly reports'
-    )
-
-    // Every set of figures covers the period the clock decides, so this page
-    // was cut over the span the others were.
-    expect(await outstandingReturnsPage.periodText()).toBe(period)
-    expect(await outstandingReturnsPage.dataTakenAtText()).toMatch(
-      DATA_TAKEN_AT
-    )
-
-    // A table per material, each one naming the material it counts. Naming
-    // the whole set is what catches a material that arrived twice or not at
-    // all, which counting them would not.
-    const captions = await outstandingReturnsPage.tableCaptions()
-
-    expect(captions.length).toBeGreaterThan(0)
-    expect(
-      captions.filter(
-        (caption) => !caption.startsWith('Reports not submitted for ')
+      expect(await outstandingReturnsPage.headingText()).toContain(
+        'Outstanding monthly reports'
       )
-    ).toEqual([])
 
-    // Every table carries the same four bands in the same order, and the same
-    // months as the waste balance, so a regulator reads one period across every
-    // page.
-    expect(await outstandingReturnsPage.tonnageBands()).toEqual(
-      captions.map(() => TONNAGE_BANDS)
-    )
-    expect(await outstandingReturnsPage.columnHeadings()).toEqual(
-      captions.map(() => ['Tonnage band', ...months])
-    )
+      // Every set of figures covers the period the clock decides, so this
+      // page was cut over the span the others were.
+      expect.soft(await outstandingReturnsPage.periodText()).toBe(period)
+      expect
+        .soft(await outstandingReturnsPage.dataTakenAtText())
+        .toMatch(DATA_TAKEN_AT)
 
-    // Every cell states a whole number, including the bands nothing is
-    // outstanding in, which the publication prints as zero rather than
-    // leaving blank.
-    const counts = await outstandingReturnsPage.counts()
+      // A table per material, each one naming the material it counts. Naming
+      // the whole set is what catches a material that arrived twice or not at
+      // all, which counting them would not.
+      const captions = await outstandingReturnsPage.tableCaptions()
 
-    expect(counts.length).toBeGreaterThan(0)
-    expect(counts.filter((count) => !OUTSTANDING_COUNT.test(count))).toEqual([])
+      expect.soft(captions.length).toBeGreaterThan(0)
+      expect
+        .soft(
+          captions.filter(
+            (caption) => !caption.startsWith('Reports not submitted for ')
+          )
+        )
+        .toEqual([])
 
-    violations.push(
-      ...(await scanPageForAccessibilityViolations(
-        page,
-        'Regulator market insights outstanding reports'
-      ))
-    )
+      // Every table carries the same four bands in the same order, and the
+      // same months as the waste balance, so a regulator reads one period
+      // across every page.
+      expect
+        .soft(await outstandingReturnsPage.tonnageBands())
+        .toEqual(captions.map(() => TONNAGE_BANDS))
+      expect
+        .soft(await outstandingReturnsPage.columnHeadings())
+        .toEqual(captions.map(() => ['Tonnage band', ...months]))
+
+      // Every cell states a whole number, including the bands nothing is
+      // outstanding in, which the publication prints as zero rather than
+      // leaving blank.
+      const counts = await outstandingReturnsPage.counts()
+
+      expect.soft(counts.length).toBeGreaterThan(0)
+      expect
+        .soft(counts.filter((count) => !OUTSTANDING_COUNT.test(count)))
+        .toEqual([])
+
+      violations.push(
+        ...(await scanPageForAccessibilityViolations(
+          page,
+          'Regulator market insights outstanding reports'
+        ))
+      )
+    })
 
     await assertNoSeriousOrCriticalViolations(violations)
   })
