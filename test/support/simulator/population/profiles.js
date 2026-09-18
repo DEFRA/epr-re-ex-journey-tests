@@ -50,7 +50,7 @@ const EXTRA_ATTEMPTS = { punctual: 1, typical: 1, tardy: 2 }
  * @property {number} volumeFactor - how much this operator reports and issues, relative to the estate mean of 1
  * @property {boolean} worksWeekends - whether it uploads and issues on Saturdays and Sundays
  * @property {{onTime: number, earlyShare: number, lateWithin7: number, lateWithin30: number, lateBeyond30: number, missedReturnRate: number, restatementRate: number}} reporting
- * @property {{rejectionRate: number, fatalShare: number, extraAttemptsWhenRejected: number, abandonRate: number}} uploads
+ * @property {{perReportingPeriod: number, rejectionRate: number, fatalShare: number, extraAttemptsWhenRejected: number, abandonRate: number}} uploads
  * @property {{deleteRate: number, discardRate: number, cancelRate: number, producerAcceptRate: number, sameMonthAcceptanceShare: number}} prn
  */
 
@@ -178,6 +178,7 @@ export function buildArchetypes(calibration) {
           )
         },
         uploads: {
+          perReportingPeriod: activity.uploads.perReportingPeriod,
           rejectionRate: worse(
             activity.uploads.rejectionRate,
             factor,

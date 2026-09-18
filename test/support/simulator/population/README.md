@@ -106,10 +106,13 @@ shares always add to one.
 | `reporting.missedReturnRate` | Reports that never arrive at all.                                    |
 | `reporting.restatementRate`  | How often it reopens a period it has already closed and files again. |
 
-**Uploads**, drawn per summary log upload.
+**Uploads**, drawn per summary log upload. An upload answers no calendar, so
+its behaviour is a rate rather than a punctuality: how many uploads a period
+gets, and what becomes of each.
 
 | Field                               | What it means                                                            |
 | ----------------------------------- | ------------------------------------------------------------------------ |
+| `uploads.perReportingPeriod`        | Uploads a registration makes per reporting period, whatever its cadence. |
 | `uploads.rejectionRate`             | How often a spreadsheet comes back with validation issues.               |
 | `uploads.fatalShare`                | Of those, the share that are fatal rather than errors on rows.           |
 | `uploads.extraAttemptsWhenRejected` | How many more goes it takes before the upload lands: 1, or 2 when tardy. |
@@ -121,7 +124,7 @@ shares always add to one.
 | ------------------------------ | -------------------------------------------------------------------------------------- |
 | `prn.deleteRate`               | Deleted after being raised for authorisation.                                          |
 | `prn.discardRate`              | Discarded while still a draft.                                                         |
-| `prn.cancelRate`               | Cancelled after a producer accepted it.                                                |
+| `prn.cancelRate`               | The producer asks for it to be cancelled instead of accepting it, and it is.           |
 | `prn.producerAcceptRate`       | How often the producer accepts rather than leaving it sitting.                         |
 | `prn.sameMonthAcceptanceShare` | Of those accepted, the share accepted in the month it was issued rather than the next. |
 
