@@ -12,6 +12,8 @@ import {
 } from './rows.js'
 import { CONTRIBUTION } from './sheets.js'
 
+/** @import {PlannedOperator} from '../population/population.js' */
+
 const SEED = 'rows'
 const STREAMS = [
   'exporter',
@@ -496,14 +498,72 @@ function dateMarkersOf(workbook, worksheetName) {
   return markers
 }
 
+/**
+ * Every accredited registration of a type, each held by its operator alone.
+ *
+ * @param {'exporter' | 'reprocessor'} processingType
+ * @returns {PlannedOperator[]}
+ */
+const holdingOneAccredited = (processingType) =>
+  population.organisations.flatMap((operator) =>
+    operator.registrations
+      .filter((r) => r.processingType === processingType && r.accreditation)
+      .map((registration) => ({ ...operator, registrations: [registration] }))
+  )
+
+/**
+ * An operator like this one, registered for the same work without an
+ * accreditation.
+ *
+ * @param {PlannedOperator} operator
+ * @returns {PlannedOperator}
+ */
+const registeredOnly = (operator) => ({
+  ...operator,
+  id: `${operator.id}-registered`,
+  registrations: operator.registrations.map((registration) => ({
+    ...registration,
+    id: `${registration.id}-registered`,
+    organisationId: `${operator.id}-registered`,
+    accreditation: null
+  }))
+})
+
 describe('a planned row rendered into a workbook', () => {
-  const tenth = planSummaryLogRows({
-    population: planPopulation({ seed: SEED, scale: 0.1 })
+  // One registration on every template whatever the seed: an even quota hands
+  // two accredited reprocessors one to each side, and taking an accreditation
+  // away puts a registration on its registered-only template.
+  const [exporter] = holdingOneAccredited('exporter')
+  const [reprocessor, secondReprocessor] = holdingOneAccredited('reprocessor')
+  assert.ok(
+    exporter && reprocessor && secondReprocessor,
+    'the population holds too few accredited registrations to build from'
+  )
+  const everyStream = planSummaryLogRows({
+    population: {
+      ...population,
+      organisations: [
+        exporter,
+        reprocessor,
+        secondReprocessor,
+        registeredOnly(exporter),
+        registeredOnly(reprocessor)
+      ]
+    },
+    calibration: {
+      ...DEFAULT_CALIBRATION,
+      activity: {
+        ...DEFAULT_CALIBRATION.activity,
+        reprocessorStream: { reprocessorInput: 1, reprocessorOutput: 1 }
+      }
+    }
   })
 
   for (const stream of STREAMS) {
     it(`names only fields a ${stream} template carries`, async () => {
-      const registration = tenth.registrations.find((r) => r.stream === stream)
+      const registration = everyStream.registrations.find(
+        (r) => r.stream === stream
+      )
       assert.ok(registration, `no ${stream} registration was planned`)
 
       // Two rows of each worksheet is enough to say every marker is real, and
