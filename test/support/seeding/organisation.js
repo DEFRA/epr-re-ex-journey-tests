@@ -219,9 +219,9 @@ async function readOrganisationOnceMigrated(baseAPI, authHeader, orgId) {
 /**
  * Reads a migrated organisation as the regulator sees it, lets `amend` change
  * it in place, and writes it back through the non-prod twin of the
- * organisation PUT. Statuses and numbers seed through that twin because the
- * public route rejects status changes (PAE-1645) and the transition endpoints
- * enforce number uniqueness.
+ * organisation PUT, which is how a status or a number is seeded: the public
+ * route rejects status changes and the transition endpoints enforce number
+ * uniqueness.
  *
  * @template T
  * @param {string} refNo

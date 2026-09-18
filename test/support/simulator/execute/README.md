@@ -31,14 +31,13 @@ executors are tracked separately.
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `registration.approved`   | The first time for an operator: applies for the organisation with every registration and accreditation the population gave it, and links a Defra ID user. Every time: approves that registration and its accreditation, granting their numbers, and registers an exporter's overseas site. |
 | `accreditation.suspended` | Suspends the accreditation on the event's day.                                                                                                                                                                                                                                             |
-| `accreditation.cancelled` | Cancels the registration on the event's day. The service cascades that to the accreditation, and refuses to cancel an accreditation any other way from approved.                                                                                                                           |
+| `accreditation.cancelled` | Cancels the registration on the event's day, which the service cascades to the accreditation.                                                                                                                                                                                              |
 | `summary-log.uploaded`    | Renders the workbook `uploadRows` gives for it, uploads it through cdp-uploader, waits for the validation the plan expects, and submits it if the plan says it landed.                                                                                                                     |
 | `report.submitted`        | Creates, fills and submits the period's report. A resubmission first waits for the service to have read the upload that restated the period.                                                                                                                                               |
 
 A summary log that comes back other than planned stops the run: a fatal
 rejection has to validate as `invalid`, an error on a row as `validated` with
-issues counted, and anything else as `validated` clean. A run that carried on
-past that would build records nobody planned.
+issues counted, and anything else as `validated` clean.
 
 ## What the operator types into a report
 
@@ -66,11 +65,10 @@ service assigned when the operator applied, which the service counts up from
 the same database with no registry to keep. The serial is the registration's
 position within the operator.
 
-Nothing checks a seeded number for uniqueness. The status-history route does,
-but the seeders write numbers through the non-prod organisation PUT, which
-never reaches it. A clash would not be refused; it would sit in the register as
-two operators sharing a number, which is why the number carries an id the
-service made unique.
+Nothing checks a seeded number for uniqueness: the seeders write numbers
+through the non-prod organisation PUT, which never reaches the status-history
+route that does. A clash would sit in the register as two operators sharing a
+number rather than be refused.
 
 ## Three vocabularies
 
@@ -78,7 +76,7 @@ The population plans a registration as `exporter` or `reprocessor` in a nation
 named in full. The row planner puts it on one of the generator's five streams.
 The seeders take `Exporter` or `Reprocessor` with `input` or `output` beside
 it, and a number wants the nation as a letter. `join.js` is the whole of the
-translation, and the only place it happens. A registered-only reprocessor
+translation. A registered-only reprocessor
 declares `input`, because its shorter template is a received-and-sent-on log.
 
 ## Signing in
@@ -86,8 +84,6 @@ declares `input`, because its shorter template is a received-and-sent-on log.
 A Defra ID token lasts an hour of simulated time, and a clock jump can spend
 that at once. Before an event calls the service as the operator, the run signs
 the user in again if the token it holds is within five minutes of ageing out.
-The stub's registration lifetime is raised by the clock's compose override, so
-the same user signs in all year and keeps the organisation the service linked.
 
 ## Running the hand-written list
 
@@ -101,9 +97,5 @@ and a cancellation. With the stack up on the clock:
 npm run simulate:exercise
 ```
 
-It moves the clock itself, forwards only. A stack that has already been moved
-past January has to be brought up again first, because nothing in it expects
-time to go backwards.
-
-`execute.test.js` covers the same sequence against seeders that record what
-they were asked, so the unit run needs no stack.
+It moves the clock forwards from January, so a stack already past that date
+has to be brought up again first.

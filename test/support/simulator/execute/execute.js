@@ -309,8 +309,7 @@ export function expectedValidation(upload) {
 }
 
 /**
- * A run that carries on past an upload the service read differently from the
- * plan would build a year of records nobody planned, so it stops here.
+ * Stops the run where the service read an upload differently from the plan.
  *
  * @param {UploadEvent} upload
  * @param {{status: string, validation?: {counts?: {fatal: number, error: number}}}} summaryLog
@@ -464,9 +463,8 @@ async function submitReport(run, event) {
 const EXECUTORS = {
   [EVENT.REGISTRATION_APPROVED]: approveRegistration,
   [EVENT.ACCREDITATION_SUSPENDED]: changeStatus({ accreditation: 'suspended' }),
-  // An accreditation can only be cancelled from suspended; cancelling the
-  // registration is what cancels an approved one, because the service
-  // cascades the cancellation to the accreditation linked to it.
+  // The service cancels an approved accreditation only by cascade from its
+  // registration.
   [EVENT.ACCREDITATION_CANCELLED]: changeStatus({ registration: 'cancelled' }),
   [EVENT.SUMMARY_LOG_UPLOADED]: uploadSummaryLog,
   [EVENT.REPORT_SUBMITTED]: submitReport
