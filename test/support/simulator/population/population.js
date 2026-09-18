@@ -350,6 +350,9 @@ function assignMaterials(
  * the rows a material at a time around the sites does that and still leaves
  * no site without a row.
  *
+ * @param {PlannedRegistration['processingType'][]} processingTypes - per row
+ * @param {PlannedRegistration['material'][]} materials - per row
+ * @param {PlannedOperator['sites']} sites
  * @returns {(string | null)[]} a site id per row; null for an exporting row
  */
 function assignSites(processingTypes, materials, sites) {
