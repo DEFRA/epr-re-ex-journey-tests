@@ -62,14 +62,16 @@ member of `EVENT` and nothing the calendar plans is missed.
 | `prn.cancelled`              | The signatory confirms the cancellation.                                                  | `prnId`                                                                  |
 
 A registration's events start with its approval, on the day it went active or
-the first day of the period if that is later, and end with a status change if
-the population ended it suspended or cancelled. The population states only
-where each accreditation ended up; the day is drawn here, at least a month into
-the registration's year, and nothing that registration does is planned after
-it. A registration is cancelled exactly where its accreditation is, so one
-event carries both. An accreditation that runs out is different: its loads
-stop on its last day, but the uploads and reports for what it did carry on to
-`to`, so a period that ended with the accreditation is still filed.
+the first day of the period if that is later, and carry a status change if the
+population ended it suspended or cancelled. The population states only where
+each accreditation ended up; the day is drawn here, at least a month into the
+registration's year. A cancellation ends everything: a registration is
+cancelled exactly where its accreditation is, so one event carries both, and
+nothing is planned after it. A suspension ends only the notes: a suspended
+accreditation is still accredited, so it keeps recording loads and owes its
+monthly reports. An accreditation that runs out stops recording loads on its
+last day, but the uploads and reports for what it did carry on to `to`, so a
+period that ended with the accreditation is still filed.
 
 `prnId` ties the events of one note together and is the plan's own identifier,
 not the number the service assigns. What tonnage a note carries is not planned:
@@ -147,10 +149,8 @@ back would read as a second adjustment.
 
 A report is the per-period aggregation a summary log submission triggers, and a
 separate act from the upload. Each period a registration was active for is owed
-once it has ended, on the cadence in force when the period started: monthly
-from the day the accreditation starts and quarterly before it, so a registration
-accredited part way through a quarter finishes that quarter quarterly and
-reports monthly from the next. `cadenceAt` is that rule.
+once it has ended: monthly if it is accredited and quarterly if it is
+registered only. `cadenceOf` is that rule.
 
 The day is drawn from the profile's punctuality against the calibration's
 `punctuality.dueDay` of the month after the period: on time, or up to a week,
@@ -169,8 +169,9 @@ submitted upload carries one of the period's rows in `restated`, and a second
 ## PRNs
 
 Each accredited registration drafts `activity.prnsPerAccreditationPerMonth`
-notes a month from the day its accreditation starts, times the operator's
-volume factor, spread evenly either side of that. A note is raised the day it is drafted and issued within three days, then
+notes a month, times the operator's volume factor, spread evenly either side of
+that, from the day after its first summary log is submitted: a note is issued
+against the balance the uploads have built, so none comes before it. A note is raised the day it is drafted and issued within three days, then
 accepted at `prn.producerAcceptRate`, in the month of issue at
 `prn.sameMonthAcceptanceShare` and the month after otherwise, or left awaiting
 acceptance. The exits are drawn where they happen: discarded as a draft at

@@ -5,7 +5,7 @@ import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { planPopulation } from '../population/population.js'
 import { CONTRIBUTION, planSummaryLogRows } from '../rows/rows.js'
 import { SHEETS } from '../rows/sheets.js'
-import { cadenceAt, planCalendar, uploadRows } from './calendar.js'
+import { cadenceOf, planCalendar, uploadRows } from './calendar.js'
 import {
   CADENCE,
   EVENT,
@@ -200,12 +200,28 @@ function periodBounds(report) {
 }
 
 /**
- * Months a registration was active for, up to and including December.
+ * The month a registration first submitted a summary log, as `YYYY-MM`, and
+ * null where it never did.
  *
  * @param {PlannedRegistration} registration
  */
-const activeMonths = (registration) =>
-  13 - Number(registration.activeFrom.slice(5, 7))
+const firstSubmission = (registration) => {
+  const first = landed.find(
+    (upload) => upload.registrationId === registration.id
+  )
+  return first ? month(first) : null
+}
+
+/**
+ * Whole months a registration could issue notes in, up to and including
+ * December: those after the month of its first submitted summary log.
+ *
+ * @param {PlannedRegistration} registration
+ */
+const issuingMonths = (registration) => {
+  const first = firstSubmission(registration)
+  return first ? 12 - Number(first.slice(5, 7)) : 0
+}
 
 describe('the calendar at full scale', () => {
   it('plans every operator, with events in the order they happen', () => {
@@ -283,13 +299,36 @@ describe('registrations and their accreditations', () => {
     }
   })
 
-  it('stops a registration doing anything once its accreditation is suspended or cancelled', () => {
-    for (const change of changed) {
+  it('stops a registration doing anything once its accreditation is cancelled', () => {
+    for (const change of ofType(EVENT.ACCREDITATION_CANCELLED)) {
       const after = events.filter(
         (event) =>
           event.registrationId === change.registrationId && event.at > change.at
       )
       assert.deepEqual(after, [])
+    }
+  })
+
+  /**
+   * A suspended accreditation is still accredited: it owes its monthly reports
+   * and keeps recording its loads, and only its notes stop.
+   */
+  it('keeps a suspended registration uploading and reporting, but issuing nothing', () => {
+    for (const change of ofType(EVENT.ACCREDITATION_SUSPENDED)) {
+      const after = events.filter(
+        (event) =>
+          event.registrationId === change.registrationId && event.at > change.at
+      )
+      assert.ok(after.some((event) => event.type === EVENT.REPORT_SUBMITTED))
+      assert.ok(
+        after.some((event) => event.type === EVENT.SUMMARY_LOG_UPLOADED)
+      )
+      assert.deepEqual(after.filter(isPrnEvent), [])
+    }
+  })
+
+  it('has every registration do something before its accreditation changes', () => {
+    for (const change of changed) {
       const before = events.filter(
         (event) =>
           event.registrationId === change.registrationId &&
@@ -762,23 +801,38 @@ describe('PRNs', () => {
    * The calibrated rate is per accreditation before the operator's volume
    * factor, and that factor averages one over operators rather than over
    * registrations, so the expectation is the rate scaled by each
-   * registration's own factor over the months it was live.
+   * registration's own factor over the months it could issue in. Those are
+   * the whole months after its first submission, so the notes counted are
+   * the ones drafted in them.
    */
   /** @param {PlannedRegistration[]} members */
   const expectedPerMonth = (members) =>
     (ACTIVITY.prnsPerAccreditationPerMonth *
       members.reduce(
         (sum, registration) =>
-          sum + volumeOf(registration) * activeMonths(registration),
+          sum + volumeOf(registration) * issuingMonths(registration),
         0
       )) /
-    members.reduce((sum, registration) => sum + activeMonths(registration), 0)
+    members.reduce((sum, registration) => sum + issuingMonths(registration), 0)
   /** @param {PlannedRegistration[]} members */
   const draftedPerMonth = (members) =>
     drafted.filter((event) =>
-      members.some((registration) => registration.id === event.registrationId)
+      members.some(
+        (registration) =>
+          registration.id === event.registrationId &&
+          month(event) > must(firstSubmission(registration))
+      )
     ).length /
-    members.reduce((sum, registration) => sum + activeMonths(registration), 0)
+    members.reduce((sum, registration) => sum + issuingMonths(registration), 0)
+
+  it('drafts no note before the registration has submitted a summary log', () => {
+    for (const event of drafted) {
+      const first = must(
+        landed.find((upload) => upload.registrationId === event.registrationId)
+      )
+      assert.ok(event.at > first.at, `${event.registrationId} ${event.at}`)
+    }
+  })
 
   it('raises the calibrated number a month per accreditation', () => {
     near(
@@ -1034,70 +1088,15 @@ describe('planning is reproducible', () => {
   })
 })
 
-describe('cadenceAt', () => {
-  const accredited = must(
-    registrations.find((registration) => registration.accreditation)
-  )
-  const registeredOnly = must(
-    registrations.find((registration) => !registration.accreditation)
-  )
-
-  it('reads monthly from the day the accreditation starts and quarterly before it', () => {
-    assert.equal(
-      cadenceAt(accredited, must(accredited.accreditation).validFrom),
-      CADENCE.MONTHLY
+describe('cadenceOf', () => {
+  it('is monthly for an accredited registration and quarterly otherwise', () => {
+    const accredited = must(
+      registrations.find((registration) => registration.accreditation)
     )
-    assert.equal(cadenceAt(accredited, '2025-12-31'), CADENCE.QUARTERLY)
-    assert.equal(cadenceAt(registeredOnly, '2026-12-31'), CADENCE.QUARTERLY)
-  })
-
-  /**
-   * A period is on the cadence in force when it starts, so a registration
-   * accredited part way through a quarter finishes that quarter quarterly and
-   * reports monthly from the next.
-   */
-  it('reports quarterly then monthly for a registration accredited part way through', () => {
-    const operator = must(
-      population.organisations.find(
-        (operator) => operator.id === accredited.organisationId
-      )
+    const registeredOnly = must(
+      registrations.find((registration) => !registration.accreditation)
     )
-    /** @type {PlannedRegistration} */
-    const later = {
-      ...accredited,
-      activeFrom: '2026-01-01',
-      accreditation: {
-        ...must(accredited.accreditation),
-        status: 'approved',
-        validFrom: '2026-05-01'
-      }
-    }
-    const planned = planCalendar({
-      population: {
-        ...population,
-        organisations: [{ ...operator, registrations: [later] }]
-      },
-      rows,
-      to: TO
-    })
-    for (const event of planned.operators[0].events.filter(isPrnEvent)) {
-      assert.ok(day(event) >= '2026-05-01', event.at)
-    }
-    const filed = eventsOfType(
-      planned.operators[0].events,
-      EVENT.REPORT_SUBMITTED
-    )
-      .filter((event) => event.submissionNumber === 1)
-      .map((event) => `${event.cadence}/${event.period}`)
-    assert.ok(filed.includes('quarterly/1'), filed.join(' '))
-    assert.ok(filed.includes('quarterly/2'), filed.join(' '))
-    assert.ok(!filed.includes('quarterly/3'), filed.join(' '))
-    assert.ok(filed.includes('monthly/7'), filed.join(' '))
-    assert.ok(
-      !filed.some(
-        (key) => key.startsWith('monthly/') && Number(key.split('/')[1]) < 7
-      ),
-      filed.join(' ')
-    )
+    assert.equal(cadenceOf(accredited), CADENCE.MONTHLY)
+    assert.equal(cadenceOf(registeredOnly), CADENCE.QUARTERLY)
   })
 })

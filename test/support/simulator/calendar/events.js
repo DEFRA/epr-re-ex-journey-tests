@@ -28,7 +28,7 @@
 export const EVENT = {
   /** The registration, and the accreditation the population gave it, go live as planned there. */
   REGISTRATION_APPROVED: 'registration.approved',
-  /** The regulator suspends the accreditation. The registration's activity stops here. */
+  /** The regulator suspends the accreditation. It issues nothing from here, and still records loads and reports. */
   ACCREDITATION_SUSPENDED: 'accreditation.suspended',
   /** The regulator cancels the accreditation, and the registration with it: the register's cancelled rows are the same rows. */
   ACCREDITATION_CANCELLED: 'accreditation.cancelled',

@@ -162,19 +162,14 @@ function dayBetween(notBefore, notAfter, random, worksWeekends) {
 }
 
 /**
- * The reporting cadence a registration is on at a date. Accredited operators
- * report monthly and registered-only ones quarterly, and one registration does
- * both in turn: quarterly until its accreditation starts, monthly from then.
+ * The reporting cadence a registration is on: monthly if accredited, quarterly
+ * if registered only.
  *
  * @param {PlannedRegistration} registration
- * @param {string} day
  * @returns {'monthly' | 'quarterly'}
  */
-export function cadenceAt(registration, day) {
-  return registration.accreditation &&
-    day >= registration.accreditation.validFrom
-    ? CADENCE.MONTHLY
-    : CADENCE.QUARTERLY
+export function cadenceOf(registration) {
+  return registration.accreditation ? CADENCE.MONTHLY : CADENCE.QUARTERLY
 }
 
 /**
@@ -219,7 +214,7 @@ function reportingPeriods(registration, first, last, dueDay) {
   const periods = []
   let day = first
   while (day <= last) {
-    const period = periodContaining(day, cadenceAt(registration, day), dueDay)
+    const period = periodContaining(day, cadenceOf(registration), dueDay)
     periods.push({ ...period, first: day, last: earlier(period.end, last) })
     day = addDays(period.end, 1)
   }
@@ -457,6 +452,7 @@ function draftUploadAttempts(context, upload, submitted, added) {
  * @param {Period[]} periods
  * @param {string} activityEnd - the last day a load is recorded
  * @param {string} filingEnd - the last day an upload or report is made
+ * @returns {string | null} the day of the first upload that landed, if any did
  */
 function draftReporting(context, periods, activityEnd, filingEnd) {
   const { random, operator, registration, rows } = context
@@ -567,19 +563,23 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
       submissionNumber: 2
     })
   }
+
+  return landed[0]?.day ?? null
 }
 
 /**
  * The PRN lifecycle of one accredited registration: so many a month, each
  * drafted, raised and issued within days, then accepted this month or next,
- * left waiting, or taken off one of the three exits.
+ * left waiting, or taken off one of the three exits. A note is issued against
+ * the balance the uploads have built, so none is drafted before the first
+ * summary log is submitted.
  *
  * @param {RegistrationContext} context
- * @param {string} first
- * @param {string} activityEnd
+ * @param {string} first - the first day a note may be drafted
+ * @param {string} issuingEnd - the last day the accreditation can issue
  */
-function draftPrns(context, first, activityEnd) {
-  if (first > activityEnd) return
+function draftPrns(context, first, issuingEnd) {
+  if (first > issuingEnd) return
   const { random, operator, registration, calibration } = context
   const { profile } = operator
   const { prn } = profile
@@ -598,7 +598,7 @@ function draftPrns(context, first, activityEnd) {
     const landed = profile.worksWeekends
       ? moved
       : onWorkingDay(moved, moved, addDays(moved, 7))
-    return landed <= activityEnd ? landed : null
+    return landed <= issuingEnd ? landed : null
   }
   /**
    * @param {string} prnId
@@ -616,10 +616,10 @@ function draftPrns(context, first, activityEnd) {
   }
 
   let month = monthKey(first)
-  while (`${month}-01` <= activityEnd) {
+  while (`${month}-01` <= issuingEnd) {
     const [year, monthNumber] = month.split('-').map(Number)
     const notBefore = later(first, `${month}-01`)
-    const notAfter = earlier(lastDayOfMonth(year, monthNumber), activityEnd)
+    const notAfter = earlier(lastDayOfMonth(year, monthNumber), issuingEnd)
     const count = random.int(0, Math.round(mean * 2))
 
     for (let index = 0; index < count; index++) {
@@ -686,7 +686,7 @@ function draftPrns(context, first, activityEnd) {
         random,
         profile.worksWeekends
       )
-      if (!accepted || accepted > activityEnd) continue
+      if (!accepted || accepted > issuingEnd) continue
       draft(context, accepted, {
         type: EVENT.PRN_ACCEPTED,
         registrationId: registration.id,
@@ -723,11 +723,13 @@ function planRegistration(context, from) {
       registrationId: registration.id
     })
   }
-  const activityEnd = change ? addDays(change.day, -1) : last
-  const filingEnd = change ? activityEnd : to
+  const cancelled = change?.type === EVENT.ACCREDITATION_CANCELLED
+  const activityEnd = change && cancelled ? addDays(change.day, -1) : last
+  const filingEnd = cancelled ? activityEnd : to
+  const issuingEnd = change ? addDays(change.day, -1) : last
 
   if (first <= activityEnd) {
-    draftReporting(
+    const firstSubmitted = draftReporting(
       context,
       reportingPeriods(
         registration,
@@ -738,9 +740,8 @@ function planRegistration(context, from) {
       activityEnd,
       filingEnd
     )
-    const { accreditation } = registration
-    if (accreditation) {
-      draftPrns(context, later(first, accreditation.validFrom), activityEnd)
+    if (registration.accreditation && firstSubmitted) {
+      draftPrns(context, addDays(firstSubmitted, 1), issuingEnd)
     }
   }
 
