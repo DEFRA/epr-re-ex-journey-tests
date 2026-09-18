@@ -9,7 +9,9 @@
  * through `loadCalibration`.
  *
  * The register block is the pEPR public register of 10 September 2026, which is
- * published in full. Two of its counts are derived rather than read off. Sites
+ * published in full at
+ * https://www.gov.uk/government/publications/public-register-of-reprocessors-and-exporters-of-uk-packaging-waste.
+ * Two of its counts are derived rather than read off. Sites
  * total 148, which is the reprocessor-only organisations plus the ones doing
  * both. Tonnage bands total 369, which is 389 less the 20 registered-only
  * registrations, so a tonnage band belongs to an accreditation rather than to a
@@ -130,8 +132,90 @@ const ACTIVITY = {
   rowsPerSubmission: {
     exporter: { created: 50, updated: 50 },
     reprocessorInput: { created: 200, updated: 100 },
-    reprocessorOutput: { created: 500, updated: 500 }
+    reprocessorOutput: { created: 500, updated: 500 },
+    /**
+     * A registered-but-unaccredited operator reports on a shorter template.
+     * A month's worth, as the accredited figures are, whether the calendar
+     * sends it monthly or holds it for a quarterly return. Nominal, and low
+     * because nothing published says what they report.
+     */
+    registeredOnly: { created: 20, updated: 10 }
   },
+
+  /**
+   * How the accredited reprocessors divide between reporting their input and
+   * their output. A judgement: the register names an operator a reprocessor
+   * and stops there, so nothing published says which side of its process a
+   * registration reports. Even is the neutral reading, and the monthly
+   * aggregated workbook's tonnage received and tonnage recycled are close
+   * enough to each other to leave it there.
+   */
+  reprocessorStream: { reprocessorInput: 1, reprocessorOutput: 1 },
+
+  /**
+   * What each worksheet of a summary log carries: its share of the rows an
+   * upload holds, and the tonnage the whole UK reports through it in a month.
+   *
+   * The tonnages are the mean of January to June 2026 on the "UK" sheet of the
+   * accredited packaging waste monthly aggregated data workbook, 25 August
+   * 2026 edition, at
+   * https://www.gov.uk/government/statistical-data-sets/packaging-waste-data-reported-by-reprocessors-and-exporters.
+   * Its grand totals are per month and per side of the process. July is in
+   * the edition and left out: the newest month of a provisional dataset is the
+   * one late submissions have yet to reach. A reprocessor's tonnage received
+   * for recycling is read as the input stream's and its tonnage recycled as
+   * the output stream's, because that is how the two templates divide the same
+   * operator's year. A worksheet with no figure reports nothing the workbook
+   * aggregates.
+   *
+   * The row shares are a judgement, save that a sent-on share is set near the
+   * ratio the workbook gives between tonnage sent on and tonnage received,
+   * which holds while a sent-on load is no bigger than any other.
+   */
+  summaryLogSheets: {
+    exporter: {
+      'Exported (sections 1, 2 and 3)': {
+        rowShare: 0.94,
+        monthlyTonnage: 336289
+      },
+      'Sent on (sections 4 and 5)': { rowShare: 0.06, monthlyTonnage: 22220 }
+    },
+    reprocessorInput: {
+      'Received (sections 1, 2 and 3)': {
+        rowShare: 0.6,
+        monthlyTonnage: 308213
+      },
+      'Reprocessed (section 4)': { rowShare: 0.38 },
+      'Sent on (sections 5, 6 and 7)': { rowShare: 0.02, monthlyTonnage: 4302 }
+    },
+    reprocessorOutput: {
+      'Received (sections 1 and 2)': { rowShare: 0.48 },
+      'Reprocessed (sections 3 and 4)': {
+        rowShare: 0.5,
+        monthlyTonnage: 307563
+      },
+      'Sent on (sections 5 and 6)': { rowShare: 0.02 }
+    },
+    regOnlyExporter: {
+      'Received (section 1)': { rowShare: 0.47 },
+      'Exported (sections 2 and 3)': { rowShare: 0.47 },
+      'Sent on (section 4)': { rowShare: 0.06 }
+    },
+    regOnlyReprocessor: {
+      'Received (section 1)': { rowShare: 0.98 },
+      'Sent on (section 2)': { rowShare: 0.02 }
+    }
+  },
+
+  /**
+   * How often an exported load is stopped or refused in transit, which
+   * excludes it from the waste balance. Read off the same edition and months
+   * of the workbook as `summaryLogSheets`, as a share of tonnage exported that
+   * was stopped, and refused, against tonnage received for exporting. Both
+   * are around one load in ten thousand, so a run that draws them evenly
+   * excludes nearly everything it reports.
+   */
+  exportLoadOutcome: { stoppedShare: 0.00017, refusedShare: 0.000032 },
 
   /**
    * Monthly reports that never arrive. From the register: the share of periods
@@ -244,7 +328,19 @@ const PUNCTUALITY = {
  */
 
 /**
- * @typedef {BehaviourRates & {rowsPerSubmission: Record<string, {created: number, updated: number}>, prnsPerAccreditationPerMonth: number}} ActivityShape
+ * @typedef {Object} SheetShape
+ * @property {number} rowShare - this worksheet's share of an upload's rows
+ * @property {number} [monthlyTonnage] - what the whole UK reports through it in a month
+ */
+
+/**
+ * @typedef {BehaviourRates & {
+ *   rowsPerSubmission: Record<string, {created: number, updated: number}>,
+ *   reprocessorStream: Counts,
+ *   summaryLogSheets: Record<string, Record<string, SheetShape>>,
+ *   exportLoadOutcome: {stoppedShare: number, refusedShare: number},
+ *   prnsPerAccreditationPerMonth: number
+ * }} ActivityShape
  */
 
 /**
