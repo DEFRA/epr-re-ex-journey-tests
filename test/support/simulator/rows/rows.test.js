@@ -530,25 +530,32 @@ const registeredOnly = (operator) => ({
 })
 
 describe('a planned row rendered into a workbook', () => {
-  // One registration on every template whatever the seed: the quota hands two
-  // accredited reprocessors one to each side, and taking an accreditation
+  // One registration on every template whatever the seed: an even quota hands
+  // two accredited reprocessors one to each side, and taking an accreditation
   // away puts a registration on its registered-only template.
   const [exporter] = holdingOneAccredited('exporter')
   const [reprocessor, secondReprocessor] = holdingOneAccredited('reprocessor')
-  const organisations = [
-    exporter,
-    reprocessor,
-    secondReprocessor,
-    registeredOnly(exporter),
-    registeredOnly(reprocessor)
-  ]
+  assert.ok(
+    exporter && reprocessor && secondReprocessor,
+    'the population holds too few accredited registrations to build from'
+  )
   const everyStream = planSummaryLogRows({
     population: {
       ...population,
-      scale:
-        organisations.flatMap((operator) => operator.registrations).length /
-        DEFAULT_CALIBRATION.register.registrations,
-      organisations
+      organisations: [
+        exporter,
+        reprocessor,
+        secondReprocessor,
+        registeredOnly(exporter),
+        registeredOnly(reprocessor)
+      ]
+    },
+    calibration: {
+      ...DEFAULT_CALIBRATION,
+      activity: {
+        ...DEFAULT_CALIBRATION.activity,
+        reprocessorStream: { reprocessorInput: 1, reprocessorOutput: 1 }
+      }
     }
   })
 
