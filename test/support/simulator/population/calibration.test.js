@@ -77,6 +77,89 @@ describe('loadCalibration', () => {
     )
   })
 
+  /**
+   * The defaults carry a worksheet's monthly tonnage only where the monthly
+   * aggregated workbook publishes one. The overlay is where the rest come
+   * from, so it may add that one figure to a worksheet that has none.
+   */
+  it('lets an overlay add a monthly tonnage to a worksheet the defaults leave without one', () => {
+    const sheet = 'Reprocessed (section 4)'
+    assert.equal(
+      DEFAULT_CALIBRATION.activity.summaryLogSheets.reprocessorInput[sheet]
+        .monthlyTonnage,
+      undefined
+    )
+
+    const calibration = loadCalibration(
+      withOverlay({
+        activity: {
+          summaryLogSheets: {
+            reprocessorInput: { [sheet]: { monthlyTonnage: 12345 } }
+          }
+        }
+      })
+    )
+
+    assert.equal(
+      calibration.activity.summaryLogSheets.reprocessorInput[sheet]
+        .monthlyTonnage,
+      12345
+    )
+    assert.equal(
+      calibration.activity.summaryLogSheets.reprocessorInput[sheet].rowShare,
+      DEFAULT_CALIBRATION.activity.summaryLogSheets.reprocessorInput[sheet]
+        .rowShare
+    )
+  })
+
+  it('refuses an added monthly tonnage that is not a number', () => {
+    assert.throws(
+      () =>
+        loadCalibration(
+          withOverlay({
+            activity: {
+              summaryLogSheets: {
+                reprocessorInput: {
+                  'Reprocessed (section 4)': { monthlyTonnage: '12345' }
+                }
+              }
+            }
+          })
+        ),
+      /wrong type/
+    )
+  })
+
+  it('refuses a monthly tonnage anywhere but on a worksheet', () => {
+    assert.throws(
+      () =>
+        loadCalibration(
+          withOverlay({
+            activity: { summaryLogSheets: { monthlyTonnage: 12345 } }
+          })
+        ),
+      /activity\.summaryLogSheets\.monthlyTonnage/
+    )
+  })
+
+  it('refuses a worksheet the defaults do not name', () => {
+    assert.throws(
+      () =>
+        loadCalibration(
+          withOverlay({
+            activity: {
+              summaryLogSheets: {
+                reprocessorInput: {
+                  'Reprocesed (section 4)': { monthlyTonnage: 12345 }
+                }
+              }
+            }
+          })
+        ),
+      /Reprocesed \(section 4\)/
+    )
+  })
+
   it('refuses a setting given the wrong type', () => {
     assert.throws(
       () =>

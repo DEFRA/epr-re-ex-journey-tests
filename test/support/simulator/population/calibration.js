@@ -6,7 +6,9 @@
  * published sources alone, so a checkout of this repository plans a population
  * shaped like the public register and behaving plausibly. A run that has
  * figures measured against production supplies them as an overlay instead,
- * through `loadCalibration`.
+ * through `loadCalibration`. An overlay overrides settings the defaults carry
+ * and adds the one figure they leave out where no public source gives it, a
+ * worksheet's monthly tonnage; see `UNANCHORED`.
  *
  * The register block is the pEPR public register of 10 September 2026, which is
  * published in full at
@@ -423,42 +425,65 @@ export const DEFAULT_CALIBRATION = deepFreeze({
 })
 
 /**
+ * The one setting an overlay may add rather than override: a worksheet's
+ * monthly tonnage, a number. The defaults carry it only where the monthly
+ * aggregated workbook publishes a figure, and a figure for the other
+ * worksheets is exactly what an overlay measured against production is for.
+ */
+const UNANCHORED = ['activity', 'summaryLogSheets', '*', '*', 'monthlyTonnage']
+
+/** @param {string} at */
+const isUnanchored = (at) => {
+  const segments = at.split('.')
+  return (
+    segments.length === UNANCHORED.length &&
+    UNANCHORED.every((part, i) => part === '*' || part === segments[i])
+  )
+}
+
+/**
  * Lay an overlay over the defaults, key by key.
  *
- * An overlay may only set a key the defaults already carry, and only with a
- * value of the same shape. A file that misspells one otherwise plans a run on
- * the defaults while its author believes it is calibrated, which is the whole
- * failure this is here to prevent.
+ * An overlay may override a setting the defaults carry, with a value of the
+ * same shape, and may add only what `UNANCHORED` names. Any other key is
+ * refused: a file that misspells one otherwise plans a run on the defaults
+ * while its author believes it is calibrated, which is the whole failure this
+ * is here to prevent.
  */
 function merge(base, overlay, path) {
-  for (const key of Object.keys(overlay)) {
+  for (const [key, given] of Object.entries(overlay)) {
     const at = `${path}${key}`
     if (!(key in base)) {
-      throw new Error(
-        `Calibration overlay sets "${at}", which is not a setting`
-      )
+      if (!isUnanchored(at)) {
+        throw new Error(
+          `Calibration overlay sets "${at}", which is not a setting`
+        )
+      }
+      if (typeof given !== 'number') {
+        throw new Error(`Calibration overlay gives "${at}" the wrong type`)
+      }
+    } else {
+      if (isBranch(base[key]) !== isBranch(given)) {
+        throw new Error(`Calibration overlay gives "${at}" the wrong shape`)
+      }
+      if (!isBranch(base[key]) && typeof base[key] !== typeof given) {
+        throw new Error(`Calibration overlay gives "${at}" the wrong type`)
+      }
     }
-    if (isBranch(base[key]) !== isBranch(overlay[key])) {
-      throw new Error(`Calibration overlay gives "${at}" the wrong shape`)
-    }
-    if (!isBranch(base[key]) && typeof base[key] !== typeof overlay[key]) {
-      throw new Error(`Calibration overlay gives "${at}" the wrong type`)
-    }
-    if (typeof overlay[key] === 'number' && !Number.isFinite(overlay[key])) {
+    if (typeof given === 'number' && !Number.isFinite(given)) {
       throw new Error(`Calibration overlay gives "${at}" no usable number`)
     }
   }
 
-  return Object.fromEntries(
-    Object.entries(base).map(([key, value]) => [
-      key,
-      overlay[key] === undefined
-        ? value
-        : isBranch(value)
-          ? merge(value, overlay[key], `${path}${key}.`)
-          : overlay[key]
-    ])
-  )
+  return {
+    ...base,
+    ...Object.fromEntries(
+      Object.entries(overlay).map(([key, given]) => [
+        key,
+        isBranch(given) ? merge(base[key], given, `${path}${key}.`) : given
+      ])
+    )
+  }
 }
 
 /**
