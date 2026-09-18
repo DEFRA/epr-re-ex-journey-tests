@@ -72,17 +72,17 @@ export const UPLOAD_OUTCOME = {
  * Why a rejected upload was rejected. Each is the plan of a workbook that
  * provokes one of the validation codes production sees.
  *
- * @type {{REMOVED_ROW: 'removedRow', UNREADABLE: 'unreadable', BLANK_FIELD: 'blankField', BAD_DATE: 'badDate'}}
+ * @type {{REMOVED_ROW: 'removedRow', UNREADABLE: 'unreadable', BAD_DATE: 'badDate', BLANK_FIELD: 'blankField'}}
  */
 export const ISSUE_KIND = {
   /** Fatal: a row submitted before is missing from this upload. */
   REMOVED_ROW: 'removedRow',
   /** Fatal: the workbook cannot be read at all. */
   UNREADABLE: 'unreadable',
+  /** Fatal: text where a row's date should be, which the service refuses the row for. */
+  BAD_DATE: 'badDate',
   /** Error on a row: a required cell left blank. */
-  BLANK_FIELD: 'blankField',
-  /** Error on a row: text where a date should be. */
-  BAD_DATE: 'badDate'
+  BLANK_FIELD: 'blankField'
 }
 
 /** @type {{FATAL: 'fatal', ERROR: 'error'}} */
@@ -91,11 +91,15 @@ export const ISSUE_SEVERITY = { FATAL: 'fatal', ERROR: 'error' }
 /**
  * Which kinds of issue each severity draws from.
  *
- * @type {{fatal: ('removedRow' | 'unreadable')[], error: ('blankField' | 'badDate')[]}}
+ * @type {{fatal: ('removedRow' | 'unreadable' | 'badDate')[], error: ('blankField')[]}}
  */
 export const ISSUE_KINDS_BY_SEVERITY = {
-  [ISSUE_SEVERITY.FATAL]: [ISSUE_KIND.REMOVED_ROW, ISSUE_KIND.UNREADABLE],
-  [ISSUE_SEVERITY.ERROR]: [ISSUE_KIND.BLANK_FIELD, ISSUE_KIND.BAD_DATE]
+  [ISSUE_SEVERITY.FATAL]: [
+    ISSUE_KIND.REMOVED_ROW,
+    ISSUE_KIND.UNREADABLE,
+    ISSUE_KIND.BAD_DATE
+  ],
+  [ISSUE_SEVERITY.ERROR]: [ISSUE_KIND.BLANK_FIELD]
 }
 
 /** @type {{MONTHLY: 'monthly', QUARTERLY: 'quarterly'}} */

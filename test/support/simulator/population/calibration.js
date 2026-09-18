@@ -256,13 +256,13 @@ const ACTIVITY = {
 
   /**
    * What a rejected upload is rejected for, by severity. A fatal issue stops
-   * the whole upload: a row submitted before and now missing, or a workbook
-   * the service cannot read. An error sits on a row: a required cell left
-   * blank, or text where a date should be. Nominal.
+   * the whole upload: a row submitted before and now missing, a workbook the
+   * service cannot read, or text where a row's date should be. An error sits
+   * on a row: a required cell left blank. Nominal.
    */
   uploadIssueKinds: {
-    fatal: { removedRow: 0.95, unreadable: 0.05 },
-    error: { blankField: 0.95, badDate: 0.05 }
+    fatal: { removedRow: 0.9, unreadable: 0.05, badDate: 0.05 },
+    error: { blankField: 1 }
   },
 
   /**

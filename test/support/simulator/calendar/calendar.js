@@ -10,7 +10,7 @@
 
 import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { createRandom } from '../population/random.js'
-import { SHEETS } from '../rows/sheets.js'
+import { CONTRIBUTION, SHEETS } from '../rows/sheets.js'
 import {
   CADENCE,
   EVENT,
@@ -348,7 +348,9 @@ function amendmentCount(context, stream, period) {
  * A row can only be missing if it was submitted before, so a first upload that
  * draws that kind is unreadable instead. An error sits on rows the upload
  * adds where it adds any, because that is where an operator's new mistakes
- * are.
+ * are, and only on a worksheet the service reads into the waste balance,
+ * because those are the only rows it validates the cells of: a workbook with
+ * none of those to plant on is rejected fatally instead.
  *
  * @param {RegistrationContext} context
  * @param {PlannedLogRow[]} submitted - rows carried by the last submitted upload
@@ -357,7 +359,13 @@ function amendmentCount(context, stream, period) {
  */
 function drawIssues(context, submitted, added) {
   const { random, operator, calibration } = context
+  const sheets = context.rows ? SHEETS[context.rows.stream] : {}
+  const validated = (added.length ? added : submitted).filter((row) => {
+    const contribution = sheets[row.worksheet]?.contribution
+    return contribution !== undefined && contribution !== CONTRIBUTION.NONE
+  })
   const severity =
+    validated.length === 0 ||
     random.float() < operator.profile.uploads.fatalShare
       ? ISSUE_SEVERITY.FATAL
       : ISSUE_SEVERITY.ERROR
@@ -376,16 +384,13 @@ function drawIssues(context, submitted, added) {
   const pool =
     kind === ISSUE_KIND.REMOVED_ROW
       ? submitted
-      : added.length
-        ? added
-        : submitted
-  const rows =
-    kind === ISSUE_KIND.UNREADABLE
-      ? []
-      : random
-          .shuffle(pool)
-          .slice(0, random.int(1, MAX_ROWS_WITH_ISSUES))
-          .map(refOf)
+      : kind === ISSUE_KIND.UNREADABLE
+        ? []
+        : validated
+  const rows = random
+    .shuffle(pool)
+    .slice(0, random.int(1, MAX_ROWS_WITH_ISSUES))
+    .map(refOf)
   return { severity, kind, rows }
 }
 

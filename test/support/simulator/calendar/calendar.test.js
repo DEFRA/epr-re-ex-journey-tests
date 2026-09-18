@@ -3,7 +3,8 @@ import { describe, it } from 'node:test'
 
 import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { planPopulation } from '../population/population.js'
-import { planSummaryLogRows } from '../rows/rows.js'
+import { CONTRIBUTION, planSummaryLogRows } from '../rows/rows.js'
+import { SHEETS } from '../rows/sheets.js'
 import { cadenceAt, planCalendar, uploadRows } from './calendar.js'
 import {
   CADENCE,
@@ -403,10 +404,11 @@ describe('summary log uploads', () => {
    * calendar owes is a draw against each operator's own profile, so that is the
    * expectation: the mean of the profile rate over the uploads it applies to.
    */
+  const rejected = uploads.filter(
+    (upload) => upload.outcome === UPLOAD_OUTCOME.REJECTED
+  )
+
   it('makes each rejection fatal at its operator’s own rate, of the kinds the calibration names', () => {
-    const rejected = uploads.filter(
-      (upload) => upload.outcome === UPLOAD_OUTCOME.REJECTED
-    )
     near(
       share(
         rejected,
@@ -423,8 +425,29 @@ describe('summary log uploads', () => {
       Object.keys(kinds).sort(),
       Object.values(ISSUE_KIND).sort()
     )
-    assert.ok(kinds.blankField > kinds.badDate)
+    assert.ok(kinds.removedRow > kinds.badDate)
     assert.ok(kinds.removedRow > kinds.unreadable)
+  })
+
+  /**
+   * The service only checks the cells of a row on a worksheet it reads into
+   * the waste balance, so an error planted anywhere else raises nothing.
+   */
+  it('plants an error only on a worksheet the service validates the cells of', () => {
+    const errors = rejected.filter(
+      (upload) => must(upload.issues).severity === ISSUE_SEVERITY.ERROR
+    )
+    assert.ok(errors.length > 0)
+    for (const upload of errors) {
+      const { stream } = rowsOf(upload.registrationId)
+      for (const ref of must(upload.issues).rows) {
+        assert.notEqual(
+          SHEETS[stream][ref.worksheet].contribution,
+          CONTRIBUTION.NONE,
+          `${upload.registrationId} ${upload.at} plants an error on ${ref.worksheet}`
+        )
+      }
+    }
   })
 
   it('leaves the landing upload of every attempt clean', () => {

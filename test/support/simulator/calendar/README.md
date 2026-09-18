@@ -122,15 +122,18 @@ A rejection is fatal at `uploads.fatalShare` and an error on rows otherwise;
 which of each the calibration's `uploadIssueKinds` decides. Each kind is the
 plan of a workbook that provokes one validation code the service raises:
 
-| Kind         | Severity | What the workbook does                                           | Code raised            |
-| ------------ | -------- | ---------------------------------------------------------------- | ---------------------- |
-| `removedRow` | fatal    | Omits rows submitted before. Only ever after a first submission. | SEQUENTIAL_ROW_REMOVED |
-| `unreadable` | fatal    | Cannot be read at all; pass `unreadable` to the generator.       | SPREADSHEET_INVALID    |
-| `blankField` | error    | Leaves the date of a row blank.                                  | FIELD_REQUIRED         |
-| `badDate`    | error    | Puts text where a row's date should be.                          | INVALID_DATE           |
+| Kind         | Severity | What the workbook does                                           | Code raised               |
+| ------------ | -------- | ---------------------------------------------------------------- | ------------------------- |
+| `removedRow` | fatal    | Omits rows submitted before. Only ever after a first submission. | SEQUENTIAL_ROW_REMOVED    |
+| `unreadable` | fatal    | Cannot be read at all; pass `unreadable` to the generator.       | SPREADSHEET_INVALID_ERROR |
+| `badDate`    | fatal    | Puts text where a row's date should be.                          | INVALID_DATE              |
+| `blankField` | error    | Leaves the date of a row blank.                                  | FIELD_REQUIRED            |
 
 An error sits on rows the upload adds where it adds any, because that is where
-an operator's new mistakes are.
+an operator's new mistakes are, and only on a worksheet the service reads into
+the waste balance, because those are the only rows it validates the cells of.
+A workbook with none of those to plant on is rejected fatally instead, so a
+registered-only registration's rejections are all fatal.
 
 Amendments are the calibrated `rowsPerSubmission[stream].updated`, a month's
 worth like the rows an upload creates, times the operator's volume factor and
