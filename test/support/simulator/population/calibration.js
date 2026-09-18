@@ -471,6 +471,8 @@ export const DEFAULT_CALIBRATION = deepFreeze({
  * monthly tonnage, a number. The defaults carry it only where the monthly
  * aggregated workbook publishes a figure, and a figure for the other
  * worksheets is exactly what an overlay measured against production is for.
+ * Which of them can carry one is the row planner's to say: it refuses a
+ * figure on a worksheet whose rows carry no load.
  */
 const UNANCHORED = ['activity', 'summaryLogSheets', '*', '*', 'monthlyTonnage']
 

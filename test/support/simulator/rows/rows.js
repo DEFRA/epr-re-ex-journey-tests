@@ -311,9 +311,16 @@ function tonnagePerRow(plans, scale, calibration) {
     calibration.activity.summaryLogSheets
   )) {
     const share = shares.get(stream) ?? WHOLE_ESTATE
+    const planned = sheetsOf(stream, calibration)
     for (const [worksheet, { monthlyTonnage }] of Object.entries(sheets)) {
+      if (monthlyTonnage === undefined) continue
+      if (!planned[worksheet].load) {
+        throw new Error(
+          `Calibration gives ${stream} worksheet "${worksheet}" a monthlyTonnage, but no row on it carries a load`
+        )
+      }
       const rows = rowsBySheet.get(`${stream}/${worksheet}`)
-      if (monthlyTonnage === undefined || !rows) continue
+      if (!rows) continue
       perRow.set(
         `${stream}/${worksheet}`,
         (monthlyTonnage * share * scale * 12) / rows
