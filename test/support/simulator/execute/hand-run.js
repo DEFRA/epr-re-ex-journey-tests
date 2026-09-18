@@ -2,8 +2,9 @@
  * A hand-written list of events for one operator's exporter and reprocessor
  * and another's registered-only reprocessor, replayed against the local stack
  * under the simulated clock. Every event the executors carry out is in it,
- * every way a summary log can come back, and a report on each cadence, so it
- * is the check that they do against the service what the plan says.
+ * every way a summary log can come back, a report on each cadence, and a note
+ * to every state a note can end in, so it is the check that they do against
+ * the service what the plan says.
  *
  * Bring the stack up on the clock (see ../clock/README.md), then:
  *
@@ -28,7 +29,7 @@ import { createRun, executeEvent } from './execute.js'
 
 /** @import {PlannedRegistration} from '../population/population.js' */
 /** @import {PlannedLogRow, PlannedRegistrationRows} from '../rows/rows.js' */
-/** @import {CalendarEvent, ReportEvent, RowRef, UploadEvent, UploadIssues} from '../calendar/events.js' */
+/** @import {CalendarEvent, PrnEvent, ReportEvent, RowRef, UploadEvent, UploadIssues} from '../calendar/events.js' */
 
 /** How long every process on the clock takes to notice a jump. */
 const CLOCK_SETTLE_MS = 500
@@ -131,9 +132,10 @@ function someRow(planned, where) {
 
 /**
  * Two months of one registration: approved on the first day of the year, its
- * January closed by an upload and a report, then a day of every kind of
- * rejection before a second upload lands, restating January so its report is
- * filed again, then February's report, then the status change.
+ * January closed by an upload and a report, a note taken to each of its four
+ * exits and one left awaiting the producer, a day of every kind of rejection
+ * before a second upload lands, restating January so its report is filed
+ * again, then February's report, then the status change.
  *
  * @param {PlannedRegistration} registration
  * @param {PlannedRegistrationRows} planned
@@ -177,6 +179,19 @@ function eventsFor(registration, planned, ending) {
     issues: { severity, kind, rows: planted }
   })
   /**
+   * @param {string} serial
+   * @param {[PrnEvent['type'], string][]} steps - each step and when it happens
+   * @returns {PrnEvent[]}
+   */
+  const note = (serial, steps) =>
+    steps.map(([type, at]) => ({
+      type,
+      at,
+      organisationId,
+      registrationId,
+      prnId: `${registrationId}-${serial}`
+    }))
+  /**
    * @param {string} at
    * @param {number} period
    * @param {number} submissionNumber
@@ -205,6 +220,28 @@ function eventsFor(registration, planned, ending) {
       outcome: UPLOAD_OUTCOME.SUBMITTED,
       closedPeriods: []
     }),
+    ...note('PRN001', [
+      [EVENT.PRN_DRAFTED, '2026-02-05T11:00:00Z'],
+      [EVENT.PRN_DISCARDED, '2026-02-06T11:00:00Z']
+    ]),
+    ...note('PRN002', [
+      [EVENT.PRN_DRAFTED, '2026-02-09T11:00:00Z'],
+      [EVENT.PRN_RAISED, '2026-02-09T11:30:00Z'],
+      [EVENT.PRN_DELETED, '2026-02-10T11:00:00Z']
+    ]),
+    ...note('PRN003', [
+      [EVENT.PRN_DRAFTED, '2026-02-11T11:00:00Z'],
+      [EVENT.PRN_RAISED, '2026-02-11T11:30:00Z'],
+      [EVENT.PRN_ISSUED, '2026-02-12T11:00:00Z'],
+      [EVENT.PRN_ACCEPTED, '2026-02-16T11:00:00Z']
+    ]),
+    ...note('PRN004', [
+      [EVENT.PRN_DRAFTED, '2026-02-17T11:00:00Z'],
+      [EVENT.PRN_RAISED, '2026-02-17T11:30:00Z'],
+      [EVENT.PRN_ISSUED, '2026-02-18T11:00:00Z'],
+      [EVENT.PRN_CANCELLATION_REQUESTED, '2026-02-20T11:00:00Z'],
+      [EVENT.PRN_CANCELLED, '2026-02-23T11:00:00Z']
+    ]),
     reported('2026-02-20T10:00:00Z', 1, 1),
     uploaded('2026-03-03T10:00:00Z', {
       ...rejected(ISSUE_SEVERITY.ERROR, ISSUE_KIND.BLANK_FIELD, [
@@ -229,6 +266,11 @@ function eventsFor(registration, planned, ending) {
       restated: [ref(januaryRow)]
     }),
     reported('2026-03-05T10:00:00Z', 1, 2),
+    ...note('PRN005', [
+      [EVENT.PRN_DRAFTED, '2026-03-10T11:00:00Z'],
+      [EVENT.PRN_RAISED, '2026-03-10T11:30:00Z'],
+      [EVENT.PRN_ISSUED, '2026-03-11T11:00:00Z']
+    ]),
     reported('2026-03-20T10:00:00Z', 2, 1),
     { type: ending, at: '2026-04-01T09:00:00Z', organisationId, registrationId }
   ]
@@ -310,7 +352,9 @@ async function main() {
         ? `${event.outcome}${event.issues ? ` (${event.issues.severity} ${event.issues.kind})` : ''}`
         : event.type === EVENT.REPORT_SUBMITTED
           ? `${event.year}/${event.period} submission ${event.submissionNumber}`
-          : ''
+          : 'prnId' in event
+            ? event.prnId
+            : ''
     logger.info(`${event.at}  ${event.registrationId}  ${event.type}  ${what}`)
     await executeEvent(run, event)
   }
