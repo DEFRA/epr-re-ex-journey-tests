@@ -213,12 +213,14 @@ first, because an operator exporting and reprocessing one material is most of
 what the register's are.
 
 Two more marginals are near rather than exact, both because an operator is
-held to the materials and sites it has the registrations to carry. Plastic runs
-a few per cent under its register share and every other material a few per
-cent over, because holding an operator to a count of distinct materials moves
-its duplicated rows onto materials it has not got, and exported glass runs
-further over because an operator doing both with one material is as likely to
-have drawn it for its reprocessing row. The site spread shifts by an
+held to the materials and sites it has the registrations to carry. Every
+exporting registration needs a material of its own, so an exporter that has
+drawn plastic twice keeps it once and the other row goes to what is left,
+where glass leads: exported plastic runs about a tenth under its register
+rows and exported glass, glass-other and wood a few rows over. Reprocessed
+glass-other and wood run under by a few rows too, because a reprocessor that
+draws one material more often than it has sites moves the extra row onto
+another material, and that is most often plastic. The site spread shifts by an
 organisation or two, leaving the estate a few sites short of the register's 176.
 `population.test.js` states the tolerance on each.
 

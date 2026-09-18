@@ -94,7 +94,7 @@ const addMonth = (date) => {
  * room for it, so the floors cost the spread as little as possible.
  *
  * @param {number[]} capacities - how much each holder has room for
- * @param {number[]} counts - the spread to fit inside them
+ * @param {number[]} counts - the spread to fit inside them, one count per holder
  * @param {number[]} [floors] - the least each holder has to be given
  * @returns {number[]} a count per index of `capacities`, never above it
  */
@@ -135,8 +135,8 @@ function fitBySize(capacities, counts, floors = []) {
  * place that shape fits.
  *
  * An organisation of one processing type on one site holds a material per
- * registration, so one registered more times than any organisation holds
- * materials is "both" before any of them: the register's five- and
+ * registration, so one whose registration count is not a count of materials
+ * the register shows is "both" before any of them: the register's five- and
  * eight-registration organisations all do both, and drawing one as an
  * exporter would plan a five-material exporter the register has not got.
  */
@@ -227,31 +227,46 @@ function assignMaterials(
     random.weighted(register.rowsByTypeAndMaterial[processingType])
   )
 
+  // A material serves only the processing types that register it, so holding
+  // one that serves no exporting row leaves the exporting rows a material
+  // short: fibre-based composite is reprocessed and never exported.
+  const capacity = { exporter: 1, reprocessor: siteCount }
+  const rowsOfType = timesEach(processingTypes)
+  const serves = (suffix, processingType) =>
+    register.rowsByTypeAndMaterial[processingType][suffix] > 0
+  const held = new Set()
+  const roomToHold = (suffix) => {
+    const holding = [...held, suffix]
+    const slotsLeft = materialCount - holding.length
+    return (
+      slotsLeft >= 0 &&
+      Object.entries(rowsOfType).every(
+        ([processingType, rows]) =>
+          Math.ceil(rows / capacity[processingType]) -
+            holding.filter((s) => serves(s, processingType)).length <=
+          slotsLeft
+      )
+    )
+  }
+
   const timesDrawn = timesEach(drawn)
-  const held = new Set(
-    Object.keys(timesDrawn)
-      .sort((a, b) => timesDrawn[b] - timesDrawn[a])
-      .slice(0, materialCount)
-  )
+  for (const suffix of Object.keys(timesDrawn).sort(
+    (a, b) => timesDrawn[b] - timesDrawn[a]
+  )) {
+    if (roomToHold(suffix)) held.add(suffix)
+  }
 
   const suffixes = processingTypes.map((processingType, row) => {
     if (held.has(drawn[row])) return drawn[row]
 
     const weights = register.rowsByTypeAndMaterial[processingType]
-    const registrable = Object.fromEntries(
-      [...held]
-        .filter((suffix) => weights[suffix] > 0)
-        .map((suffix) => [suffix, weights[suffix]])
+    return random.weighted(
+      Object.fromEntries(
+        [...held]
+          .filter((suffix) => serves(suffix, processingType))
+          .map((suffix) => [suffix, weights[suffix]])
+      )
     )
-    // Nothing the organisation holds is registrable for this processing type,
-    // so it takes on one more material rather than registering a pairing the
-    // register never shows, such as exporting fibre-based composite.
-    if (Object.keys(registrable).length === 0) {
-      const added = random.weighted(weights)
-      held.add(added)
-      return added
-    }
-    return random.weighted(registrable)
   })
 
   // The draw can repeat itself and leave the organisation holding fewer
@@ -261,7 +276,8 @@ function assignMaterials(
   // That is what holds the estate on the register's materials per
   // organisation, and the material row totals are what pays for it. The row
   // moved is most often the commonest material and it never moves onto one, so
-  // plastic comes out a few per cent light and every other material heavy.
+  // exported plastic comes out light and the materials exporters rarely
+  // register heavy.
   while (held.size < materialCount) {
     const counts = timesEach(suffixes)
     const duplicated = suffixes
@@ -272,7 +288,9 @@ function assignMaterials(
     const { row } = duplicated[random.int(0, duplicated.length - 1)]
     const weights = register.rowsByTypeAndMaterial[processingTypes[row]]
     const unheld = Object.fromEntries(
-      Object.entries(weights).filter(([suffix]) => !held.has(suffix))
+      Object.entries(weights).filter(
+        ([suffix]) => !held.has(suffix) && roomToHold(suffix)
+      )
     )
     if (Object.keys(unheld).length === 0) break
 
@@ -284,7 +302,6 @@ function assignMaterials(
   // The service approves one exporting registration per material and one
   // reprocessing registration per material and site, so a row past that
   // moves onto a material with room for it.
-  const capacity = { exporter: 1, reprocessor: siteCount }
   for (;;) {
     const counts = timesEach(
       suffixes.map((suffix, row) => `${processingTypes[row]} ${suffix}`)
