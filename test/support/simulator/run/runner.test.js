@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { planCalendar } from '../calendar/calendar.js'
-import { EVENT } from '../calendar/events.js'
+import { createRun } from '../execute/execute.js'
 import { planPopulation } from '../population/population.js'
 import { planSummaryLogRows } from '../rows/rows.js'
 import { createStop, eventKey, eventsInOrder, replay } from './runner.js'
@@ -21,21 +21,7 @@ const calendar = planCalendar({
 const events = eventsInOrder(calendar)
 
 /** A run the fake executor never reads. */
-const run = /** @type {Run} */ ({})
-
-/**
- * @param {string} type
- * @param {string} at
- * @param {string} organisationId
- * @param {string} [registrationId]
- * @returns {CalendarEvent}
- */
-const event = (
-  type,
-  at,
-  organisationId,
-  registrationId = `${organisationId}-R1`
-) => /** @type {CalendarEvent} */ ({ type, at, organisationId, registrationId })
+const run = createRun({ population, rows })
 
 /**
  * An executor that records the order it was handed events in, and where
@@ -156,14 +142,13 @@ describe('replay', () => {
   })
 
   it('runs operators side by side and each operator in order, up to the concurrency', async () => {
-    const day = '2026-01-05'
-    const sameDay = [
-      event(EVENT.REGISTRATION_APPROVED, `${day}T09:00:00Z`, 'OP-A'),
-      event(EVENT.REGISTRATION_APPROVED, `${day}T09:10:00Z`, 'OP-B'),
-      event(EVENT.REGISTRATION_APPROVED, `${day}T09:20:00Z`, 'OP-C'),
-      event(EVENT.SUMMARY_LOG_UPLOADED, `${day}T10:00:00Z`, 'OP-A'),
-      event(EVENT.REPORT_SUBMITTED, `${day}T11:00:00Z`, 'OP-A')
-    ]
+    const sameDay = events.filter((e) => e.at.startsWith('2026-01-05'))
+    const operators = new Set(sameDay.map((e) => e.organisationId))
+    assert.ok(operators.size >= 3, 'three operators act that day')
+    assert.ok(
+      sameDay.filter((e) => e.organisationId === 'OP-0001').length > 1,
+      'one of them acts more than once'
+    )
     const recorder = recordingExecutor()
     /** @type {string[]} */
     const executedInOrder = []
@@ -182,10 +167,10 @@ describe('replay', () => {
     await replaying
 
     assert.equal(recorder.widest(), 2)
-    const ofA = executedInOrder.filter((key) => key.startsWith('OP-A'))
+    const ofA = executedInOrder.filter((key) => key.startsWith('OP-0001-'))
     assert.deepEqual(
       ofA,
-      sameDay.filter((e) => e.organisationId === 'OP-A').map(eventKey)
+      sameDay.filter((e) => e.organisationId === 'OP-0001').map(eventKey)
     )
     assert.equal(executedInOrder.length, sameDay.length)
   })
