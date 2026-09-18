@@ -167,8 +167,12 @@ const ACTIVITY = {
    * one late submissions have yet to reach. A reprocessor's tonnage received
    * for recycling is read as the input stream's and its tonnage recycled as
    * the output stream's, because that is how the two templates divide the same
-   * operator's year. A worksheet with no figure reports nothing the workbook
-   * aggregates.
+   * operator's year. Both are the whole reprocessor estate's figure, not one
+   * stream's. The service aggregates tonnage received and tonnage sent on
+   * from both templates alike, so those figures sit on both templates'
+   * worksheets and the row planner hands each template its share. Tonnage
+   * recycled is entered on the report rather than read off a worksheet, so
+   * the input template's reprocessed worksheet carries no figure.
    *
    * The row shares are a judgement, save that a sent-on share is set near the
    * ratio the workbook gives between tonnage sent on and tonnage received,
@@ -191,12 +195,15 @@ const ACTIVITY = {
       'Sent on (sections 5, 6 and 7)': { rowShare: 0.02, monthlyTonnage: 4302 }
     },
     reprocessorOutput: {
-      'Received (sections 1 and 2)': { rowShare: 0.48 },
+      'Received (sections 1 and 2)': {
+        rowShare: 0.48,
+        monthlyTonnage: 308213
+      },
       'Reprocessed (sections 3 and 4)': {
         rowShare: 0.5,
         monthlyTonnage: 307563
       },
-      'Sent on (sections 5 and 6)': { rowShare: 0.02 }
+      'Sent on (sections 5 and 6)': { rowShare: 0.02, monthlyTonnage: 4302 }
     },
     regOnlyExporter: {
       'Received (section 1)': { rowShare: 0.47 },

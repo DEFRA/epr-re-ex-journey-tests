@@ -54,9 +54,11 @@ const creditRows = (plan, stream) =>
 const TONNAGE_CELL = {
   'Exported (sections 1, 2 and 3)': 'TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED',
   'Received (sections 1, 2 and 3)': 'TONNAGE_RECEIVED_FOR_RECYCLING',
+  'Received (sections 1 and 2)': 'TONNAGE_RECEIVED_FOR_RECYCLING',
   'Reprocessed (sections 3 and 4)': 'PRODUCT_UK_PACKAGING_WEIGHT_PROPORTION',
   'Sent on (sections 4 and 5)': 'TONNAGE_OF_UK_PACKAGING_WASTE_SENT_ON',
-  'Sent on (sections 5, 6 and 7)': 'TONNAGE_OF_UK_PACKAGING_WASTE_SENT_ON'
+  'Sent on (sections 5, 6 and 7)': 'TONNAGE_OF_UK_PACKAGING_WASTE_SENT_ON',
+  'Sent on (sections 5 and 6)': 'TONNAGE_OF_UK_PACKAGING_WASTE_SENT_ON'
 }
 
 /**
@@ -176,20 +178,101 @@ describe('planSummaryLogRows', () => {
     }
   })
 
-  it('credits the estate the tonnage the workbook reports for each worksheet', () => {
-    for (const [stream, sheets] of Object.entries(
-      DEFAULT_CALIBRATION.activity.summaryLogSheets
+  it('lands each exporter worksheet on the tonnage the workbook reports', () => {
+    for (const [worksheet, { monthlyTonnage: published }] of Object.entries(
+      DEFAULT_CALIBRATION.activity.summaryLogSheets.exporter
     )) {
-      for (const [worksheet, { monthlyTonnage: published }] of Object.entries(
-        sheets
-      )) {
-        if (published === undefined) continue
-        const planned = monthlyTonnage(plan, stream, worksheet)
-        assert.ok(
-          Math.abs(planned - published) < published * 0.01,
-          `${stream} ${worksheet} plans ${Math.round(planned)}t a month against ${published}t`
+      if (published === undefined) continue
+      const planned = monthlyTonnage(plan, 'exporter', worksheet)
+      assert.ok(
+        Math.abs(planned - published) < published * 0.01,
+        `exporter ${worksheet} plans ${Math.round(planned)}t a month against ${published}t`
+      )
+    }
+  })
+
+  it('credits the reprocessor estate the national tonnage once, not once per stream', () => {
+    const sheets = DEFAULT_CALIBRATION.activity.summaryLogSheets
+    const received = sheets.reprocessorInput['Received (sections 1, 2 and 3)']
+    const recycled = sheets.reprocessorOutput['Reprocessed (sections 3 and 4)']
+    assert.ok(received.monthlyTonnage && recycled.monthlyTonnage)
+    const credited =
+      monthlyTonnage(
+        plan,
+        'reprocessorInput',
+        'Received (sections 1, 2 and 3)'
+      ) +
+      monthlyTonnage(
+        plan,
+        'reprocessorOutput',
+        'Reprocessed (sections 3 and 4)'
+      )
+    const low = Math.min(received.monthlyTonnage, recycled.monthlyTonnage)
+    const high = Math.max(received.monthlyTonnage, recycled.monthlyTonnage)
+    assert.ok(
+      credited > low * 0.99 && credited < high * 1.01,
+      `the estate credits ${Math.round(credited)}t a month against ${low}t received and ${high}t recycled`
+    )
+  })
+
+  it('reports the tonnage received and sent on once across both templates', () => {
+    const sheets = DEFAULT_CALIBRATION.activity.summaryLogSheets
+    for (const [inputSheet, outputSheet] of [
+      ['Received (sections 1, 2 and 3)', 'Received (sections 1 and 2)'],
+      ['Sent on (sections 5, 6 and 7)', 'Sent on (sections 5 and 6)']
+    ]) {
+      const national = sheets.reprocessorInput[inputSheet].monthlyTonnage
+      assert.ok(national, `${inputSheet} has no published figure`)
+      assert.equal(
+        sheets.reprocessorOutput[outputSheet].monthlyTonnage,
+        national,
+        'both templates carry the one estate figure'
+      )
+      const reported =
+        monthlyTonnage(plan, 'reprocessorInput', inputSheet) +
+        monthlyTonnage(plan, 'reprocessorOutput', outputSheet)
+      assert.ok(
+        Math.abs(reported - national) < national * 0.01,
+        `the estate reports ${Math.round(reported)}t a month through ${inputSheet} and ${outputSheet} against ${national}t`
+      )
+    }
+  })
+
+  it("gives a reprocessor stream its registrations' share of the estate's figure, by registration-months", () => {
+    const calibration = structuredClone(DEFAULT_CALIBRATION)
+    calibration.activity.reprocessorStream = {
+      reprocessorInput: 3,
+      reprocessorOutput: 1
+    }
+    const skewed = planSummaryLogRows({
+      population: planPopulation({ seed: SEED, scale: 0.1 }),
+      calibration
+    })
+    /** @param {string} stream */
+    const monthsOn = (stream) =>
+      skewed.registrations
+        .filter((r) => r.stream === stream)
+        .reduce(
+          (sum, r) => sum + new Set(r.rows.map((row) => row.period)).size,
+          0
         )
-      }
+    const estate = monthsOn('reprocessorInput') + monthsOn('reprocessorOutput')
+    for (const [stream, worksheet] of [
+      ['reprocessorInput', 'Received (sections 1, 2 and 3)'],
+      ['reprocessorInput', 'Sent on (sections 5, 6 and 7)'],
+      ['reprocessorOutput', 'Received (sections 1 and 2)'],
+      ['reprocessorOutput', 'Reprocessed (sections 3 and 4)'],
+      ['reprocessorOutput', 'Sent on (sections 5 and 6)']
+    ]) {
+      const published =
+        calibration.activity.summaryLogSheets[stream][worksheet].monthlyTonnage
+      assert.ok(published, `${stream} ${worksheet} has no published figure`)
+      const expected = (published * 0.1 * monthsOn(stream)) / estate
+      const planned = monthlyTonnage(skewed, stream, worksheet)
+      assert.ok(
+        Math.abs(planned - expected) < expected * 0.01,
+        `${stream} ${worksheet} plans ${Math.round(planned)}t a month against ${Math.round(expected)}t`
+      )
     }
   })
 

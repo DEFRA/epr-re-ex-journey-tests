@@ -77,6 +77,9 @@ export { CONTRIBUTION }
  */
 const OVERSEAS_SITE_ID = 100
 
+/** The share of its figures a stream reports when no other stream divides them with it. */
+const WHOLE_ESTATE = 1
+
 /** The rows a registered-only registration reports, whichever template it is on. */
 const REGISTERED_ONLY = 'registeredOnly'
 
@@ -245,6 +248,37 @@ function rowsPerMonth(stream, volumeFactor, calibration) {
 }
 
 /**
+ * The share of the reprocessor estate's year each reprocessing stream reports,
+ * by registration-months.
+ *
+ * The workbook's reprocessor figures are the whole estate's, and the input and
+ * output templates are two ways one estate reports the same process.
+ *
+ * @param {RegistrationPlan[]} plans
+ * @param {Calibration} calibration
+ * @returns {Map<string, number>} stream to share, for the reprocessing streams only
+ */
+function reprocessorStreamShares(plans, calibration) {
+  /** @type {Record<string, number>} */
+  const months = Object.fromEntries(
+    Object.keys(calibration.activity.reprocessorStream).map((stream) => [
+      stream,
+      0
+    ])
+  )
+  for (const plan of plans) {
+    if (plan.stream in months) months[plan.stream] += plan.months.length
+  }
+  const estate = Object.values(months).reduce((sum, count) => sum + count, 0)
+  return new Map(
+    Object.entries(months).map(([stream, count]) => [
+      stream,
+      estate ? count / estate : 0
+    ])
+  )
+}
+
+/**
  * What one row of a worksheet carries, so that the estate's year lands on the
  * tonnage the calibration reports for that worksheet.
  *
@@ -270,14 +304,19 @@ function tonnagePerRow(plans, scale, calibration) {
     }
   }
 
+  const shares = reprocessorStreamShares(plans, calibration)
   const perRow = new Map()
   for (const [stream, sheets] of Object.entries(
     calibration.activity.summaryLogSheets
   )) {
+    const share = shares.get(stream) ?? WHOLE_ESTATE
     for (const [worksheet, { monthlyTonnage }] of Object.entries(sheets)) {
       const rows = rowsBySheet.get(`${stream}/${worksheet}`)
       if (monthlyTonnage === undefined || !rows) continue
-      perRow.set(`${stream}/${worksheet}`, (monthlyTonnage * scale * 12) / rows)
+      perRow.set(
+        `${stream}/${worksheet}`,
+        (monthlyTonnage * share * scale * 12) / rows
+      )
     }
   }
   return perRow
