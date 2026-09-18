@@ -603,6 +603,7 @@ const cancelAccreditation = changeStatus({ registration: 'cancelled' })
  * @param {CalendarEvent} event
  */
 export async function executeEvent(run, event) {
+  const { type } = event
   switch (event.type) {
     case EVENT.REGISTRATION_APPROVED:
       return approveRegistration(run, event)
@@ -631,8 +632,6 @@ export async function executeEvent(run, event) {
     case EVENT.PRN_CANCELLED:
       return cancelNote(run, event)
     default:
-      throw new Error(
-        `No executor carries out a ${/** @type {CalendarEvent} */ (event).type} event`
-      )
+      throw new Error(`No executor carries out a ${type} event`)
   }
 }

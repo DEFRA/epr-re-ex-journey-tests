@@ -618,13 +618,15 @@ describe('a run', () => {
       )
     })
 
-    for (const [type, status] of /** @type {[PrnEvent['type'], string][]} */ ([
+    /** @type {[PrnEvent['type'], string][]} */
+    const moves = [
       [EVENT.PRN_DISCARDED, 'discarded'],
       [EVENT.PRN_RAISED, 'awaiting_authorisation'],
       [EVENT.PRN_DELETED, 'deleted'],
       [EVENT.PRN_ISSUED, 'awaiting_acceptance'],
       [EVENT.PRN_CANCELLED, 'cancelled']
-    ])) {
+    ]
+    for (const [type, status] of moves) {
       it(`moves to ${status} when ${type}`, async () => {
         await executeEvent(run, approved(exporter))
         await executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED))
@@ -693,7 +695,8 @@ describe('a run', () => {
     it('is refused by name', async () => {
       await assert.rejects(
         executeEvent(run, {
-          .../** @type {PrnEvent} */ (noted(exporter, EVENT.PRN_DRAFTED)),
+          ...noted(exporter, EVENT.PRN_DRAFTED),
+          // A type the calendar cannot emit, which is what the refusal is for.
           type: /** @type {any} */ ('prn.framed')
         }),
         /No executor carries out a prn.framed event/
