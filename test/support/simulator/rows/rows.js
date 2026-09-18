@@ -44,6 +44,7 @@ export { CONTRIBUTION }
  * @typedef {Object} SheetPlan - one entry of `SHEETS`, keyed by worksheet
  * @property {'credit' | 'debit' | 'none'} contribution
  * @property {Record<string, number>} [dateFields] - date markers, each with its offset in days from the row's day
+ * @property {string} [balanceDate] - the date marker the service dates the credit by, where that is not the row's own day
  * @property {string[]} [monthFields] - markers a registered-only template takes as a month
  * @property {Record<string, string | number>} [fields] - cells pinned whatever the row carries
  * @property {(tonnage: number, random: Random, calibration: Calibration) => {fields: Record<string, string | number>, tonnage: number}} [load]

@@ -651,10 +651,24 @@ function draftPrns(context, landed, issuingEnd) {
   }
 
   const allRows = rows?.rows ?? []
+  const sheets = rows ? SHEETS[rows.stream] : {}
+  /**
+   * The month the service dates a credit to: the sheet's balance date where
+   * it declares one, pinned on the row as a UK date, and the row's own day
+   * otherwise.
+   *
+   * @param {PlannedLogRow} row
+   */
+  const creditedIn = (row) => {
+    const marker = sheets[row.worksheet]?.balanceDate
+    const pinned = marker === undefined ? undefined : row.fields[marker]
+    return typeof pinned === 'string'
+      ? pinned.slice(3, 5)
+      : row.date.slice(5, 7)
+  }
   const credits = allRows.filter(
     (row) =>
-      row.contribution === CONTRIBUTION.CREDIT &&
-      row.date.slice(5, 7) !== DECEMBER
+      row.contribution === CONTRIBUTION.CREDIT && creditedIn(row) !== DECEMBER
   )
   const debits = allRows.filter(
     (row) => row.contribution === CONTRIBUTION.DEBIT
@@ -816,8 +830,11 @@ function draftPrns(context, landed, issuingEnd) {
       a.drafted.localeCompare(b.drafted)
     )
     const weights = inDayOrder.map(() => weigh.float() + 0.5)
+    // The share is of tonnage issued, and a drafted note is discarded or
+    // deleted before issue at the operator's rates, so the drafts carry more.
     const monthly =
-      issuedShare * tonnageOf(credits, onRecordBefore(addDays(notAfter, 1)))
+      (issuedShare * tonnageOf(credits, onRecordBefore(addDays(notAfter, 1)))) /
+      ((1 - prn.discardRate) * (1 - prn.deleteRate))
     /** @type {Map<NoteDraw, number>} */
     const tonnages = new Map()
     inDayOrder.forEach((note, index) => {

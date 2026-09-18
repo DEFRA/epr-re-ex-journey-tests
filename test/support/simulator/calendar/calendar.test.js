@@ -213,14 +213,23 @@ const firstSubmission = (registration) => {
 }
 
 /**
- * Whole months a registration could issue notes in, up to and including
- * December: those after the month of its first submitted summary log.
+ * The last month the note count is measured over. December is left out: what
+ * an operator receives in December is kept for a December note, which the
+ * calendar does not plan, so it drafts fewer general notes that month.
+ */
+const LAST_COUNTED_MONTH = '2026-11'
+
+/**
+ * Whole months a registration could issue notes in, up to the last counted
+ * month: those after the month of its first submitted summary log.
  *
  * @param {PlannedRegistration} registration
  */
 const issuingMonths = (registration) => {
   const first = firstSubmission(registration)
-  return first ? 12 - Number(first.slice(5, 7)) : 0
+  return first
+    ? Number(LAST_COUNTED_MONTH.slice(5, 7)) - Number(first.slice(5, 7))
+    : 0
 }
 
 describe('the calendar at full scale', () => {
@@ -888,7 +897,8 @@ describe('PRNs', () => {
       members.some(
         (registration) =>
           registration.id === event.registrationId &&
-          month(event) > must(firstSubmission(registration))
+          month(event) > must(firstSubmission(registration)) &&
+          month(event) <= LAST_COUNTED_MONTH
       )
     ).length /
     members.reduce((sum, registration) => sum + issuingMonths(registration), 0)
@@ -1042,6 +1052,22 @@ describe('PRNs', () => {
   })
 
   /**
+   * Whether the service keeps a credit for a December note: the overseas
+   * reprocessor received an exported load in December, or a reprocessor
+   * received or reprocessed one then. Spelt out here, apart from what the
+   * sheets declare, so the plan is checked against the service's rule rather
+   * than its own.
+   *
+   * @param {PlannedRegistration} registration
+   * @param {PlannedLogRow} row
+   */
+  const isDecemberCredit = (registration, row) =>
+    row.contribution === CONTRIBUTION.CREDIT &&
+    (registration.processingType === 'exporter'
+      ? String(row.fields.DATE_RECEIVED_BY_OSR).slice(3, 5)
+      : row.date.slice(5, 7)) === '12'
+
+  /**
    * The balance the service holds for an accreditation, replayed from its
    * events: what its submitted uploads credited outside December, less what
    * they debited, less every note holding tonnage. A note draws it when
@@ -1068,11 +1094,7 @@ describe('PRNs', () => {
         credited = planned.rows
           .filter(
             (row) =>
-              row.date <= event.cutoff &&
-              !(
-                row.contribution === CONTRIBUTION.CREDIT &&
-                row.date.slice(5, 7) === '12'
-              )
+              row.date <= event.cutoff && !isDecemberCredit(registration, row)
           )
           .reduce(
             (sum, row) =>
@@ -1106,7 +1128,8 @@ describe('PRNs', () => {
     }
   })
 
-  it('drafts the calibrated share of what each processing type credits outside December', () => {
+  it('issues the calibrated share of what each processing type credits outside December', () => {
+    const issued = ofType(EVENT.PRN_ISSUED)
     for (const processingType of ['reprocessor', 'exporter']) {
       const members = accredited.filter(
         (registration) => registration.processingType === processingType
@@ -1118,7 +1141,9 @@ describe('PRNs', () => {
           (event) => event.registrationId === registration.id
         )
         if (own.length === 0) continue
-        planned += own.reduce((sum, event) => sum + event.tonnage, 0)
+        planned += issued
+          .filter((event) => event.registrationId === registration.id)
+          .reduce((sum, event) => sum + event.tonnage, 0)
         const lastDraft = must(own.at(-1))
         const cutoff = landed
           .filter(
@@ -1132,14 +1157,14 @@ describe('PRNs', () => {
             (row) =>
               row.contribution === CONTRIBUTION.CREDIT &&
               row.date <= must(cutoff) &&
-              row.date.slice(5, 7) !== '12'
+              !isDecemberCredit(registration, row)
           )
           .reduce((sum, row) => sum + row.tonnage, 0)
       }
       near(
         planned / creditedByLastDraw,
         ACTIVITY.prnIssuedShare[processingType],
-        0.03,
+        0.02,
         processingType
       )
     }

@@ -185,18 +185,21 @@ and the signatory confirms it within three.
 What a note carries is drawn from the balance the plan can see. A month's
 notes have between them `activity.prnIssuedShare` for the processing type of
 the tonnage the registration's submitted uploads have credited by the end of
-the month, less what earlier notes took, so over the year the registration
-drafts that share of what it credits, a month or so behind. Each note takes a
-weighted part of that, in the order the notes are drafted, and never more than
-the balance holds on its day: what is credited and on record, less what is
-debited, less every note holding tonnage that day. A note draws the balance
-when it is raised and gives it back when it is deleted or cancelled, and one
-that would carry under a tonne is not planned at all, so the plan never asks
-for a note the balance cannot fund. Credits dated in December are left alone,
-because the service keeps them for a December note, which none of these is.
-Tonnage is in whole tonnes; the price is the calibration's
-`activity.prnPricePerTonne` for the registration's material, and a material
-it prices nothing for is refused rather than planned free.
+the month, less what earlier notes took, scaled up by the operator's discard
+and delete rates because those notes never reach issue, so over the year the
+registration issues that share of what it credits, a month or so behind. Each
+note takes a weighted part of that, in the order the notes are drafted, and
+never more than the balance holds on its day: what is credited and on record,
+less what is debited, less every note holding tonnage that day. A note draws
+the balance when it is raised and gives it back when it is deleted or
+cancelled, and one that would carry under a tonne is not planned at all, so
+the plan never asks for a note the balance cannot fund. A credit the service
+dates in December is left alone, because it is kept for a December note,
+which none of these is: an exported load is dated by the day the overseas
+reprocessor received it, which the sheet declares as its `balanceDate`, and
+any other by the row's own day. Tonnage is in whole tonnes; the price is the
+calibration's `activity.prnPricePerTonne` for the registration's material,
+and a material it prices nothing for is refused rather than planned free.
 
 ## Weekends and working hours
 
