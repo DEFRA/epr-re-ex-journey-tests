@@ -23,7 +23,7 @@ import {
 import { nationLetter } from './join.js'
 
 /** @import {PlannedRegistration} from '../population/population.js' */
-/** @import {RegistrationEvent, UploadEvent, ReportEvent} from '../calendar/events.js' */
+/** @import {RegistrationEvent, UploadEvent, ReportEvent, PrnEvent} from '../calendar/events.js' */
 
 const population = planPopulation({ seed: 'execute', scale: 0.1 })
 const rows = planSummaryLogRows({ population })
@@ -93,6 +93,7 @@ function recordingSeeders() {
   const calls = []
   let organisations = 0
   let signIns = 0
+  let notes = 0
   const record =
     (name, answer) =>
     (...args) => {
@@ -149,7 +150,27 @@ function recordingSeeders() {
     submitSummaryLog: record('submitSummaryLog', () => ({
       status: 'submitted'
     })),
-    seedReportSubmission: record('seedReportSubmission', () => undefined)
+    seedReportSubmission: record('seedReportSubmission', () => undefined),
+    /** what the next balance read reports available, as the service writes it */
+    available: '100.5',
+    waitForWasteBalance: record(
+      'waitForWasteBalance',
+      (refNo, accreditationId) => ({
+        [accreditationId]: { availableAmount: seeders.available }
+      })
+    ),
+    createPrn: record('createPrn', (refNo, registrationId, accreditationId) => {
+      notes += 1
+      return {
+        prnId: `note-${notes}`,
+        prnPath: `/organisations/${refNo}/registrations/${registrationId}/accreditations/${accreditationId}/packaging-recycling-notes/note-${notes}`
+      }
+    }),
+    updatePrnStatus: record('updatePrnStatus', (prnPath, auth, status) => ({
+      prnNumber: status === 'awaiting_acceptance' ? 'SR00001' : undefined
+    })),
+    externalAPIAcceptPrn: record('externalAPIAcceptPrn', () => undefined),
+    externalAPICancelPrn: record('externalAPICancelPrn', () => undefined)
   }
   return seeders
 }
@@ -202,6 +223,20 @@ const reported = (registration, overrides = {}) => ({
   period: 1,
   submissionNumber: 1,
   ...overrides
+})
+
+/**
+ * @param {PlannedRegistration} registration
+ * @param {PrnEvent['type']} type
+ * @param {string} [prnId]
+ * @returns {PrnEvent}
+ */
+const noted = (registration, type, prnId = 'P1') => ({
+  type,
+  at: '2026-02-10T10:00:00Z',
+  organisationId: registration.organisationId,
+  registrationId: registration.id,
+  prnId
 })
 
 describe('a run', () => {
@@ -523,17 +558,135 @@ describe('a run', () => {
     })
   })
 
+  describe('a note', () => {
+    const accreditationOf = (registration) =>
+      `org-1-acc-${
+        operatorOf(registration)
+          .registrations.slice(
+            0,
+            operatorOf(registration).registrations.indexOf(registration)
+          )
+          .filter((r) => r.accreditation).length
+      }`
+
+    it('is drafted for a share of what the accreditation has available, in whole tonnes, as the operator', async () => {
+      await executeEvent(run, approved(exporter))
+      await executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED))
+
+      const [balance] = seeders.of('waitForWasteBalance')
+      assert.deepEqual(balance.args, [
+        'org-1',
+        accreditationOf(exporter),
+        { Authorization: 'Bearer linked' }
+      ])
+      const [draft] = seeders.of('createPrn')
+      assert.deepEqual(draft.args, [
+        'org-1',
+        'org-1-reg-' + operatorOf(exporter).registrations.indexOf(exporter),
+        accreditationOf(exporter),
+        { Authorization: 'Bearer linked' },
+        33
+      ])
+    })
+
+    it('stops when under a tonne is available', async () => {
+      await executeEvent(run, approved(exporter))
+      seeders.available = '2.9'
+      await assert.rejects(
+        executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED)),
+        /2.9 t available/
+      )
+      assert.equal(seeders.of('createPrn').length, 0)
+    })
+
+    it('cannot be drafted by a registered-only registration', async () => {
+      await executeEvent(run, approved(registeredOnly))
+      await assert.rejects(
+        executeEvent(run, noted(registeredOnly, EVENT.PRN_DRAFTED)),
+        /not accredited/
+      )
+    })
+
+    for (const [type, status] of /** @type {[PrnEvent['type'], string][]} */ ([
+      [EVENT.PRN_DISCARDED, 'discarded'],
+      [EVENT.PRN_RAISED, 'awaiting_authorisation'],
+      [EVENT.PRN_DELETED, 'deleted'],
+      [EVENT.PRN_ISSUED, 'awaiting_acceptance'],
+      [EVENT.PRN_CANCELLED, 'cancelled']
+    ])) {
+      it(`moves to ${status} when ${type}`, async () => {
+        await executeEvent(run, approved(exporter))
+        await executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED))
+        await executeEvent(run, noted(exporter, type))
+
+        const [move] = seeders.of('updatePrnStatus')
+        assert.deepEqual(move.args, [
+          seeders.of('createPrn').length &&
+            `/organisations/org-1/registrations/org-1-reg-${operatorOf(exporter).registrations.indexOf(exporter)}/accreditations/${accreditationOf(exporter)}/packaging-recycling-notes/note-1`,
+          { Authorization: 'Bearer linked' },
+          status
+        ])
+      })
+    }
+
+    it('keeps each note apart by the plan id', async () => {
+      await executeEvent(run, approved(exporter))
+      await executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED, 'P1'))
+      await executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED, 'P2'))
+      await executeEvent(run, noted(exporter, EVENT.PRN_DISCARDED, 'P1'))
+
+      const [move] = seeders.of('updatePrnStatus')
+      assert.match(move.args[0], /note-1$/)
+    })
+
+    it('is accepted by the producer through the external API under the number the service issued it', async () => {
+      await executeEvent(run, approved(exporter))
+      await executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED))
+      await executeEvent(run, noted(exporter, EVENT.PRN_RAISED))
+      await executeEvent(run, noted(exporter, EVENT.PRN_ISSUED))
+      await executeEvent(run, noted(exporter, EVENT.PRN_ACCEPTED))
+
+      const [accepted] = seeders.of('externalAPIAcceptPrn')
+      assert.equal(accepted.args[0].prnNumber, 'SR00001')
+    })
+
+    it('has its cancellation requested by the producer through the external API', async () => {
+      await executeEvent(run, approved(exporter))
+      await executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED))
+      await executeEvent(run, noted(exporter, EVENT.PRN_RAISED))
+      await executeEvent(run, noted(exporter, EVENT.PRN_ISSUED))
+      await executeEvent(run, noted(exporter, EVENT.PRN_CANCELLATION_REQUESTED))
+
+      const [requested] = seeders.of('externalAPICancelPrn')
+      assert.equal(requested.args[0].prnNumber, 'SR00001')
+    })
+
+    it('cannot be accepted before it is issued', async () => {
+      await executeEvent(run, approved(exporter))
+      await executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED))
+      await assert.rejects(
+        executeEvent(run, noted(exporter, EVENT.PRN_ACCEPTED)),
+        /P1 has not been issued/
+      )
+    })
+
+    it('cannot be moved before it is drafted', async () => {
+      await executeEvent(run, approved(exporter))
+      await assert.rejects(
+        executeEvent(run, noted(exporter, EVENT.PRN_RAISED)),
+        /P1 has not been drafted/
+      )
+    })
+  })
+
   describe('an event with no executor', () => {
     it('is refused by name', async () => {
       await assert.rejects(
         executeEvent(run, {
-          type: EVENT.PRN_DRAFTED,
-          at: '2026-02-03T10:00:00Z',
-          organisationId: exporter.organisationId,
-          registrationId: exporter.id,
-          prnId: 'P1'
+          .../** @type {PrnEvent} */ (noted(exporter, EVENT.PRN_DRAFTED)),
+          type: /** @type {any} */ ('prn.framed')
         }),
-        /No executor carries out a prn.drafted event/
+        /No executor carries out a prn.framed event/
       )
     })
   })

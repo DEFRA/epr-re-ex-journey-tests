@@ -26,12 +26,18 @@ import { liveSeeders } from './seeders.js'
 
 /** @import {PlannedOperator, PlannedPopulation, PlannedRegistration} from '../population/population.js' */
 /** @import {PlannedLogRow, PlannedRegistrationRows, PlannedRows} from '../rows/rows.js' */
-/** @import {CalendarEvent, RegistrationEvent, ReportEvent, UploadEvent} from '../calendar/events.js' */
+/** @import {CalendarEvent, PrnEvent, RegistrationEvent, ReportEvent, UploadEvent} from '../calendar/events.js' */
 /** @import {Seeders} from './seeders.js' */
 
 /** A Defra ID token lasts an hour, and a clock jump can spend most of that at once. */
 const TOKEN_LIFETIME_MS = 60 * 60 * 1000
 const TOKEN_MARGIN_MS = 5 * 60 * 1000
+
+/**
+ * The plan does not carry a note's tonnage, so a draft takes this share of
+ * what the accreditation has available when it is drafted.
+ */
+const NOTE_SHARE_OF_AVAILABLE = 1 / 3
 
 /**
  * @typedef {Object} PlannedRegistrationRecord - a planned registration with the operator and rows it belongs with
@@ -51,6 +57,13 @@ const TOKEN_MARGIN_MS = 5 * 60 * 1000
  * @property {string} regNumber
  * @property {string | undefined} accNumber
  * @property {UploadEvent[]} uploads - every upload executed so far, in order, as `uploadRows` reads them
+ * @property {Map<string, LiveNote>} notes - by the plan's `prnId`
+ */
+
+/**
+ * @typedef {Object} LiveNote - a planned note the service now holds
+ * @property {string} prnPath - the note's path under the accreditation
+ * @property {string | null} prnNumber - the number the service gave it on issue
  */
 
 /**
@@ -237,7 +250,8 @@ async function approveRegistration(run, event) {
     registrationId: granted.registrationId,
     accreditationId: granted.accreditationId,
     ...numbers,
-    uploads: []
+    uploads: [],
+    notes: new Map()
   })
 
   // An exported row names an overseas site, and the service excludes the row
@@ -467,6 +481,94 @@ async function submitReport(run, event) {
   )
 }
 
+/**
+ * @param {Run} run
+ * @param {PrnEvent} event
+ */
+async function draftNote(run, event) {
+  const { operator, registration } = liveOf(run, event)
+  const { accreditationId } = registration
+  if (!accreditationId) {
+    throw new Error(
+      `${event.registrationId} is not accredited, so cannot draft a note`
+    )
+  }
+  const authHeader = await signedIn(run, operator)
+  const balance = await run.seeders.waitForWasteBalance(
+    operator.refNo,
+    accreditationId,
+    authHeader
+  )
+  const available = Number(balance[accreditationId].availableAmount)
+  const tonnage = Math.floor(available * NOTE_SHARE_OF_AVAILABLE)
+  if (tonnage < 1) {
+    throw new Error(
+      `${event.registrationId} has ${available} t available, too little to draft ${event.prnId}`
+    )
+  }
+  const { prnPath } = await run.seeders.createPrn(
+    operator.refNo,
+    registration.registrationId,
+    accreditationId,
+    authHeader,
+    tonnage
+  )
+  registration.notes.set(event.prnId, { prnPath, prnNumber: null })
+}
+
+/**
+ * @param {Run} run
+ * @param {PrnEvent} event
+ * @returns {{operator: LiveOperator, note: LiveNote}}
+ */
+function liveNote(run, event) {
+  const { operator, registration } = liveOf(run, event)
+  const note = registration.notes.get(event.prnId)
+  if (!note) {
+    throw new Error(`${event.prnId} has not been drafted`)
+  }
+  return { operator, note }
+}
+
+/**
+ * Moves a note to the status the operator or signatory takes it to, keeping
+ * the number the service gives it on issue.
+ *
+ * @param {string} status
+ * @returns {(run: Run, event: PrnEvent) => Promise<void>}
+ */
+const moveNote = (status) => async (run, event) => {
+  const { operator, note } = liveNote(run, event)
+  const authHeader = await signedIn(run, operator)
+  const moved = await run.seeders.updatePrnStatus(
+    note.prnPath,
+    authHeader,
+    status
+  )
+  note.prnNumber = moved.prnNumber ?? note.prnNumber
+}
+
+/**
+ * What the producer does through the external API, under the number the
+ * service gave the note on issue.
+ *
+ * @param {(prnDetails: {prnNumber: string}) => Promise<void>} act
+ * @returns {(run: Run, event: PrnEvent) => Promise<void>}
+ */
+const producerActs = (act) => async (run, event) => {
+  const { note } = liveNote(run, event)
+  if (!note.prnNumber) {
+    throw new Error(`${event.prnId} has not been issued`)
+  }
+  await act({ prnNumber: note.prnNumber })
+}
+
+const discardNote = moveNote('discarded')
+const raiseNote = moveNote('awaiting_authorisation')
+const deleteNote = moveNote('deleted')
+const issueNote = moveNote('awaiting_acceptance')
+const cancelNote = moveNote('cancelled')
+
 const suspendAccreditation = changeStatus({ accreditation: 'suspended' })
 // The service cancels an approved accreditation only by cascade from its
 // registration.
@@ -491,7 +593,25 @@ export async function executeEvent(run, event) {
       return uploadSummaryLog(run, event)
     case EVENT.REPORT_SUBMITTED:
       return submitReport(run, event)
+    case EVENT.PRN_DRAFTED:
+      return draftNote(run, event)
+    case EVENT.PRN_DISCARDED:
+      return discardNote(run, event)
+    case EVENT.PRN_RAISED:
+      return raiseNote(run, event)
+    case EVENT.PRN_DELETED:
+      return deleteNote(run, event)
+    case EVENT.PRN_ISSUED:
+      return issueNote(run, event)
+    case EVENT.PRN_ACCEPTED:
+      return producerActs(run.seeders.externalAPIAcceptPrn)(run, event)
+    case EVENT.PRN_CANCELLATION_REQUESTED:
+      return producerActs(run.seeders.externalAPICancelPrn)(run, event)
+    case EVENT.PRN_CANCELLED:
+      return cancelNote(run, event)
     default:
-      throw new Error(`No executor carries out a ${event.type} event`)
+      throw new Error(
+        `No executor carries out a ${/** @type {CalendarEvent} */ (event).type} event`
+      )
   }
 }

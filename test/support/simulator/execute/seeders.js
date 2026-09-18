@@ -14,12 +14,21 @@ import {
   createLinkedOrganisation,
   seedOverseasSites
 } from '../../seeding/organisation.js'
+import {
+  createPrn,
+  externalAPIAcceptPrn,
+  externalAPICancelPrn,
+  updatePrnStatus
+} from '../../seeding/prns.js'
 import { seedReportSubmission } from '../../seeding/reports.js'
 import {
   submitSummaryLog,
   uploadSummaryLog
 } from '../../seeding/summary-logs.js'
-import { waitForSummaryLogStatus } from '../../seeding/waiters.js'
+import {
+  waitForSummaryLogStatus,
+  waitForWasteBalance
+} from '../../seeding/waiters.js'
 import { generateSpreadsheetData } from '../../spreadsheet/summarylogs-spreadsheet-data-generator.js'
 
 export const liveSeeders = {
@@ -34,7 +43,12 @@ export const liveSeeders = {
   uploadSummaryLog,
   waitForSummaryLogStatus,
   submitSummaryLog,
-  seedReportSubmission
+  seedReportSubmission,
+  waitForWasteBalance,
+  createPrn,
+  updatePrnStatus,
+  externalAPIAcceptPrn,
+  externalAPICancelPrn
 }
 
 /** @typedef {typeof liveSeeders} Seeders */
