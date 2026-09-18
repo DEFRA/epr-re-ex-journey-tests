@@ -35,7 +35,7 @@ calendar that emits something new stops rather than skipping it.
 | `accreditation.cancelled`    | Cancels the registration, which the service cascades to the accreditation.                                                                                                                                                                                                                 |
 | `summary-log.uploaded`       | Renders the workbook `uploadRows` gives for it, uploads it through cdp-uploader, waits for the validation the plan expects, and submits it if the plan says it landed.                                                                                                                     |
 | `report.submitted`           | Creates, fills and submits the period's report.                                                                                                                                                                                                                                            |
-| `prn.drafted`                | Drafts a note for the tonnage the plan gives it.                                                                                                                                                                                                                                           |
+| `prn.drafted`                | Waits for the accreditation's waste balance to hold the tonnage the plan gives the note, then drafts it for that.                                                                                                                                                                          |
 | `prn.discarded`              | Moves the note to `discarded`.                                                                                                                                                                                                                                                             |
 | `prn.raised`                 | Moves it to `awaiting_authorisation`, which is when the service draws its tonnage from the balance.                                                                                                                                                                                        |
 | `prn.deleted`                | Moves it to `deleted`, which credits the tonnage back.                                                                                                                                                                                                                                     |
@@ -70,11 +70,13 @@ not exported.
 ## What a note is for
 
 The plan says when a note is drafted, what becomes of it and what it carries,
-drawn so the balance the uploads have built can fund it. Creating a draft
+drawn so the balance the uploads have built can fund it. The service builds
+that balance after each submission and refuses a draft over it, so a draft
+waits for the balance to hold the tonnage; a balance that never gets there
+means the plan and the service disagree, and the run stops. Creating a draft
 reserves nothing; the balance is drawn when the note is raised, and credited
-back when it is deleted or cancelled. So a raise the service refuses means the
-plan and the service disagree about the balance, and the run stops there. The
-producer it is issued to is the seeders' fixed test organisation.
+back when it is deleted or cancelled. The producer it is issued to is the
+seeders' fixed test organisation.
 
 ## Numbers
 

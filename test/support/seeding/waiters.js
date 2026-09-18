@@ -84,6 +84,49 @@ export async function waitForWasteBalance(
   throw new Error(`Timed out waiting for a waste balance at ${path}`)
 }
 
+/**
+ * Polls the waste balance until a general note of `tonnage` could draw on it:
+ * the available amount outside any December portion, which only a December
+ * note can draw on. The service refuses a draft over what it holds, and the
+ * balance lags a submission, so a note planned against a submitted log has
+ * to wait for the balance to catch up. What it last reported is in the error
+ * where it never does.
+ *
+ * @param {string} orgId
+ * @param {string} accreditationId
+ * @param {Record<string, string | undefined>} defraAuthHeader
+ * @param {number} tonnage
+ * @param {number} [timeoutMs]
+ */
+export async function waitForAvailableBalance(
+  orgId,
+  accreditationId,
+  defraAuthHeader,
+  tonnage,
+  timeoutMs = 30000
+) {
+  const baseAPI = new BaseAPI()
+  const path = `/v1/organisations/${orgId}/waste-balances?accreditationIds=${accreditationId}`
+  const startTime = Date.now()
+  let available = NaN
+
+  while (Date.now() - startTime < timeoutMs) {
+    const response = await baseAPI.get(path, defraAuthHeader)
+    const body = await assertSuccessResponse(response, `GET ${path}`)
+    const { availableAmount, nonDecemberAvailableAmount } =
+      body[accreditationId] ?? {}
+    available = Number(nonDecemberAvailableAmount ?? availableAmount)
+    if (available >= tonnage) {
+      return
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+  }
+
+  throw new Error(
+    `Timed out waiting for ${tonnage} t available at ${path} (last seen: ${available})`
+  )
+}
+
 // Polls the reports calendar until some reporting period carries the given
 // periodStatus. The resubmission flag is written by the backend's summary-log
 // submit worker, so it can land shortly after the log reaches 'submitted'.

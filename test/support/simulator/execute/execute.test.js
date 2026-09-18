@@ -151,6 +151,7 @@ function recordingSeeders() {
       status: 'submitted'
     })),
     seedReportSubmission: record('seedReportSubmission', () => undefined),
+    waitForAvailableBalance: record('waitForAvailableBalance', () => undefined),
     createPrn: record('createPrn', (refNo, registrationId, accreditationId) => {
       notes += 1
       return {
@@ -609,7 +610,7 @@ describe('a run', () => {
     const notePath = (registration) =>
       `/organisations/org-1/registrations/${grantedTo(registration).registrationId}/accreditations/${grantedTo(registration).accreditationId}/packaging-recycling-notes/note-1`
 
-    it('is drafted for the tonnage the plan gives it, as the operator', async () => {
+    it('is drafted for the tonnage the plan gives it, as the operator, once the balance holds that much', async () => {
       await executeEvent(run, approved(exporter))
       await executeEvent(
         run,
@@ -617,14 +618,30 @@ describe('a run', () => {
       )
 
       const { registrationId, accreditationId } = grantedTo(exporter)
-      const [draft] = seeders.of('createPrn')
-      assert.deepEqual(draft.args, [
-        'org-1',
-        registrationId,
-        accreditationId,
-        { Authorization: 'Bearer linked' },
-        41
-      ])
+      const [funded, draft] = seeders.calls.filter((call) =>
+        ['waitForAvailableBalance', 'createPrn'].includes(call.name)
+      )
+      assert.deepEqual(
+        [funded.name, ...funded.args],
+        [
+          'waitForAvailableBalance',
+          'org-1',
+          accreditationId,
+          { Authorization: 'Bearer linked' },
+          41
+        ]
+      )
+      assert.deepEqual(
+        [draft.name, ...draft.args],
+        [
+          'createPrn',
+          'org-1',
+          registrationId,
+          accreditationId,
+          { Authorization: 'Bearer linked' },
+          41
+        ]
+      )
     })
 
     it('cannot be drafted by a registered-only registration', async () => {

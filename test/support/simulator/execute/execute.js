@@ -448,7 +448,7 @@ export function reportFields(registration, rows, report, notes) {
   )
   const prn = accredited
     ? {
-        // Pounds and pence round as tonnage does: to two decimals, in decimal.
+        // Two decimals in decimal arithmetic: pence, as the helper holds tonnage.
         prnRevenue: heldTonnage(
           issued.reduce(
             (total, note) => total + note.tonnage * note.pricePerTonne,
@@ -511,6 +511,15 @@ async function draftNote(run, event) {
     )
   }
   const authHeader = await signedIn(run, operator)
+  // The plan drafted the note against the balance its uploads had built, and
+  // the service builds that balance after each submission. A balance that
+  // never reaches the tonnage is the plan and the service disagreeing.
+  await run.seeders.waitForAvailableBalance(
+    operator.refNo,
+    accreditationId,
+    authHeader,
+    event.tonnage
+  )
   const { prnPath } = await run.seeders.createPrn(
     operator.refNo,
     registration.registrationId,
