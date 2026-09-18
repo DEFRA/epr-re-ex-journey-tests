@@ -433,8 +433,8 @@ async function uploadSummaryLog(run, event) {
 /**
  * What the operator types into a report beyond what the service aggregates
  * from the summary log: the tonnage a reprocessor recycled, which is what its
- * uploads credited over the period, and the figures the PRN executor is yet
- * to fill.
+ * uploads credited over the period. The PRN figures are zero: nothing plans
+ * a price for a note.
  *
  * @param {Pick<PlannedRegistration, 'processingType' | 'accreditation'>} registration
  * @param {PlannedLogRow[]} rows
@@ -499,9 +499,9 @@ async function draftNote(run, event) {
     accreditationId,
     authHeader
   )
-  const available = Number(balance[accreditationId].availableAmount)
+  const available = Number(balance[accreditationId]?.availableAmount)
   const tonnage = Math.floor(available * NOTE_SHARE_OF_AVAILABLE)
-  if (tonnage < 1) {
+  if (!(tonnage >= 1)) {
     throw new Error(
       `${event.registrationId} has ${available} t available, too little to draft ${event.prnId}`
     )

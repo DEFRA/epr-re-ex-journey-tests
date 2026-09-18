@@ -132,10 +132,11 @@ function someRow(planned, where) {
 
 /**
  * Two months of one registration: approved on the first day of the year, its
- * January closed by an upload and a report, a note taken to each of its four
- * exits and one left awaiting the producer, a day of every kind of rejection
- * before a second upload lands, restating January so its report is filed
- * again, then February's report, then the status change.
+ * January closed by an upload and a report, a note taken off each of the
+ * three exits, one accepted while another is in flight, and one left awaiting
+ * the producer, a day of every kind of rejection before a second upload lands,
+ * restating January so its report is filed again, then February's report,
+ * then the status change.
  *
  * @param {PlannedRegistration} registration
  * @param {PlannedRegistrationRows} planned
@@ -236,9 +237,9 @@ function eventsFor(registration, planned, ending) {
       [EVENT.PRN_ACCEPTED, '2026-02-16T11:00:00Z']
     ]),
     ...note('PRN004', [
-      [EVENT.PRN_DRAFTED, '2026-02-17T11:00:00Z'],
-      [EVENT.PRN_RAISED, '2026-02-17T11:30:00Z'],
-      [EVENT.PRN_ISSUED, '2026-02-18T11:00:00Z'],
+      [EVENT.PRN_DRAFTED, '2026-02-13T11:00:00Z'],
+      [EVENT.PRN_RAISED, '2026-02-13T11:30:00Z'],
+      [EVENT.PRN_ISSUED, '2026-02-14T11:00:00Z'],
       [EVENT.PRN_CANCELLATION_REQUESTED, '2026-02-20T11:00:00Z'],
       [EVENT.PRN_CANCELLED, '2026-02-23T11:00:00Z']
     ]),

@@ -35,7 +35,7 @@ calendar that emits something new stops rather than skipping it.
 | `accreditation.cancelled`    | Cancels the registration, which the service cascades to the accreditation.                                                                                                                                                                                                                 |
 | `summary-log.uploaded`       | Renders the workbook `uploadRows` gives for it, uploads it through cdp-uploader, waits for the validation the plan expects, and submits it if the plan says it landed.                                                                                                                     |
 | `report.submitted`           | Creates, fills and submits the period's report.                                                                                                                                                                                                                                            |
-| `prn.drafted`                | Reads the accreditation's waste balance and drafts a note for a third of what is available, in whole tonnes. Stops the run if that is under a tonne.                                                                                                                                       |
+| `prn.drafted`                | Reads the accreditation's waste balance and drafts a note for a third of what is available, in whole tonnes. Stops the run if that is under a tonne, rather than skipping the note.                                                                                                        |
 | `prn.discarded`              | Moves the note to `discarded`.                                                                                                                                                                                                                                                             |
 | `prn.raised`                 | Moves it to `awaiting_authorisation`, which is when the service draws its tonnage from the balance.                                                                                                                                                                                        |
 | `prn.deleted`                | Moves it to `deleted`, which credits the tonnage back.                                                                                                                                                                                                                                     |
@@ -109,11 +109,12 @@ the user in again if the token it holds is within five minutes of ageing out.
 
 `hand-run.js` replays a quarter of three registrations drawn from a small
 planned population. One operator's accredited exporter and reprocessor each
-go through approval, a submitted upload, a note to each of its four exits
-(discarded, deleted, accepted, cancelled), a report, one upload of every
-rejection kind, an abandoned one, a second submitted upload restating the
-closed month, that month's resubmission, a note left awaiting the producer,
-and the next report, then one is suspended and the other cancelled. Another
+go through approval, a submitted upload, a note taken off each of the three
+exits (discarded, deleted, cancelled) and one accepted while another is in
+flight, a report, one upload of every rejection kind, an abandoned one, a
+second submitted upload restating the closed month, that month's
+resubmission, a note left awaiting the producer, and the next report, then one
+is suspended and the other cancelled. Another
 operator's registered-only reprocessor is approved, uploads once the quarter
 closes and files its quarterly report. With the stack up on the clock:
 

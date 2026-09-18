@@ -151,7 +151,7 @@ function recordingSeeders() {
       status: 'submitted'
     })),
     seedReportSubmission: record('seedReportSubmission', () => undefined),
-    /** what the next balance read reports available, as the service writes it */
+    /** @type {string | undefined} what the next balance read reports available, as the service writes it */
     available: '100.5',
     waitForWasteBalance: record(
       'waitForWasteBalance',
@@ -600,6 +600,16 @@ describe('a run', () => {
       assert.equal(seeders.of('createPrn').length, 0)
     })
 
+    it('stops when the balance read holds no amount', async () => {
+      await executeEvent(run, approved(exporter))
+      seeders.available = undefined
+      await assert.rejects(
+        executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED)),
+        /NaN t available/
+      )
+      assert.equal(seeders.of('createPrn').length, 0)
+    })
+
     it('cannot be drafted by a registered-only registration', async () => {
       await executeEvent(run, approved(registeredOnly))
       await assert.rejects(
@@ -749,7 +759,7 @@ describe('what the operator types into a report', () => {
     period: 1
   })
 
-  it('is the tonnage a reprocessor credited over the period, and the PRN figures still to come', () => {
+  it('is the tonnage a reprocessor credited over the period, and the PRN figures at zero', () => {
     const planned = rowsOf(reprocessor)
     const credited = planned.rows
       .filter(
