@@ -1,9 +1,9 @@
 # Executing events
 
-Carries out the operator, summary log and report events the calendar plans,
-against the service through the seeders the specs already use, under the
-simulated clock. The runner moves the clock and hands events over; this module
-does each one.
+Carries out the operator, summary log, report and PRN events the calendar
+plans, against the service through the seeders the specs already use, under
+the simulated clock. The runner moves the clock and hands events over; this
+module does each one.
 
 ```js
 import { createRun, executeEvent } from './execute.js'
@@ -18,22 +18,31 @@ for (const event of operator.events) {
 
 `createRun` takes the planned population and rows and holds what the service
 now knows: which planned operators and registrations exist, under what ids
-and numbers, who is signed in, and every upload a registration has made so
-far. Hand one operator's events over in calendar order. Events of different
-operators are independent of each other.
+and numbers, who is signed in, every upload a registration has made so far,
+and every note it has drafted, by the plan's `prnId`. Hand one operator's
+events over in calendar order. Events of different operators are independent
+of each other.
 
 `executeEvent` refuses an event type it has no executor for, by name, so a
-calendar that reaches a PRN event stops rather than skipping it.
+calendar that emits something new stops rather than skipping it.
 
 ## What each event does
 
-| Event                     | Against the service                                                                                                                                                                                                                                                                        |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `registration.approved`   | The first time for an operator: applies for the organisation with every registration and accreditation the population gave it, and links a Defra ID user. Every time: approves that registration and its accreditation, granting their numbers, and registers an exporter's overseas site. |
-| `accreditation.suspended` | Suspends the accreditation.                                                                                                                                                                                                                                                                |
-| `accreditation.cancelled` | Cancels the registration, which the service cascades to the accreditation.                                                                                                                                                                                                                 |
-| `summary-log.uploaded`    | Renders the workbook `uploadRows` gives for it, uploads it through cdp-uploader, waits for the validation the plan expects, and submits it if the plan says it landed.                                                                                                                     |
-| `report.submitted`        | Creates, fills and submits the period's report.                                                                                                                                                                                                                                            |
+| Event                        | Against the service                                                                                                                                                                                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `registration.approved`      | The first time for an operator: applies for the organisation with every registration and accreditation the population gave it, and links a Defra ID user. Every time: approves that registration and its accreditation, granting their numbers, and registers an exporter's overseas site. |
+| `accreditation.suspended`    | Suspends the accreditation.                                                                                                                                                                                                                                                                |
+| `accreditation.cancelled`    | Cancels the registration, which the service cascades to the accreditation.                                                                                                                                                                                                                 |
+| `summary-log.uploaded`       | Renders the workbook `uploadRows` gives for it, uploads it through cdp-uploader, waits for the validation the plan expects, and submits it if the plan says it landed.                                                                                                                     |
+| `report.submitted`           | Creates, fills and submits the period's report.                                                                                                                                                                                                                                            |
+| `prn.drafted`                | Reads the accreditation's waste balance and drafts a note for a third of what a general note can draw on, in whole tonnes. Stops the run if that is under a tonne, rather than skipping the note.                                                                                          |
+| `prn.discarded`              | Moves the note to `discarded`.                                                                                                                                                                                                                                                             |
+| `prn.raised`                 | Moves it to `awaiting_authorisation`, which is when the service draws its tonnage from the balance.                                                                                                                                                                                        |
+| `prn.deleted`                | Moves it to `deleted`, which credits the tonnage back.                                                                                                                                                                                                                                     |
+| `prn.issued`                 | Moves it to `awaiting_acceptance`. The service numbers it here, and the producer's events use that number.                                                                                                                                                                                 |
+| `prn.accepted`               | Accepts it as the producer, through the external API under the Cognito stub.                                                                                                                                                                                                               |
+| `prn.cancellation-requested` | Rejects it as the producer, through the external API, leaving it `awaiting_cancellation`.                                                                                                                                                                                                  |
+| `prn.cancelled`              | Moves it to `cancelled`.                                                                                                                                                                                                                                                                   |
 
 A summary log that comes back other than planned stops the run: a fatal
 rejection has to come back `invalid` and an error on a row `validated`, each
@@ -53,8 +62,20 @@ is typed here:
 | Exporter, registered    | tonnage received but not exported                               |
 
 Tonnage recycled is what the registration's planned rows credited over the
-period. The rest is zero: the PRN figures are the PRN executor's to fill, and
-nothing planned is not recycled or not exported.
+period. The rest is zero: nothing plans a price for a note, so PRN revenue and
+free tonnage are not simulated, and nothing planned is not recycled or not
+exported.
+
+## What a note is for
+
+The plan says when a note is drafted and what becomes of it, not how much it
+is for. A draft takes a third of what the accreditation has available to a
+general note at that moment, in whole tonnes: the whole available balance
+less its December portion, which only a December note can draw on. Creating a
+draft reserves nothing; the balance is
+drawn when the note is raised, and credited back when it is deleted or
+cancelled. The producer it is issued to is the seeders' fixed test
+organisation.
 
 ## Numbers
 
@@ -90,12 +111,14 @@ the user in again if the token it holds is within five minutes of ageing out.
 
 `hand-run.js` replays a quarter of three registrations drawn from a small
 planned population. One operator's accredited exporter and reprocessor each
-go through approval, a submitted upload, a report, one upload of every
-rejection kind, an abandoned one, a second submitted upload restating the
-closed month, that month's resubmission and the next report, then one is
-suspended and the other cancelled. Another operator's registered-only
-reprocessor is approved, uploads once the quarter closes and files its
-quarterly report. With the stack up on the clock:
+go through approval, a submitted upload, a note taken off each of the three
+exits (discarded, deleted, cancelled) and one accepted while another is in
+flight, a report, one upload of every rejection kind, an abandoned one, a
+second submitted upload restating the closed month, that month's
+resubmission, a note left awaiting the producer, and the next report, then one
+is suspended and the other cancelled. Another
+operator's registered-only reprocessor is approved, uploads once the quarter
+closes and files its quarterly report. With the stack up on the clock:
 
 ```bash
 npm run simulate:exercise

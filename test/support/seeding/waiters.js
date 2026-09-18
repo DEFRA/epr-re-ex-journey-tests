@@ -51,9 +51,17 @@ export async function waitForSummaryLogStatus(
   )
 }
 
-// Polls the waste-balances endpoint until it returns a non-empty body - the
-// balance is computed asynchronously by the same worker that validates/
-// submits the summary log, so it can lag slightly behind 'submitted'.
+/**
+ * Polls the waste-balances endpoint until it returns a non-empty body - the
+ * balance is computed asynchronously by the same worker that validates/
+ * submits the summary log, so it can lag slightly behind 'submitted'.
+ *
+ * @param {string} orgId
+ * @param {string} accreditationId
+ * @param {Record<string, string | undefined>} defraAuthHeader
+ * @param {number} [timeoutMs]
+ * @returns {Promise<Record<string, any>>} by accreditation id, as the route sends it
+ */
 export async function waitForWasteBalance(
   orgId,
   accreditationId,
