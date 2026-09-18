@@ -64,6 +64,9 @@ import { eventKey } from './runner.js'
  * @property {string} prnId - the plan's id
  * @property {string} prnPath
  * @property {string | null} prnNumber
+ * @property {number} tonnage
+ * @property {number} pricePerTonne
+ * @property {string | null} issued
  */
 
 const SETTINGS = 'settings.json'
@@ -207,11 +210,8 @@ export function restore(run, entries, events) {
     if (entry.operator) restoreOperator(run, entry.operator)
     if (entry.registration) restoreRegistration(run, entry.registration)
     if (entry.note) {
-      const { registration, prnId, prnPath, prnNumber } = entry.note
-      liveRegistrationOf(run, registration).notes.set(prnId, {
-        prnPath,
-        prnNumber
-      })
+      const { registration, prnId, ...note } = entry.note
+      liveRegistrationOf(run, registration).notes.set(prnId, note)
     }
   }
   for (const event of events) {

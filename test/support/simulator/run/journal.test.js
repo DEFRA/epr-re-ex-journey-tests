@@ -73,8 +73,7 @@ function fakeSeeders() {
       waitForSummaryLogStatus: answer({ status: 'validated', validation: {} }),
       submitSummaryLog: answer({ status: 'submitted' }),
       seedReportSubmission: answer(undefined),
-      waitForWasteBalance: (_refNo, accreditationId) =>
-        Promise.resolve({ [accreditationId]: { availableAmount: 300 } }),
+      waitForAvailableBalance: answer(undefined),
       createPrn: () => {
         notes += 1
         return Promise.resolve({ prnPath: `/notes/note-${notes}` })
