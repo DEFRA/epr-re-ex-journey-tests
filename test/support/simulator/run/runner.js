@@ -12,6 +12,7 @@
 
 import { existsSync } from 'node:fs'
 
+import logger from '../../logger.js'
 import { clockFile, setSimulatedNow } from '../clock/simulated-clock.js'
 import { executeEvent } from '../execute/execute.js'
 
@@ -59,15 +60,32 @@ export function eventsInOrder(calendar) {
  * @property {(instant: string) => Promise<void>} moveTo - moves the stack to an instant and resolves once it has noticed
  */
 
+/** How far this process may read from an instant it has just moved the stack to. */
+const CLOCK_TOLERANCE_MS = 5000
+
 /** @type {Clock} */
 export const stackClock = {
   async moveTo(instant) {
     // A stack on the clock only ever moves forwards. This process is on the
     // same preload, so `Date.now()` is where the stack stands: a resumed run
     // asking for a day the stack has already flowed past leaves it be.
-    if (existsSync(clockFile) && Date.now() >= Date.parse(instant)) return
+    const target = Date.parse(instant)
+    if (existsSync(clockFile) && Date.now() >= target) {
+      const standing = new Date().toISOString()
+      if (standing.slice(0, 10) !== instant.slice(0, 10)) {
+        logger.warn(
+          `The stack has passed ${instant.slice(0, 10)} and stands at ${standing}, so that day's records are stamped there`
+        )
+      }
+      return
+    }
     setSimulatedNow(instant)
     await clockSettled()
+    if (Math.abs(Date.now() - target) > CLOCK_TOLERANCE_MS) {
+      throw new Error(
+        `This process is not on the simulated clock: it reads ${new Date().toISOString()} after moving the stack to ${instant}. Run it through npm run simulate.`
+      )
+    }
   }
 }
 
@@ -183,10 +201,18 @@ export async function replay({
           if (stop.requested()) return
           try {
             await execute(run, event)
-            await onExecuted(event)
           } catch (error) {
             stop.request(`${eventKey(event)} failed`)
             throw error
+          }
+          try {
+            await onExecuted(event)
+          } catch (error) {
+            stop.request(`${eventKey(event)} executed but not journalled`)
+            throw new Error(
+              `${eventKey(event)} was executed but not journalled, so resuming does it again; check the service for what it made`,
+              { cause: error }
+            )
           }
         }
       },

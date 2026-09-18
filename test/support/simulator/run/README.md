@@ -47,10 +47,12 @@ brought up again first.
 
 Every executed event is appended to `journal.jsonl` in the run directory, with
 the ids the service gave: the organisation and its Defra ID user on an
-approval, the note's path and number on a PRN event. Running again in the same
-directory replans from the saved `settings.json`, rebuilds the operators the
-service already holds from the journal, and carries on from the first event
-not yet done. Nothing already made is made again. Asking for a different
+approval, the note's path, number, tonnage, price and issue date on a PRN
+event. Running again in the same directory replans from the saved
+`settings.json`, rebuilds the operators the service already holds from the
+journal, and carries on from the first event not yet done. Nothing already
+made is made again; to start over, run in another `--dir` or delete the
+directory, against a stack brought up fresh. Asking for a different
 seed, scale, period or profile mix than the run was planned with is refused,
 as is a calibration that plans differently, so resume under the same
 `SIMULATOR_CALIBRATION` as the run started with; concurrency can change.
@@ -63,9 +65,11 @@ each is done again on resume: for an approval that is a second organisation
 for the same planned operator, so prefer the one signal.
 
 A run that stops on a failed event journals nothing for it, so resuming does
-it again. An approval makes the organisation before it links the user and
-seeds the sites, so one that failed part way may have left an organisation
-the journal does not name; the service is the place to look before resuming.
+it again, and the run says when the event was executed but the journal write
+failed. An approval makes the organisation before it links the user and seeds
+the sites, so one that failed part way, or was journalled after being executed,
+may have left an organisation the journal does not name; the service is the
+place to look before resuming.
 
 ## The manifest
 

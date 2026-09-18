@@ -10,13 +10,14 @@
  */
 
 import { createHash } from 'node:crypto'
+import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
 import config from '../../../config/config.js'
 import logger from '../../logger.js'
 import { planCalendar } from '../calendar/calendar.js'
-import { clearSimulatedClock } from '../clock/simulated-clock.js'
+import { clearSimulatedClock, clockFile } from '../clock/simulated-clock.js'
 import { createRun, executeEvent } from '../execute/execute.js'
 import { loadCalibration } from '../population/calibration.js'
 import { planPopulation } from '../population/population.js'
@@ -167,6 +168,11 @@ async function main() {
   if (!saved) {
     // A fresh run starts from the day the plan begins, so the stack comes off
     // any earlier run's clock, and the day this one plans to is the real one.
+    if (existsSync(clockFile)) {
+      logger.warn(
+        `The stack was on the clock at ${new Date().toISOString()} and is taken off it; what it holds keeps its stamps, so bring it up fresh for a clean run`
+      )
+    }
     clearSimulatedClock()
     await clockSettled()
   }

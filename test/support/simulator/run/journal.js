@@ -218,8 +218,7 @@ export function restore(run, entries, events) {
       event.type === EVENT.SUMMARY_LOG_UPLOADED &&
       done.has(eventKey(event))
     ) {
-      const operator = run.operators.get(event.organisationId)
-      operator?.registrations.get(event.registrationId)?.uploads.push(event)
+      liveRegistrationOf(run, event.registrationId).uploads.push(event)
     }
   }
   return done
@@ -284,7 +283,7 @@ function liveRegistrationOf(run, registrationId) {
     ?.registrations.get(registrationId)
   if (!registration) {
     throw new Error(
-      `${registrationId} has a note journalled before its approval`
+      `${registrationId} has an event journalled before its approval`
     )
   }
   return registration

@@ -230,8 +230,17 @@ describe('replay', () => {
       ...recorder
     })
     await recorder.releaseUntilSettled(replaying)
-    await assert.rejects(replaying, { message: 'disk full' })
-    assert.equal(stop.reason(), `${failing} failed`)
+    await assert.rejects(replaying, (error) => {
+      assert.ok(error instanceof Error)
+      assert.equal(
+        error.message,
+        `${failing} was executed but not journalled, so resuming does it again; check the service for what it made`
+      )
+      assert.ok(error.cause instanceof Error)
+      assert.equal(error.cause.message, 'disk full')
+      return true
+    })
+    assert.equal(stop.reason(), `${failing} executed but not journalled`)
     assert.ok(recorder.executed.length < events.length)
   })
 
