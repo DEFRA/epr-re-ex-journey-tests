@@ -68,9 +68,11 @@ operator the run made, under the reference number and six-digit organisation
 id the service gave it, each registration with its ids and numbers, and the
 Defra ID user linked to the operator.
 
-To sign in as one through the stub: open the frontend, which sends you to the
-stub's sign-in page, and pick the user with the manifest's email from the
-list. The stub keeps its users in Redis, so they outlive the run and the
+To sign in as one through the stub: open the frontend, which sends the browser
+to the stub's sign-in page, and enter the manifest's email; the stub asks for
+no password. The browser has to reach the stub by the name the frontend
+redirects to, so `defra-id-stub` resolves to localhost, as for the browser
+journeys. The stub keeps its users in Redis, so they outlive the run and the
 containers, but not the volume.
 
 `complete` says whether every planned event was done, with `events` giving
