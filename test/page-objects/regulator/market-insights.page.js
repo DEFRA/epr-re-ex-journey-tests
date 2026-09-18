@@ -15,11 +15,15 @@ class MarketInsightsPage extends Page {
    * The sets of figures the page offers, by the words a regulator reads.
    * Reading the whole set is what says which pages are on offer, rather than
    * that one link happened to match.
+   *
+   * Scoped to the list rather than the whole of `main`, because the page also
+   * carries actions that are not sets of figures.
    * @returns {Promise<string[]>}
    */
   async figureSetNames() {
     const texts = await this.page
       .getByRole('main')
+      .getByRole('list')
       .getByRole('link')
       .allInnerTexts()
 
