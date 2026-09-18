@@ -1144,9 +1144,9 @@ describe('PRNs', () => {
     }
   })
 
-  it('spreads a month’s tonnage across its notes rather than front-loading it', () => {
-    /** @type {number[]} */
-    const firstShares = []
+  it('does not make a month’s first note its largest', () => {
+    /** @type {boolean[]} */
+    const firstIsLargest = []
     for (const registration of accredited) {
       const own = drafted.filter(
         (event) => event.registrationId === registration.id
@@ -1154,12 +1154,16 @@ describe('PRNs', () => {
       for (const key of new Set(own.map(month))) {
         const inMonth = own.filter((event) => month(event) === key)
         if (inMonth.length < 3) continue
-        const total = inMonth.reduce((sum, event) => sum + event.tonnage, 0)
-        firstShares.push(inMonth[0].tonnage / total)
+        firstIsLargest.push(
+          inMonth.every((event) => event.tonnage <= inMonth[0].tonnage)
+        )
       }
     }
-    assert.ok(firstShares.length > 100, `${firstShares.length}`)
-    assert.ok(mean(firstShares) < 0.5, `${mean(firstShares)}`)
+    assert.ok(firstIsLargest.length > 100, `${firstIsLargest.length}`)
+    assert.ok(
+      share(firstIsLargest, (largest) => largest) < 0.5,
+      `${share(firstIsLargest, (largest) => largest)}`
+    )
   })
 
   it('refuses a material the calibration prices nothing for', () => {
