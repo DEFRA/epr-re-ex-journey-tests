@@ -213,6 +213,24 @@ export async function uploadAndSubmitSummaryLog(
       filePath
     )
 
+  await submitSummaryLog(summaryLogPath, defraAuthHeader, baseAPI)
+
+  return summaryLogId
+}
+
+/**
+ * Submits a validated summary log and waits for the submission worker to land
+ * it.
+ *
+ * @param {string} summaryLogPath
+ * @param {Record<string, string | undefined>} defraAuthHeader
+ * @param {BaseAPI} [baseAPI]
+ */
+export async function submitSummaryLog(
+  summaryLogPath,
+  defraAuthHeader,
+  baseAPI = new BaseAPI()
+) {
   const submitResponse = await baseAPI.post(
     `${summaryLogPath}/submit`,
     '',
@@ -220,12 +238,10 @@ export async function uploadAndSubmitSummaryLog(
   )
   await assertSuccessResponse(submitResponse, `POST ${summaryLogPath}/submit`)
 
-  await waitForSummaryLogStatus(
+  return waitForSummaryLogStatus(
     baseAPI,
     summaryLogPath,
     defraAuthHeader,
     'submitted'
   )
-
-  return summaryLogId
 }

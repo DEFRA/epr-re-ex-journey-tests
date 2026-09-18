@@ -8,12 +8,19 @@ const SUMMARY_LOG_FAILURE_STATUSES = [
   'submission_failed'
 ]
 
+/**
+ * @param {BaseAPI} baseAPI
+ * @param {string} summaryLogPath
+ * @param {Record<string, string | undefined>} defraAuthHeader
+ * @param {string | string[]} targetStatus - the status to wait for, or any one of several
+ */
 export async function waitForSummaryLogStatus(
   baseAPI,
   summaryLogPath,
   defraAuthHeader,
   targetStatus
 ) {
+  const targets = [targetStatus].flat()
   const timeoutMs = 90000
   const startTime = Date.now()
   let status
@@ -26,12 +33,12 @@ export async function waitForSummaryLogStatus(
       `GET ${summaryLogPath}`
     )
     ;({ status } = responseData)
-    if (status === targetStatus) {
+    if (targets.includes(status)) {
       return responseData
     }
     if (SUMMARY_LOG_FAILURE_STATUSES.includes(status)) {
       throw new Error(
-        `Summary log reached '${status}' while waiting for '${targetStatus}'`
+        `Summary log reached '${status}' while waiting for '${targets.join("' or '")}'`
       )
     }
     // Matches wdio's waitforInterval (wdio.github.conf.js) so this polls no
@@ -40,7 +47,7 @@ export async function waitForSummaryLogStatus(
   }
 
   throw new Error(
-    `Timed out waiting for summary log status '${targetStatus}' (last seen: '${status}')`
+    `Timed out waiting for summary log status '${targets.join("' or '")}' (last seen: '${status}')`
   )
 }
 
