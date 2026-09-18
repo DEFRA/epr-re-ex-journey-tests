@@ -58,11 +58,14 @@ export function parseSettings(argv) {
       dir: { type: 'string' }
     }
   })
-  const number = (name, text) => {
+  const number = (name, text, { whole = false } = {}) => {
     if (text === undefined) return undefined
     const value = Number(text)
-    if (!Number.isFinite(value) || value <= 0) {
-      throw new Error(`--${name} must be a number above zero, not "${text}"`)
+    const wellFormed = whole ? Number.isInteger(value) : Number.isFinite(value)
+    if (!wellFormed || value <= 0) {
+      throw new Error(
+        `--${name} must be a ${whole ? 'whole ' : ''}number above zero, not "${text}"`
+      )
     }
     return value
   }
@@ -72,7 +75,7 @@ export function parseSettings(argv) {
     from: values.from,
     to: values.to,
     profileMix: values['profile-mix'],
-    concurrency: number('concurrency', values.concurrency),
+    concurrency: number('concurrency', values.concurrency, { whole: true }),
     dir: values.dir
   }
 }

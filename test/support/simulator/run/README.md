@@ -50,7 +50,9 @@ directory replans from the saved `settings.json`, rebuilds the operators the
 service already holds from the journal, and carries on from the first event
 not yet done. Nothing already made is made again. Asking for a different
 seed, scale, period or profile mix than the run was planned with is refused;
-concurrency can change.
+concurrency can change. The calibration is not saved, so resume under the
+same `SIMULATOR_CALIBRATION` as the run started with, or the replanned
+calendar will not be the one the journal records.
 
 `SIGINT` or `SIGTERM` stops the run cleanly: nothing more is dispatched, the
 events under way finish and are journalled, the manifest is written, and the

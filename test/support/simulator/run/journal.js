@@ -59,6 +59,7 @@ import { eventKey } from './runner.js'
 
 /**
  * @typedef {Object} NoteRecord
+ * @property {string} registration - the planned registration id
  * @property {string} prnId - the plan's id
  * @property {string} prnPath
  * @property {string | null} prnNumber
@@ -162,7 +163,11 @@ export function entryFor(run, event) {
     if (!note) {
       throw new Error(`${event.prnId} executed but the run holds no note`)
     }
-    entry.note = { prnId: event.prnId, ...note }
+    entry.note = {
+      registration: registration.planned.id,
+      prnId: event.prnId,
+      ...note
+    }
   }
 
   return entry
@@ -185,8 +190,8 @@ export function restore(run, entries, events) {
     if (entry.operator) restoreOperator(run, entry.operator)
     if (entry.registration) restoreRegistration(run, entry.registration)
     if (entry.note) {
-      const { prnId, prnPath, prnNumber } = entry.note
-      liveRegistrationOf(run, entry.key).notes.set(prnId, {
+      const { registration, prnId, prnPath, prnNumber } = entry.note
+      liveRegistrationOf(run, registration).notes.set(prnId, {
         prnPath,
         prnNumber
       })
@@ -253,17 +258,18 @@ function restoreRegistration(run, record) {
 
 /**
  * @param {Run} run
- * @param {string} key
+ * @param {string} registrationId - the planned id
  * @returns {LiveRegistration}
  */
-function liveRegistrationOf(run, key) {
-  const [registrationId] = key.split(' ')
+function liveRegistrationOf(run, registrationId) {
   const planned = run.planned.get(registrationId)
   const registration = run.operators
     .get(planned?.operator.id ?? '')
     ?.registrations.get(registrationId)
   if (!registration) {
-    throw new Error(`${key} was journalled before its registration`)
+    throw new Error(
+      `${registrationId} has a note journalled before its approval`
+    )
   }
   return registration
 }
