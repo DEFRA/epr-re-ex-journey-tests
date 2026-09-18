@@ -31,44 +31,55 @@ const rows = planSummaryLogRows({ population })
 /**
  * @template T
  * @param {T | undefined} value
+ * @param {string} what - what the 'execute' seed was expected to plan
  * @returns {T}
  */
-const must = (value) => {
-  assert.ok(value !== undefined)
+const must = (value, what) => {
+  assert.ok(value !== undefined, `The population plans no ${what}`)
   return value
 }
 
 const registrations = population.organisations.flatMap(
   (operator) => operator.registrations
 )
-/** @param {(registration: PlannedRegistration) => boolean} where */
-const someRegistration = (where) => must(registrations.find(where))
+/**
+ * @param {string} what
+ * @param {(registration: PlannedRegistration) => boolean} where
+ */
+const someRegistration = (what, where) => must(registrations.find(where), what)
 
 const exporter = someRegistration(
+  'accredited exporter',
   (registration) =>
     registration.processingType === 'exporter' &&
     registration.accreditation !== null
 )
 const reprocessor = someRegistration(
+  'accredited reprocessor active from January',
   (registration) =>
     registration.processingType === 'reprocessor' &&
     registration.accreditation !== null &&
     registration.activeFrom === '2026-01-01'
 )
 const registeredOnly = someRegistration(
+  'registered-only registration',
   (registration) => registration.accreditation === null
 )
+/** @param {PlannedRegistration} registration */
 const operatorOf = (registration) =>
   must(
     population.organisations.find(
       (operator) => operator.id === registration.organisationId
-    )
+    ),
+    `operator for ${registration.id}`
   )
+/** @param {PlannedRegistration} registration */
 const rowsOf = (registration) =>
   must(
     rows.registrations.find(
       (planned) => planned.registrationId === registration.id
-    )
+    ),
+    `rows for ${registration.id}`
   )
 
 const HOUR = 60 * 60 * 1000
@@ -91,8 +102,8 @@ function recordingSeeders() {
 
   const seeders = {
     calls,
-    /** What the next validation wait reports back. */
-    validation: { counts: { fatal: 0, error: 0, warning: 0, total: 0 } },
+    /** @type {{failures: {code: string}[], concerns: Record<string, {rows: {issues: {type: string, code: string}[]}[]}>}} what the next validation wait reports back */
+    validation: { failures: [], concerns: {} },
     of: (name) => calls.filter((call) => call.name === name),
     createLinkedOrganisation: record('createLinkedOrganisation', () => {
       organisations += 1
@@ -131,13 +142,10 @@ function recordingSeeders() {
       summaryLogPath: '/summary-logs/log-1',
       baseAPI: {}
     })),
-    waitForSummaryLogStatus: record(
-      'waitForSummaryLogStatus',
-      (baseAPI, path, auth, status) => ({
-        status,
-        validation: seeders.validation
-      })
-    ),
+    waitForSummaryLogStatus: record('waitForSummaryLogStatus', () => ({
+      status: seeders.validation.failures.length > 0 ? 'invalid' : 'validated',
+      validation: seeders.validation
+    })),
     submitSummaryLog: record('submitSummaryLog', () => ({
       status: 'submitted'
     })),
@@ -275,7 +283,10 @@ describe('a run', () => {
       await executeEvent(run, approved(exporter))
 
       const [seeded] = seeders.of('seedOverseasSites')
-      const overseasSite = must(rowsOf(exporter).overseasSite ?? undefined)
+      const overseasSite = must(
+        rowsOf(exporter).overseasSite ?? undefined,
+        `overseas site for ${exporter.id}`
+      )
       assert.deepEqual(seeded.args, [
         'org-1',
         [operator.registrations.indexOf(exporter)],
@@ -386,17 +397,16 @@ describe('a run', () => {
         uploaded(exporter, { outcome: UPLOAD_OUTCOME.ABANDONED })
       )
 
-      const waits = seeders.of('waitForSummaryLogStatus')
-      assert.deepEqual(
-        waits.map((wait) => wait.args[3]),
-        ['validated', 'validated']
-      )
+      assert.equal(seeders.of('waitForSummaryLogStatus').length, 2)
       assert.equal(seeders.of('submitSummaryLog').length, 1)
     })
 
-    it('waits for a fatally rejected upload to come back invalid', async () => {
+    it('accepts a fatally rejected upload that comes back invalid for the planted reason', async () => {
       await executeEvent(run, approved(exporter))
-      seeders.validation = { counts: { fatal: 1, error: 0 } }
+      seeders.validation = {
+        failures: [{ code: 'SPREADSHEET_MALFORMED_MARKERS' }],
+        concerns: {}
+      }
       await executeEvent(
         run,
         uploaded(exporter, {
@@ -410,7 +420,7 @@ describe('a run', () => {
       )
 
       const [wait] = seeders.of('waitForSummaryLogStatus')
-      assert.equal(wait.args[3], 'invalid')
+      assert.deepEqual(wait.args[3], ['validated', 'invalid'])
       assert.equal(
         seeders.of('generateSpreadsheetData')[0].args[0].unreadable,
         true
@@ -420,11 +430,41 @@ describe('a run', () => {
 
     it('stops when the service found errors the plan did not put there', async () => {
       await executeEvent(run, approved(exporter))
-      seeders.validation = { counts: { fatal: 0, error: 3 } }
+      seeders.validation = {
+        failures: [],
+        concerns: {
+          RECEIVED_LOADS_FOR_EXPORT: {
+            rows: [{ issues: [{ type: 'error', code: 'VALUE_OUT_OF_RANGE' }] }]
+          }
+        }
+      }
 
       await assert.rejects(
         executeEvent(run, uploaded(exporter)),
-        /planned submitted but validated as validated with .*"error":3/
+        /planned submitted but came back validated with \["error VALUE_OUT_OF_RANGE"\]/
+      )
+    })
+
+    it('stops when the service rejected a fatally planned upload for another reason', async () => {
+      await executeEvent(run, approved(exporter))
+      seeders.validation = {
+        failures: [{ code: 'INVALID_DATE' }],
+        concerns: {}
+      }
+
+      await assert.rejects(
+        executeEvent(
+          run,
+          uploaded(exporter, {
+            outcome: UPLOAD_OUTCOME.REJECTED,
+            issues: {
+              severity: ISSUE_SEVERITY.FATAL,
+              kind: ISSUE_KIND.REMOVED_ROW,
+              rows: [rowsOf(exporter).rows[0]]
+            }
+          })
+        ),
+        /planned rejected with fatal removedRow but came back invalid with \["fatal INVALID_DATE"\]/
       )
     })
 
@@ -509,29 +549,42 @@ describe('what an upload should come back as', () => {
   it('is validated and clean when it lands or is abandoned', () => {
     assert.deepEqual(expectedValidation(uploaded(exporter)), {
       status: 'validated',
-      findsIssues: false
+      issue: null
     })
     assert.deepEqual(
       expectedValidation(
         uploaded(exporter, { outcome: UPLOAD_OUTCOME.ABANDONED })
       ),
-      { status: 'validated', findsIssues: false }
+      { status: 'validated', issue: null }
     )
   })
 
-  it('is invalid when rejected fatally', () => {
+  it('is invalid with the planted code when rejected fatally', () => {
     assert.deepEqual(
       expectedValidation(rejected(ISSUE_SEVERITY.FATAL, ISSUE_KIND.BAD_DATE)),
-      { status: 'invalid', findsIssues: true }
+      { status: 'invalid', issue: { severity: 'fatal', code: 'INVALID_DATE' } }
+    )
+    assert.equal(
+      expectedValidation(rejected(ISSUE_SEVERITY.FATAL, ISSUE_KIND.UNREADABLE))
+        .issue?.code,
+      'SPREADSHEET_MALFORMED_MARKERS'
+    )
+    assert.equal(
+      expectedValidation(rejected(ISSUE_SEVERITY.FATAL, ISSUE_KIND.REMOVED_ROW))
+        .issue?.code,
+      'SEQUENTIAL_ROW_REMOVED'
     )
   })
 
-  it('is validated with errors on rows when rejected for one', () => {
+  it('is validated with the planted error when rejected for one on a row', () => {
     assert.deepEqual(
       expectedValidation(
         rejected(ISSUE_SEVERITY.ERROR, ISSUE_KIND.BLANK_FIELD)
       ),
-      { status: 'validated', findsIssues: true }
+      {
+        status: 'validated',
+        issue: { severity: 'error', code: 'FIELD_REQUIRED' }
+      }
     )
   })
 })
@@ -585,18 +638,25 @@ describe('what the operator types into a report', () => {
     })
   })
 
-  it('has no PRN figures for a registered-only registration', () => {
-    const fields = reportFields(
-      registeredOnly,
-      rowsOf(registeredOnly).rows,
-      firstQuarter
+  it('is the tonnage not exported, at zero, for a registered-only exporter', () => {
+    assert.deepEqual(
+      reportFields(
+        { ...registeredOnly, processingType: 'exporter' },
+        [],
+        firstQuarter
+      ),
+      { tonnageNotExported: 0 }
     )
-    assert.equal('prnRevenue' in fields, false)
-    assert.equal('freeTonnage' in fields, false)
-    if (registeredOnly.processingType === 'exporter') {
-      assert.deepEqual(fields, { tonnageNotExported: 0 })
-    } else {
-      assert.deepEqual(fields, { tonnageRecycled: 0, tonnageNotRecycled: 0 })
-    }
+  })
+
+  it('is the tonnage recycled, with no PRN figures, for a registered-only reprocessor', () => {
+    assert.deepEqual(
+      reportFields(
+        { ...registeredOnly, processingType: 'reprocessor' },
+        [],
+        firstQuarter
+      ),
+      { tonnageRecycled: 0, tonnageNotRecycled: 0 }
+    )
   })
 })

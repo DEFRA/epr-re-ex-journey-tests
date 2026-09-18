@@ -270,40 +270,97 @@ const changeStatus = (statuses) => async (run, event) => {
   )
 }
 
+/** The code the service gives each kind of issue the plan can plant. */
+const ISSUE_CODE = {
+  [ISSUE_KIND.BLANK_FIELD]: 'FIELD_REQUIRED',
+  [ISSUE_KIND.BAD_DATE]: 'INVALID_DATE',
+  [ISSUE_KIND.UNREADABLE]: 'SPREADSHEET_MALFORMED_MARKERS',
+  [ISSUE_KIND.REMOVED_ROW]: 'SEQUENTIAL_ROW_REMOVED'
+}
+
+/** The statuses validation ends in. */
+const VALIDATED = ['validated', 'invalid']
+
 /**
- * The status the service should leave an upload in, and whether it should
- * find anything wrong with it, given what the plan says became of it. An
- * upload rejected for an error on a row still validates; it is the operator
- * who does not submit it.
+ * The status the service should leave an upload in, and the issue it should
+ * report, given what the plan says became of it. An upload rejected for an
+ * error on a row still validates; it is the operator who does not submit it.
  *
  * @param {UploadEvent} upload
- * @returns {{status: string, findsIssues: boolean}}
+ * @returns {{status: 'validated' | 'invalid', issue: ValidationIssue | null}}
  */
 export function expectedValidation(upload) {
   if (upload.outcome !== UPLOAD_OUTCOME.REJECTED || !upload.issues) {
-    return { status: 'validated', findsIssues: false }
+    return { status: 'validated', issue: null }
   }
+  const { severity, kind } = upload.issues
   return {
-    status:
-      upload.issues.severity === ISSUE_SEVERITY.FATAL ? 'invalid' : 'validated',
-    findsIssues: true
+    status: severity === ISSUE_SEVERITY.FATAL ? 'invalid' : 'validated',
+    issue: { severity, code: ISSUE_CODE[kind] }
   }
 }
 
 /**
- * Stops the run where the service read an upload differently from the plan.
+ * @typedef {Object} ValidationIssue
+ * @property {string} severity
+ * @property {string} code
+ */
+
+/**
+ * The validation a summary log's read returns: fatal issues as `failures`,
+ * row issues under the table and row they sit on.
+ *
+ * @typedef {Object} ReportedValidation
+ * @property {{code: string}[]} [failures]
+ * @property {Record<string, {rows: {issues: {type: string, code: string}[]}[]}>} [concerns]
+ */
+
+/**
+ * Every issue the service reported, fatal or on a row, with its severity.
+ *
+ * @param {ReportedValidation | undefined} validation
+ * @returns {ValidationIssue[]}
+ */
+function reportedIssues(validation) {
+  const fatal = (validation?.failures ?? []).map(({ code }) => ({
+    severity: ISSUE_SEVERITY.FATAL,
+    code
+  }))
+  const onRows = Object.values(validation?.concerns ?? {}).flatMap((table) =>
+    table.rows.flatMap((row) =>
+      row.issues.map(({ type, code }) => ({ severity: type, code }))
+    )
+  )
+  return [...fatal, ...onRows]
+}
+
+/**
+ * Stops the run where the service read an upload differently from the plan:
+ * a different status, an issue other than the one planted, or any issue
+ * where none was.
  *
  * @param {UploadEvent} upload
- * @param {{status: string, validation?: {counts?: {fatal: number, error: number}}}} summaryLog
+ * @param {{status: string, validation?: ReportedValidation}} summaryLog
  */
 function assertValidatedAsPlanned(upload, summaryLog) {
-  const { findsIssues } = expectedValidation(upload)
-  const counts = summaryLog.validation?.counts ?? { fatal: 0, error: 0 }
-  if (counts.fatal + counts.error > 0 !== findsIssues) {
+  const expected = expectedValidation(upload)
+  const issues = reportedIssues(summaryLog.validation)
+  const asPlanned =
+    summaryLog.status === expected.status &&
+    (expected.issue
+      ? issues.some(
+          (issue) =>
+            issue.code === expected.issue?.code &&
+            issue.severity === expected.issue?.severity
+        )
+      : !issues.some((issue) => issue.severity !== 'warning'))
+  if (!asPlanned) {
     throw new Error(
       `${upload.registrationId}'s upload of ${upload.cutoff} was planned ${upload.outcome}` +
         `${upload.issues ? ` with ${upload.issues.severity} ${upload.issues.kind}` : ''}` +
-        ` but validated as ${summaryLog.status} with ${JSON.stringify(counts)}`
+        ` but came back ${summaryLog.status} with ${JSON.stringify(
+          issues.map(({ severity, code }) => `${severity} ${code}`)
+        )}`
     )
   }
 }
@@ -344,7 +401,7 @@ async function uploadSummaryLog(run, event) {
     uploaded.baseAPI,
     uploaded.summaryLogPath,
     authHeader,
-    expectedValidation(event).status
+    VALIDATED
   )
   assertValidatedAsPlanned(event, summaryLog)
 

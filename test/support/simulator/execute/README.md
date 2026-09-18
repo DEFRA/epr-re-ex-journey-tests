@@ -11,6 +11,7 @@ import { createRun, executeEvent } from './execute.js'
 const run = createRun({ population, rows })
 for (const event of operator.events) {
   setSimulatedNow(event.at)
+  await new Promise((resolve) => setTimeout(resolve, 500)) // the stack re-reads the clock every 250 ms
   await executeEvent(run, event)
 }
 ```
@@ -35,8 +36,9 @@ calendar that reaches a PRN event stops rather than skipping it.
 | `report.submitted`        | Creates, fills and submits the period's report.                                                                                                                                                                                                                                            |
 
 A summary log that comes back other than planned stops the run: a fatal
-rejection has to validate as `invalid`, an error on a row as `validated` with
-issues counted, and anything else as `validated` clean.
+rejection has to come back `invalid` and an error on a row `validated`, each
+reporting the issue the plan planted by its code, and anything else
+`validated` with no issue beyond a warning.
 
 ## What the operator types into a report
 
@@ -86,11 +88,14 @@ the user in again if the token it holds is within five minutes of ageing out.
 
 ## Running the hand-written list
 
-`hand-run.js` replays two months of one exporter and one reprocessor drawn
-from a small planned population: approval, a submitted upload, a report, one upload of
-every rejection kind, an abandoned one, a second submitted upload restating the
-closed month, that month's resubmission, the next report, then a suspension
-and a cancellation. With the stack up on the clock:
+`hand-run.js` replays a quarter of three registrations drawn from a small
+planned population. One operator's accredited exporter and reprocessor each
+go through approval, a submitted upload, a report, one upload of every
+rejection kind, an abandoned one, a second submitted upload restating the
+closed month, that month's resubmission and the next report, then one is
+suspended and the other cancelled. Another operator's registered-only
+reprocessor is approved, uploads once the quarter closes and files its
+quarterly report. With the stack up on the clock:
 
 ```bash
 npm run simulate:exercise

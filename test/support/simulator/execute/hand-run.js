@@ -1,8 +1,9 @@
 /**
- * A hand-written list of events for one exporter and one reprocessor, replayed
- * against the local stack under the simulated clock. Every event the executors
- * carry out is in it, and every way a summary log can come back, so it is the
- * check that they do against the service what the plan says.
+ * A hand-written list of events for one operator's exporter and reprocessor
+ * and another's registered-only reprocessor, replayed against the local stack
+ * under the simulated clock. Every event the executors carry out is in it,
+ * every way a summary log can come back, and a report on each cadence, so it
+ * is the check that they do against the service what the plan says.
  *
  * Bring the stack up on the clock (see ../clock/README.md), then:
  *
@@ -39,28 +40,70 @@ const population = planPopulation({
 const rows = planSummaryLogRows({ population })
 
 /**
- * @param {'exporter' | 'reprocessor'} processingType
- * @returns {{registration: PlannedRegistration, rows: PlannedRegistrationRows}}
+ * @typedef {{registration: PlannedRegistration, rows: PlannedRegistrationRows}} Chosen
  */
-function accreditedFromJanuary(processingType) {
+
+/**
+ * @param {PlannedRegistration} registration
+ * @returns {Chosen}
+ */
+function withRows(registration) {
+  const planned = rows.registrations.find(
+    (candidate) => candidate.registrationId === registration.id
+  )
+  if (!planned) {
+    throw new Error(`No rows are planned for ${registration.id}`)
+  }
+  return { registration, rows: planned }
+}
+
+/** @param {PlannedRegistration} registration */
+const approvedFromJanuary = (registration) =>
+  registration.status === 'approved' && registration.activeFrom === '2026-01-01'
+
+/** @param {PlannedRegistration} registration */
+const accredited = (registration) =>
+  registration.accreditation?.status === 'approved'
+
+/**
+ * One operator holding an accredited exporter and an accredited reprocessor,
+ * so the second approval lands on an organisation already linked.
+ *
+ * @returns {{exporter: Chosen, reprocessor: Chosen}}
+ */
+function accreditedPair() {
   for (const operator of population.organisations) {
-    for (const registration of operator.registrations) {
-      const planned = rows.registrations.find(
-        (candidate) => candidate.registrationId === registration.id
-      )
-      if (
-        planned &&
-        registration.processingType === processingType &&
-        registration.status === 'approved' &&
-        registration.accreditation?.status === 'approved' &&
-        registration.activeFrom === '2026-01-01'
-      ) {
-        return { registration, rows: planned }
+    const candidates = operator.registrations.filter(
+      (registration) =>
+        approvedFromJanuary(registration) && accredited(registration)
+    )
+    const exporter = candidates.find((r) => r.processingType === 'exporter')
+    const reprocessor = candidates.find(
+      (r) => r.processingType === 'reprocessor'
+    )
+    if (exporter && reprocessor) {
+      return {
+        exporter: withRows(exporter),
+        reprocessor: withRows(reprocessor)
       }
     }
   }
   throw new Error(
-    `The population holds no accredited ${processingType} active from January`
+    'The population holds no operator with an accredited exporter and reprocessor both active from January'
+  )
+}
+
+/** @returns {Chosen} */
+function registeredOnlyFromJanuary() {
+  for (const operator of population.organisations) {
+    const found = operator.registrations.find(
+      (registration) =>
+        approvedFromJanuary(registration) && registration.accreditation === null
+    )
+    if (found) return withRows(found)
+  }
+  throw new Error(
+    'The population holds no registered-only registration active from January'
   )
 }
 
@@ -191,6 +234,47 @@ function eventsFor(registration, planned, ending) {
   ]
 }
 
+/**
+ * A quarter of a registered-only registration: approved on the first day of
+ * the year, one upload once the quarter closes, then its quarterly report.
+ *
+ * @param {PlannedRegistration} registration
+ * @returns {CalendarEvent[]}
+ */
+function registeredOnlyEventsFor(registration) {
+  const { organisationId, id: registrationId } = registration
+  return [
+    {
+      type: EVENT.REGISTRATION_APPROVED,
+      at: '2026-01-01T09:30:00Z',
+      organisationId,
+      registrationId
+    },
+    {
+      type: EVENT.SUMMARY_LOG_UPLOADED,
+      at: '2026-04-03T10:00:00Z',
+      organisationId,
+      registrationId,
+      cutoff: '2026-04-02',
+      outcome: UPLOAD_OUTCOME.SUBMITTED,
+      issues: null,
+      amendments: null,
+      restated: [],
+      closedPeriods: []
+    },
+    {
+      type: EVENT.REPORT_SUBMITTED,
+      at: '2026-04-20T10:00:00Z',
+      organisationId,
+      registrationId,
+      year: 2026,
+      cadence: 'quarterly',
+      period: 1,
+      submissionNumber: 1
+    }
+  ]
+}
+
 /** @param {Date | string} instant */
 async function moveClockTo(instant) {
   setSimulatedNow(instant)
@@ -198,10 +282,10 @@ async function moveClockTo(instant) {
 }
 
 async function main() {
-  const exporter = accreditedFromJanuary('exporter')
-  const reprocessor = accreditedFromJanuary('reprocessor')
+  const { exporter, reprocessor } = accreditedPair()
+  const registeredOnly = registeredOnlyFromJanuary()
   logger.info(
-    `Driving ${exporter.registration.id} (${exporter.rows.stream}) and ${reprocessor.registration.id} (${reprocessor.rows.stream})`
+    `Driving ${exporter.registration.id} (${exporter.rows.stream}), ${reprocessor.registration.id} (${reprocessor.rows.stream}) and ${registeredOnly.registration.id} (${registeredOnly.rows.stream})`
   )
 
   const events = [
@@ -214,7 +298,8 @@ async function main() {
       reprocessor.registration,
       reprocessor.rows,
       EVENT.ACCREDITATION_CANCELLED
-    )
+    ),
+    ...registeredOnlyEventsFor(registeredOnly.registration)
   ].sort((a, b) => a.at.localeCompare(b.at))
 
   const run = createRun({ population, rows })
