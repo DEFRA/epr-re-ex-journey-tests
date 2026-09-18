@@ -172,10 +172,14 @@ export const CADENCE = { MONTHLY: 'monthly', QUARTERLY: 'quarterly' }
  * @typedef {BaseEvent & {
  *   type: 'prn.drafted' | 'prn.discarded' | 'prn.raised' | 'prn.deleted' | 'prn.issued' | 'prn.accepted' | 'prn.cancellation-requested' | 'prn.cancelled',
  *   registrationId: string,
- *   prnId: string
+ *   prnId: string,
+ *   tonnage: number,
+ *   pricePerTonne: number
  * }} PrnEvent
  *   `prnId` ties the events of one note together; it is the plan's own
- *   identifier, not the number the service assigns.
+ *   identifier, not the number the service assigns. `tonnage` is whole
+ *   tonnes, at least one, and every event of a note carries the same
+ *   `tonnage` and `pricePerTonne`, in pounds.
  */
 
 /** @typedef {RegistrationEvent | UploadEvent | ReportEvent | PrnEvent} CalendarEvent */

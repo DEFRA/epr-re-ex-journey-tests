@@ -221,6 +221,9 @@ export const SHEETS = {
         DATE_OF_EXPORT: 0,
         DATE_RECEIVED_BY_OSR: 21
       },
+      // December waste is what the overseas reprocessor received in December,
+      // so the service dates the credit by that day rather than the export.
+      balanceDate: 'DATE_RECEIVED_BY_OSR',
       fields: REPATRIATION_UNNEEDED,
       load: exportedLoad
     },

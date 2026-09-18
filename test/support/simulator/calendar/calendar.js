@@ -53,6 +53,13 @@ import {
  * @property {Drafted<CalendarEvent>} event
  */
 
+/**
+ * @typedef {Object} LandedUpload - a submitted upload, as the notes draw on it
+ * @property {string} day
+ * @property {Drafted<UploadEvent>} event
+ * @property {Period} period
+ */
+
 /** A suspension or cancellation lands no sooner than this into a registration's year. */
 const EARLIEST_STATUS_CHANGE_DAYS = 30
 
@@ -73,6 +80,13 @@ const PRN_CANCELLATION_REQUEST_DAYS = 10
 
 /** Rows an upload plants an error on. */
 const MAX_ROWS_WITH_ISSUES = 3
+
+/**
+ * Waste received in December can be carried into the next year's obligation,
+ * so the service keeps it apart on the balance and only a December note can
+ * draw on it. No note planned here is one, so December's credits are left.
+ */
+const DECEMBER = '12'
 
 /**
  * The hours a time of day is drawn from. Events drawn on one day keep their
@@ -322,6 +336,7 @@ const uploadCount = (perPeriod, random) =>
  * @property {PlannedRegistration} registration
  * @property {PlannedRegistrationRows | undefined} rows
  * @property {Calibration} calibration
+ * @property {string} seed - the run's, which `random` and any further draw derive from
  * @property {Random} random
  * @property {string} to
  * @property {Draft[]} drafts
@@ -473,7 +488,7 @@ function draftUploadAttempts(context, upload, submitted, added) {
  * @param {Period[]} periods
  * @param {string} activityEnd - the last day a load is recorded
  * @param {string} filingEnd - the last day an upload or report is made
- * @returns {string | null} the day of the first upload that landed, if any did
+ * @returns {LandedUpload[]} the uploads that landed, in order
  */
 function draftReporting(context, periods, activityEnd, filingEnd) {
   const { random, operator, registration, rows } = context
@@ -506,7 +521,7 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
   }
   uploads.sort((a, b) => a.day.localeCompare(b.day))
 
-  /** @type {{day: string, event: Drafted<UploadEvent>, period: Period}[]} */
+  /** @type {LandedUpload[]} */
   const landed = []
   /** @type {string | null} */
   let submittedCutoff = null
@@ -585,28 +600,112 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
     })
   }
 
-  return landed[0]?.day ?? null
+  return landed
 }
+
+/**
+ * @typedef {Object} NoteDraw - one note as drawn, before it is given a tonnage
+ * @property {string} drafted - the day it is drafted
+ * @property {{type: PrnEvent['type'], day: string}[]} steps - every event of it, in order
+ * @property {boolean} raised - whether it draws on the balance at all
+ * @property {string | null} released - the day it gives its tonnage back, if it does
+ */
+
+/**
+ * @typedef {Object} Hold - tonnage a note keeps off the balance
+ * @property {number} tonnage
+ * @property {string | null} released - the day it is given back; null where it never is
+ */
 
 /**
  * The PRN lifecycle of one accredited registration: so many a month, each
  * drafted, raised and issued within days, then accepted this month or next,
  * left waiting, or taken off one of the three exits. A note is issued against
  * the balance the uploads have built, so none is drafted before the first
- * summary log is submitted.
+ * summary log is submitted, and what each carries is planned here from that
+ * balance: a month's notes share the calibrated portion of the tonnage on
+ * record by the month's end, and none asks for more than the balance holds on
+ * the day it is drafted.
  *
  * @param {RegistrationContext} context
- * @param {string} first - the first day a note may be drafted
+ * @param {LandedUpload[]} landed - the registration's submitted uploads, in order
  * @param {string} issuingEnd - the last day the accreditation can issue
  */
-function draftPrns(context, first, issuingEnd) {
+function draftPrns(context, landed, issuingEnd) {
+  if (landed.length === 0) return
+  const first = addDays(landed[0].day, 1)
   if (first > issuingEnd) return
-  const { random, operator, registration, calibration } = context
+  const { random, operator, registration, calibration, rows } = context
   const { profile } = operator
   const { prn } = profile
   const mean =
     calibration.activity.prnsPerAccreditationPerMonth * profile.volumeFactor
-  let serial = 0
+  const issuedShare =
+    calibration.activity.prnIssuedShare[registration.processingType]
+  const pricePerTonne =
+    calibration.activity.prnPricePerTonne[registration.material.suffix]
+  if (pricePerTonne === undefined) {
+    throw new Error(
+      `Calibration has no price for ${registration.material.suffix}`
+    )
+  }
+
+  const allRows = rows?.rows ?? []
+  const sheets = rows ? SHEETS[rows.stream] : {}
+  /**
+   * The month the service dates a credit to: the sheet's balance date where
+   * it declares one, pinned on the row as a UK date, and the row's own day
+   * otherwise.
+   *
+   * @param {PlannedLogRow} row
+   */
+  const creditedIn = (row) => {
+    const marker = sheets[row.worksheet]?.balanceDate
+    const pinned = marker === undefined ? undefined : row.fields[marker]
+    return typeof pinned === 'string'
+      ? pinned.slice(3, 5)
+      : row.date.slice(5, 7)
+  }
+  const credits = allRows.filter(
+    (row) =>
+      row.contribution === CONTRIBUTION.CREDIT && creditedIn(row) !== DECEMBER
+  )
+  const debits = allRows.filter(
+    (row) => row.contribution === CONTRIBUTION.DEBIT
+  )
+  /**
+   * @param {PlannedLogRow[]} list
+   * @param {string} until - inclusive
+   */
+  const tonnageOf = (list, until) =>
+    list
+      .filter((row) => row.date <= until)
+      .reduce((sum, row) => sum + row.tonnage, 0)
+  /**
+   * The last day of loads on record before a day: the cutoff of the latest
+   * upload submitted before it.
+   *
+   * @param {string} day
+   */
+  const onRecordBefore = (day) =>
+    landed.filter((upload) => upload.day < day).at(-1)?.event.cutoff ?? ''
+  /** @type {Hold[]} */
+  const holds = []
+  /**
+   * What the balance has to give on a day: credited and on record, less
+   * debited, less every earlier note's tonnage not given back before that
+   * day. A note released on the day still holds, because the release may
+   * come later in it than the draw.
+   *
+   * @param {string} day
+   */
+  const available = (day) => {
+    const cutoff = onRecordBefore(day)
+    const held = holds
+      .filter((hold) => hold.released === null || hold.released >= day)
+      .reduce((sum, hold) => sum + hold.tonnage, 0)
+    return tonnageOf(credits, cutoff) - tonnageOf(debits, cutoff) - held
+  }
 
   /**
    * A step later in the chain, or null once it falls off the end of the window.
@@ -616,103 +715,156 @@ function draftPrns(context, first, issuingEnd) {
    */
   const step = (day, within) => {
     const moved = addDays(day, random.int(within === 0 ? 0 : 1, within))
-    const landed = profile.worksWeekends
+    const landedOn = profile.worksWeekends
       ? moved
       : onWorkingDay(moved, moved, addDays(moved, 7))
-    return landed <= issuingEnd ? landed : null
-  }
-  /**
-   * @param {string} prnId
-   * @param {string} from
-   * @param {[PrnEvent['type'], number][]} steps - each type and the days it takes
-   */
-  const chain = (prnId, from, steps) => {
-    /** @type {string | null} */
-    let day = from
-    for (const [type, within] of steps) {
-      day = day && step(day, within)
-      if (!day) return
-      draft(context, day, { type, registrationId: registration.id, prnId })
-    }
+    return landedOn <= issuingEnd ? landedOn : null
   }
 
+  /**
+   * One note's chain from its draft to wherever it ends.
+   *
+   * @param {string} drafted
+   * @returns {NoteDraw}
+   */
+  const drawChain = (drafted) => {
+    /** @type {NoteDraw} */
+    const note = {
+      drafted,
+      steps: [{ type: EVENT.PRN_DRAFTED, day: drafted }],
+      raised: false,
+      released: null
+    }
+    /**
+     * Steps on from a day, stopping where the chain falls off the window, and
+     * gives the day the last of them lands.
+     *
+     * @param {string} from
+     * @param {[PrnEvent['type'], number][]} steps - each type and the days it takes
+     */
+    const chain = (from, steps) => {
+      /** @type {string | null} */
+      let day = from
+      for (const [type, within] of steps) {
+        day = day && step(day, within)
+        if (!day) return null
+        note.steps.push({ type, day })
+      }
+      return day
+    }
+
+    if (random.float() < prn.discardRate) {
+      chain(drafted, [[EVENT.PRN_DISCARDED, PRN_STEP_DAYS]])
+      return note
+    }
+    const raised = step(drafted, 0)
+    if (!raised) return note
+    note.steps.push({ type: EVENT.PRN_RAISED, day: raised })
+    note.raised = true
+
+    if (random.float() < prn.deleteRate) {
+      note.released = chain(raised, [[EVENT.PRN_DELETED, PRN_STEP_DAYS]])
+      return note
+    }
+    const issued = step(raised, PRN_STEP_DAYS)
+    if (!issued) return note
+    note.steps.push({ type: EVENT.PRN_ISSUED, day: issued })
+
+    if (random.float() < prn.cancelRate) {
+      note.released = chain(issued, [
+        [EVENT.PRN_CANCELLATION_REQUESTED, PRN_CANCELLATION_REQUEST_DAYS],
+        [EVENT.PRN_CANCELLED, PRN_STEP_DAYS]
+      ])
+      return note
+    }
+    if (random.float() >= prn.producerAcceptRate) return note
+
+    const [issuedYear, issuedMonth] = issued.split('-').map(Number)
+    const issuedMonthEnd = lastDayOfMonth(issuedYear, issuedMonth)
+    const sameMonth =
+      random.float() < prn.sameMonthAcceptanceShare && issued < issuedMonthEnd
+    const [acceptFrom, acceptTo] = sameMonth
+      ? [addDays(issued, 1), issuedMonthEnd]
+      : [
+          later(addDays(issued, 1), addDays(issuedMonthEnd, 1)),
+          lastDayOfMonth(issuedYear, issuedMonth + 1)
+        ]
+    const accepted = dayBetween(
+      acceptFrom,
+      acceptTo,
+      random,
+      profile.worksWeekends
+    )
+    if (accepted && accepted <= issuingEnd) {
+      note.steps.push({ type: EVENT.PRN_ACCEPTED, day: accepted })
+    }
+    return note
+  }
+
+  let serial = 0
+  let planned = 0
   let month = monthKey(first)
   while (`${month}-01` <= issuingEnd) {
     const [year, monthNumber] = month.split('-').map(Number)
     const notBefore = later(first, `${month}-01`)
     const notAfter = earlier(lastDayOfMonth(year, monthNumber), issuingEnd)
     const count = random.int(0, Math.round(mean * 2))
-
+    /** @type {NoteDraw[]} */
+    const notes = []
     for (let index = 0; index < count; index++) {
-      const prnId = `${registration.id}-PRN${String(++serial).padStart(3, '0')}`
       const drafted = dayBetween(
         notBefore,
         notAfter,
         random,
         profile.worksWeekends
       )
-      if (!drafted) continue
-      draft(context, drafted, {
-        type: EVENT.PRN_DRAFTED,
-        registrationId: registration.id,
-        prnId
-      })
+      if (drafted) notes.push(drawChain(drafted))
+    }
 
-      if (random.float() < prn.discardRate) {
-        chain(prnId, drafted, [[EVENT.PRN_DISCARDED, PRN_STEP_DAYS]])
-        continue
-      }
-      const raised = step(drafted, 0)
-      if (!raised) continue
-      draft(context, raised, {
-        type: EVENT.PRN_RAISED,
-        registrationId: registration.id,
-        prnId
-      })
-
-      if (random.float() < prn.deleteRate) {
-        chain(prnId, raised, [[EVENT.PRN_DELETED, PRN_STEP_DAYS]])
-        continue
-      }
-      const issued = step(raised, PRN_STEP_DAYS)
-      if (!issued) continue
-      draft(context, issued, {
-        type: EVENT.PRN_ISSUED,
-        registrationId: registration.id,
-        prnId
-      })
-
-      if (random.float() < prn.cancelRate) {
-        chain(prnId, issued, [
-          [EVENT.PRN_CANCELLATION_REQUESTED, PRN_CANCELLATION_REQUEST_DAYS],
-          [EVENT.PRN_CANCELLED, PRN_STEP_DAYS]
-        ])
-        continue
-      }
-      if (random.float() >= prn.producerAcceptRate) continue
-
-      const [issuedYear, issuedMonth] = issued.split('-').map(Number)
-      const issuedMonthEnd = lastDayOfMonth(issuedYear, issuedMonth)
-      const sameMonth =
-        random.float() < prn.sameMonthAcceptanceShare && issued < issuedMonthEnd
-      const [acceptFrom, acceptTo] = sameMonth
-        ? [addDays(issued, 1), issuedMonthEnd]
-        : [
-            later(addDays(issued, 1), addDays(issuedMonthEnd, 1)),
-            lastDayOfMonth(issuedYear, issuedMonth + 1)
-          ]
-      const accepted = dayBetween(
-        acceptFrom,
-        acceptTo,
-        random,
-        profile.worksWeekends
+    // The weights come off their own seed, so the count, days and chains
+    // draw as they would without them.
+    const weigh = createRandom(
+      `${context.seed}/${registration.id}/${month}/tonnage`
+    )
+    const inDayOrder = [...notes].sort((a, b) =>
+      a.drafted.localeCompare(b.drafted)
+    )
+    const weights = inDayOrder.map(() => weigh.float() + 0.5)
+    // The share is of tonnage issued, and a drafted note is discarded or
+    // deleted before issue at the operator's rates, so the drafts carry more.
+    const monthly =
+      (issuedShare * tonnageOf(credits, onRecordBefore(addDays(notAfter, 1)))) /
+      ((1 - prn.discardRate) * (1 - prn.deleteRate))
+    /** @type {Map<NoteDraw, number>} */
+    const tonnages = new Map()
+    inDayOrder.forEach((note, index) => {
+      const remaining = weights
+        .slice(index)
+        .reduce((sum, weight) => sum + weight, 0)
+      const tonnage = Math.floor(
+        (Math.min(monthly - planned, available(note.drafted)) *
+          weights[index]) /
+          remaining
       )
-      if (!accepted || accepted > issuingEnd) continue
-      draft(context, accepted, {
-        type: EVENT.PRN_ACCEPTED,
-        registrationId: registration.id,
-        prnId
-      })
+      if (tonnage < 1) return
+      tonnages.set(note, tonnage)
+      planned += tonnage
+      if (note.raised) holds.push({ tonnage, released: note.released })
+    })
+
+    for (const note of notes) {
+      const tonnage = tonnages.get(note)
+      if (tonnage === undefined) continue
+      const prnId = `${registration.id}-PRN${String(++serial).padStart(3, '0')}`
+      for (const { type, day } of note.steps) {
+        draft(context, day, {
+          type,
+          registrationId: registration.id,
+          prnId,
+          tonnage,
+          pricePerTonne
+        })
+      }
     }
 
     month = monthKey(addDays(lastDayOfMonth(year, monthNumber), 1))
@@ -750,7 +902,7 @@ function planRegistration(context, from) {
   const issuingEnd = change ? addDays(change.day, -1) : last
 
   if (first <= activityEnd) {
-    const firstSubmitted = draftReporting(
+    const landed = draftReporting(
       context,
       reportingPeriods(
         registration,
@@ -761,8 +913,8 @@ function planRegistration(context, from) {
       activityEnd,
       filingEnd
     )
-    if (registration.accreditation && firstSubmitted) {
-      draftPrns(context, addDays(firstSubmitted, 1), issuingEnd)
+    if (registration.accreditation) {
+      draftPrns(context, landed, issuingEnd)
     }
   }
 
@@ -843,6 +995,7 @@ export function planCalendar({
               registration,
               rows: rowsByRegistration.get(registration.id),
               calibration,
+              seed,
               random: createRandom(`${seed}/${registration.id}`),
               to,
               drafts: []

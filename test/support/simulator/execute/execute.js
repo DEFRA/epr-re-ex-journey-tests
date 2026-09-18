@@ -34,12 +34,6 @@ const TOKEN_LIFETIME_MS = 60 * 60 * 1000
 const TOKEN_MARGIN_MS = 5 * 60 * 1000
 
 /**
- * The plan does not carry a note's tonnage, so a draft takes this share of
- * what the accreditation has available when it is drafted.
- */
-const NOTE_SHARE_OF_AVAILABLE = 1 / 3
-
-/**
  * @typedef {Object} PlannedRegistrationRecord - a planned registration with the operator and rows it belongs with
  * @property {PlannedOperator} operator
  * @property {PlannedRegistration} registration
@@ -64,6 +58,9 @@ const NOTE_SHARE_OF_AVAILABLE = 1 / 3
  * @typedef {Object} LiveNote - a planned note the service now holds
  * @property {string} prnPath - the note's path under the accreditation
  * @property {string | null} prnNumber - the number the service gave it on issue
+ * @property {number} tonnage
+ * @property {number} pricePerTonne
+ * @property {string | null} issued - when it was issued, as the report reads it
  */
 
 /**
@@ -433,23 +430,41 @@ async function uploadSummaryLog(run, event) {
 /**
  * What the operator types into a report beyond what the service aggregates
  * from the summary log: the tonnage a reprocessor recycled, which is what its
- * uploads credited over the period. The PRN figures are zero: nothing plans
- * a price for a note.
+ * uploads credited over the period, and for an accredited registration what
+ * the notes it issued in the period fetched and how much of their tonnage
+ * went for nothing.
  *
  * @param {Pick<PlannedRegistration, 'processingType' | 'accreditation'>} registration
  * @param {PlannedLogRow[]} rows
  * @param {ReportEvent} report
+ * @param {Pick<LiveNote, 'tonnage' | 'pricePerTonne' | 'issued'>[]} notes - every note the registration has drafted
  * @returns {{tonnageRecycled?: number, tonnageNotRecycled?: number, tonnageNotExported?: number, prnRevenue?: number, freeTonnage?: number}}
  */
-export function reportFields(registration, rows, report) {
+export function reportFields(registration, rows, report, notes) {
   const accredited = registration.accreditation !== null
-  const prn = accredited ? { prnRevenue: 0, freeTonnage: 0 } : {}
+  const periods = new Set(monthsOfPeriod(report))
+  const issued = notes.filter(
+    (note) => note.issued !== null && periods.has(note.issued.slice(0, 7))
+  )
+  const prn = accredited
+    ? {
+        // Two decimals in decimal arithmetic: pence, as the helper holds tonnage.
+        prnRevenue: heldTonnage(
+          issued.reduce(
+            (total, note) => total + note.tonnage * note.pricePerTonne,
+            0
+          )
+        ),
+        freeTonnage: issued
+          .filter((note) => note.pricePerTonne === 0)
+          .reduce((total, note) => total + note.tonnage, 0)
+      }
+    : {}
 
   if (registration.processingType === 'exporter') {
     return accredited ? prn : { tonnageNotExported: 0 }
   }
 
-  const periods = new Set(monthsOfPeriod(report))
   const recycled = rows
     .filter(
       (row) =>
@@ -477,7 +492,9 @@ async function submitReport(run, event) {
     registration.registrationId,
     authHeader,
     { year, cadence, period, submissionNumber },
-    reportFields(registration.planned, registration.rows.rows, event)
+    reportFields(registration.planned, registration.rows.rows, event, [
+      ...registration.notes.values()
+    ])
   )
 }
 
@@ -494,28 +511,29 @@ async function draftNote(run, event) {
     )
   }
   const authHeader = await signedIn(run, operator)
-  const balance = await run.seeders.waitForWasteBalance(
+  // The plan drafted the note against the balance its uploads had built, and
+  // the service builds that balance after each submission. A balance that
+  // never reaches the tonnage is the plan and the service disagreeing.
+  await run.seeders.waitForAvailableBalance(
     operator.refNo,
     accreditationId,
-    authHeader
+    authHeader,
+    event.tonnage
   )
-  const { availableAmount, nonDecemberAvailableAmount } =
-    balance[accreditationId] ?? {}
-  const available = Number(nonDecemberAvailableAmount ?? availableAmount)
-  const tonnage = Math.floor(available * NOTE_SHARE_OF_AVAILABLE)
-  if (!(tonnage >= 1)) {
-    throw new Error(
-      `${event.registrationId} has ${available} t available, too little to draft ${event.prnId}`
-    )
-  }
   const { prnPath } = await run.seeders.createPrn(
     operator.refNo,
     registration.registrationId,
     accreditationId,
     authHeader,
-    tonnage
+    event.tonnage
   )
-  registration.notes.set(event.prnId, { prnPath, prnNumber: null })
+  registration.notes.set(event.prnId, {
+    prnPath,
+    prnNumber: null,
+    tonnage: event.tonnage,
+    pricePerTonne: event.pricePerTonne,
+    issued: null
+  })
 }
 
 /**
@@ -589,8 +607,17 @@ async function producerRequestsCancellation(run, event) {
 const discardNote = moveNote('discarded')
 const raiseNote = moveNote('awaiting_authorisation')
 const deleteNote = moveNote('deleted')
-const issueNote = moveNote('awaiting_acceptance')
 const cancelNote = moveNote('cancelled')
+const awaitAcceptance = moveNote('awaiting_acceptance')
+
+/**
+ * @param {Run} run
+ * @param {PrnEvent} event
+ */
+async function issueNote(run, event) {
+  await awaitAcceptance(run, event)
+  liveNote(run, event).note.issued = event.at
+}
 
 const suspendAccreditation = changeStatus({ accreditation: 'suspended' })
 // The service cancels an approved accreditation only by cascade from its

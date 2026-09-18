@@ -35,11 +35,11 @@ calendar that emits something new stops rather than skipping it.
 | `accreditation.cancelled`    | Cancels the registration, which the service cascades to the accreditation.                                                                                                                                                                                                                 |
 | `summary-log.uploaded`       | Renders the workbook `uploadRows` gives for it, uploads it through cdp-uploader, waits for the validation the plan expects, and submits it if the plan says it landed.                                                                                                                     |
 | `report.submitted`           | Creates, fills and submits the period's report.                                                                                                                                                                                                                                            |
-| `prn.drafted`                | Reads the accreditation's waste balance and drafts a note for a third of what a general note can draw on, in whole tonnes. Stops the run if that is under a tonne, rather than skipping the note.                                                                                          |
+| `prn.drafted`                | Waits for the accreditation's waste balance to hold the tonnage the plan gives the note, then drafts it for that.                                                                                                                                                                          |
 | `prn.discarded`              | Moves the note to `discarded`.                                                                                                                                                                                                                                                             |
 | `prn.raised`                 | Moves it to `awaiting_authorisation`, which is when the service draws its tonnage from the balance.                                                                                                                                                                                        |
 | `prn.deleted`                | Moves it to `deleted`, which credits the tonnage back.                                                                                                                                                                                                                                     |
-| `prn.issued`                 | Moves it to `awaiting_acceptance`. The service numbers it here, and the producer's events use that number.                                                                                                                                                                                 |
+| `prn.issued`                 | Moves it to `awaiting_acceptance`. The service numbers it here, and the producer's events use that number. The run keeps when, for the period's report.                                                                                                                                    |
 | `prn.accepted`               | Accepts it as the producer, through the external API under the Cognito stub.                                                                                                                                                                                                               |
 | `prn.cancellation-requested` | Rejects it as the producer, through the external API, leaving it `awaiting_cancellation`.                                                                                                                                                                                                  |
 | `prn.cancelled`              | Moves it to `cancelled`.                                                                                                                                                                                                                                                                   |
@@ -62,20 +62,21 @@ is typed here:
 | Exporter, registered    | tonnage received but not exported                               |
 
 Tonnage recycled is what the registration's planned rows credited over the
-period. The rest is zero: nothing plans a price for a note, so PRN revenue and
-free tonnage are not simulated, and nothing planned is not recycled or not
-exported.
+period. PRN revenue is what the notes issued in the period fetched, their
+tonnage at the price the plan gave each, and free tonnage is the tonnage of
+any issued at no price. The rest is zero: nothing planned is not recycled or
+not exported.
 
 ## What a note is for
 
-The plan says when a note is drafted and what becomes of it, not how much it
-is for. A draft takes a third of what the accreditation has available to a
-general note at that moment, in whole tonnes: the whole available balance
-less its December portion, which only a December note can draw on. Creating a
-draft reserves nothing; the balance is
-drawn when the note is raised, and credited back when it is deleted or
-cancelled. The producer it is issued to is the seeders' fixed test
-organisation.
+The plan says when a note is drafted, what becomes of it and what it carries,
+drawn so the balance the uploads have built can fund it. The service builds
+that balance after each submission and refuses a draft over it, so a draft
+waits for the balance to hold the tonnage; a balance that never gets there
+means the plan and the service disagree, and the run stops. Creating a draft
+reserves nothing; the balance is drawn when the note is raised, and credited
+back when it is deleted or cancelled. The producer it is issued to is the
+seeders' fixed test organisation.
 
 ## Numbers
 

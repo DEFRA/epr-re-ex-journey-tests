@@ -282,6 +282,39 @@ const ACTIVITY = {
    */
   prnsPerAccreditationPerMonth: 2,
 
+  /**
+   * The share of the tonnage a registration credits to its waste balance that
+   * goes out on notes, by processing type. From the "UK" sheet of the
+   * accredited packaging waste monthly aggregated data workbook, 25 August
+   * 2026 edition, at
+   * https://www.gov.uk/government/statistical-data-sets/packaging-waste-data-reported-by-reprocessors-and-exporters:
+   * the tonnage of PRNs and PERNs issued over the tonnage recycled
+   * (reprocessors) and the tonnage exported for recycling (exporters), March
+   * to June 2026. January and February are the scheme's first two months, in
+   * which almost nothing was issued, so they would read a start-up lag as a
+   * habit.
+   */
+  prnIssuedShare: { reprocessor: 0.9, exporter: 0.6 },
+
+  /**
+   * What a tonne fetches on a note, by material suffix as
+   * `test/support/materials.js` spells it: the revenue over the tonnage
+   * issued on the "UK" sheet of the same workbook and edition as
+   * `prnIssuedShare`, March to June 2026, reprocessors and exporters
+   * together. The workbook carries no fibre-based composite row, so FB takes
+   * the paper and board price, as a fibre. Nominal for FB alone.
+   */
+  prnPricePerTonne: {
+    AL: 58,
+    FB: 5,
+    GR: 101,
+    GO: 91,
+    PA: 5,
+    PL: 299,
+    ST: 33,
+    WO: 13
+  },
+
   /** Nothing published follows a PRN past issue, so all of these are nominal. */
   prn: {
     deleteRate: 0.03,
@@ -376,7 +409,9 @@ const PUNCTUALITY = {
  *   summaryLogSheets: Record<string, Record<string, SheetShape>>,
  *   exportLoadOutcome: {stoppedShare: number, refusedShare: number},
  *   uploadIssueKinds: {fatal: Counts, error: Counts},
- *   prnsPerAccreditationPerMonth: number
+ *   prnsPerAccreditationPerMonth: number,
+ *   prnIssuedShare: Record<'exporter' | 'reprocessor', number>,
+ *   prnPricePerTonne: Counts
  * }} ActivityShape
  */
 

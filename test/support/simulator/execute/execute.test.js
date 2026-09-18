@@ -151,22 +151,7 @@ function recordingSeeders() {
       status: 'submitted'
     })),
     seedReportSubmission: record('seedReportSubmission', () => undefined),
-    /** @type {number | undefined} what the next balance read reports available, or nothing for the accreditation */
-    available: 100.5,
-    /** @type {number | undefined} what of that is outside the December portion, when there is one */
-    nonDecemberAvailable: undefined,
-    waitForWasteBalance: record(
-      'waitForWasteBalance',
-      (refNo, accreditationId) =>
-        seeders.available === undefined
-          ? {}
-          : {
-              [accreditationId]: {
-                availableAmount: seeders.available,
-                nonDecemberAvailableAmount: seeders.nonDecemberAvailable
-              }
-            }
-    ),
+    waitForAvailableBalance: record('waitForAvailableBalance', () => undefined),
     createPrn: record('createPrn', (refNo, registrationId, accreditationId) => {
       notes += 1
       return {
@@ -237,14 +222,18 @@ const reported = (registration, overrides = {}) => ({
  * @param {PlannedRegistration} registration
  * @param {PrnEvent['type']} type
  * @param {string} [prnId]
+ * @param {Partial<PrnEvent>} [overrides]
  * @returns {PrnEvent}
  */
-const noted = (registration, type, prnId = 'P1') => ({
+const noted = (registration, type, prnId = 'P1', overrides = {}) => ({
   type,
   at: '2026-02-10T10:00:00Z',
   organisationId: registration.organisationId,
   registrationId: registration.id,
-  prnId
+  prnId,
+  tonnage: 33,
+  pricePerTonne: 299,
+  ...overrides
 })
 
 describe('a run', () => {
@@ -564,6 +553,50 @@ describe('a run', () => {
         { year: 2026, cadence: 'monthly', period: 1, submissionNumber: 1 }
       ])
     })
+
+    it('types the revenue of the notes issued in the period, and the tonnage of those issued for nothing', async () => {
+      await executeEvent(run, approved(exporter))
+      /**
+       * @param {string} prnId
+       * @param {string} at
+       * @param {Pick<PrnEvent, 'tonnage' | 'pricePerTonne'>} overrides
+       */
+      const issue = async (prnId, at, overrides) => {
+        for (const type of [
+          EVENT.PRN_DRAFTED,
+          EVENT.PRN_RAISED,
+          EVENT.PRN_ISSUED
+        ]) {
+          await executeEvent(
+            run,
+            noted(exporter, type, prnId, { at, ...overrides })
+          )
+        }
+      }
+      await issue('P1', '2026-01-12T10:00:00Z', {
+        tonnage: 10,
+        pricePerTonne: 299
+      })
+      await issue('P2', '2026-01-20T10:00:00Z', {
+        tonnage: 5,
+        pricePerTonne: 0
+      })
+      await issue('P3', '2026-02-02T10:00:00Z', {
+        tonnage: 7,
+        pricePerTonne: 299
+      })
+      await executeEvent(
+        run,
+        noted(exporter, EVENT.PRN_DRAFTED, 'P4', {
+          at: '2026-01-25T10:00:00Z',
+          tonnage: 3
+        })
+      )
+      await executeEvent(run, reported(exporter))
+
+      const [submission] = seeders.of('seedReportSubmission')
+      assert.deepEqual(submission.args[4], { prnRevenue: 2990, freeTonnage: 5 })
+    })
   })
 
   describe('a note', () => {
@@ -582,54 +615,38 @@ describe('a run', () => {
     const notePath = (registration) =>
       `/organisations/org-1/registrations/${grantedTo(registration).registrationId}/accreditations/${grantedTo(registration).accreditationId}/packaging-recycling-notes/note-1`
 
-    it('is drafted for a share of what the accreditation has available, in whole tonnes, as the operator', async () => {
+    it('is drafted for the tonnage the plan gives it, as the operator, once the balance holds that much', async () => {
       await executeEvent(run, approved(exporter))
-      await executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED))
+      await executeEvent(
+        run,
+        noted(exporter, EVENT.PRN_DRAFTED, 'P1', { tonnage: 41 })
+      )
 
       const { registrationId, accreditationId } = grantedTo(exporter)
-      const [balance] = seeders.of('waitForWasteBalance')
-      assert.deepEqual(balance.args, [
-        'org-1',
-        accreditationId,
-        { Authorization: 'Bearer linked' }
-      ])
-      const [draft] = seeders.of('createPrn')
-      assert.deepEqual(draft.args, [
-        'org-1',
-        registrationId,
-        accreditationId,
-        { Authorization: 'Bearer linked' },
-        33
-      ])
-    })
-
-    it('is drafted from what is outside the December portion when the service marks one', async () => {
-      await executeEvent(run, approved(exporter))
-      seeders.nonDecemberAvailable = 30
-      await executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED))
-
-      const [draft] = seeders.of('createPrn')
-      assert.equal(draft.args[4], 10)
-    })
-
-    it('stops when under a tonne is available', async () => {
-      await executeEvent(run, approved(exporter))
-      seeders.available = 2.9
-      await assert.rejects(
-        executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED)),
-        /2.9 t available/
+      const [funded, draft] = seeders.calls.filter((call) =>
+        ['waitForAvailableBalance', 'createPrn'].includes(call.name)
       )
-      assert.equal(seeders.of('createPrn').length, 0)
-    })
-
-    it('stops when the balance read names no such accreditation', async () => {
-      await executeEvent(run, approved(exporter))
-      seeders.available = undefined
-      await assert.rejects(
-        executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED)),
-        /NaN t available/
+      assert.deepEqual(
+        [funded.name, ...funded.args],
+        [
+          'waitForAvailableBalance',
+          'org-1',
+          accreditationId,
+          { Authorization: 'Bearer linked' },
+          41
+        ]
       )
-      assert.equal(seeders.of('createPrn').length, 0)
+      assert.deepEqual(
+        [draft.name, ...draft.args],
+        [
+          'createPrn',
+          'org-1',
+          registrationId,
+          accreditationId,
+          { Authorization: 'Bearer linked' },
+          41
+        ]
+      )
     })
 
     it('cannot be drafted by a registered-only registration', async () => {
@@ -784,7 +801,15 @@ describe('what the operator types into a report', () => {
     period: 1
   })
 
-  it('is the tonnage a reprocessor credited over the period, and the PRN figures at zero', () => {
+  /** Notes as the run holds them: two issued in January, one for nothing, one in February and one never issued. */
+  const notes = [
+    { tonnage: 10, pricePerTonne: 299.5, issued: '2026-01-12T10:00:00Z' },
+    { tonnage: 5, pricePerTonne: 0, issued: '2026-01-20T10:00:00Z' },
+    { tonnage: 7, pricePerTonne: 299.5, issued: '2026-02-02T10:00:00Z' },
+    { tonnage: 3, pricePerTonne: 299.5, issued: null }
+  ]
+
+  it('is the tonnage a reprocessor credited over the period, with the revenue and free tonnage of the notes issued in it', () => {
     const planned = rowsOf(reprocessor)
     const credited = planned.rows
       .filter(
@@ -794,12 +819,22 @@ describe('what the operator types into a report', () => {
       .reduce((total, row) => total + row.tonnage, 0)
     assert.ok(credited > 0)
 
-    assert.deepEqual(reportFields(reprocessor, planned.rows, january), {
+    assert.deepEqual(reportFields(reprocessor, planned.rows, january, notes), {
       tonnageRecycled: Math.round(credited * 100) / 100,
       tonnageNotRecycled: 0,
-      prnRevenue: 0,
-      freeTonnage: 0
+      prnRevenue: 2995,
+      freeTonnage: 5
     })
+  })
+
+  it('reads the PRN figures as zero revenue and no free tonnage where nothing was issued', () => {
+    assert.deepEqual(
+      reportFields(exporter, rowsOf(exporter).rows, january, []),
+      {
+        prnRevenue: 0,
+        freeTonnage: 0
+      }
+    )
   })
 
   it('covers three months for a quarterly return', () => {
@@ -814,16 +849,16 @@ describe('what the operator types into a report', () => {
       .reduce((total, row) => total + row.tonnage, 0)
 
     assert.equal(
-      reportFields(reprocessor, planned.rows, quarter).tonnageRecycled,
+      reportFields(reprocessor, planned.rows, quarter, []).tonnageRecycled,
       Math.round(credited * 100) / 100
     )
   })
 
   it('is only the PRN figures for an accredited exporter, whose export the service aggregates', () => {
-    assert.deepEqual(reportFields(exporter, rowsOf(exporter).rows, january), {
-      prnRevenue: 0,
-      freeTonnage: 0
-    })
+    assert.deepEqual(
+      reportFields(exporter, rowsOf(exporter).rows, january, notes),
+      { prnRevenue: 2995, freeTonnage: 5 }
+    )
   })
 
   it('is the tonnage not exported, at zero, for a registered-only exporter', () => {
@@ -831,7 +866,8 @@ describe('what the operator types into a report', () => {
       reportFields(
         { ...registeredOnly, processingType: 'exporter' },
         [],
-        firstQuarter
+        firstQuarter,
+        []
       ),
       { tonnageNotExported: 0 }
     )
@@ -842,7 +878,8 @@ describe('what the operator types into a report', () => {
       reportFields(
         { ...registeredOnly, processingType: 'reprocessor' },
         [],
-        firstQuarter
+        firstQuarter,
+        []
       ),
       { tonnageRecycled: 0, tonnageNotRecycled: 0 }
     )

@@ -213,14 +213,23 @@ const firstSubmission = (registration) => {
 }
 
 /**
- * Whole months a registration could issue notes in, up to and including
- * December: those after the month of its first submitted summary log.
+ * The last month the note count is measured over. December is left out: what
+ * an operator receives in December is kept for a December note, which the
+ * calendar does not plan, so it drafts fewer general notes that month.
+ */
+const LAST_COUNTED_MONTH = '2026-11'
+
+/**
+ * Whole months a registration could issue notes in, up to the last counted
+ * month: those after the month of its first submitted summary log.
  *
  * @param {PlannedRegistration} registration
  */
 const issuingMonths = (registration) => {
   const first = firstSubmission(registration)
-  return first ? 12 - Number(first.slice(5, 7)) : 0
+  return first
+    ? Number(LAST_COUNTED_MONTH.slice(5, 7)) - Number(first.slice(5, 7))
+    : 0
 }
 
 describe('the calendar at full scale', () => {
@@ -872,6 +881,11 @@ describe('PRNs', () => {
    * registration's own factor over the months it could issue in. Those are
    * the whole months after its first submission, so the notes counted are
    * the ones drafted in them.
+   *
+   * The count is drawn evenly either side of the rate, so at full scale the
+   * estate mean sits a few per cent from it by the seed, and a note the
+   * balance cannot give a whole tonne is not drafted. The tolerance covers
+   * both.
    */
   /** @param {PlannedRegistration[]} members */
   const expectedPerMonth = (members) =>
@@ -888,7 +902,8 @@ describe('PRNs', () => {
       members.some(
         (registration) =>
           registration.id === event.registrationId &&
-          month(event) > must(firstSubmission(registration))
+          month(event) > must(firstSubmission(registration)) &&
+          month(event) <= LAST_COUNTED_MONTH
       )
     ).length /
     members.reduce((sum, registration) => sum + issuingMonths(registration), 0)
@@ -906,7 +921,7 @@ describe('PRNs', () => {
     near(
       draftedPerMonth(accredited),
       expectedPerMonth(accredited),
-      0.05,
+      0.1,
       'PRNs per accreditation month'
     )
   })
@@ -1017,6 +1032,186 @@ describe('PRNs', () => {
       ),
       0.03,
       'same month'
+    )
+  })
+
+  it('carries a whole tonnage of at least a tonne and the material’s price on every event of a note', () => {
+    for (const event of prnEvents) {
+      assert.ok(
+        Number.isInteger(event.tonnage) && event.tonnage >= 1,
+        `${event.prnId} ${event.type} carries ${event.tonnage} t`
+      )
+      assert.equal(
+        event.pricePerTonne,
+        ACTIVITY.prnPricePerTonne[registrationOf(event).material.suffix],
+        `${event.prnId} ${event.type}`
+      )
+    }
+    for (const chain of byPrn.values()) {
+      assert.equal(
+        new Set(chain.map((event) => event.tonnage)).size,
+        1,
+        chain[0].prnId
+      )
+    }
+  })
+
+  /**
+   * Whether the service keeps a credit for a December note: the overseas
+   * reprocessor received an exported load in December, or a reprocessor
+   * received or reprocessed one then. Spelt out here, apart from what the
+   * sheets declare, so the plan is checked against the service's rule rather
+   * than its own.
+   *
+   * @param {PlannedRegistration} registration
+   * @param {PlannedLogRow} row
+   */
+  const isDecemberCredit = (registration, row) =>
+    row.contribution === CONTRIBUTION.CREDIT &&
+    (registration.processingType === 'exporter'
+      ? String(row.fields.DATE_RECEIVED_BY_OSR).slice(3, 5)
+      : row.date.slice(5, 7)) === '12'
+
+  /**
+   * The balance the service holds for an accreditation, replayed from its
+   * events: what its submitted uploads credited outside December, less what
+   * they debited, less every note holding tonnage. A note draws it when
+   * raised and gives it back when deleted or cancelled.
+   *
+   * @param {PlannedRegistration} registration
+   * @returns {number} the lowest the balance went at a raise
+   */
+  const lowestBalanceAtRaise = (registration) => {
+    const planned = rowsOf(registration.id)
+    const own = events.filter(
+      (event) =>
+        'registrationId' in event && event.registrationId === registration.id
+    )
+    /** @type {Map<string, number>} */
+    const holding = new Map()
+    let credited = 0
+    let lowest = Infinity
+    for (const event of own) {
+      if (
+        event.type === EVENT.SUMMARY_LOG_UPLOADED &&
+        event.outcome === UPLOAD_OUTCOME.SUBMITTED
+      ) {
+        credited = planned.rows
+          .filter(
+            (row) =>
+              row.date <= event.cutoff && !isDecemberCredit(registration, row)
+          )
+          .reduce(
+            (sum, row) =>
+              sum +
+              (row.contribution === CONTRIBUTION.CREDIT
+                ? row.tonnage
+                : -row.tonnage),
+            0
+          )
+      }
+      if (!isPrnEvent(event)) continue
+      if (event.type === EVENT.PRN_RAISED) {
+        holding.set(event.prnId, event.tonnage)
+        const held = [...holding.values()].reduce((sum, t) => sum + t, 0)
+        lowest = Math.min(lowest, credited - held)
+      }
+      if (
+        event.type === EVENT.PRN_DELETED ||
+        event.type === EVENT.PRN_CANCELLED
+      ) {
+        holding.delete(event.prnId)
+      }
+    }
+    return lowest
+  }
+
+  it('never raises a note the balance its uploads have built cannot fund', () => {
+    for (const registration of accredited) {
+      const lowest = lowestBalanceAtRaise(registration)
+      assert.ok(lowest >= 0, `${registration.id} went to ${lowest} t`)
+    }
+  })
+
+  it('issues the calibrated share of what each processing type credits outside December', () => {
+    const issued = ofType(EVENT.PRN_ISSUED)
+    for (const processingType of ['reprocessor', 'exporter']) {
+      const members = accredited.filter(
+        (registration) => registration.processingType === processingType
+      )
+      let planned = 0
+      let creditedByLastDraw = 0
+      for (const registration of members) {
+        const own = drafted.filter(
+          (event) => event.registrationId === registration.id
+        )
+        if (own.length === 0) continue
+        planned += issued
+          .filter((event) => event.registrationId === registration.id)
+          .reduce((sum, event) => sum + event.tonnage, 0)
+        const lastDraft = must(own.at(-1))
+        const cutoff = landed
+          .filter(
+            (upload) =>
+              upload.registrationId === registration.id &&
+              day(upload) < day(lastDraft)
+          )
+          .at(-1)?.cutoff
+        creditedByLastDraw += rowsOf(registration.id)
+          .rows.filter(
+            (row) =>
+              row.contribution === CONTRIBUTION.CREDIT &&
+              row.date <= must(cutoff) &&
+              !isDecemberCredit(registration, row)
+          )
+          .reduce((sum, row) => sum + row.tonnage, 0)
+      }
+      near(
+        planned / creditedByLastDraw,
+        ACTIVITY.prnIssuedShare[processingType],
+        0.02,
+        processingType
+      )
+    }
+  })
+
+  it('does not make a month’s first note its largest', () => {
+    /** @type {boolean[]} */
+    const firstIsLargest = []
+    for (const registration of accredited) {
+      const own = drafted.filter(
+        (event) => event.registrationId === registration.id
+      )
+      for (const key of new Set(own.map(month))) {
+        const inMonth = own.filter((event) => month(event) === key)
+        if (inMonth.length < 3) continue
+        firstIsLargest.push(
+          inMonth.every((event) => event.tonnage <= inMonth[0].tonnage)
+        )
+      }
+    }
+    assert.ok(firstIsLargest.length > 100, `${firstIsLargest.length}`)
+    assert.ok(
+      share(firstIsLargest, (largest) => largest) < 0.5,
+      `${share(firstIsLargest, (largest) => largest)}`
+    )
+  })
+
+  it('refuses a material the calibration prices nothing for', () => {
+    const { PL, ...rest } = ACTIVITY.prnPricePerTonne
+    assert.ok(PL > 0)
+    assert.throws(
+      () =>
+        planCalendar({
+          population,
+          rows,
+          to: TO,
+          calibration: {
+            ...DEFAULT_CALIBRATION,
+            activity: { ...ACTIVITY, prnPricePerTonne: rest }
+          }
+        }),
+      /no price for PL/
     )
   })
 })
