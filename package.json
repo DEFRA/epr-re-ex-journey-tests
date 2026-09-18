@@ -42,6 +42,7 @@
     "test:api": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.api.config.js",
     "test:api:grep": "npm run clean && NODE_OPTIONS='--loader esm-module-alias/loader' playwright test --config=playwright.api.config.js --grep \"$GREP\"",
     "clock": "node test/support/simulator/clock/simulated-clock.js",
+    "simulate": "FAKE_CLOCK_FILE=$PWD/test/support/simulator/clock/clock.txt NODE_OPTIONS=\"--require $PWD/test/support/simulator/clock/fake-clock.cjs\" node test/support/simulator/run/simulate.js",
     "simulate:exercise": "FAKE_CLOCK_FILE=$PWD/test/support/simulator/clock/clock.txt NODE_OPTIONS=\"--require $PWD/test/support/simulator/clock/fake-clock.cjs\" node test/support/simulator/execute/hand-run.js",
     "generatedata": "node test/support/data-generator/data-generator.js",
     "generatedata:withLinking": "node test/support/data-generator/data-generator.js --with-linking",
