@@ -464,10 +464,10 @@ async function submitReport(run, event) {
 const EXECUTORS = {
   [EVENT.REGISTRATION_APPROVED]: approveRegistration,
   [EVENT.ACCREDITATION_SUSPENDED]: changeStatus({ accreditation: 'suspended' }),
-  [EVENT.ACCREDITATION_CANCELLED]: changeStatus({
-    registration: 'cancelled',
-    accreditation: 'cancelled'
-  }),
+  // An accreditation can only be cancelled from suspended; cancelling the
+  // registration is what cancels an approved one, because the service
+  // cascades the cancellation to the accreditation linked to it.
+  [EVENT.ACCREDITATION_CANCELLED]: changeStatus({ registration: 'cancelled' }),
   [EVENT.SUMMARY_LOG_UPLOADED]: uploadSummaryLog,
   [EVENT.REPORT_SUBMITTED]: submitReport
 }

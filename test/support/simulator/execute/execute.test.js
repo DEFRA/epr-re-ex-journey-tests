@@ -303,7 +303,7 @@ describe('a run', () => {
       assert.equal(change.args[3], '2026-04-07')
     })
 
-    it('cancels the registration with the accreditation', async () => {
+    it('cancels the registration, which the service cascades to its accreditation', async () => {
       await executeEvent(run, approved(exporter))
       await executeEvent(run, {
         ...approved(exporter, '2026-05-01T11:00:00Z'),
@@ -311,10 +311,7 @@ describe('a run', () => {
       })
 
       const [change] = seeders.of('changeMigratedStatus')
-      assert.deepEqual(change.args[2], {
-        registration: 'cancelled',
-        accreditation: 'cancelled'
-      })
+      assert.deepEqual(change.args[2], { registration: 'cancelled' })
     })
 
     it('refuses an event for a registration not yet approved', async () => {
