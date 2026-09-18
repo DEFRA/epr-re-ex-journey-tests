@@ -322,9 +322,17 @@ const submissionPath = (
 ) =>
   `/v1/organisations/${refNo}/registrations/${registrationId}/reports/${year}/${cadence}/${period}/submissions/${submissionNumber}`
 
-// Creates a submission and leaves it in_progress, returning the version the
-// next transition needs. An in-flight draft is a state under test in its own
-// right: it must not disturb what the period has already submitted.
+/**
+ * Creates a submission and leaves it in_progress, returning the version the
+ * next transition needs. An in-flight draft is a state under test in its own
+ * right: it must not disturb what the period has already submitted.
+ *
+ * @param {string} refNo
+ * @param {string} registrationId
+ * @param {Record<string, string | undefined>} defraAuthHeader
+ * @param {{year: number, cadence: string, period: number, submissionNumber: number}} periodSubmission
+ * @param {Record<string, number>} [patchFields] - what the operator types in, which the completeness check gates submit on
+ */
 export async function seedDraftSubmission(
   refNo,
   registrationId,
@@ -381,6 +389,13 @@ export async function submitSeededDraft(
   await assertSuccessResponse(submitResponse, `POST ${basePath}/status`)
 }
 
+/**
+ * @param {string} refNo
+ * @param {string} registrationId
+ * @param {Record<string, string | undefined>} defraAuthHeader
+ * @param {{year: number, cadence: string, period: number, submissionNumber: number}} periodSubmission
+ * @param {Record<string, number>} [patchFields]
+ */
 export async function seedReportSubmission(
   refNo,
   registrationId,

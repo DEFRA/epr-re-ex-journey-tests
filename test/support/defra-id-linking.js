@@ -82,29 +82,46 @@ export async function createAndRegisterDefraIdUser(email) {
   return user
 }
 
-export async function linkDefraIdUser(organisationId, userId, email) {
-  const baseAPI = new BaseAPI()
+/**
+ * Signs a registered Defra ID user in through the stub, so that
+ * `defraIdStub.authHeader(userId)` carries a fresh token. A token lasts an
+ * hour, so a caller that outlives one signs in again the same way.
+ *
+ * @param {string} userId
+ * @param {string} email
+ * @returns {Promise<{Authorization?: string}>}
+ */
+export async function signInDefraIdUser(userId, email) {
   const users = new Users()
 
   const payload = await users.authorisationPayload(email)
   const response = await defraIdStub.authorise(payload)
-  if (!response) {
+  const sessionId = response?.split('sessionId=')[1]
+  if (!sessionId) {
     throw new Error(
-      `DefraID stub authorise returned no location header for ${email}`
+      `DefraID stub authorise returned no session for ${email}: ${response}`
     )
   }
-  const sessionId = response.split('sessionId=')[1]
 
   const tokenPayload = await users.tokenPayload(sessionId)
   await defraIdStub.generateToken(JSON.stringify(tokenPayload), userId)
 
+  return defraIdStub.authHeader(userId)
+}
+
+export async function linkDefraIdUser(organisationId, userId, email) {
+  const baseAPI = new BaseAPI()
+  const authHeader = await signInDefraIdUser(userId, email)
+
   const linkResponse = await baseAPI.post(
     `/v1/organisations/${organisationId}/link`,
     '',
-    defraIdStub.authHeader(userId)
+    authHeader
   )
 
   expect(linkResponse.statusCode).to.equal(200)
+
+  return authHeader
 }
 
 /**
