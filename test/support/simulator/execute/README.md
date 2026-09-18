@@ -22,8 +22,7 @@ far. Hand one operator's events over in calendar order. Events of different
 operators are independent of each other.
 
 `executeEvent` refuses an event type it has no executor for, by name, so a
-calendar that reaches a PRN event stops rather than skipping it. The PRN
-executors are tracked separately.
+calendar that reaches a PRN event stops rather than skipping it.
 
 ## What each event does
 

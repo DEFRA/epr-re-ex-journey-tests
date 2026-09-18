@@ -113,21 +113,6 @@ export function createRun({
 }
 
 /**
- * Carries out one event. Resolves to whatever the service handed back that a
- * later event might want.
- *
- * @param {Run} run
- * @param {CalendarEvent} event
- */
-export async function executeEvent(run, event) {
-  const executor = EXECUTORS[event.type]
-  if (!executor) {
-    throw new Error(`No executor carries out a ${event.type} event`)
-  }
-  return executor(run, /** @type {any} */ (event))
-}
-
-/**
  * @param {Run} run
  * @param {{registrationId: string}} event
  * @returns {PlannedRegistrationRecord}
@@ -441,18 +426,31 @@ async function submitReport(run, event) {
   )
 }
 
+const suspendAccreditation = changeStatus({ accreditation: 'suspended' })
+// The service cancels an approved accreditation only by cascade from its
+// registration.
+const cancelAccreditation = changeStatus({ registration: 'cancelled' })
+
 /**
- * One executor per event type this bead carries out. The PRN events are not
- * here yet, so a plan that reaches one stops rather than skipping it.
+ * Carries out one event. Resolves to whatever the service handed back that a
+ * later event might want. An event with no executor here stops the run.
  *
- * @type {Partial<Record<string, (run: Run, event: any) => Promise<unknown>>>}
+ * @param {Run} run
+ * @param {CalendarEvent} event
  */
-const EXECUTORS = {
-  [EVENT.REGISTRATION_APPROVED]: approveRegistration,
-  [EVENT.ACCREDITATION_SUSPENDED]: changeStatus({ accreditation: 'suspended' }),
-  // The service cancels an approved accreditation only by cascade from its
-  // registration.
-  [EVENT.ACCREDITATION_CANCELLED]: changeStatus({ registration: 'cancelled' }),
-  [EVENT.SUMMARY_LOG_UPLOADED]: uploadSummaryLog,
-  [EVENT.REPORT_SUBMITTED]: submitReport
+export async function executeEvent(run, event) {
+  switch (event.type) {
+    case EVENT.REGISTRATION_APPROVED:
+      return approveRegistration(run, event)
+    case EVENT.ACCREDITATION_SUSPENDED:
+      return suspendAccreditation(run, event)
+    case EVENT.ACCREDITATION_CANCELLED:
+      return cancelAccreditation(run, event)
+    case EVENT.SUMMARY_LOG_UPLOADED:
+      return uploadSummaryLog(run, event)
+    case EVENT.REPORT_SUBMITTED:
+      return submitReport(run, event)
+    default:
+      throw new Error(`No executor carries out a ${event.type} event`)
+  }
 }

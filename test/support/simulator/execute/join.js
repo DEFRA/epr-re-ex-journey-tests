@@ -12,7 +12,11 @@ import { generateAccNumber, generateRegNumber } from '../../reg-acc-number.js'
 
 /** @import {PlannedOperator, PlannedRegistration} from '../population/population.js' */
 
-/** The nation as the register spells it at the fourth character of a number. */
+/**
+ * The nation as the register spells it at the fourth character of a number.
+ *
+ * @type {Record<string, 'E' | 'W' | 'S' | 'N' | undefined>}
+ */
 const NATION_LETTER = {
   England: 'E',
   Wales: 'W',
@@ -22,7 +26,7 @@ const NATION_LETTER = {
 
 /**
  * @param {string} nation
- * @returns {string}
+ * @returns {'E' | 'W' | 'S' | 'N'}
  */
 export function nationLetter(nation) {
   const letter = NATION_LETTER[nation]
