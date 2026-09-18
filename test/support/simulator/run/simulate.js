@@ -211,9 +211,9 @@ async function main() {
         return executeEvent(aRun, event)
       },
       onExecuted: (event) => {
-        appendJournal(directory, entryFor(run, event))
-        done.add(eventKey(event))
         const key = eventKey(event)
+        appendJournal(directory, entryFor(run, event))
+        done.add(key)
         const took = (performance.now() - (startedAt.get(key) ?? 0)) / 1000
         startedAt.delete(key)
         logger.info(
