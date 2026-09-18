@@ -4,7 +4,12 @@ import ExcelJS from 'exceljs'
 import { planPopulation } from '../population/population.js'
 import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { generateSpreadsheetData } from '../../spreadsheet/summarylogs-spreadsheet-data-generator.js'
-import { planSummaryLogRows, rowsForUpload, streamFor } from './rows.js'
+import {
+  heldTonnage,
+  planSummaryLogRows,
+  rowsForUpload,
+  streamFor
+} from './rows.js'
 import { CONTRIBUTION } from './sheets.js'
 
 const SEED = 'rows-test'
@@ -363,6 +368,60 @@ describe('a planned row that has to count', () => {
   })
 })
 
+describe('what the service holds of a row', () => {
+  it('rounds a cell to two decimals, half up, as the service does', () => {
+    assert.equal(heldTonnage(1.005), 1.01)
+    assert.equal(heldTonnage(2.675), 2.68)
+    assert.equal(heldTonnage(1621.5149999999999), 1621.51)
+    assert.equal(heldTonnage(12), 12)
+    assert.equal(heldTonnage(12.3), 12.3)
+    assert.equal(heldTonnage(0.1 + 0.2), 0.3)
+    // The residue of subtracting equal weights, which a cell of no tonnage
+    // leaves, on either side of zero.
+    assert.equal(heldTonnage(1.785238623597252e-15), 0)
+    assert.equal(heldTonnage(-1.785238623597252e-15), 0)
+  })
+
+  it('reports each tonnage as the service will hold it, not as the cell reads', () => {
+    for (const row of everyRow(plan)) {
+      if (row.contribution === CONTRIBUTION.NONE) continue
+      const cell = Number(row.fields[TONNAGE_CELL[row.worksheet]])
+      assert.equal(
+        row.tonnage,
+        heldTonnage(cell),
+        `${row.worksheet} row ${row.rowId} moves ${row.tonnage} for a cell of ${cell}`
+      )
+    }
+  })
+
+  it('contributes nothing where the service would hold nothing', () => {
+    const calibration = structuredClone(DEFAULT_CALIBRATION)
+    for (const sheets of Object.values(calibration.activity.summaryLogSheets)) {
+      for (const sheet of Object.values(sheets)) {
+        if (sheet.monthlyTonnage !== undefined) sheet.monthlyTonnage = 0
+      }
+    }
+    const empty = planSummaryLogRows({
+      population: planPopulation({ seed: SEED, scale: 0.01 }),
+      calibration
+    })
+    for (const row of everyRow(empty)) {
+      assert.equal(row.tonnage, 0)
+      assert.equal(row.contribution, CONTRIBUTION.NONE)
+    }
+  })
+
+  it('holds no more than the two decimals the service keeps', () => {
+    for (const row of everyRow(plan)) {
+      assert.match(
+        String(row.tonnage),
+        /^\d+(\.\d{1,2})?$/,
+        `${row.worksheet} row ${row.rowId} moves ${row.tonnage}`
+      )
+    }
+  })
+})
+
 describe('the arithmetic the service recomputes', () => {
   it('derives the net weight from the weights around it', () => {
     for (const row of creditRows(plan, 'exporter').concat(
@@ -386,7 +445,7 @@ describe('the arithmetic the service recomputes', () => {
           TOLERANCE,
         `tonnage ${f.TONNAGE_RECEIVED_FOR_RECYCLING} does not follow from the weights`
       )
-      assert.equal(row.tonnage, f.TONNAGE_RECEIVED_FOR_RECYCLING)
+      assert.equal(row.tonnage, heldTonnage(f.TONNAGE_RECEIVED_FOR_RECYCLING))
     }
   })
 
@@ -398,7 +457,10 @@ describe('the arithmetic the service recomputes', () => {
           TOLERANCE,
         `tonnage ${f.TONNAGE_RECEIVED_FOR_EXPORT} does not follow from the weights`
       )
-      assert.equal(row.tonnage, f.TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED)
+      assert.equal(
+        row.tonnage,
+        heldTonnage(f.TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED)
+      )
     }
   })
 
@@ -412,7 +474,10 @@ describe('the arithmetic the service recomputes', () => {
         ) < TOLERANCE,
         `proportion ${f.PRODUCT_UK_PACKAGING_WEIGHT_PROPORTION} does not follow from the product`
       )
-      assert.equal(row.tonnage, f.PRODUCT_UK_PACKAGING_WEIGHT_PROPORTION)
+      assert.equal(
+        row.tonnage,
+        heldTonnage(f.PRODUCT_UK_PACKAGING_WEIGHT_PROPORTION)
+      )
     }
   })
 })

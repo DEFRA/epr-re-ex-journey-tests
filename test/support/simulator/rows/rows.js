@@ -7,6 +7,7 @@
  * arrange before a planned row can count.
  */
 
+import Decimal from 'decimal.js'
 import { WORKSHEET_CONFIG } from '../../spreadsheet/spreadsheet-config.js'
 import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { allocate, createRandom } from '../population/random.js'
@@ -25,7 +26,7 @@ export { CONTRIBUTION }
  * @property {string} period - the month it belongs to, `YYYY-MM`
  * @property {string} date - the day it happened, ISO
  * @property {'credit' | 'debit' | 'none'} contribution - what it does to the waste balance
- * @property {number} tonnage - what it moves once the service has read the cells; 0 where it moves nothing
+ * @property {number} tonnage - what it moves once the service has read the cells, held to the two decimals the service keeps; 0 where it moves nothing
  * @property {Record<string, string | number>} fields - cells to pin, keyed by template marker
  * @property {number} seed - draws every cell the plan leaves alone
  */
@@ -95,6 +96,18 @@ const lastDayOf = (year, month) => new Date(Date.UTC(year, month + 1, 0))
 
 const daysBetween = (from, to) =>
   Math.round((to.getTime() - from.getTime()) / DAY_MS)
+
+/**
+ * The tonnage the service holds for a cell: two decimal places, rounded half up
+ * in decimal arithmetic, as the service rounds it. Rounding the double instead
+ * reads 1.005 as just under the half and lands on the other side. A cell that
+ * rounds to nothing is 0, never -0.
+ *
+ * @param {number} cell
+ * @returns {number}
+ */
+export const heldTonnage = (cell) =>
+  new Decimal(cell).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber() || 0
 
 /**
  * Which of the generator's five streams a registration renders as.
@@ -458,7 +471,7 @@ function planRow({
     sheet.load && tonnage !== undefined
       ? sheet.load(tonnage, random, calibration)
       : null
-  const moves = load?.tonnage ?? 0
+  const moves = load ? heldTonnage(load.tonnage) : 0
 
   return {
     rowId,
