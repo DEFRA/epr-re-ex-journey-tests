@@ -236,7 +236,8 @@ function statusChange(registration, first, last, random) {
   if (!type) return null
 
   const earliest = earlier(addDays(first, EARLIEST_STATUS_CHANGE_DAYS), last)
-  return { type, day: dayBetween(earliest, last, random, false) ?? last }
+  const day = dayBetween(earliest, last, random, false)
+  return day ? { type, day } : null
 }
 
 /**
@@ -483,6 +484,9 @@ function draftReporting(context, periods, activityEnd) {
     const closedPeriods = reports
       .filter((report) => report.day < upload.day)
       .flatMap((report) => report.period.months)
+    const amendable = submitted.filter(
+      (row) => !closedPeriods.includes(row.period)
+    )
 
     const event = draftUploadAttempts(
       context,
@@ -495,7 +499,7 @@ function draftReporting(context, periods, activityEnd) {
             ? null
             : {
                 count: Math.min(
-                  submitted.length,
+                  amendable.length,
                   amendmentCount(context, stream, upload.period)
                 ),
                 seed: `${context.random.int(1, 2 ** 31 - 1)}`

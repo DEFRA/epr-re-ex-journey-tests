@@ -237,6 +237,15 @@ describe('registrations and their accreditations', () => {
   it('dates a status change on a working day', () => {
     for (const event of changed) assert.ok(!isWeekend(event), event.at)
   })
+
+  it('leaves a status change unplanned rather than put it on a weekend', () => {
+    const sunday = '2026-01-04'
+    const planned = planCalendar({ population, rows, to: sunday })
+    const changes = planned.operators
+      .flatMap((operator) => operator.events)
+      .filter((event) => event.type.startsWith('accreditation.'))
+    assert.deepEqual(changes, [])
+  })
 })
 
 describe('summary log uploads', () => {
@@ -426,6 +435,25 @@ describe('the rows an upload carries', () => {
       const view = byKey(viewOf(registration, upload))
       for (const [key] of amended) {
         assert.notEqual(must(view.get(key)).seed, must(planned.get(key)).seed)
+      }
+    }
+  })
+
+  it('plans no more amendments than the open periods hold rows', () => {
+    for (const planned of rows.registrations) {
+      let cutoff = ''
+      for (const upload of uploadsOf(planned.registrationId)) {
+        const pool = planned.rows.filter(
+          (row) =>
+            row.date <= cutoff && !upload.closedPeriods.includes(row.period)
+        )
+        if (upload.amendments) {
+          assert.ok(
+            upload.amendments.count <= pool.length,
+            `${planned.registrationId} ${upload.at} plans ${upload.amendments.count} amendments over ${pool.length} rows`
+          )
+        }
+        if (upload.outcome === UPLOAD_OUTCOME.SUBMITTED) cutoff = upload.cutoff
       }
     }
   })
