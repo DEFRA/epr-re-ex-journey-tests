@@ -84,10 +84,10 @@ export function parseSettings(argv) {
  *
  * @param {ReturnType<typeof parseSettings>} asked
  * @param {RunSettings | null} saved
- * @param {() => string} today
+ * @param {{from: string, to: string}} defaults - the period a fresh run covers when none is asked for
  * @returns {RunSettings}
  */
-export function settleSettings(asked, saved, today) {
+export function settleSettings(asked, saved, defaults) {
   /** @type {Partial<RunSettings>} */
   const wanted = {
     seed: asked.seed,
@@ -109,13 +109,12 @@ export function settleSettings(asked, saved, today) {
     }
     return saved
   }
-  const calibration = loadCalibration()
   return {
     seed: wanted.seed ?? DEFAULT_SEED,
     scale: wanted.scale ?? 1,
     profileMix: wanted.profileMix ?? 'production',
-    from: wanted.from ?? calibration.register.activeFrom.goLive,
-    to: wanted.to ?? today()
+    from: wanted.from ?? defaults.from,
+    to: wanted.to ?? defaults.to
   }
 }
 
@@ -131,12 +130,13 @@ async function main() {
     clearSimulatedClock()
     await new Promise((resolve) => setTimeout(resolve, CLOCK_SETTLE_MS))
   }
-  const settings = settleSettings(asked, saved, () =>
-    new Date().toISOString().slice(0, 10)
-  )
+  const calibration = loadCalibration()
+  const settings = settleSettings(asked, saved, {
+    from: calibration.register.activeFrom.goLive,
+    to: new Date().toISOString().slice(0, 10)
+  })
   if (!saved) writeSettings(directory, settings)
 
-  const calibration = loadCalibration()
   const population = planPopulation({ ...settings, calibration })
   const rows = planSummaryLogRows({ population, calibration })
   const calendar = planCalendar({

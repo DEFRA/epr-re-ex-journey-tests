@@ -29,6 +29,9 @@ const CLOCK_SETTLE_MS = 500
 export const eventKey = (event) =>
   `${event.registrationId} ${event.type} ${event.at}`
 
+/** @param {CalendarEvent} event */
+const dayOf = (event) => event.at.slice(0, 10)
+
 /**
  * Every event of every operator, in the order they happen.
  *
@@ -120,7 +123,7 @@ async function drain(queues, concurrency, work, stop) {
   })
   const outcomes = await Promise.allSettled(workers)
   const failed = outcomes.find((outcome) => outcome.status === 'rejected')
-  if (failed && failed.status === 'rejected') throw failed.reason
+  if (failed?.status === 'rejected') throw failed.reason
 }
 
 /**
@@ -147,12 +150,20 @@ export async function replay({
   clock = stackClock,
   execute = executeEvent
 }) {
+  // The day's last instant comes from the whole plan, so a run resumed part
+  // way through a day moves the clock to where it already stood rather than
+  // back to the last event still to do.
+  /** @type {Map<string, string>} */
+  const lastInstantOfDay = new Map()
+  for (const event of events) {
+    lastInstantOfDay.set(dayOf(event), event.at)
+  }
   const remaining = events.filter((event) => !done.has(eventKey(event)))
-  const days = groupInOrder(remaining, (event) => event.at.slice(0, 10))
+  const days = groupInOrder(remaining, dayOf)
 
   for (const day of days) {
     if (stop.requested()) return
-    await clock.moveTo(day[day.length - 1].at)
+    await clock.moveTo(lastInstantOfDay.get(dayOf(day[0])) ?? day[0].at)
     const operators = groupInOrder(day, (event) => event.organisationId)
     await drain(
       operators,
