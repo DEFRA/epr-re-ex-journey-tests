@@ -612,6 +612,12 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
  */
 
 /**
+ * @typedef {Object} Hold - tonnage a note keeps off the balance
+ * @property {number} tonnage
+ * @property {string | null} released - the day it is given back; null where it never is
+ */
+
+/**
  * The PRN lifecycle of one accredited registration: so many a month, each
  * drafted, raised and issued within days, then accepted this month or next,
  * left waiting, or taken off one of the three exits. A note is issued against
@@ -669,12 +675,7 @@ function draftPrns(context, landed, issuingEnd) {
    */
   const onRecordBefore = (day) =>
     landed.filter((upload) => upload.day < day).at(-1)?.event.cutoff ?? ''
-  /**
-   * Tonnage a note holds off the balance from the day it is raised until it
-   * is deleted or cancelled, or for good.
-   *
-   * @type {{tonnage: number, released: string | null}[]}
-   */
+  /** @type {Hold[]} */
   const holds = []
   /**
    * What the balance has to give on a day: credited and on record, less

@@ -52,45 +52,85 @@ export async function waitForSummaryLogStatus(
 }
 
 /**
- * Polls the waste-balances endpoint until it returns a non-empty body - the
- * balance is computed asynchronously by the same worker that validates/
+ * One accreditation's balance, as the route sends it: decimals as strings.
+ *
+ * @typedef {Object} WasteBalance
+ * @property {string} amount
+ * @property {string} availableAmount - what a note can draw on
+ * @property {string} [nonDecemberAvailableAmount] - what of that is outside the December portion, when the service marks one
+ */
+
+/**
+ * Polls the waste-balances endpoint until `until` accepts what it sends. The
+ * balance is computed asynchronously by the same worker that validates and
  * submits the summary log, so it can lag slightly behind 'submitted'.
  *
  * @param {string} orgId
  * @param {string} accreditationId
  * @param {Record<string, string | undefined>} defraAuthHeader
- * @param {number} [timeoutMs]
- * @returns {Promise<Record<string, any>>} by accreditation id, as the route sends it
+ * @param {(body: Record<string, WasteBalance>) => boolean} until
+ * @param {string} waitingFor - what the timeout says it waited for
+ * @param {number} timeoutMs
+ * @returns {Promise<Record<string, WasteBalance>>} by accreditation id
  */
-export async function waitForWasteBalance(
+async function pollWasteBalance(
   orgId,
   accreditationId,
   defraAuthHeader,
-  timeoutMs = 30000
+  until,
+  waitingFor,
+  timeoutMs
 ) {
   const baseAPI = new BaseAPI()
   const path = `/v1/organisations/${orgId}/waste-balances?accreditationIds=${accreditationId}`
   const startTime = Date.now()
+  /** @type {Record<string, WasteBalance>} */
+  let body = {}
 
   while (Date.now() - startTime < timeoutMs) {
     const response = await baseAPI.get(path, defraAuthHeader)
-    const body = await assertSuccessResponse(response, `GET ${path}`)
-    if (Object.keys(body).length > 0) {
+    body = await assertSuccessResponse(response, `GET ${path}`)
+    if (until(body)) {
       return body
     }
     await new Promise((resolve) => setTimeout(resolve, 1000))
   }
 
-  throw new Error(`Timed out waiting for a waste balance at ${path}`)
+  throw new Error(
+    `Timed out waiting for ${waitingFor} at ${path} (last seen: ${JSON.stringify(body)})`
+  )
+}
+
+/**
+ * Polls the waste-balances endpoint until it returns a non-empty body.
+ *
+ * @param {string} orgId
+ * @param {string} accreditationId
+ * @param {Record<string, string | undefined>} defraAuthHeader
+ * @param {number} [timeoutMs]
+ * @returns {Promise<Record<string, WasteBalance>>} by accreditation id, as the route sends it
+ */
+export function waitForWasteBalance(
+  orgId,
+  accreditationId,
+  defraAuthHeader,
+  timeoutMs = 30000
+) {
+  return pollWasteBalance(
+    orgId,
+    accreditationId,
+    defraAuthHeader,
+    (body) => Object.keys(body).length > 0,
+    'a waste balance',
+    timeoutMs
+  )
 }
 
 /**
  * Polls the waste balance until a general note of `tonnage` could draw on it:
  * the available amount outside any December portion, which only a December
- * note can draw on. The service refuses a draft over what it holds, and the
- * balance lags a submission, so a note planned against a submitted log has
- * to wait for the balance to catch up. What it last reported is in the error
- * where it never does.
+ * note can draw on. The service refuses a draft over what it holds, so a note
+ * planned against a submitted log has to wait for the balance to catch up.
  *
  * @param {string} orgId
  * @param {string} accreditationId
@@ -105,25 +145,20 @@ export async function waitForAvailableBalance(
   tonnage,
   timeoutMs = 30000
 ) {
-  const baseAPI = new BaseAPI()
-  const path = `/v1/organisations/${orgId}/waste-balances?accreditationIds=${accreditationId}`
-  const startTime = Date.now()
-  let available = NaN
-
-  while (Date.now() - startTime < timeoutMs) {
-    const response = await baseAPI.get(path, defraAuthHeader)
-    const body = await assertSuccessResponse(response, `GET ${path}`)
-    const { availableAmount, nonDecemberAvailableAmount } =
-      body[accreditationId] ?? {}
-    available = Number(nonDecemberAvailableAmount ?? availableAmount)
-    if (available >= tonnage) {
-      return
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-  }
-
-  throw new Error(
-    `Timed out waiting for ${tonnage} t available at ${path} (last seen: ${available})`
+  await pollWasteBalance(
+    orgId,
+    accreditationId,
+    defraAuthHeader,
+    (body) => {
+      const balance = body[accreditationId]
+      return (
+        balance !== undefined &&
+        Number(balance.nonDecemberAvailableAmount ?? balance.availableAmount) >=
+          tonnage
+      )
+    },
+    `${tonnage} t available`,
+    timeoutMs
   )
 }
 

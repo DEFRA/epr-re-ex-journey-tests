@@ -556,6 +556,11 @@ describe('a run', () => {
 
     it('types the revenue of the notes issued in the period, and the tonnage of those issued for nothing', async () => {
       await executeEvent(run, approved(exporter))
+      /**
+       * @param {string} prnId
+       * @param {string} at
+       * @param {Pick<PrnEvent, 'tonnage' | 'pricePerTonne'>} overrides
+       */
       const issue = async (prnId, at, overrides) => {
         for (const type of [
           EVENT.PRN_DRAFTED,
