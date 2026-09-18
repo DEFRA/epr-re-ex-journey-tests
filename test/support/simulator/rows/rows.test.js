@@ -12,7 +12,7 @@ import {
 } from './rows.js'
 import { CONTRIBUTION } from './sheets.js'
 
-const SEED = 'rows-test'
+const SEED = 'rows'
 const STREAMS = [
   'exporter',
   'reprocessorInput',
