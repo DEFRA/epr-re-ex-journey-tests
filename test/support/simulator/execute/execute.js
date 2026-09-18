@@ -549,18 +549,39 @@ const moveNote = (status) => async (run, event) => {
 }
 
 /**
- * What the producer does through the external API, under the number the
- * service gave the note on issue.
+ * The number the service gave the note on issue, which is how the producer
+ * names it through the external API.
  *
- * @param {(prnDetails: {prnNumber: string}) => Promise<void>} act
- * @returns {(run: Run, event: PrnEvent) => Promise<void>}
+ * @param {Run} run
+ * @param {PrnEvent} event
+ * @returns {string}
  */
-const producerActs = (act) => async (run, event) => {
+function issuedNumber(run, event) {
   const { note } = liveNote(run, event)
   if (!note.prnNumber) {
     throw new Error(`${event.prnId} has not been issued`)
   }
-  await act({ prnNumber: note.prnNumber })
+  return note.prnNumber
+}
+
+/**
+ * @param {Run} run
+ * @param {PrnEvent} event
+ */
+async function producerAccepts(run, event) {
+  await run.seeders.externalAPIAcceptPrn({
+    prnNumber: issuedNumber(run, event)
+  })
+}
+
+/**
+ * @param {Run} run
+ * @param {PrnEvent} event
+ */
+async function producerRequestsCancellation(run, event) {
+  await run.seeders.externalAPICancelPrn({
+    prnNumber: issuedNumber(run, event)
+  })
 }
 
 const discardNote = moveNote('discarded')
@@ -604,9 +625,9 @@ export async function executeEvent(run, event) {
     case EVENT.PRN_ISSUED:
       return issueNote(run, event)
     case EVENT.PRN_ACCEPTED:
-      return producerActs(run.seeders.externalAPIAcceptPrn)(run, event)
+      return producerAccepts(run, event)
     case EVENT.PRN_CANCELLATION_REQUESTED:
-      return producerActs(run.seeders.externalAPICancelPrn)(run, event)
+      return producerRequestsCancellation(run, event)
     case EVENT.PRN_CANCELLED:
       return cancelNote(run, event)
     default:

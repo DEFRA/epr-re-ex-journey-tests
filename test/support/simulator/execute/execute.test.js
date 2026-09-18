@@ -559,31 +559,32 @@ describe('a run', () => {
   })
 
   describe('a note', () => {
-    const accreditationOf = (registration) =>
-      `org-1-acc-${
-        operatorOf(registration)
-          .registrations.slice(
-            0,
-            operatorOf(registration).registrations.indexOf(registration)
-          )
-          .filter((r) => r.accreditation).length
-      }`
+    /** The ids the service granted the registration, as the run holds them. */
+    const grantedTo = (registration) => {
+      const live = run.operators
+        .get(registration.organisationId)
+        ?.registrations.get(registration.id)
+      return must(live, `live ${registration.id}`)
+    }
+    const notePath = (registration) =>
+      `/organisations/org-1/registrations/${grantedTo(registration).registrationId}/accreditations/${grantedTo(registration).accreditationId}/packaging-recycling-notes/note-1`
 
     it('is drafted for a share of what the accreditation has available, in whole tonnes, as the operator', async () => {
       await executeEvent(run, approved(exporter))
       await executeEvent(run, noted(exporter, EVENT.PRN_DRAFTED))
 
+      const { registrationId, accreditationId } = grantedTo(exporter)
       const [balance] = seeders.of('waitForWasteBalance')
       assert.deepEqual(balance.args, [
         'org-1',
-        accreditationOf(exporter),
+        accreditationId,
         { Authorization: 'Bearer linked' }
       ])
       const [draft] = seeders.of('createPrn')
       assert.deepEqual(draft.args, [
         'org-1',
-        'org-1-reg-' + operatorOf(exporter).registrations.indexOf(exporter),
-        accreditationOf(exporter),
+        registrationId,
+        accreditationId,
         { Authorization: 'Bearer linked' },
         33
       ])
@@ -621,8 +622,7 @@ describe('a run', () => {
 
         const [move] = seeders.of('updatePrnStatus')
         assert.deepEqual(move.args, [
-          seeders.of('createPrn').length &&
-            `/organisations/org-1/registrations/org-1-reg-${operatorOf(exporter).registrations.indexOf(exporter)}/accreditations/${accreditationOf(exporter)}/packaging-recycling-notes/note-1`,
+          notePath(exporter),
           { Authorization: 'Bearer linked' },
           status
         ])
