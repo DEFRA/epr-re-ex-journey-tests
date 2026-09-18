@@ -735,11 +735,11 @@ function timestamp(drafts, organisationId, random) {
       random.int(0, 59) * SECOND_MS
     const at = Math.max(drawn, previous + SECOND_MS)
     previous = at
-    return /** @type {CalendarEvent} */ ({
+    return {
       ...event,
       organisationId,
       at: new Date(at).toISOString()
-    })
+    }
   })
 }
 

@@ -13,7 +13,7 @@ import {
   UPLOAD_OUTCOME
 } from './events.js'
 
-/** @import {UploadEvent, ReportEvent, PrnEvent} from './events.js' */
+/** @import {CalendarEvent, UploadEvent, ReportEvent, PrnEvent} from './events.js' */
 /** @import {PlannedRegistration} from '../population/population.js' */
 /** @import {PlannedLogRow, PlannedRegistrationRows} from '../rows/rows.js' */
 
@@ -65,17 +65,48 @@ const rowsOf = (registrationId) =>
     )
   )
 const events = calendar.operators.flatMap((operator) => operator.events)
-const ofType = (type) => events.filter((event) => event.type === type)
-const uploads = /** @type {UploadEvent[]} */ (
-  ofType(EVENT.SUMMARY_LOG_UPLOADED)
-)
+
+/**
+ * The member of the event union that carries a `type`. Distributes over the
+ * union, so a member whose `type` is itself a union of several matches each.
+ *
+ * @template E
+ * @template T
+ * @typedef {E extends {type: infer U} ? (T extends U ? E : never) : never} Carrying
+ */
+/**
+ * @template {CalendarEvent['type']} T
+ * @typedef {Carrying<CalendarEvent, T>} EventOf
+ */
+
+/**
+ * @template {CalendarEvent['type']} T
+ * @param {CalendarEvent[]} list
+ * @param {T} type
+ * @returns {EventOf<T>[]}
+ */
+const eventsOfType = (list, type) =>
+  list.filter(
+    /** @returns {event is EventOf<T>} */
+    (event) => event.type === type
+  )
+/**
+ * @template {CalendarEvent['type']} T
+ * @param {T} type
+ */
+const ofType = (type) => eventsOfType(events, type)
+/**
+ * @param {CalendarEvent} event
+ * @returns {event is PrnEvent}
+ */
+const isPrnEvent = (event) => event.type.startsWith('prn.')
+
+const uploads = ofType(EVENT.SUMMARY_LOG_UPLOADED)
 const landed = uploads.filter(
   (upload) => upload.outcome === UPLOAD_OUTCOME.SUBMITTED
 )
-const reports = /** @type {ReportEvent[]} */ (ofType(EVENT.REPORT_SUBMITTED))
-const prnEvents = /** @type {PrnEvent[]} */ (
-  events.filter((event) => event.type.startsWith('prn.'))
-)
+const reports = ofType(EVENT.REPORT_SUBMITTED)
+const prnEvents = events.filter(isPrnEvent)
 
 const near = (actual, target, tolerance, of = '') =>
   assert.ok(
@@ -764,7 +795,7 @@ describe('PRNs', () => {
     )
     near(
       share(settled, (event) =>
-        must(byPrn.get(/** @type {PrnEvent} */ (event).prnId)).some(
+        must(byPrn.get(event.prnId)).some(
           (other) => other.type === EVENT.PRN_ACCEPTED
         )
       ),
@@ -780,10 +811,8 @@ describe('PRNs', () => {
    * profile rate over the notes that were accepted.
    */
   it('has each note accepted in the month of issue at its operator’s own rate', () => {
-    const accepted = /** @type {PrnEvent[]} */ (
-      ofType(EVENT.PRN_ACCEPTED).filter(
-        (event) => month(event) <= MEASURED_UNTIL.slice(0, 7)
-      )
+    const accepted = ofType(EVENT.PRN_ACCEPTED).filter(
+      (event) => month(event) <= MEASURED_UNTIL.slice(0, 7)
     )
     near(
       share(accepted, (event) => {
@@ -909,15 +938,10 @@ describe('planning is reproducible', () => {
   it('renders the same rows for the same upload', () => {
     const planned = planCalendar(settings)
     const registration = smallRows.registrations[0]
-    const sequence = /** @type {UploadEvent[]} */ (
-      planned.operators
-        .flatMap((operator) => operator.events)
-        .filter(
-          (event) =>
-            event.type === EVENT.SUMMARY_LOG_UPLOADED &&
-            event.registrationId === registration.registrationId
-        )
-    )
+    const sequence = eventsOfType(
+      planned.operators.flatMap((operator) => operator.events),
+      EVENT.SUMMARY_LOG_UPLOADED
+    ).filter((event) => event.registrationId === registration.registrationId)
     assert.deepEqual(
       uploadRows({ registration, uploads: sequence }),
       uploadRows({ registration, uploads: sequence })
@@ -971,10 +995,9 @@ describe('cadenceAt', () => {
       rows,
       to: TO
     })
-    const filed = /** @type {ReportEvent[]} */ (
-      planned.operators[0].events.filter(
-        (event) => event.type === EVENT.REPORT_SUBMITTED
-      )
+    const filed = eventsOfType(
+      planned.operators[0].events,
+      EVENT.REPORT_SUBMITTED
     )
       .filter((event) => event.submissionNumber === 1)
       .map((event) => `${event.cadence}/${event.period}`)
