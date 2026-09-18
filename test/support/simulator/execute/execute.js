@@ -534,7 +534,7 @@ function liveNote(run, event) {
  * Moves a note to the status the operator or signatory takes it to, keeping
  * the number the service gives it on issue.
  *
- * @param {string} status
+ * @param {'discarded' | 'awaiting_authorisation' | 'deleted' | 'awaiting_acceptance' | 'cancelled'} status
  * @returns {(run: Run, event: PrnEvent) => Promise<void>}
  */
 const moveNote = (status) => async (run, event) => {
