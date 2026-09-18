@@ -559,13 +559,18 @@ describe('a run', () => {
   })
 
   describe('a note', () => {
-    /** The ids the service granted the registration, as the run holds them. */
+    /**
+     * The ids the service granted the registration, as the run holds them.
+     *
+     * @param {PlannedRegistration} registration
+     */
     const grantedTo = (registration) => {
       const live = run.operators
         .get(registration.organisationId)
         ?.registrations.get(registration.id)
       return must(live, `live ${registration.id}`)
     }
+    /** @param {PlannedRegistration} registration */
     const notePath = (registration) =>
       `/organisations/org-1/registrations/${grantedTo(registration).registrationId}/accreditations/${grantedTo(registration).accreditationId}/packaging-recycling-notes/note-1`
 

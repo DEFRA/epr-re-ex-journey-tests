@@ -63,6 +63,11 @@ export async function updatePrnStatus(prnPath, defraAuthHeader, status) {
   return assertStatus(response, 200, `POST ${prnPath}/status (${status})`)
 }
 
+/**
+ * Rejects an issued note as the producer, through the external API.
+ *
+ * @param {{prnNumber: string, status?: string}} prnDetails - updated in place with the status the note is left in
+ */
 export async function externalAPICancelPrn(prnDetails) {
   await config.cognitoAuth.generateToken()
 
@@ -80,6 +85,11 @@ export async function externalAPICancelPrn(prnDetails) {
   prnDetails.status = 'Awaiting cancellation'
 }
 
+/**
+ * Accepts an issued note as the producer, through the external API.
+ *
+ * @param {{prnNumber: string, status?: string}} prnDetails - updated in place with the status the note is left in
+ */
 export async function externalAPIAcceptPrn(prnDetails) {
   await config.cognitoAuth.generateToken()
 
