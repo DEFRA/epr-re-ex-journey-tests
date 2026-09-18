@@ -8,7 +8,8 @@ import {
   numbersFor,
   regulatorOf,
   reprocessingTypeOf,
-  seededProcessingType
+  seededProcessingType,
+  siteAddress
 } from './join.js'
 
 /** @import {PlannedRegistration} from '../population/population.js' */
@@ -62,6 +63,31 @@ describe('nation', () => {
   })
 })
 
+describe('site address', () => {
+  it('is a well-formed address the same planned site always gets', () => {
+    const address = siteAddress('OP-0001-S1')
+    assert.match(address.street, /^\d{1,3} [A-Z][a-z]+ [A-Z][a-z]+$/)
+    assert.match(address.town, /^[A-Z][a-z]+/)
+    assert.deepEqual(siteAddress('OP-0001-S1'), address)
+  })
+
+  it('is a postcode the Royal Mail could have issued', () => {
+    for (let site = 1; site <= 200; site++) {
+      assert.match(
+        siteAddress(`OP-${site}-S1`).postcode,
+        /^[A-PR-UWYZ][A-HK-Y]\d{1,2} \d[ABD-HJLNP-UW-Z]{2}$/
+      )
+    }
+  })
+
+  it("keys differently between an operator's sites", () => {
+    assert.notEqual(
+      siteAddress('OP-0001-S1').postcode,
+      siteAddress('OP-0001-S2').postcode
+    )
+  })
+})
+
 describe('processing type', () => {
   it('is what the seeders call it', () => {
     assert.equal(
@@ -89,7 +115,7 @@ describe('application row', () => {
       wasteProcessingType: 'Reprocessor',
       material: 'Paper or board (R3)',
       glassRecyclingProcess: undefined,
-      street: 'OP-0001-S1',
+      ...siteAddress('OP-0001-S1'),
       tonnageBand: 'Up to 5,000 tonnes',
       withoutAccreditation: false
     })
@@ -109,7 +135,6 @@ describe('application row', () => {
         wasteProcessingType: 'Exporter',
         material: 'Glass (R5)',
         glassRecyclingProcess: 'Glass other',
-        street: undefined,
         tonnageBand: undefined,
         withoutAccreditation: true
       }
