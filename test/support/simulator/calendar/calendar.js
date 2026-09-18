@@ -683,8 +683,9 @@ function draftPrns(context, landed, issuingEnd) {
   const holds = []
   /**
    * What the balance has to give on a day: credited and on record, less
-   * debited, less every note still holding tonnage that day. A note released
-   * that day may be released later in it, so it still holds.
+   * debited, less every earlier note's tonnage not given back before that
+   * day. A note raised or released later the same day counts as holding, so
+   * the order of a day's events cannot leave a note unfunded.
    *
    * @param {string} day
    */
