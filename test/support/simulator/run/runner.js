@@ -22,6 +22,10 @@ import { executeEvent } from '../execute/execute.js'
 /** How long every process on the clock takes to notice a jump. */
 const CLOCK_SETTLE_MS = 500
 
+/** Resolves once every process on the clock has noticed a change to it. */
+export const clockSettled = () =>
+  new Promise((resolve) => setTimeout(resolve, CLOCK_SETTLE_MS))
+
 /**
  * What tells the events of a run apart. No two events of one registration
  * share an instant, so this is unique across the calendar.
@@ -63,7 +67,7 @@ export const stackClock = {
     // asking for a day the stack has already flowed past leaves it be.
     if (existsSync(clockFile) && Date.now() >= Date.parse(instant)) return
     setSimulatedNow(instant)
-    await new Promise((resolve) => setTimeout(resolve, CLOCK_SETTLE_MS))
+    await clockSettled()
   }
 }
 

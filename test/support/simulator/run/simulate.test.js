@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { parseSettings, settleSettings } from './simulate.js'
+import { loadCalibration } from '../population/calibration.js'
+import { fingerprintOf, parseSettings, settleSettings } from './simulate.js'
 
 const defaults = { from: '2026-01-01', to: '2026-09-18' }
+const calibration = 'abc123'
+/** @param {string[]} argv */
+const asked = (argv) => ({ ...parseSettings(argv), calibration })
 
 describe('parseSettings', () => {
   it('reads every flag, leaving what was not asked for undefined', () => {
@@ -67,27 +71,29 @@ describe('settleSettings', () => {
     scale: 0.1,
     profileMix: 'production',
     from: '2026-01-01',
-    to: '2026-06-30'
+    to: '2026-06-30',
+    calibration
   }
 
-  it('fills a fresh run from the defaults', () => {
+  it('fills a fresh run from the defaults, under the calibration in force', () => {
     assert.deepEqual(
-      settleSettings(parseSettings(['--scale', '0.1']), null, defaults),
+      settleSettings(asked(['--scale', '0.1']), null, defaults),
       {
         seed: 'pepr',
         scale: 0.1,
         profileMix: 'production',
         from: '2026-01-01',
-        to: '2026-09-18'
+        to: '2026-09-18',
+        calibration
       }
     )
   })
 
   it('resumes a run as it was planned', () => {
-    assert.deepEqual(settleSettings(parseSettings([]), saved, defaults), saved)
+    assert.deepEqual(settleSettings(asked([]), saved, defaults), saved)
     assert.deepEqual(
       settleSettings(
-        parseSettings(['--seed', 'run-42', '--concurrency', '2']),
+        asked(['--seed', 'run-42', '--concurrency', '2']),
         saved,
         defaults
       ),
@@ -97,13 +103,39 @@ describe('settleSettings', () => {
 
   it('refuses to resume with a setting the run was not planned with', () => {
     assert.throws(
-      () => settleSettings(parseSettings(['--scale', '0.2']), saved, defaults),
+      () => settleSettings(asked(['--scale', '0.2']), saved, defaults),
       /planned with scale 0\.1/
     )
     assert.throws(
-      () =>
-        settleSettings(parseSettings(['--to', '2026-09-18']), saved, defaults),
+      () => settleSettings(asked(['--to', '2026-09-18']), saved, defaults),
       /planned with to "2026-06-30"/
     )
+  })
+
+  it('refuses to resume under another calibration', () => {
+    assert.throws(
+      () =>
+        settleSettings(
+          { ...asked([]), calibration: 'def456' },
+          saved,
+          defaults
+        ),
+      /planned with calibration "abc123"/
+    )
+  })
+})
+
+describe('fingerprintOf', () => {
+  it('tells calibrations apart by what they plan', () => {
+    const base = loadCalibration({})
+    const priced = {
+      ...base,
+      activity: {
+        ...base.activity,
+        prnPricePerTonne: { ...base.activity.prnPricePerTonne, PA: 999 }
+      }
+    }
+    assert.equal(fingerprintOf(base), fingerprintOf(loadCalibration({})))
+    assert.notEqual(fingerprintOf(base), fingerprintOf(priced))
   })
 })

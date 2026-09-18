@@ -9,6 +9,7 @@ import { createStop, eventKey, eventsInOrder, replay } from './runner.js'
 
 /** @import {CalendarEvent} from '../calendar/events.js' */
 /** @import {Run} from '../execute/execute.js' */
+/** @import {Clock} from './runner.js' */
 
 const population = planPopulation({ seed: 'runner', scale: 0.02 })
 const rows = planSummaryLogRows({ population })
@@ -47,7 +48,7 @@ function recordingExecutor() {
     clockAt,
     widest: () => widest,
     inFlight: () => [...inFlight],
-    /** @type {import('./runner.js').Clock} */
+    /** @type {Clock} */
     clock: {
       moveTo: async (instant) => {
         assert.equal(
@@ -265,6 +266,7 @@ describe('replay', () => {
     const recorder = recordingExecutor()
     const stop = createStop()
     const failing = eventKey(events[1])
+    /** @type {(run: Run, event: CalendarEvent) => Promise<void>} */
     const execute = (aRun, planned) =>
       eventKey(planned) === failing
         ? Promise.reject(new Error('the service refused it'))

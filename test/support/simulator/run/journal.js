@@ -19,7 +19,7 @@ import { EVENT } from '../calendar/events.js'
 import { eventKey } from './runner.js'
 
 /** @import {CalendarEvent} from '../calendar/events.js' */
-/** @import {Run, LiveOperator, LiveRegistration} from '../execute/execute.js' */
+/** @import {Run, LiveOperator, LiveRegistration, LiveNote} from '../execute/execute.js' */
 
 /**
  * @typedef {Object} RunSettings - what the plan is built from; a resumed run has to match
@@ -28,6 +28,7 @@ import { eventKey } from './runner.js'
  * @property {string} profileMix
  * @property {string} from - ISO date
  * @property {string} to - ISO date
+ * @property {string} calibration - a fingerprint of the calibration planned against
  */
 
 /**
@@ -59,14 +60,7 @@ import { eventKey } from './runner.js'
  */
 
 /**
- * @typedef {Object} NoteRecord
- * @property {string} registration - the planned registration id
- * @property {string} prnId - the plan's id
- * @property {string} prnPath
- * @property {string | null} prnNumber
- * @property {number} tonnage
- * @property {number} pricePerTonne
- * @property {string | null} issued
+ * @typedef {LiveNote & {registration: string, prnId: string}} NoteRecord - the note as the run holds it, under the planned registration id and the plan's note id
  */
 
 const SETTINGS = 'settings.json'
@@ -93,9 +87,10 @@ export function writeSettings(directory, settings) {
 
 /**
  * Every entry journalled so far. A run killed outright mid-write leaves a
- * torn last line, which is cut from the file, so its event is done again on
- * resume and the next entry starts a line of its own. A torn line anywhere
- * else is a journal nothing here wrote, and stops the run.
+ * last line that is torn, which is cut from the file so its event is done
+ * again on resume, or whole but unterminated, which is terminated; either
+ * way the next entry starts a line of its own. A torn line anywhere else is
+ * a journal nothing here wrote, and stops the run.
  *
  * @param {string} directory
  * @returns {JournalEntry[]}
@@ -105,7 +100,7 @@ export function readJournal(directory) {
   if (!existsSync(path)) return []
   const text = readFileSync(path, 'utf8')
   const lines = text.split('\n').filter(Boolean)
-  return lines.flatMap((line, index) => {
+  const entries = lines.flatMap((line, index) => {
     try {
       return [JSON.parse(line)]
     } catch (cause) {
@@ -121,6 +116,10 @@ export function readJournal(directory) {
       })
     }
   })
+  if (entries.length === lines.length && text !== '' && !text.endsWith('\n')) {
+    appendFileSync(path, '\n')
+  }
+  return entries
 }
 
 /**

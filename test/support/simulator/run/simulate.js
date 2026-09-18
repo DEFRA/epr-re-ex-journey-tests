@@ -9,6 +9,7 @@
  * See README.md beside this file for the settings, resuming and the manifest.
  */
 
+import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
@@ -30,16 +31,20 @@ import {
   writeManifest,
   writeSettings
 } from './journal.js'
-import { createStop, eventKey, eventsInOrder, replay } from './runner.js'
+import {
+  clockSettled,
+  createStop,
+  eventKey,
+  eventsInOrder,
+  replay
+} from './runner.js'
 
+/** @import {Calibration} from '../population/calibration.js' */
 /** @import {RunSettings} from './journal.js' */
 
 const DEFAULT_SEED = 'pepr'
 const DEFAULT_CONCURRENCY = 4
 const RUNS_DIRECTORY = 'test-artifacts/simulator'
-
-/** How long the preload takes to notice the clock file has gone. */
-const CLOCK_SETTLE_MS = 500
 
 /** The exit status of a run stopped by a signal, as a shell reports one. */
 const INTERRUPTED_EXIT_CODE = 130
@@ -58,6 +63,11 @@ export function parseSettings(argv) {
       dir: { type: 'string' }
     }
   })
+  /**
+   * @param {string} name
+   * @param {string | undefined} text
+   * @param {{whole?: boolean}} [options]
+   */
   const number = (name, text, { whole = false } = {}) => {
     if (text === undefined) return undefined
     const value = Number(text)
@@ -69,6 +79,10 @@ export function parseSettings(argv) {
     }
     return value
   }
+  /**
+   * @param {string} name
+   * @param {string | undefined} text
+   */
   const date = (name, text) => {
     if (text === undefined) return undefined
     const wellFormed =
@@ -92,11 +106,21 @@ export function parseSettings(argv) {
 }
 
 /**
+ * What a calibration plans: two calibrations with the same fingerprint plan
+ * the same run.
+ *
+ * @param {Calibration} calibration
+ */
+export const fingerprintOf = (calibration) =>
+  createHash('sha256').update(JSON.stringify(calibration)).digest('hex')
+
+/**
  * The settings a run in `directory` is planned from: what was asked for,
  * over what a run already there was planned from. A run resumes only as it
- * was planned, so asking for anything different is refused.
+ * was planned, so asking for anything different, or planning under another
+ * calibration, is refused.
  *
- * @param {ReturnType<typeof parseSettings>} asked
+ * @param {ReturnType<typeof parseSettings> & {calibration: string}} asked - with the fingerprint of the calibration in force
  * @param {RunSettings | null} saved
  * @param {{from: string, to: string}} defaults - the period a fresh run covers when none is asked for
  * @returns {RunSettings}
@@ -108,7 +132,8 @@ export function settleSettings(asked, saved, defaults) {
     scale: asked.scale,
     profileMix: asked.profileMix,
     from: asked.from,
-    to: asked.to
+    to: asked.to,
+    calibration: asked.calibration
   }
   if (saved) {
     const changed = Object.entries(wanted).filter(
@@ -128,7 +153,8 @@ export function settleSettings(asked, saved, defaults) {
     scale: wanted.scale ?? 1,
     profileMix: wanted.profileMix ?? 'production',
     from: wanted.from ?? defaults.from,
-    to: wanted.to ?? defaults.to
+    to: wanted.to ?? defaults.to,
+    calibration: asked.calibration
   }
 }
 
@@ -142,13 +168,17 @@ async function main() {
     // A fresh run starts from the day the plan begins, so the stack comes off
     // any earlier run's clock, and the day this one plans to is the real one.
     clearSimulatedClock()
-    await new Promise((resolve) => setTimeout(resolve, CLOCK_SETTLE_MS))
+    await clockSettled()
   }
   const calibration = loadCalibration()
-  const settings = settleSettings(asked, saved, {
-    from: calibration.register.activeFrom.goLive,
-    to: new Date().toISOString().slice(0, 10)
-  })
+  const settings = settleSettings(
+    { ...asked, calibration: fingerprintOf(calibration) },
+    saved,
+    {
+      from: calibration.register.activeFrom.goLive,
+      to: new Date().toISOString().slice(0, 10)
+    }
+  )
 
   const population = planPopulation({ ...settings, calibration })
   const rows = planSummaryLogRows({ population, calibration })
@@ -185,14 +215,17 @@ async function main() {
   const startedAt = new Map()
 
   const stop = createStop()
+  let signalled = false
+  /** @param {NodeJS.Signals} signal */
   const interrupt = (signal) => {
-    if (stop.requested()) {
+    if (signalled) {
       logger.warn(
         `${signal} again: ${startedAt.size} events under way are left unjournalled, and done again on resume`
       )
       writeManifestNow()
       process.exit(INTERRUPTED_EXIT_CODE)
     }
+    signalled = true
     logger.warn(`${signal}: finishing the events under way, then stopping`)
     stop.request('interrupted')
   }

@@ -111,7 +111,8 @@ describe('the run directory', () => {
       scale: 0.02,
       profileMix: 'production',
       from: '2026-01-01',
-      to: '2026-04-30'
+      to: '2026-04-30',
+      calibration: 'abc123'
     }
     writeSettings(directory, settings)
     assert.deepEqual(readSettings(directory), settings)
@@ -221,6 +222,23 @@ describe('the run directory', () => {
     assert.deepEqual(readJournal(directory), whole)
     appendJournal(directory, { key: 'after' })
     assert.deepEqual(readJournal(directory), [...whole, { key: 'after' }])
+  })
+
+  it('terminates a whole last line left without its newline, so the next entry starts its own', () => {
+    const whole = readJournal(directory)
+    writeFileSync(join(directory, 'journal.jsonl'), '{"key":"unterminated"}', {
+      flag: 'a'
+    })
+    assert.deepEqual(readJournal(directory), [
+      ...whole,
+      { key: 'unterminated' }
+    ])
+    appendJournal(directory, { key: 'next' })
+    assert.deepEqual(readJournal(directory), [
+      ...whole,
+      { key: 'unterminated' },
+      { key: 'next' }
+    ])
   })
 
   it('refuses a torn line anywhere else', () => {

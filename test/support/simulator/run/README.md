@@ -51,10 +51,9 @@ approval, the note's path and number on a PRN event. Running again in the same
 directory replans from the saved `settings.json`, rebuilds the operators the
 service already holds from the journal, and carries on from the first event
 not yet done. Nothing already made is made again. Asking for a different
-seed, scale, period or profile mix than the run was planned with is refused;
-concurrency can change. The calibration is not saved, so resume under the
-same `SIMULATOR_CALIBRATION` as the run started with: a journal naming an
-event the replanned calendar does not have is refused.
+seed, scale, period or profile mix than the run was planned with is refused,
+as is a calibration that plans differently, so resume under the same
+`SIMULATOR_CALIBRATION` as the run started with; concurrency can change.
 
 `SIGINT` or `SIGTERM` stops the run cleanly: nothing more is dispatched, the
 events under way finish and are journalled, the manifest is written, and the
@@ -62,6 +61,11 @@ run exits 130. An upload can take a minute to finish, so give it that. A
 second signal, or a `SIGKILL`, cuts the events under way off unjournalled, and
 each is done again on resume: for an approval that is a second organisation
 for the same planned operator, so prefer the one signal.
+
+A run that stops on a failed event journals nothing for it, so resuming does
+it again. An approval makes the organisation before it links the user and
+seeds the sites, so one that failed part way may have left an organisation
+the journal does not name; the service is the place to look before resuming.
 
 ## The manifest
 
