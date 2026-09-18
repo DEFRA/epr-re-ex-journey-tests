@@ -200,8 +200,8 @@ const sentOnSheet = (contribution) => ({
 
 /**
  * Only four of the thirteen worksheets reach a waste balance at all. The rest are
- * reported and read back but never classified, so planning tonnage into one
- * plans nothing.
+ * reported and read back but never classified, so tonnage planned into one is
+ * reported and moves no balance.
  *
  * `dateFields` gives each date marker's offset in days from the row's own day.
  * `monthFields` names the markers a registered-only template takes as a month
@@ -236,8 +236,8 @@ export const SHEETS = {
   },
   reprocessorOutput: {
     'Received (sections 1 and 2)': {
-      contribution: CONTRIBUTION.NONE,
-      dateFields: receivedSheet.dateFields
+      ...receivedSheet,
+      contribution: CONTRIBUTION.NONE
     },
     'Reprocessed (sections 3 and 4)': {
       contribution: CONTRIBUTION.CREDIT,

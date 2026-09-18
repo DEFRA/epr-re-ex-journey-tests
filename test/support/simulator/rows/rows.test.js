@@ -54,9 +54,11 @@ const creditRows = (plan, stream) =>
 const TONNAGE_CELL = {
   'Exported (sections 1, 2 and 3)': 'TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED',
   'Received (sections 1, 2 and 3)': 'TONNAGE_RECEIVED_FOR_RECYCLING',
+  'Received (sections 1 and 2)': 'TONNAGE_RECEIVED_FOR_RECYCLING',
   'Reprocessed (sections 3 and 4)': 'PRODUCT_UK_PACKAGING_WEIGHT_PROPORTION',
   'Sent on (sections 4 and 5)': 'TONNAGE_OF_UK_PACKAGING_WASTE_SENT_ON',
-  'Sent on (sections 5, 6 and 7)': 'TONNAGE_OF_UK_PACKAGING_WASTE_SENT_ON'
+  'Sent on (sections 5, 6 and 7)': 'TONNAGE_OF_UK_PACKAGING_WASTE_SENT_ON',
+  'Sent on (sections 5 and 6)': 'TONNAGE_OF_UK_PACKAGING_WASTE_SENT_ON'
 }
 
 /**
@@ -213,6 +215,29 @@ describe('planSummaryLogRows', () => {
     )
   })
 
+  it('reports the tonnage received and sent on once across both templates', () => {
+    const sheets = DEFAULT_CALIBRATION.activity.summaryLogSheets
+    for (const [inputSheet, outputSheet] of [
+      ['Received (sections 1, 2 and 3)', 'Received (sections 1 and 2)'],
+      ['Sent on (sections 5, 6 and 7)', 'Sent on (sections 5 and 6)']
+    ]) {
+      const national = sheets.reprocessorInput[inputSheet].monthlyTonnage
+      assert.ok(national, `${inputSheet} has no published figure`)
+      assert.equal(
+        sheets.reprocessorOutput[outputSheet].monthlyTonnage,
+        national,
+        'both templates carry the one estate figure'
+      )
+      const reported =
+        monthlyTonnage(plan, 'reprocessorInput', inputSheet) +
+        monthlyTonnage(plan, 'reprocessorOutput', outputSheet)
+      assert.ok(
+        Math.abs(reported - national) < national * 0.01,
+        `the estate reports ${Math.round(reported)}t a month through ${inputSheet} and ${outputSheet} against ${national}t`
+      )
+    }
+  })
+
   it("gives a reprocessor stream its registrations' share of the estate's figure, by registration-months", () => {
     const calibration = structuredClone(DEFAULT_CALIBRATION)
     calibration.activity.reprocessorStream = {
@@ -235,7 +260,9 @@ describe('planSummaryLogRows', () => {
     for (const [stream, worksheet] of [
       ['reprocessorInput', 'Received (sections 1, 2 and 3)'],
       ['reprocessorInput', 'Sent on (sections 5, 6 and 7)'],
-      ['reprocessorOutput', 'Reprocessed (sections 3 and 4)']
+      ['reprocessorOutput', 'Received (sections 1 and 2)'],
+      ['reprocessorOutput', 'Reprocessed (sections 3 and 4)'],
+      ['reprocessorOutput', 'Sent on (sections 5 and 6)']
     ]) {
       const published =
         calibration.activity.summaryLogSheets[stream][worksheet].monthlyTonnage

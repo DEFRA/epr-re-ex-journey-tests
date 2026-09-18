@@ -77,8 +77,8 @@ Only four of the thirteen worksheets reach a waste balance at all:
 | `reprocessorInput`  | Sent on (sections 5, 6 and 7)  | **debits**   |
 | `reprocessorOutput` | Reprocessed (sections 3 and 4) | credits      |
 
-Everything else is reported and read back but never classified, so planning
-tonnage into one plans nothing.
+Everything else is reported and read back but never classified, so tonnage
+planned into one is reported and moves no balance.
 
 A row on one of those four is excluded unless it says so. Left to the
 generator's own uniform draws, almost none of them count:
@@ -184,13 +184,12 @@ The reprocessor figures are the whole reprocessor estate's, and the input and
 output streams are two ways one estate reports the same process, so each
 stream lands on the share of a figure its registrations are of that estate, by
 registration-months. The two streams credit the national tonnage once between
-them, and the input stream debits the same share of the tonnage sent on.
+them, and report the tonnage received and the tonnage sent on once between
+them, with the input stream's sent-on share the only part of it that debits.
 
 Only a worksheet the calibration gives a monthly tonnage is anchored that way.
-The output template's received and sent-on worksheets and the input template's
-reprocessed worksheet count towards the same reprocessor figures and are not
-anchored. Every other worksheet's weights are whatever the generator draws from
-the row's seed. They
+Every other worksheet's weights are whatever the generator draws from the
+row's seed. They
 hold still and they validate, and they are not a production quantity: summing
 tonnage received or product tonnage across the estate reports the fixture, not
 the country.
