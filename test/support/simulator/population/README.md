@@ -171,9 +171,11 @@ The file holds only the settings it changes, nested as the calibration is. It
 may not introduce a setting the defaults do not already carry, and may not
 change one's type, so a misspelling is refused rather than leaving a run
 quietly on the defaults. That holds inside the count maps too, so an overlay
-can reweight an agency or a tonnage band but cannot add one. A calibration that
-needs a shape the register does not have is passed to `planPopulation` directly
-instead. Such a file is never committed.
+can reweight an agency or a tonnage band but cannot add one. The one exception
+is a worksheet's `monthlyTonnage`: the defaults carry it only where the monthly
+aggregated workbook publishes a figure, so an overlay may add it, as a number,
+to a worksheet that has none. A calibration that needs a shape the register does not have is
+passed to `planPopulation` directly instead. Such a file is never committed.
 
 The planner does not call `loadCalibration` itself, so planning stays pure and a
 seed replays the same population whether or not a machine has the overlay. The
