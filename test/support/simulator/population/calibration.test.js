@@ -125,6 +125,24 @@ describe('loadCalibration', () => {
     )
   })
 
+  it('refuses a misspelt key on a worksheet', () => {
+    assert.throws(
+      () =>
+        loadCalibration(
+          withOverlay({
+            activity: {
+              summaryLogSheets: {
+                reprocessorInput: {
+                  'Reprocessed (section 4)': { monthlyTonage: 12345 }
+                }
+              }
+            }
+          })
+        ),
+      /Reprocessed \(section 4\)\.monthlyTonage/
+    )
+  })
+
   it('refuses a monthly tonnage anywhere but on a worksheet', () => {
     assert.throws(
       () =>
