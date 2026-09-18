@@ -376,8 +376,10 @@ describe('what the service holds of a row', () => {
     assert.equal(heldTonnage(12), 12)
     assert.equal(heldTonnage(12.3), 12.3)
     assert.equal(heldTonnage(0.1 + 0.2), 0.3)
-    // The residue of subtracting equal weights, which a cell of no tonnage leaves.
+    // The residue of subtracting equal weights, which a cell of no tonnage
+    // leaves, on either side of zero.
     assert.equal(heldTonnage(1.785238623597252e-15), 0)
+    assert.equal(heldTonnage(-1.785238623597252e-15), 0)
   })
 
   it('reports each tonnage as the service will hold it, not as the cell reads', () => {
@@ -389,6 +391,23 @@ describe('what the service holds of a row', () => {
         heldTonnage(cell),
         `${row.worksheet} row ${row.rowId} moves ${row.tonnage} for a cell of ${cell}`
       )
+    }
+  })
+
+  it('contributes nothing where the service would hold nothing', () => {
+    const calibration = structuredClone(DEFAULT_CALIBRATION)
+    for (const sheets of Object.values(calibration.activity.summaryLogSheets)) {
+      for (const sheet of Object.values(sheets)) {
+        if (sheet.monthlyTonnage !== undefined) sheet.monthlyTonnage = 0
+      }
+    }
+    const empty = planSummaryLogRows({
+      population: planPopulation({ seed: SEED, scale: 0.01 }),
+      calibration
+    })
+    for (const row of everyRow(empty)) {
+      assert.equal(row.tonnage, 0)
+      assert.equal(row.contribution, CONTRIBUTION.NONE)
     }
   })
 

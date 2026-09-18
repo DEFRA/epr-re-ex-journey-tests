@@ -24,7 +24,7 @@ const round = (value) => Math.round(value * 100) / 100
 /**
  * @typedef {Object} Load
  * @property {Record<string, string | number>} fields - cells to pin
- * @property {number} tonnage - what those cells move, once the service has read them
+ * @property {number} tonnage - what those cells carry, before the service rounds it
  */
 
 /**
