@@ -23,6 +23,7 @@ import {
   UPLOAD_OUTCOME
 } from '../calendar/events.js'
 import { setSimulatedNow } from '../clock/simulated-clock.js'
+import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { planPopulation } from '../population/population.js'
 import { CONTRIBUTION, planSummaryLogRows } from '../rows/rows.js'
 import { createRun, executeEvent } from './execute.js'
@@ -150,6 +151,21 @@ function eventsFor(registration, planned, ending) {
     planned,
     (row) => row.period === '2026-02' && row.date > '2026-02-02'
   )
+  // A fifth of what the first upload credits, so the three notes that can
+  // hold tonnage at once are funded with room to spare.
+  const noteTonnage = Math.max(
+    1,
+    Math.floor(
+      planned.rows
+        .filter(
+          (row) =>
+            row.contribution === CONTRIBUTION.CREDIT && row.date <= '2026-02-02'
+        )
+        .reduce((total, row) => total + row.tonnage, 0) / 5
+    )
+  )
+  const pricePerTonne =
+    DEFAULT_CALIBRATION.activity.prnPricePerTonne[registration.material.suffix]
 
   /**
    * @param {string} at
@@ -190,7 +206,9 @@ function eventsFor(registration, planned, ending) {
       at,
       organisationId,
       registrationId,
-      prnId: `${registrationId}-${serial}`
+      prnId: `${registrationId}-${serial}`,
+      tonnage: noteTonnage,
+      pricePerTonne
     }))
   /**
    * @param {string} at

@@ -25,10 +25,7 @@ import {
   submitSummaryLog,
   uploadSummaryLog
 } from '../../seeding/summary-logs.js'
-import {
-  waitForSummaryLogStatus,
-  waitForWasteBalance
-} from '../../seeding/waiters.js'
+import { waitForSummaryLogStatus } from '../../seeding/waiters.js'
 import { generateSpreadsheetData } from '../../spreadsheet/summarylogs-spreadsheet-data-generator.js'
 
 export const liveSeeders = {
@@ -44,7 +41,6 @@ export const liveSeeders = {
   waitForSummaryLogStatus,
   submitSummaryLog,
   seedReportSubmission,
-  waitForWasteBalance,
   createPrn,
   updatePrnStatus,
   externalAPIAcceptPrn,

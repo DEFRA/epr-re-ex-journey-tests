@@ -52,14 +52,14 @@ member of `EVENT` and nothing the calendar plans is missed.
 | `accreditation.cancelled`    | The regulator cancels the accreditation, and the registration with it.                    |                                                                          |
 | `summary-log.uploaded`       | A workbook is uploaded. See "An upload".                                                  | `cutoff`, `outcome`, `issues`, `amendments`, `restated`, `closedPeriods` |
 | `report.submitted`           | A report for one period is created and submitted.                                         | `year`, `cadence`, `period`, `submissionNumber`                          |
-| `prn.drafted`                | The operator saves a draft note.                                                          | `prnId`                                                                  |
-| `prn.discarded`              | The operator discards the draft.                                                          | `prnId`                                                                  |
-| `prn.raised`                 | The operator raises it for authorisation.                                                 | `prnId`                                                                  |
-| `prn.deleted`                | The signatory deletes it instead.                                                         | `prnId`                                                                  |
-| `prn.issued`                 | The signatory authorises it, and it awaits the producer.                                  | `prnId`                                                                  |
-| `prn.accepted`               | The producer accepts it.                                                                  | `prnId`                                                                  |
-| `prn.cancellation-requested` | The producer asks for it to be cancelled instead.                                         | `prnId`                                                                  |
-| `prn.cancelled`              | The signatory confirms the cancellation.                                                  | `prnId`                                                                  |
+| `prn.drafted`                | The operator saves a draft note.                                                          | `prnId`, `tonnage`, `pricePerTonne`                                      |
+| `prn.discarded`              | The operator discards the draft.                                                          | `prnId`, `tonnage`, `pricePerTonne`                                      |
+| `prn.raised`                 | The operator raises it for authorisation.                                                 | `prnId`, `tonnage`, `pricePerTonne`                                      |
+| `prn.deleted`                | The signatory deletes it instead.                                                         | `prnId`, `tonnage`, `pricePerTonne`                                      |
+| `prn.issued`                 | The signatory authorises it, and it awaits the producer.                                  | `prnId`, `tonnage`, `pricePerTonne`                                      |
+| `prn.accepted`               | The producer accepts it.                                                                  | `prnId`, `tonnage`, `pricePerTonne`                                      |
+| `prn.cancellation-requested` | The producer asks for it to be cancelled instead.                                         | `prnId`, `tonnage`, `pricePerTonne`                                      |
+| `prn.cancelled`              | The signatory confirms the cancellation.                                                  | `prnId`, `tonnage`, `pricePerTonne`                                      |
 
 A registration's events start with its approval, on the day it went active or
 the first day of the period if that is later, and carry a status change if the
@@ -74,8 +74,9 @@ last day, but the uploads and reports for what it did carry on to `to`, so a
 period that ended with the accreditation is still filed.
 
 `prnId` ties the events of one note together and is the plan's own identifier,
-not the number the service assigns. What tonnage a note carries is not planned:
-the executor issues it against the balance the uploads have built.
+not the number the service assigns. Every event of a note carries the same
+`tonnage`, in whole tonnes, and `pricePerTonne`, in pounds; see "PRNs" for how
+they are drawn.
 
 ## An upload
 
@@ -172,13 +173,30 @@ submitted upload carries one of the period's rows in `restated`, and a second
 Each accredited registration drafts `activity.prnsPerAccreditationPerMonth`
 notes a month, times the operator's volume factor, spread evenly either side of
 that, from the day after its first summary log is submitted: a note is issued
-against the balance the uploads have built, so none comes before it. A note is raised the day it is drafted and issued within three days, then
-accepted at `prn.producerAcceptRate`, in the month of issue at
+against the balance the uploads have built, so none comes before it. A note is
+raised the day it is drafted and issued within three days, then accepted at
+`prn.producerAcceptRate`, in the month of issue at
 `prn.sameMonthAcceptanceShare` and the month after otherwise, or left awaiting
 acceptance. The exits are drawn where they happen: discarded as a draft at
 `prn.discardRate`, deleted at authorisation at `prn.deleteRate`, and at
 `prn.cancelRate` the producer asks for a cancellation within ten days of issue
 and the signatory confirms it within three.
+
+What a note carries is drawn from the balance the plan can see. A month's
+notes have between them `activity.prnIssuedShare` for the processing type of
+the tonnage the registration's submitted uploads have credited by the end of
+the month, less what earlier notes took, so over the year the registration
+issues that share of what it credits, a month or so behind. Each note takes a
+weighted part of that, in the order the notes are drafted, and never more than
+the balance holds on its day: what is credited and on record, less what is
+debited, less every note holding tonnage that day. A note draws the balance
+when it is raised and gives it back when it is deleted or cancelled, and one
+that would carry under a tonne is not planned at all, so the plan never asks
+for a note the balance cannot fund. Credits dated in December are left alone,
+because the service keeps them for a December note, which none of these is.
+Tonnage is in whole tonnes; the price is the calibration's
+`activity.prnPricePerTonne` for the registration's material, and a material
+it prices nothing for is refused rather than planned free.
 
 ## Weekends and working hours
 
@@ -204,8 +222,8 @@ move a step, are constants at the top of `calendar.js`.
 
 `calendar.test.js` holds the estate to the calibration at full scale: uploads a
 month, amendments an upload, rejections and what they are for, punctuality and
-missed returns, restatements, PRNs per accreditation and per material, and the
-transition rates. Punctuality is against the 21st the guidance gives and the
+missed returns, restatements, PRNs per accreditation and per material, the
+tonnage they carry against what the estate credits, and the transition rates. Punctuality is against the 21st the guidance gives and the
 research measured against; the service's own calendar marks the 20th, so a
 return filed on the 21st is on time here and a day late there. A rate the profile spreads unevenly across the archetypes, such as how
 fatal a rejection is, is held to the mean of the profile rate over the events
