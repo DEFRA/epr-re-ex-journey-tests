@@ -684,8 +684,8 @@ function draftPrns(context, landed, issuingEnd) {
   /**
    * What the balance has to give on a day: credited and on record, less
    * debited, less every earlier note's tonnage not given back before that
-   * day. A note raised or released later the same day counts as holding, so
-   * the order of a day's events cannot leave a note unfunded.
+   * day. A note released on the day still holds, because the release may
+   * come later in it than the draw.
    *
    * @param {string} day
    */
@@ -811,14 +811,8 @@ function draftPrns(context, landed, issuingEnd) {
       if (drafted) notes.push(drawChain(drafted))
     }
 
-    // The month's notes have between them the calibrated share of what is on
-    // record by its end, less what earlier notes took, and the balance on the
-    // day caps what each can draw. Each takes its weighted part of both, in
-    // the order they are drafted, so a note drafted before the month's
-    // uploads land draws on what earlier months left and the last of the
-    // month takes up what those before it left behind. The weights come off
-    // their own seed so the count, days and chains draw as they would
-    // without them.
+    // The weights come off their own seed, so the count, days and chains
+    // draw as they would without them.
     const weigh = createRandom(
       `${context.seed}/${registration.id}/${month}/tonnage`
     )

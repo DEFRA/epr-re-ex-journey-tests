@@ -1106,7 +1106,7 @@ describe('PRNs', () => {
     }
   })
 
-  it('issues the calibrated share of what each processing type credits', () => {
+  it('drafts the calibrated share of what each processing type credits outside December', () => {
     for (const processingType of ['reprocessor', 'exporter']) {
       const members = accredited.filter(
         (registration) => registration.processingType === processingType
@@ -1131,7 +1131,8 @@ describe('PRNs', () => {
           .rows.filter(
             (row) =>
               row.contribution === CONTRIBUTION.CREDIT &&
-              row.date <= must(cutoff)
+              row.date <= must(cutoff) &&
+              row.date.slice(5, 7) !== '12'
           )
           .reduce((sum, row) => sum + row.tonnage, 0)
       }

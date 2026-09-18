@@ -186,7 +186,7 @@ What a note carries is drawn from the balance the plan can see. A month's
 notes have between them `activity.prnIssuedShare` for the processing type of
 the tonnage the registration's submitted uploads have credited by the end of
 the month, less what earlier notes took, so over the year the registration
-issues that share of what it credits, a month or so behind. Each note takes a
+drafts that share of what it credits, a month or so behind. Each note takes a
 weighted part of that, in the order the notes are drafted, and never more than
 the balance holds on its day: what is credited and on record, less what is
 debited, less every note holding tonnage that day. A note draws the balance
