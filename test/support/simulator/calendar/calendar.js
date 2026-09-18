@@ -636,11 +636,6 @@ function draftPrns(context, landed, issuingEnd) {
     calibration.activity.prnsPerAccreditationPerMonth * profile.volumeFactor
   const issuedShare =
     calibration.activity.prnIssuedShare[registration.processingType]
-  if (issuedShare === undefined) {
-    throw new Error(
-      `Calibration has no issued share for ${registration.processingType}`
-    )
-  }
   const pricePerTonne =
     calibration.activity.prnPricePerTonne[registration.material.suffix]
   if (pricePerTonne === undefined) {

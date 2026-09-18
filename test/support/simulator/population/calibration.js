@@ -406,7 +406,7 @@ const PUNCTUALITY = {
  *   exportLoadOutcome: {stoppedShare: number, refusedShare: number},
  *   uploadIssueKinds: {fatal: Counts, error: Counts},
  *   prnsPerAccreditationPerMonth: number,
- *   prnIssuedShare: Counts,
+ *   prnIssuedShare: Record<'exporter' | 'reprocessor', number>,
  *   prnPricePerTonne: Counts
  * }} ActivityShape
  */
