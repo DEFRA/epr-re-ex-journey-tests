@@ -124,17 +124,16 @@ test.describe('A regulator reading market insights @regulator', () => {
       )
 
       // Each set of figures the publication carries gets its own page, and
-      // this one is how a regulator reaches any of them.
-      expect
-        .soft(await marketInsightsPage.figureSetNames())
-        .toEqual([
-          'UK waste balance',
-          'Reprocessor and exporter figures: UK',
-          ...NATIONS.map(
-            (nation) => `Reprocessor and exporter figures: ${nation}`
-          ),
-          'Outstanding monthly reports: UK'
-        ])
+      // this one is how a regulator reaches any of them, so every page after
+      // this is reached by one of these names.
+      expect(await marketInsightsPage.figureSetNames()).toEqual([
+        'UK waste balance',
+        'Reprocessor and exporter figures: UK',
+        ...NATIONS.map(
+          (nation) => `Reprocessor and exporter figures: ${nation}`
+        ),
+        'Outstanding monthly reports: UK'
+      ])
 
       violations.push(
         ...(await scanPageForAccessibilityViolations(
@@ -215,104 +214,69 @@ test.describe('A regulator reading market insights @regulator', () => {
         ))
       )
 
+      // The trail back is the only way on to the other sets of figures, so
+      // the journey walks it rather than addressing the next page directly.
+      await wasteBalancePage.crumbLink('Market insights').click()
+
       return { period, months }
     })
 
-    // Every month of the period brings a reprocessor table and an exporter
-    // table, each naming the month it covers. Naming the whole set is what
-    // catches a month that arrived twice or not at all, which counting them
-    // would not.
     const year = /** @type {RegExpMatchArray} */ (period.match(PERIOD))[2]
     const tableCaptionsForThePeriod = months.flatMap((month) => [
       `Reprocessor data for ${month} ${year}`,
       `Exporter data for ${month} ${year}`
     ])
 
-    // The trail back is the only way on to the other sets of figures, so the
-    // journey walks it rather than addressing the next page directly.
-    await test.step('Reprocessor and exporter figures: UK', async () => {
-      await wasteBalancePage.crumbLink('Market insights').click()
-      await marketInsightsPage
-        .figureSetLink('Reprocessor and exporter figures: UK')
-        .click()
+    // The UK figures and each nation's are read the same way. Every page
+    // covers the period the clock decides, so the figures a regulator reads
+    // here are the ones the waste balance was cut over, and a nation is a
+    // filter on the figures rather than on the months, so a month that came
+    // back missing would be the service dropping it, not the nation having
+    // nothing to report in it.
+    for (const region of ['UK', ...NATIONS]) {
+      const figureSet = `Reprocessor and exporter figures: ${region}`
 
-      expect(await figuresPage.headingText()).toContain(
-        'Reprocessor and exporter figures: UK'
-      )
+      await test.step(figureSet, async () => {
+        await marketInsightsPage.figureSetLink(figureSet).click()
 
-      // Both pages cover the period the clock decides, so the figures a
-      // regulator reads here are the ones the waste balance was cut over.
-      expect.soft(await figuresPage.periodText()).toBe(period)
-      expect.soft(await figuresPage.dataTakenAtText()).toMatch(DATA_TAKEN_AT)
-
-      expect
-        .soft(await figuresPage.tableCaptions())
-        .toEqual(tableCaptionsForThePeriod)
-
-      // Every cell states a tonnage or a sum of money, including the ones
-      // nothing was reported against, which the publication prints as zero
-      // rather than leaving blank.
-      const ukFigures = await figuresPage.figures()
-
-      expect.soft(ukFigures.length).toBeGreaterThan(0)
-      expect
-        .soft(ukFigures.filter((figure) => !FIGURE.test(figure)))
-        .toEqual([])
-
-      violations.push(
-        ...(await scanPageForAccessibilityViolations(
-          page,
-          'Regulator market insights UK figures'
-        ))
-      )
-    })
-
-    for (const nation of NATIONS) {
-      await test.step(`Reprocessor and exporter figures: ${nation}`, async () => {
-        await figuresPage.crumbLink('Market insights').click()
-        await marketInsightsPage
-          .figureSetLink(`Reprocessor and exporter figures: ${nation}`)
-          .click()
-
-        expect(await figuresPage.headingText()).toContain(
-          `Reprocessor and exporter figures: ${nation}`
-        )
+        expect(await figuresPage.headingText()).toContain(figureSet)
 
         expect.soft(await figuresPage.periodText()).toBe(period)
         expect.soft(await figuresPage.dataTakenAtText()).toMatch(DATA_TAKEN_AT)
 
-        // Every month of the period brings both tables here too. A nation is
-        // a filter on the figures rather than on the months, so a month that
-        // came back missing would be the service dropping it, not the nation
-        // having nothing to report in it.
+        // Every month of the period brings a reprocessor table and an
+        // exporter table, each naming the month it covers. Naming the whole
+        // set is what catches a month that arrived twice or not at all, which
+        // counting them would not.
         expect
           .soft(await figuresPage.tableCaptions())
           .toEqual(tableCaptionsForThePeriod)
 
         // Every material is served for every month whether or not anything
-        // was reported into it, so a nation fills its tables the way the UK
-        // figures do even where it has nothing to report. What lands in the
-        // cells depends on which regulator the seeded operator registered
-        // with, which this journey does not pin, so they are read for their
-        // form rather than their value.
-        const nationFigures = await figuresPage.figures()
+        // was reported into it, and every cell states a tonnage or a sum of
+        // money, with a zero where nothing was reported rather than a blank.
+        // What lands in a nation's cells depends on which regulator the seeded
+        // operator registered with, which this journey does not pin, so they
+        // are read for their form rather than their value.
+        const figures = await figuresPage.figures()
 
-        expect.soft(nationFigures.length).toBeGreaterThan(0)
+        expect.soft(figures.length).toBeGreaterThan(0)
         expect
-          .soft(nationFigures.filter((figure) => !FIGURE.test(figure)))
+          .soft(figures.filter((figure) => !FIGURE.test(figure)))
           .toEqual([])
 
         violations.push(
           ...(await scanPageForAccessibilityViolations(
             page,
-            `Regulator market insights ${nation} figures`
+            `Regulator market insights ${region} figures`
           ))
         )
+
+        await figuresPage.crumbLink('Market insights').click()
       })
     }
 
     await test.step('Outstanding monthly reports: UK', async () => {
-      await figuresPage.crumbLink('Market insights').click()
       await marketInsightsPage
         .figureSetLink('Outstanding monthly reports: UK')
         .click()
