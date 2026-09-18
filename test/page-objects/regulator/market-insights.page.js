@@ -37,6 +37,18 @@ class MarketInsightsPage extends Page {
   figureSetLink(name) {
     return this.page.getByRole('link', { name, exact: true })
   }
+
+  /**
+   * The link that takes every figure away as one zip. It is an action rather
+   * than a set of figures, so it sits outside the list `figureSetNames` reads.
+   * @returns {Locator}
+   */
+  exportLink() {
+    return this.page.getByRole('link', {
+      name: 'Download all the figures (ZIP)',
+      exact: true
+    })
+  }
 }
 
 export { MarketInsightsPage }
