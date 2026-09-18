@@ -1019,6 +1019,166 @@ describe('PRNs', () => {
       'same month'
     )
   })
+
+  it('carries a whole tonnage of at least a tonne and the material’s price on every event of a note', () => {
+    for (const event of prnEvents) {
+      assert.ok(
+        Number.isInteger(event.tonnage) && event.tonnage >= 1,
+        `${event.prnId} ${event.type} carries ${event.tonnage} t`
+      )
+      assert.equal(
+        event.pricePerTonne,
+        ACTIVITY.prnPricePerTonne[registrationOf(event).material.suffix],
+        `${event.prnId} ${event.type}`
+      )
+    }
+    for (const chain of byPrn.values()) {
+      assert.equal(
+        new Set(chain.map((event) => event.tonnage)).size,
+        1,
+        chain[0].prnId
+      )
+    }
+  })
+
+  /**
+   * The balance the service holds for an accreditation, replayed from its
+   * events: what its submitted uploads credited outside December, less what
+   * they debited, less every note holding tonnage. A note draws it when
+   * raised and gives it back when deleted or cancelled.
+   *
+   * @param {PlannedRegistration} registration
+   * @returns {number} the lowest the balance went at a raise
+   */
+  const lowestBalanceAtRaise = (registration) => {
+    const planned = rowsOf(registration.id)
+    const own = events.filter(
+      (event) =>
+        'registrationId' in event && event.registrationId === registration.id
+    )
+    /** @type {Map<string, number>} */
+    const holding = new Map()
+    let credited = 0
+    let lowest = Infinity
+    for (const event of own) {
+      if (
+        event.type === EVENT.SUMMARY_LOG_UPLOADED &&
+        event.outcome === UPLOAD_OUTCOME.SUBMITTED
+      ) {
+        credited = planned.rows
+          .filter(
+            (row) =>
+              row.date <= event.cutoff &&
+              !(
+                row.contribution === CONTRIBUTION.CREDIT &&
+                row.date.slice(5, 7) === '12'
+              )
+          )
+          .reduce(
+            (sum, row) =>
+              sum +
+              (row.contribution === CONTRIBUTION.CREDIT
+                ? row.tonnage
+                : -row.tonnage),
+            0
+          )
+      }
+      if (!isPrnEvent(event)) continue
+      if (event.type === EVENT.PRN_RAISED) {
+        holding.set(event.prnId, event.tonnage)
+        const held = [...holding.values()].reduce((sum, t) => sum + t, 0)
+        lowest = Math.min(lowest, credited - held)
+      }
+      if (
+        event.type === EVENT.PRN_DELETED ||
+        event.type === EVENT.PRN_CANCELLED
+      ) {
+        holding.delete(event.prnId)
+      }
+    }
+    return lowest
+  }
+
+  it('never raises a note the balance its uploads have built cannot fund', () => {
+    for (const registration of accredited) {
+      const lowest = lowestBalanceAtRaise(registration)
+      assert.ok(lowest >= 0, `${registration.id} went to ${lowest} t`)
+    }
+  })
+
+  it('issues the calibrated share of what each processing type credits', () => {
+    for (const processingType of ['reprocessor', 'exporter']) {
+      const members = accredited.filter(
+        (registration) => registration.processingType === processingType
+      )
+      let planned = 0
+      let creditedByLastDraw = 0
+      for (const registration of members) {
+        const own = drafted.filter(
+          (event) => event.registrationId === registration.id
+        )
+        if (own.length === 0) continue
+        planned += own.reduce((sum, event) => sum + event.tonnage, 0)
+        const lastDraft = must(own.at(-1))
+        const cutoff = landed
+          .filter(
+            (upload) =>
+              upload.registrationId === registration.id &&
+              day(upload) < day(lastDraft)
+          )
+          .at(-1)?.cutoff
+        creditedByLastDraw += rowsOf(registration.id)
+          .rows.filter(
+            (row) =>
+              row.contribution === CONTRIBUTION.CREDIT &&
+              row.date <= must(cutoff)
+          )
+          .reduce((sum, row) => sum + row.tonnage, 0)
+      }
+      near(
+        planned / creditedByLastDraw,
+        ACTIVITY.prnIssuedShare[processingType],
+        0.03,
+        processingType
+      )
+    }
+  })
+
+  it('spreads a month’s tonnage across its notes rather than front-loading it', () => {
+    /** @type {number[]} */
+    const firstShares = []
+    for (const registration of accredited) {
+      const own = drafted.filter(
+        (event) => event.registrationId === registration.id
+      )
+      for (const key of new Set(own.map(month))) {
+        const inMonth = own.filter((event) => month(event) === key)
+        if (inMonth.length < 3) continue
+        const total = inMonth.reduce((sum, event) => sum + event.tonnage, 0)
+        firstShares.push(inMonth[0].tonnage / total)
+      }
+    }
+    assert.ok(firstShares.length > 100, `${firstShares.length}`)
+    assert.ok(mean(firstShares) < 0.5, `${mean(firstShares)}`)
+  })
+
+  it('refuses a material the calibration prices nothing for', () => {
+    const { PL, ...rest } = ACTIVITY.prnPricePerTonne
+    assert.ok(PL > 0)
+    assert.throws(
+      () =>
+        planCalendar({
+          population,
+          rows,
+          to: TO,
+          calibration: {
+            ...DEFAULT_CALIBRATION,
+            activity: { ...ACTIVITY, prnPricePerTonne: rest }
+          }
+        }),
+      /no price for PL/
+    )
+  })
 })
 
 describe('weekends', () => {
