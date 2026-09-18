@@ -235,6 +235,12 @@ const ACTIVITY = {
   restatementRate: 0.05,
 
   uploads: {
+    /**
+     * Summary log uploads a registration makes per reporting period, so per
+     * month while accredited and per quarter while registered only. Nominal:
+     * an upload answers no calendar, so nothing published counts them.
+     */
+    perReportingPeriod: 2,
     /** How often a spreadsheet comes back with validation issues. Nominal. */
     rejectionRate: 0.2,
     /** Of those, the share fatal rather than errors on rows. Nominal. */
@@ -246,6 +252,17 @@ const ACTIVITY = {
      * weekday of each register report date over April to July.
      */
     weekendVolumeShare: 0.035
+  },
+
+  /**
+   * What a rejected upload is rejected for, by severity. A fatal issue stops
+   * the whole upload: a row submitted before and now missing, a workbook the
+   * service cannot read, or text where a row's date should be. An error sits
+   * on a row: a required cell left blank. Nominal.
+   */
+  uploadIssueKinds: {
+    fatal: { removedRow: 0.9, unreadable: 0.05, badDate: 0.05 },
+    error: { blankField: 1 }
   },
 
   /**
@@ -284,6 +301,16 @@ const ACTIVITY = {
  * The profile builder normalises the four, so rounding them separately is safe.
  */
 const PUNCTUALITY = {
+  /**
+   * The day of the month after the period that the shares below are measured
+   * against. GOV.UK's guidance for reprocessors and exporters, at
+   * https://www.gov.uk/guidance/recording-and-reporting-packaging-waste-reprocessors-and-exporters,
+   * says monthly reports "are due by the 21st day of each month" and quarterly
+   * ones "before the 21st day of each month following the end of the
+   * quarter". The service's own reporting calendar marks the 20th, so a report
+   * filed on the 21st reads as on time here and a day late there.
+   */
+  dueDay: 21,
   onTime: 0.726,
   lateWithin7: 0.095,
   lateWithin30: 0.111,
@@ -323,7 +350,7 @@ const PUNCTUALITY = {
  * @typedef {Object} BehaviourRates
  * @property {number} missedReturnRate
  * @property {number} restatementRate
- * @property {{rejectionRate: number, fatalShare: number, abandonRate: number, weekendVolumeShare: number}} uploads
+ * @property {{perReportingPeriod: number, rejectionRate: number, fatalShare: number, abandonRate: number, weekendVolumeShare: number}} uploads
  * @property {{deleteRate: number, discardRate: number, cancelRate: number, producerAcceptRate: number, sameMonthAcceptanceShare: number}} prn
  */
 
@@ -339,12 +366,14 @@ const PUNCTUALITY = {
  *   reprocessorStream: Counts,
  *   summaryLogSheets: Record<string, Record<string, SheetShape>>,
  *   exportLoadOutcome: {stoppedShare: number, refusedShare: number},
+ *   uploadIssueKinds: {fatal: Counts, error: Counts},
  *   prnsPerAccreditationPerMonth: number
  * }} ActivityShape
  */
 
 /**
  * @typedef {Object} PunctualityShape
+ * @property {number} dueDay - day of the month after the period the shares are measured against
  * @property {number} onTime
  * @property {number} lateWithin7
  * @property {number} lateWithin30

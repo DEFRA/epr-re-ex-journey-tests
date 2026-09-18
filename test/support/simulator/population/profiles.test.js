@@ -21,6 +21,7 @@ const FIXTURE = {
     missedReturnRate: 0.1,
     restatementRate: 0.08,
     uploads: {
+      perReportingPeriod: 3,
       rejectionRate: 0.3,
       fatalShare: 0.2,
       abandonRate: 0.04,
@@ -35,6 +36,7 @@ const FIXTURE = {
     }
   },
   punctuality: {
+    dueDay: 21,
     onTime: 0.6,
     lateWithin7: 0.15,
     lateWithin30: 0.15,
@@ -67,6 +69,15 @@ describe('archetypes', () => {
       const { onTime, lateWithin7, lateWithin30, lateBeyond30 } =
         archetype.reporting
       near(onTime + lateWithin7 + lateWithin30 + lateBeyond30, 1, 0.000001)
+    }
+  })
+
+  it('upload as often as the calibration says, whatever their reliability', () => {
+    for (const archetype of Object.values(ARCHETYPES)) {
+      assert.equal(
+        archetype.uploads.perReportingPeriod,
+        FIXTURE.activity.uploads.perReportingPeriod
+      )
     }
   })
 
