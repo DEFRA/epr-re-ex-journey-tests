@@ -73,12 +73,12 @@ describe('the planned register at full scale', () => {
   })
 
   /**
-   * Within one organisation rather than exactly, and over a spread of seeds
-   * rather than the one the rest of this block reads. An organisation holding
-   * nothing it can register for a processing type takes on a material it can,
-   * which on about one seed in eighty moves a single organisation up a bucket.
-   * Asserting the spread exactly would pass here and fail in CI on the next
-   * change to the draw order.
+   * Within a few organisations rather than exactly, and over a spread of
+   * seeds rather than the one the rest of this block reads. An exporting
+   * organisation holds a material per registration, so a seed that draws
+   * more multi-registration exporters than the register has moves a few
+   * organisations up a bucket. Asserting the spread exactly would pass here
+   * and fail in CI on the next change to the draw order.
    */
   it('gives organisations the spread of materials the register shows', () => {
     for (let seed = 0; seed < 20; seed++) {
@@ -94,7 +94,7 @@ describe('the planned register at full scale', () => {
       for (const [held, count] of Object.entries(
         REGISTER.materialsPerOrganisation
       )) {
-        near(spread[held], count, 1)
+        near(spread[held], count, 4)
       }
     }
   })
@@ -311,6 +311,12 @@ describe('drawn distributions over a spread of seeds', () => {
     }
   })
 
+  /**
+   * Exported glass runs above its nine register rows because an organisation
+   * that exports and reprocesses one material is as likely to have drawn that
+   * material for its reprocessing row, and glass is what reprocessors register
+   * after plastic.
+   */
   it('keeps the materials the register barely uses rare rather than absent', () => {
     const rare = [
       ['exporter', 'GR'],
@@ -329,7 +335,7 @@ describe('drawn distributions over a spread of seeds', () => {
       )
 
       assert.ok(
-        mean >= 0.5 && mean <= 12,
+        mean >= 0.5 && mean <= 16,
         `${processingType} ${suffix}: ${mean}`
       )
     }
@@ -344,6 +350,33 @@ describe('drawn distributions over a spread of seeds', () => {
           ] > 0,
           `${registration.processingType} ${registration.material.suffix}`
         )
+      }
+    }
+  })
+
+  /**
+   * The service refuses a second approved registration on the same key: the
+   * material for an exporting registration, the material and site for a
+   * reprocessing one. So an operator can export plastic once but reprocess it
+   * at each of its sites. Every seed and both scales, because one refusal
+   * stops a run.
+   */
+  it('never plans two registrations one operator could not both hold', () => {
+    const scales = [1, 0.1]
+    for (const scale of scales) {
+      for (const seed of seeds) {
+        for (const organisation of planPopulation({ seed, scale })
+          .organisations) {
+          const keys = organisation.registrations.map(
+            (registration) =>
+              `${registration.processingType} ${registration.material.suffix} ${registration.siteId}`
+          )
+          assert.equal(
+            new Set(keys).size,
+            keys.length,
+            `${organisation.id} at scale ${scale} of ${seed}: ${keys.join(', ')}`
+          )
+        }
       }
     }
   })

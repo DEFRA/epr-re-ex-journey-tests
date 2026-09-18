@@ -89,27 +89,56 @@ const addMonth = (date) => {
  * independent draw strands sites nothing is registered on. Ordering both
  * spreads first distorts neither.
  *
+ * A floor works the other way: a holder that needs more than the spread
+ * offers takes what it needs. Each count goes to the neediest holder with
+ * room for it, so the floors cost the spread as little as possible.
+ *
  * @param {number[]} capacities - how much each holder has room for
  * @param {number[]} counts - the spread to fit inside them
+ * @param {number[]} [floors] - the least each holder has to be given
  * @returns {number[]} a count per index of `capacities`, never above it
  */
-function fitBySize(capacities, counts) {
-  const byDescendingCapacity = capacities
-    .map((capacity, index) => ({ capacity, index }))
-    .sort((a, b) => b.capacity - a.capacity)
-  const descendingCounts = [...counts].sort((a, b) => b - a)
+function fitBySize(capacities, counts, floors = []) {
+  const holders = capacities.map((capacity, index) => ({
+    capacity,
+    floor: floors[index] ?? 0,
+    index
+  }))
+  const neediest = (candidates) =>
+    candidates.reduce((best, holder) =>
+      holder.floor > best.floor ||
+      (holder.floor === best.floor && holder.capacity > best.capacity)
+        ? holder
+        : best
+    )
 
   const fitted = Array(capacities.length).fill(0)
-  byDescendingCapacity.forEach(({ capacity, index }, rank) => {
-    fitted[index] = Math.min(descendingCounts[rank], capacity)
-  })
+  for (const count of [...counts].sort((a, b) => b - a)) {
+    const withRoom = holders.filter(
+      ({ floor, capacity }) => floor <= count && count <= capacity
+    )
+    const holder = neediest(withRoom.length > 0 ? withRoom : holders)
+    holders.splice(holders.indexOf(holder), 1)
+    fitted[holder.index] = Math.min(
+      Math.max(count, holder.floor),
+      holder.capacity
+    )
+  }
   return fitted
 }
 
 /**
  * Only an organisation with room for two registrations can hold both an
- * exporting and a reprocessing one, so the "both" organisations go on the
- * larger ones.
+ * exporting and a reprocessing one, so the "both" organisations go on those,
+ * smallest first: most of the register's are an operator that exports and
+ * reprocesses one material, and a two-registration organisation is the only
+ * place that shape fits.
+ *
+ * An organisation of one processing type on one site holds a material per
+ * registration, so one registered more times than any organisation holds
+ * materials is "both" before any of them: the register's five- and
+ * eight-registration organisations all do both, and drawing one as an
+ * exporter would plan a five-material exporter the register has not got.
  */
 function assignTypes(register, registrationCounts, random) {
   const requested = allocate(
@@ -119,12 +148,20 @@ function assignTypes(register, registrationCounts, random) {
   )
   const bothWanted = requested.filter((type) => type === 'both').length
 
-  const roomForBoth = random.shuffle(
-    registrationCounts
-      .map((count, index) => ({ count, index }))
-      .filter(({ count }) => count >= 2)
-      .map(({ index }) => index)
+  const materialCountsHeld = new Set(
+    Object.entries(register.materialsPerOrganisation)
+      .filter(([, organisations]) => organisations > 0)
+      .map(([held]) => Number(held))
   )
+  const mustBeBoth = ({ count }) => Number(!materialCountsHeld.has(count))
+  const roomForBoth = random
+    .shuffle(
+      registrationCounts
+        .map((count, index) => ({ count, index }))
+        .filter(({ count }) => count >= 2)
+    )
+    .sort((a, b) => mustBeBoth(b) - mustBeBoth(a) || a.count - b.count)
+    .map(({ index }) => index)
   const both = new Set(roomForBoth.slice(0, bothWanted))
 
   const singleTypes = allocate(
@@ -179,7 +216,13 @@ const timesEach = (suffixes) => {
  * the register. Picking a set of distinct materials up front excludes each one
  * as it is taken, which inflates the small materials at plastic's expense.
  */
-function assignMaterials(register, processingTypes, materialCount, random) {
+function assignMaterials(
+  register,
+  processingTypes,
+  materialCount,
+  siteCount,
+  random
+) {
   const drawn = processingTypes.map((processingType) =>
     random.weighted(register.rowsByTypeAndMaterial[processingType])
   )
@@ -238,7 +281,75 @@ function assignMaterials(register, processingTypes, materialCount, random) {
     suffixes[row] = suffix
   }
 
+  // The service approves one exporting registration per material and one
+  // reprocessing registration per material and site, so a row past that
+  // moves onto a material with room for it.
+  const capacity = { exporter: 1, reprocessor: siteCount }
+  for (;;) {
+    const counts = timesEach(
+      suffixes.map((suffix, row) => `${processingTypes[row]} ${suffix}`)
+    )
+    const over = suffixes.findIndex(
+      (suffix, row) =>
+        counts[`${processingTypes[row]} ${suffix}`] >
+        capacity[processingTypes[row]]
+    )
+    if (over < 0) break
+
+    const processingType = processingTypes[over]
+    const weights = register.rowsByTypeAndMaterial[processingType]
+    const withRoom = (candidates) =>
+      Object.fromEntries(
+        candidates
+          .filter(
+            (suffix) =>
+              weights[suffix] > 0 &&
+              (counts[`${processingType} ${suffix}`] ?? 0) <
+                capacity[processingType]
+          )
+          .map((suffix) => [suffix, weights[suffix]])
+      )
+    const heldWithRoom = withRoom([...held])
+    const target =
+      Object.keys(heldWithRoom).length > 0
+        ? heldWithRoom
+        : withRoom(Object.keys(weights))
+    if (Object.keys(target).length === 0) {
+      throw new Error(
+        `An organisation cannot hold ${processingTypes.filter((type) => type === processingType).length} ${processingType} registrations across the materials it can register`
+      )
+    }
+    const suffix = random.weighted(target)
+    held.add(suffix)
+    suffixes[over] = suffix
+  }
+
   return suffixes.map((suffix) => MATERIALS_BY_SUFFIX[suffix])
+}
+
+/**
+ * Two reprocessing registrations of one material go on different sites, since
+ * the service refuses a second approval of a material at one site. Placing
+ * the rows a material at a time around the sites does that and still leaves
+ * no site without a row.
+ *
+ * @returns {(string | null)[]} a site id per row; null for an exporting row
+ */
+function assignSites(processingTypes, materials, sites) {
+  /** @type {Map<string, number[]>} */
+  const rowsByMaterial = new Map()
+  processingTypes.forEach((processingType, row) => {
+    if (processingType !== 'reprocessor') return
+    const { suffix } = materials[row]
+    rowsByMaterial.set(suffix, [...(rowsByMaterial.get(suffix) ?? []), row])
+  })
+
+  const siteIds = Array(processingTypes.length).fill(null)
+  let next = 0
+  for (const rows of rowsByMaterial.values()) {
+    for (const row of rows) siteIds[row] = sites[next++ % sites.length].id
+  }
+  return siteIds
 }
 
 /**
@@ -371,7 +482,6 @@ export function planPopulation({
     random
   ).map(Number)
 
-  const fittedMaterialCounts = fitBySize(registrationCounts, materialCounts)
   const types = assignTypes(register, registrationCounts, random)
   // An operator is regulated by one agency and its registrations inherit it,
   // so the register's rows per agency is a quota over organisations rather
@@ -382,42 +492,67 @@ export function planPopulation({
   // calibration, Northern Ireland's 45 rows came out anywhere from 35 to 62.
   const agencies = allocate(register.agencyRows, organisationCount, random)
 
-  const planned = registrationCounts.map((registrationCount, index) => {
-    const processingTypes = assignProcessingTypes(
-      types[index],
-      registrationCount,
+  const processingTypesByOrganisation = registrationCounts.map(
+    (registrationCount, index) =>
+      assignProcessingTypes(types[index], registrationCount, random)
+  )
+  const rowsOfType = (index, processingType) =>
+    processingTypesByOrganisation[index].filter(
+      (type) => type === processingType
+    ).length
+
+  // A reprocessing organisation needs a site per registration of one
+  // material, so the sites go first to the organisations whose material
+  // count leaves them short.
+  const materialsBeforeSites = fitBySize(registrationCounts, materialCounts)
+  const reprocessorOrganisations = processingTypesByOrganisation
+    .map((_, index) => index)
+    .filter((index) => types[index] !== 'exporter')
+  const siteCounts = fitBySize(
+    reprocessorOrganisations.map((index) => rowsOfType(index, 'reprocessor')),
+    allocate(
+      register.sitesPerReprocessorOrganisation,
+      reprocessorOrganisations.length,
       random
+    ).map(Number),
+    reprocessorOrganisations.map((index) =>
+      Math.ceil(rowsOfType(index, 'reprocessor') / materialsBeforeSites[index])
     )
-    return {
+  )
+  const sitesByOrganisation = Array(organisationCount).fill(0)
+  reprocessorOrganisations.forEach((index, rank) => {
+    sitesByOrganisation[index] = siteCounts[rank]
+  })
+
+  // An organisation exports each material once and reprocesses it once per
+  // site, so it needs at least as many materials as that leaves room for.
+  const fewestMaterials = registrationCounts.map((_, index) => {
+    const reprocessing = rowsOfType(index, 'reprocessor')
+    return Math.max(
+      rowsOfType(index, 'exporter'),
+      reprocessing === 0
+        ? 0
+        : Math.ceil(reprocessing / sitesByOrganisation[index])
+    )
+  })
+  const fittedMaterialCounts = fitBySize(
+    registrationCounts,
+    materialCounts,
+    fewestMaterials
+  )
+
+  const planned = processingTypesByOrganisation.map(
+    (processingTypes, index) => ({
       processingTypes,
       materials: assignMaterials(
         register,
         processingTypes,
         fittedMaterialCounts[index],
+        sitesByOrganisation[index],
         random
       )
-    }
-  })
-
-  const reprocessorOrganisations = planned
-    .map((organisation, index) => ({ organisation, index }))
-    .filter(({ index }) => types[index] !== 'exporter')
-  const siteCounts = fitBySize(
-    reprocessorOrganisations.map(
-      ({ organisation }) =>
-        organisation.processingTypes.filter((type) => type === 'reprocessor')
-          .length
-    ),
-    allocate(
-      register.sitesPerReprocessorOrganisation,
-      reprocessorOrganisations.length,
-      random
-    ).map(Number)
+    })
   )
-  const sitesByOrganisation = Array(organisationCount).fill(0)
-  reprocessorOrganisations.forEach(({ index }, rank) => {
-    sitesByOrganisation[index] = siteCounts[rank]
-  })
 
   const registrationTotal = planned.reduce(
     (sum, organisation) => sum + organisation.processingTypes.length,
@@ -446,7 +581,7 @@ export function planPopulation({
       (_, site) => ({ id: `${organisationId}-S${site + 1}` })
     )
 
-    let nextSite = 0
+    const siteIds = assignSites(processingTypes, materials, sites)
     const registrations = processingTypes.map((processingType, row) => {
       const at = nextRegistration++
       const activeFrom = activeFroms[at]
@@ -461,10 +596,7 @@ export function planPopulation({
         // A copy, so a caller that edits a registration's material cannot
         // reach back into the shared vocabulary and change every later plan.
         material: { ...materials[row] },
-        siteId:
-          processingType === 'reprocessor'
-            ? sites[nextSite++ % sites.length].id
-            : null,
+        siteId: siteIds[row],
         // The register carries two cancelled registrations and two cancelled
         // accreditations, which are the same two rows: a cancelled
         // registration has nothing left to be accredited for.

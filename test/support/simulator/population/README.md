@@ -40,7 +40,7 @@ An operator is one organisation on the register.
 | `nation`        | The nation that agency regulates.                                                                                     |
 | `materials`     | The material suffixes it registers, sorted. `PL`, `PA`, `GR`, `GO`, `AL`, `ST`, `WO`, `FB`.                           |
 | `sites`         | `{ id }` per reprocessing site. Empty for an exporting-only operator. Every site has at least one registration on it. |
-| `registrations` | One per registered material and processing type.                                                                      |
+| `registrations` | One per registered material and processing type, and per site for a reprocessor.                                      |
 | `profile`       | How it behaves. See below.                                                                                            |
 
 A registration:
@@ -200,16 +200,25 @@ The register's own dates thin out from a January tail and run to September, and
 the simulator counts monthly returns from this date, so an evenly drawn one
 would hand a registration returns it never owed.
 
-The material spread lands within one organisation rather than exactly on the
-register. An operator holding nothing it can register for a processing type
-takes on a material it can, which on about one seed in eighty moves a single
-operator up a bucket.
+The service approves one exporting registration per material on an operator,
+and one reprocessing registration per material and site, so the plan holds to
+that: an operator exports each of its materials at most once and reprocesses
+each at most once per site, with the rows of one material spread over its
+sites. That puts a floor under how many materials an operator needs, and the
+floors are what keeps the material spread near rather than exactly on the
+register. An exporter holds a material per registration, so a seed that draws
+more multi-registration exporters than the register has moves a few operators
+up a bucket. The "both" operators go on the two-registration organisations
+first, because an operator exporting and reprocessing one material is most of
+what the register's are.
 
-Two marginals are near rather than exact, both because an operator is held to
-the materials and sites it has the registrations to carry. Plastic runs a few
-per cent under its register share and every other material a few per cent over,
-because holding an operator to a count of distinct materials moves its
-duplicated rows onto materials it has not got. The site spread shifts by an
+Two more marginals are near rather than exact, both because an operator is
+held to the materials and sites it has the registrations to carry. Plastic runs
+a few per cent under its register share and every other material a few per
+cent over, because holding an operator to a count of distinct materials moves
+its duplicated rows onto materials it has not got, and exported glass runs
+further over because an operator doing both with one material is as likely to
+have drawn it for its reprocessing row. The site spread shifts by an
 organisation or two, leaving the estate a few sites short of the register's 176.
 `population.test.js` states the tolerance on each.
 
