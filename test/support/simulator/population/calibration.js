@@ -167,8 +167,10 @@ const ACTIVITY = {
    * one late submissions have yet to reach. A reprocessor's tonnage received
    * for recycling is read as the input stream's and its tonnage recycled as
    * the output stream's, because that is how the two templates divide the same
-   * operator's year. A worksheet with no figure reports nothing the workbook
-   * aggregates.
+   * operator's year. Both are the whole reprocessor estate's figure, not one
+   * stream's. A worksheet with no figure is not anchored: the output stream's
+   * received and sent on and the input stream's reprocessed count towards
+   * these same figures, and carry whatever the generator draws.
    *
    * The row shares are a judgement, save that a sent-on share is set near the
    * ratio the workbook gives between tonnage sent on and tonnage received,

@@ -180,9 +180,17 @@ scaled with the population so a tenth-scale run credits a tenth of it. It
 follows that raising the rows a submission carries shrinks the load behind each
 row rather than inflating the year's tonnage.
 
-Only a worksheet the calibration gives a monthly tonnage is anchored that way,
-and those are the five the published workbook aggregates. Every other
-worksheet's weights are whatever the generator draws from the row's seed. They
+The reprocessor figures are the whole reprocessor estate's, and the input and
+output streams are two ways one estate reports the same process, so each
+stream lands on the share of a figure its registrations are of that estate, by
+registration-months. The two streams credit the national tonnage once between
+them, and the input stream debits the same share of the tonnage sent on.
+
+Only a worksheet the calibration gives a monthly tonnage is anchored that way.
+The output template's received and sent-on worksheets and the input template's
+reprocessed worksheet count towards the same reprocessor figures and are not
+anchored. Every other worksheet's weights are whatever the generator draws from
+the row's seed. They
 hold still and they validate, and they are not a production quantity: summing
 tonnage received or product tonnage across the estate reports the fixture, not
 the country.
