@@ -14,7 +14,7 @@ import {
   ISSUE_SEVERITY,
   UPLOAD_OUTCOME
 } from '../calendar/events.js'
-import { CONTRIBUTION, rowsForUpload } from '../rows/rows.js'
+import { CONTRIBUTION, heldTonnage, rowsForUpload } from '../rows/rows.js'
 import {
   applicationRow,
   nationLetter,
@@ -417,7 +417,7 @@ export function reportFields(registration, rows, report) {
     )
     .reduce((total, row) => total + row.tonnage, 0)
   return {
-    tonnageRecycled: Math.round(recycled * 100) / 100,
+    tonnageRecycled: heldTonnage(recycled),
     tonnageNotRecycled: 0,
     ...prn
   }
