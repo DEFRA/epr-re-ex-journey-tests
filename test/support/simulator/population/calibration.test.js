@@ -77,11 +77,6 @@ describe('loadCalibration', () => {
     )
   })
 
-  /**
-   * The defaults carry a worksheet's monthly tonnage only where the monthly
-   * aggregated workbook publishes one. The overlay is where the rest come
-   * from, so it may add that one figure to a worksheet that has none.
-   */
   it('lets an overlay add a monthly tonnage to a worksheet the defaults leave without one', () => {
     const sheet = 'Reprocessed (section 4)'
     assert.equal(
@@ -157,6 +152,22 @@ describe('loadCalibration', () => {
           })
         ),
       /Reprocesed \(section 4\)/
+    )
+  })
+
+  /**
+   * JSON may name a key every object inherits, and an `in` check would read
+   * that as a setting the defaults carry.
+   */
+  it('refuses a worksheet named for an inherited property', () => {
+    assert.throws(
+      () =>
+        loadCalibration(
+          withOverlay(
+            '{"activity":{"summaryLogSheets":{"reprocessorInput":{"__proto__":{"monthlyTonnage":12}}}}}'
+          )
+        ),
+      /__proto__/
     )
   })
 

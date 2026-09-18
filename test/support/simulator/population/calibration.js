@@ -449,26 +449,31 @@ const isUnanchored = (at) => {
  * refused: a file that misspells one otherwise plans a run on the defaults
  * while its author believes it is calibrated, which is the whole failure this
  * is here to prevent.
+ *
+ * @template {Record<string, unknown>} T
+ * @param {T} base
+ * @param {Record<string, unknown>} overlay
+ * @param {string} path
+ * @returns {T}
  */
 function merge(base, overlay, path) {
   for (const [key, given] of Object.entries(overlay)) {
     const at = `${path}${key}`
-    if (!(key in base)) {
-      if (!isUnanchored(at)) {
-        throw new Error(
-          `Calibration overlay sets "${at}", which is not a setting`
-        )
-      }
-      if (typeof given !== 'number') {
-        throw new Error(`Calibration overlay gives "${at}" the wrong type`)
-      }
-    } else {
-      if (isBranch(base[key]) !== isBranch(given)) {
-        throw new Error(`Calibration overlay gives "${at}" the wrong shape`)
-      }
-      if (!isBranch(base[key]) && typeof base[key] !== typeof given) {
-        throw new Error(`Calibration overlay gives "${at}" the wrong type`)
-      }
+    const carried = Object.hasOwn(base, key)
+    if (!carried && !isUnanchored(at)) {
+      throw new Error(
+        `Calibration overlay sets "${at}", which is not a setting`
+      )
+    }
+    const under = base[key]
+    if (isBranch(under) !== isBranch(given)) {
+      throw new Error(`Calibration overlay gives "${at}" the wrong shape`)
+    }
+    const wrongType = carried
+      ? typeof given !== typeof under
+      : typeof given !== 'number'
+    if (!isBranch(given) && wrongType) {
+      throw new Error(`Calibration overlay gives "${at}" the wrong type`)
     }
     if (typeof given === 'number' && !Number.isFinite(given)) {
       throw new Error(`Calibration overlay gives "${at}" no usable number`)
@@ -478,10 +483,15 @@ function merge(base, overlay, path) {
   return {
     ...base,
     ...Object.fromEntries(
-      Object.entries(overlay).map(([key, given]) => [
-        key,
-        isBranch(given) ? merge(base[key], given, `${path}${key}.`) : given
-      ])
+      Object.entries(overlay).map(([key, given]) => {
+        const under = base[key]
+        return [
+          key,
+          isBranch(under) && isBranch(given)
+            ? merge(under, given, `${path}${key}.`)
+            : given
+        ]
+      })
     )
   }
 }
