@@ -127,10 +127,26 @@ export function waitForWasteBalance(
 }
 
 /**
- * Polls the waste balance until a general note of `tonnage` could draw on it:
- * the available amount outside any December portion, which only a December
- * note can draw on. The service refuses a draft over what it holds, so a note
- * planned against a submitted log has to wait for the balance to catch up.
+ * Whether a general note of `tonnage` could draw on the balance: the available
+ * amount outside any December portion, which only a December note can draw on.
+ *
+ * @param {Record<string, WasteBalance>} body - by accreditation id, as the route sends it
+ * @param {string} accreditationId
+ * @param {number} tonnage
+ */
+export function fundsGeneralNote(body, accreditationId, tonnage) {
+  const balance = body[accreditationId]
+  return (
+    balance !== undefined &&
+    Number(balance.nonDecemberAvailableAmount ?? balance.availableAmount) >=
+      tonnage
+  )
+}
+
+/**
+ * Polls the waste balance until a general note of `tonnage` could draw on it.
+ * The service refuses a draft over what it holds, so a note planned against a
+ * submitted log has to wait for the balance to catch up.
  *
  * @param {string} orgId
  * @param {string} accreditationId
@@ -149,15 +165,8 @@ export async function waitForAvailableBalance(
     orgId,
     accreditationId,
     defraAuthHeader,
-    (body) => {
-      const balance = body[accreditationId]
-      return (
-        balance !== undefined &&
-        Number(balance.nonDecemberAvailableAmount ?? balance.availableAmount) >=
-          tonnage
-      )
-    },
-    `${tonnage} t available`,
+    (body) => fundsGeneralNote(body, accreditationId, tonnage),
+    `the ${tonnage} t the plan drafted a note against`,
     timeoutMs
   )
 }
