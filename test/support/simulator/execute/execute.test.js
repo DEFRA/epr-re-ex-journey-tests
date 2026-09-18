@@ -141,11 +141,7 @@ function recordingSeeders() {
     submitSummaryLog: record('submitSummaryLog', () => ({
       status: 'submitted'
     })),
-    seedReportSubmission: record('seedReportSubmission', () => undefined),
-    waitForReportingPeriodStatus: record(
-      'waitForReportingPeriodStatus',
-      () => undefined
-    )
+    seedReportSubmission: record('seedReportSubmission', () => undefined)
   }
   return seeders
 }
@@ -290,7 +286,7 @@ describe('a run', () => {
   })
 
   describe('changing an accreditation status', () => {
-    it('suspends the accreditation on the day the calendar says', async () => {
+    it('suspends the accreditation', async () => {
       await executeEvent(run, approved(exporter))
       await executeEvent(run, {
         ...approved(exporter, '2026-04-07T11:00:00Z'),
@@ -300,7 +296,6 @@ describe('a run', () => {
       const [change] = seeders.of('changeMigratedStatus')
       assert.equal(change.args[0], 'org-1')
       assert.deepEqual(change.args[2], { accreditation: 'suspended' })
-      assert.equal(change.args[3], '2026-04-07')
     })
 
     it('cancels the registration, which the service cascades to its accreditation', async () => {
@@ -480,15 +475,6 @@ describe('a run', () => {
         { Authorization: 'Bearer linked' },
         { year: 2026, cadence: 'monthly', period: 1, submissionNumber: 1 }
       ])
-      assert.equal(seeders.of('waitForReportingPeriodStatus').length, 0)
-    })
-
-    it('waits for the restated period to ask for a resubmission before making one', async () => {
-      await executeEvent(run, approved(exporter))
-      await executeEvent(run, reported(exporter, { submissionNumber: 2 }))
-
-      const [wait] = seeders.of('waitForReportingPeriodStatus')
-      assert.equal(wait.args[3], 'requires_resubmission')
     })
   })
 

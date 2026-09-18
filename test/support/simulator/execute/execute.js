@@ -283,8 +283,7 @@ const changeStatus = (statuses) => async (run, event) => {
       registrationIndex: registration.index,
       accreditationIndex: registration.accreditationIndex
     },
-    statuses,
-    event.at.slice(0, 10)
+    statuses
   )
 }
 
@@ -432,18 +431,6 @@ async function submitReport(run, event) {
   const { operator, registration } = liveOf(run, event)
   const authHeader = await signedIn(run, operator)
   const { year, cadence, period, submissionNumber } = event
-
-  // The service permits a second submission only once the summary log that
-  // restated the period has been read, which its submit worker does a moment
-  // after the log lands.
-  if (submissionNumber > 1) {
-    await run.seeders.waitForReportingPeriodStatus(
-      operator.refNo,
-      registration.registrationId,
-      authHeader,
-      'requires_resubmission'
-    )
-  }
 
   await run.seeders.seedReportSubmission(
     operator.refNo,

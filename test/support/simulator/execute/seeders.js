@@ -19,10 +19,7 @@ import {
   submitSummaryLog,
   uploadSummaryLog
 } from '../../seeding/summary-logs.js'
-import {
-  waitForReportingPeriodStatus,
-  waitForSummaryLogStatus
-} from '../../seeding/waiters.js'
+import { waitForSummaryLogStatus } from '../../seeding/waiters.js'
 import { generateSpreadsheetData } from '../../spreadsheet/summarylogs-spreadsheet-data-generator.js'
 
 export const liveSeeders = {
@@ -37,8 +34,7 @@ export const liveSeeders = {
   uploadSummaryLog,
   waitForSummaryLogStatus,
   submitSummaryLog,
-  seedReportSubmission,
-  waitForReportingPeriodStatus
+  seedReportSubmission
 }
 
 /** @typedef {typeof liveSeeders} Seeders */

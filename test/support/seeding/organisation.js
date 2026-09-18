@@ -250,19 +250,12 @@ export async function amendMigratedOrganisation(refNo, amend) {
   return result
 }
 
-const withStatus = (record, status, updatedAt) => {
-  record.status = status
-  record.statusHistory = [
-    ...(record.statusHistory || []),
-    { status, updatedAt }
-  ]
-}
-
 /**
  * Approves one registration of a migrated organisation, with the accreditation
  * applied for beside it, where updateMigratedOrganisation approves them all at
  * once. The organisation is approved with its first registration. Indices are
  * positions in the order the registrations and accreditations were applied for.
+ * The service writes each status change to the history itself, dated today.
  *
  * @param {string} refNo
  * @param {{registrationIndex: number, accreditationIndex?: number}} indices
@@ -288,7 +281,7 @@ export function approveMigratedRegistration(
         ? null
         : data.accreditations[accreditationIndex]
 
-    withStatus(registration, 'approved', granted.validFrom)
+    registration.status = 'approved'
     registration.validFrom = granted.validFrom
     registration.registrationNumber = granted.regNumber
     registration.submittedToRegulator = granted.submittedToRegulator
@@ -298,7 +291,7 @@ export function approveMigratedRegistration(
 
     if (accreditation) {
       registration.accreditationId = accreditation.id
-      withStatus(accreditation, 'approved', granted.validFrom)
+      accreditation.status = 'approved'
       accreditation.validFrom = granted.validFrom
       accreditation.validTo = granted.validTo
       accreditation.accreditationNumber = granted.accNumber
@@ -311,7 +304,7 @@ export function approveMigratedRegistration(
     // Linking a Defra ID user moves an approved organisation on to active, so
     // a later registration's approval leaves it there.
     if (!['approved', 'active'].includes(data.status)) {
-      withStatus(data, 'approved', granted.validFrom)
+      data.status = 'approved'
       data.submittedToRegulator = granted.submittedToRegulator
     }
 
@@ -324,27 +317,21 @@ export function approveMigratedRegistration(
 }
 
 /**
- * Moves a registration, its accreditation or both to a new status on a given
- * day, as the regulator would.
+ * Moves a registration, its accreditation or both to a new status, as the
+ * regulator would. The service dates the change today.
  *
  * @param {string} refNo
  * @param {{registrationIndex: number, accreditationIndex?: number}} indices
  * @param {{registration?: string, accreditation?: string}} statuses
- * @param {string} on - ISO date of the change
  */
 export function changeMigratedStatus(
   refNo,
   { registrationIndex, accreditationIndex },
-  statuses,
-  on
+  statuses
 ) {
   return amendMigratedOrganisation(refNo, (data) => {
     if (statuses.registration) {
-      withStatus(
-        data.registrations[registrationIndex],
-        statuses.registration,
-        on
-      )
+      data.registrations[registrationIndex].status = statuses.registration
     }
     if (statuses.accreditation) {
       if (accreditationIndex === undefined) {
@@ -352,11 +339,7 @@ export function changeMigratedStatus(
           `Registration ${registrationIndex} of ${refNo} has no accreditation to make ${statuses.accreditation}`
         )
       }
-      withStatus(
-        data.accreditations[accreditationIndex],
-        statuses.accreditation,
-        on
-      )
+      data.accreditations[accreditationIndex].status = statuses.accreditation
     }
   })
 }
