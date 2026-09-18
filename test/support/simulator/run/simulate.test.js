@@ -45,6 +45,12 @@ describe('parseSettings', () => {
     })
   })
 
+  it('refuses a period that is not made of real ISO dates', () => {
+    assert.throws(() => parseSettings(['--from', '18/09/2026']), /--from must/)
+    assert.throws(() => parseSettings(['--to', '2026-9-1']), /--to must/)
+    assert.throws(() => parseSettings(['--to', '2026-13-45']), /--to must/)
+  })
+
   it('refuses a scale or concurrency that is not a number above zero', () => {
     assert.throws(() => parseSettings(['--scale', '0']), /--scale must be/)
     assert.throws(() => parseSettings(['--scale', 'lots']), /--scale must be/)

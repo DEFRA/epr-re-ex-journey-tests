@@ -10,6 +10,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  truncateSync,
   writeFileSync
 } from 'node:fs'
 import { join } from 'node:path'
@@ -89,8 +90,9 @@ export function writeSettings(directory, settings) {
 
 /**
  * Every entry journalled so far. A run killed outright mid-write leaves a
- * torn last line, which is dropped, so its event is done again on resume. A
- * torn line anywhere else is a journal nothing here wrote, and stops the run.
+ * torn last line, which is cut from the file, so its event is done again on
+ * resume and the next entry starts a line of its own. A torn line anywhere
+ * else is a journal nothing here wrote, and stops the run.
  *
  * @param {string} directory
  * @returns {JournalEntry[]}
@@ -98,12 +100,19 @@ export function writeSettings(directory, settings) {
 export function readJournal(directory) {
   const path = join(directory, JOURNAL)
   if (!existsSync(path)) return []
-  const lines = readFileSync(path, 'utf8').split('\n').filter(Boolean)
+  const text = readFileSync(path, 'utf8')
+  const lines = text.split('\n').filter(Boolean)
   return lines.flatMap((line, index) => {
     try {
       return [JSON.parse(line)]
     } catch (cause) {
-      if (index === lines.length - 1) return []
+      if (index === lines.length - 1) {
+        truncateSync(
+          path,
+          Buffer.byteLength(text.slice(0, text.lastIndexOf(line)))
+        )
+        return []
+      }
       throw new Error(`${path} line ${index + 1} is not a journal entry`, {
         cause
       })
@@ -176,7 +185,9 @@ export function entryFor(run, event) {
 /**
  * Rebuilds the run's live state from the journal, so that it holds every
  * operator, registration and note a previous run made, and each
- * registration's uploads so far in the order the plan makes them.
+ * registration's uploads so far in the order the plan makes them. A journal
+ * naming an event the plan does not have was written from another plan, and
+ * is refused rather than replayed against this one.
  *
  * @param {Run} run - fresh, with nothing live yet
  * @param {JournalEntry[]} entries
@@ -184,8 +195,14 @@ export function entryFor(run, event) {
  * @returns {Set<string>} the keys of the events already done
  */
 export function restore(run, entries, events) {
+  const planned = new Set(events.map(eventKey))
   const done = new Set()
   for (const entry of entries) {
+    if (!planned.has(entry.key)) {
+      throw new Error(
+        `The journal was written from a different plan: it holds ${entry.key}`
+      )
+    }
     done.add(entry.key)
     if (entry.operator) restoreOperator(run, entry.operator)
     if (entry.registration) restoreRegistration(run, entry.registration)

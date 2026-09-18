@@ -208,6 +208,47 @@ describe('replay', () => {
     for (const key of done) assert.ok(!recorder.executed.includes(key))
   })
 
+  it('moves a resumed day to its last planned instant, not its last event still to do', async () => {
+    const recorder = recordingExecutor()
+    const firstDay = events[0].at.slice(0, 10)
+    const ofFirstDay = events.filter((e) => e.at.startsWith(firstDay))
+    const lastOfDay = ofFirstDay[ofFirstDay.length - 1]
+    assert.ok(ofFirstDay.length > 1)
+    const replaying = replay({
+      run,
+      events,
+      done: new Set([eventKey(lastOfDay)]),
+      concurrency: 4,
+      onExecuted: () => {},
+      stop: createStop(),
+      ...recorder
+    })
+    await recorder.releaseUntilSettled(replaying)
+    await replaying
+    assert.equal(recorder.clockMoves[0], lastOfDay.at)
+  })
+
+  it('stops when journalling an event fails, and throws that error', async () => {
+    const recorder = recordingExecutor()
+    const stop = createStop()
+    const failing = eventKey(events[1])
+    const replaying = replay({
+      run,
+      events,
+      done: new Set(),
+      concurrency: 4,
+      onExecuted: (executed) => {
+        if (eventKey(executed) === failing) throw new Error('disk full')
+      },
+      stop,
+      ...recorder
+    })
+    await recorder.releaseUntilSettled(replaying)
+    await assert.rejects(replaying, { message: 'disk full' })
+    assert.equal(stop.reason(), `${failing} failed`)
+    assert.ok(recorder.executed.length < events.length)
+  })
+
   it('stops dispatching once asked, letting what is under way finish', async () => {
     const recorder = recordingExecutor()
     const stop = createStop()

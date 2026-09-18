@@ -10,7 +10,9 @@
  * Holding the clock still while events run is what lets them overlap.
  */
 
-import { setSimulatedNow } from '../clock/simulated-clock.js'
+import { existsSync } from 'node:fs'
+
+import { clockFile, setSimulatedNow } from '../clock/simulated-clock.js'
 import { executeEvent } from '../execute/execute.js'
 
 /** @import {CalendarEvent} from '../calendar/events.js' */
@@ -56,6 +58,10 @@ export function eventsInOrder(calendar) {
 /** @type {Clock} */
 export const stackClock = {
   async moveTo(instant) {
+    // A stack on the clock only ever moves forwards. This process is on the
+    // same preload, so `Date.now()` is where the stack stands: a resumed run
+    // asking for a day the stack has already flowed past leaves it be.
+    if (existsSync(clockFile) && Date.now() >= Date.parse(instant)) return
     setSimulatedNow(instant)
     await new Promise((resolve) => setTimeout(resolve, CLOCK_SETTLE_MS))
   }
@@ -105,7 +111,7 @@ function groupInOrder(items, by) {
 /**
  * Runs `work` over the queues, at most `concurrency` at a time. A queue that
  * throws asks the rest to stop; every queue under way finishes its current
- * item, and the first error is what comes back.
+ * item, and one of the errors is what comes back.
  *
  * @template T
  * @param {T[]} queues
@@ -173,11 +179,11 @@ export async function replay({
           if (stop.requested()) return
           try {
             await execute(run, event)
+            await onExecuted(event)
           } catch (error) {
             stop.request(`${eventKey(event)} failed`)
             throw error
           }
-          await onExecuted(event)
         }
       },
       stop

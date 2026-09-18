@@ -220,15 +220,27 @@ describe('the run directory', () => {
       flag: 'a'
     })
     assert.deepEqual(readJournal(directory), whole)
+    appendJournal(directory, { key: 'after' })
+    assert.deepEqual(readJournal(directory), [...whole, { key: 'after' }])
   })
 
   it('refuses a torn line anywhere else', () => {
-    writeFileSync(join(directory, 'journal.jsonl'), '\n{"key":"after"}\n', {
+    writeFileSync(join(directory, 'journal.jsonl'), '{"key":"torn\n', {
       flag: 'a'
     })
+    appendJournal(directory, { key: 'later' })
     assert.throws(
       () => readJournal(directory),
       /line \d+ is not a journal entry/
+    )
+  })
+
+  it('refuses a journal written from another plan', () => {
+    const run = createRun({ population, rows, seeders: fakeSeeders() })
+    const key = 'OP-9999-R1 registration.approved 2026-01-01T09:00:00.000Z'
+    assert.throws(
+      () => restore(run, [{ key }], events),
+      /journal was written from a different plan/
     )
   })
 })

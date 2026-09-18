@@ -37,9 +37,11 @@ stamped at that day's last planned instant, plus the real seconds the day took
 to execute.
 
 A fresh run takes the clock off first, so the day it plans to is the real one
-and the stack starts the year from January. Only move a stack forwards: a run
-that starts before the day a stack has already reached wants the stack brought
-up again first.
+and the stack starts the year from January. From there the stack only moves
+forwards. A resumed run finds the clock where the stopped one left it plus the
+real time since, so the day it resumes into may run later than planned, and a
+run that starts before the day a stack has already reached wants the stack
+brought up again first.
 
 ## Resuming
 
@@ -51,15 +53,15 @@ service already holds from the journal, and carries on from the first event
 not yet done. Nothing already made is made again. Asking for a different
 seed, scale, period or profile mix than the run was planned with is refused;
 concurrency can change. The calibration is not saved, so resume under the
-same `SIMULATOR_CALIBRATION` as the run started with, or the replanned
-calendar will not be the one the journal records.
+same `SIMULATOR_CALIBRATION` as the run started with: a journal naming an
+event the replanned calendar does not have is refused.
 
 `SIGINT` or `SIGTERM` stops the run cleanly: nothing more is dispatched, the
 events under way finish and are journalled, the manifest is written, and the
-run exits 130. A second signal exits at once. A run killed outright can leave
-its last event done but not journalled, in which case that event is done again
-on resume: for an approval that is a second organisation for the same planned
-operator, so prefer the signal.
+run exits 130. An upload can take a minute to finish, so give it that. A
+second signal, or a `SIGKILL`, cuts the events under way off unjournalled, and
+each is done again on resume: for an approval that is a second organisation
+for the same planned operator, so prefer the one signal.
 
 ## The manifest
 

@@ -69,11 +69,22 @@ export function parseSettings(argv) {
     }
     return value
   }
+  const date = (name, text) => {
+    if (text === undefined) return undefined
+    const wellFormed =
+      /^\d{4}-\d{2}-\d{2}$/.test(text) &&
+      !Number.isNaN(Date.parse(text)) &&
+      new Date(text).toISOString().startsWith(text)
+    if (!wellFormed) {
+      throw new Error(`--${name} must be a date as YYYY-MM-DD, not "${text}"`)
+    }
+    return text
+  }
   return {
     seed: values.seed,
     scale: number('scale', values.scale),
-    from: values.from,
-    to: values.to,
+    from: date('from', values.from),
+    to: date('to', values.to),
     profileMix: values['profile-mix'],
     concurrency: number('concurrency', values.concurrency, { whole: true }),
     dir: values.dir
@@ -138,7 +149,6 @@ async function main() {
     from: calibration.register.activeFrom.goLive,
     to: new Date().toISOString().slice(0, 10)
   })
-  if (!saved) writeSettings(directory, settings)
 
   const population = planPopulation({ ...settings, calibration })
   const rows = planSummaryLogRows({ population, calibration })
@@ -152,19 +162,11 @@ async function main() {
   const events = eventsInOrder(calendar)
   const run = createRun({ population, rows })
   const done = restore(run, readJournal(directory), events)
+  if (!saved) writeSettings(directory, settings)
   logger.info(
-    `${saved ? 'Resuming' : 'Starting'} ${seed} at scale ${settings.scale}, ${settings.from} to ${settings.to}: ` +
+    `${saved ? 'Resuming' : 'Starting'} ${settings.seed} at scale ${settings.scale}, ${settings.from} to ${settings.to}: ` +
       `${population.organisations.length} operators, ${events.length} events, ${done.size} done, in ${directory}`
   )
-
-  const stop = createStop()
-  const interrupt = (signal) => {
-    if (stop.requested()) process.exit(INTERRUPTED_EXIT_CODE)
-    logger.warn(`${signal}: finishing the events under way, then stopping`)
-    stop.request('interrupted')
-  }
-  process.on('SIGINT', interrupt)
-  process.on('SIGTERM', interrupt)
 
   const concurrency = asked.concurrency ?? DEFAULT_CONCURRENCY
   const writeManifestNow = () =>
@@ -181,6 +183,22 @@ async function main() {
   // Real seconds, which the simulated Date cannot give.
   /** @type {Map<string, number>} */
   const startedAt = new Map()
+
+  const stop = createStop()
+  const interrupt = (signal) => {
+    if (stop.requested()) {
+      logger.warn(
+        `${signal} again: ${startedAt.size} events under way are left unjournalled, and done again on resume`
+      )
+      writeManifestNow()
+      process.exit(INTERRUPTED_EXIT_CODE)
+    }
+    logger.warn(`${signal}: finishing the events under way, then stopping`)
+    stop.request('interrupted')
+  }
+  process.on('SIGINT', interrupt)
+  process.on('SIGTERM', interrupt)
+
   try {
     await replay({
       run,
