@@ -16,7 +16,7 @@ import config from '../../../config/config.js'
 import logger from '../../logger.js'
 import { planCalendar } from '../calendar/calendar.js'
 import { clearSimulatedClock } from '../clock/simulated-clock.js'
-import { createRun } from '../execute/execute.js'
+import { createRun, executeEvent } from '../execute/execute.js'
 import { loadCalibration } from '../population/calibration.js'
 import { planPopulation } from '../population/population.js'
 import { planSummaryLogRows } from '../rows/rows.js'
@@ -175,6 +175,9 @@ async function main() {
       })
     )
 
+  // Real seconds, which the simulated Date cannot give.
+  /** @type {Map<string, number>} */
+  const startedAt = new Map()
   try {
     await replay({
       run,
@@ -182,11 +185,18 @@ async function main() {
       done,
       concurrency,
       stop,
+      execute: (aRun, event) => {
+        startedAt.set(eventKey(event), performance.now())
+        return executeEvent(aRun, event)
+      },
       onExecuted: (event) => {
         appendJournal(directory, entryFor(run, event))
         done.add(eventKey(event))
+        const key = eventKey(event)
+        const took = (performance.now() - (startedAt.get(key) ?? 0)) / 1000
+        startedAt.delete(key)
         logger.info(
-          `${event.at}  ${event.registrationId}  ${event.type}  (${done.size}/${events.length})`
+          `${event.at}  ${event.registrationId}  ${event.type}  ${took.toFixed(1)}s  (${done.size}/${events.length})`
         )
       }
     })
