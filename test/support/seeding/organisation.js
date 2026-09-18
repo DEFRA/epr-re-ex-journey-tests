@@ -143,10 +143,13 @@ export async function createLinkedOrganisation(dataRows) {
     if (dataRow.material !== '') {
       material = dataRow.material
     }
-    let registration = new Registration(orgId, refNo)
-    if (dataRow.street !== '') {
-      registration = new Registration(orgId, refNo, dataRow.street)
-    }
+    const registration = new Registration(
+      orgId,
+      refNo,
+      dataRow.street || undefined,
+      dataRow.postcode || undefined,
+      dataRow.town || undefined
+    )
     payload =
       dataRow.wasteProcessingType === 'Reprocessor'
         ? registration.toAllMaterialsPayload(material, glassRecyclingProcess)

@@ -9,6 +9,7 @@
  */
 
 import { generateAccNumber, generateRegNumber } from '../../reg-acc-number.js'
+import { createRandom } from '../population/random.js'
 
 /** @import {PlannedOperator, PlannedRegistration} from '../population/population.js' */
 
@@ -69,9 +70,52 @@ export function reprocessingTypeOf(stream) {
   return undefined
 }
 
+const POSTCODE_AREA_FIRST_LETTERS = 'ABCDEFGHIJKLMNOPRSTUWYZ'
+const POSTCODE_AREA_SECOND_LETTERS = 'ABCDEFGHKLMNOPQRSTUVWXY'
+const POSTCODE_UNIT_LETTERS = 'ABDEFGHJLNPQRSTUWXYZ'
+const STREETS = [
+  'Station Road',
+  'Mill Lane',
+  'Works Road',
+  'Wharf Road',
+  'Foundry Lane',
+  'Dock Road'
+]
+const TOWNS = [
+  'Wolverhampton',
+  'Doncaster',
+  'Swindon',
+  'Port Talbot',
+  'Falkirk',
+  'Lisburn',
+  'Grimsby',
+  'Ellesmere Port'
+]
+
+/**
+ * The address a planned site is seeded at, drawn from its id so every
+ * registration on the site shares it. The service keys a reprocessor's site on
+ * the postcode alone, and the plan names a site only by id.
+ *
+ * @param {string} siteId
+ * @returns {{street: string, town: string, postcode: string}}
+ */
+export function siteAddress(siteId) {
+  const random = createRandom(siteId)
+  /** @param {ArrayLike<string>} members */
+  const pick = (members) => members[random.int(0, members.length - 1)]
+  const area =
+    pick(POSTCODE_AREA_FIRST_LETTERS) + pick(POSTCODE_AREA_SECOND_LETTERS)
+  const unit = pick(POSTCODE_UNIT_LETTERS) + pick(POSTCODE_UNIT_LETTERS)
+  return {
+    street: `${random.int(1, 200)} ${pick(STREETS)}`,
+    town: pick(TOWNS),
+    postcode: `${area}${random.int(1, 99)} ${random.int(0, 9)}${unit}`
+  }
+}
+
 /**
  * What `createLinkedOrganisation` takes to apply for one planned registration.
- * The street stands for the site, so registrations at one site share it.
  *
  * @param {PlannedRegistration} registration
  */
@@ -79,7 +123,7 @@ export const applicationRow = (registration) => ({
   wasteProcessingType: seededProcessingType(registration),
   material: registration.material.material,
   glassRecyclingProcess: registration.material.glassRecyclingProcess,
-  street: registration.siteId ?? undefined,
+  ...(registration.siteId ? siteAddress(registration.siteId) : {}),
   tonnageBand: registration.accreditation?.tonnageBand,
   withoutAccreditation: registration.accreditation === null
 })
