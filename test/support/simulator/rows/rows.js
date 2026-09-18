@@ -447,7 +447,7 @@ function planRow({
   const fields = {}
 
   for (const [marker, offset] of Object.entries(sheet.dateFields ?? {})) {
-    fields[marker] = ukDate(clamp(addDays(day, offset), window))
+    fields[marker] = ukDate(clamp(addDays(day, offset), month, window))
   }
   for (const marker of sheet.monthFields ?? []) {
     fields[marker] = ukDate(dayOf(day.getUTCFullYear(), day.getUTCMonth(), 1))
@@ -486,18 +486,21 @@ const dayWithin = (month, random) =>
   addDays(month.first, random.int(0, daysBetween(month.first, month.last)))
 
 /**
- * Holds a date inside the registration's reporting window rather than inside
- * the month, because that is the boundary the service enforces: an exported
- * row is checked for accreditation on both its export date and the date the
- * overseas reprocessor received it, and a receipt three weeks after an export
- * late in the month falls in the month after it without being late.
+ * Holds a date no earlier than the row's month and no later than the
+ * registration's reporting window. A later date may run into the month after,
+ * which is still open: an exported row is checked for accreditation on both
+ * its export date and the date the overseas reprocessor received it, and a
+ * receipt three weeks after an export late in the month is not late. An
+ * earlier date may not, because the service files a row under every date it
+ * carries, and the month before may already be reported.
  *
  * @param {Date} date
+ * @param {ReportingMonth} month
  * @param {ReportingMonth} window
  * @returns {Date}
  */
-function clamp(date, window) {
-  if (date < window.first) return window.first
+function clamp(date, month, window) {
+  if (date < month.first) return month.first
   if (date > window.last) return window.last
   return date
 }

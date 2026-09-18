@@ -274,6 +274,20 @@ describe('a planned row that has to count', () => {
     }
   })
 
+  it('never pins a date before the month the row is reported for', () => {
+    for (const registration of plan.registrations) {
+      for (const row of registration.rows) {
+        for (const [marker, value] of pinnedDates(row)) {
+          const day = String(value).split('/').reverse().join('-')
+          assert.ok(
+            day.slice(0, 7) >= row.date.slice(0, 7),
+            `${registration.registrationId} ${marker} ${day} predates ${row.date}`
+          )
+        }
+      }
+    }
+  })
+
   it('dates exports across the whole month, not only where a receipt fits', () => {
     const days = new Set(
       creditRows(plan, 'exporter').map((row) => Number(row.date.slice(8)))
