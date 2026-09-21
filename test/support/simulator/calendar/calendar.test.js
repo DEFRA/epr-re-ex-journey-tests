@@ -814,14 +814,10 @@ describe('reports', () => {
       near(reported / national, 1, 0.03, 'reported over national')
     })
 
-    it('gives an accredited reprocessor its share by what its rows credit in the period', () => {
-      const withRows = filedReports.filter(
-        (report) =>
-          registrationOf(report).processingType === 'reprocessor' &&
-          registrationOf(report).accreditation !== null
-      )
-      assert.ok(withRows.length > 0)
-      for (const report of withRows) {
+    it('gives each reprocessor its share by what its rows credit in the period', () => {
+      const perCreditedTonne = new Set()
+      for (const report of filedReports) {
+        if (registrationOf(report).processingType !== 'reprocessor') continue
         const credited = rowsOf(report.registrationId)
           .rows.filter(
             (row) =>
@@ -829,12 +825,15 @@ describe('reports', () => {
               monthsOfPeriod(report).includes(row.period)
           )
           .reduce((sum, row) => sum + row.tonnage, 0)
-        assert.equal(
-          credited > 0,
-          must(report.tonnageRecycled) > 0,
-          report.registrationId
+        if (credited === 0) {
+          assert.equal(report.tonnageRecycled, 0, report.registrationId)
+          continue
+        }
+        perCreditedTonne.add(
+          (must(report.tonnageRecycled) / credited).toFixed(4)
         )
       }
+      assert.equal(perCreditedTonne.size, 1, [...perCreditedTonne].join(' '))
     })
 
     it('carries the same figure on a resubmission as on the first submission', () => {
