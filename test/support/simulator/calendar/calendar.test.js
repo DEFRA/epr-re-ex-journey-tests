@@ -3,7 +3,7 @@ import { describe, it } from 'node:test'
 
 import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { planPopulation } from '../population/population.js'
-import { CONTRIBUTION, planSummaryLogRows } from '../rows/rows.js'
+import { CONTRIBUTION, heldTonnage, planSummaryLogRows } from '../rows/rows.js'
 import { SHEETS } from '../rows/sheets.js'
 import {
   cadenceOf,
@@ -814,26 +814,103 @@ describe('reports', () => {
       near(reported / national, 1, 0.03, 'reported over national')
     })
 
-    it('gives each reprocessor its share by what its rows credit in the period', () => {
-      const perCreditedTonne = new Set()
-      for (const report of filedReports) {
-        if (registrationOf(report).processingType !== 'reprocessor') continue
-        const credited = rowsOf(report.registrationId)
+    describe('on a calibration whose received figure is thrice its recycled figure', () => {
+      const calibration = structuredClone(DEFAULT_CALIBRATION)
+      const recycled = must(
+        calibration.activity.summaryLogSheets.reprocessorOutput[
+          'Reprocessed (sections 3 and 4)'
+        ].monthlyTonnage
+      )
+      calibration.activity.summaryLogSheets.reprocessorInput[
+        'Received (sections 1, 2 and 3)'
+      ].monthlyTonnage = recycled * 3
+      const scale = 0.2
+      const skewedPopulation = planPopulation({ seed: 'calendar', scale })
+      const skewedRows = planSummaryLogRows({
+        population: skewedPopulation,
+        calibration
+      })
+      const skewed = planCalendar({
+        population: skewedPopulation,
+        rows: skewedRows,
+        to: '2027-04-30',
+        calibration
+      })
+      const skewedReports = eventsOfType(
+        skewed.operators.flatMap((operator) => operator.events),
+        EVENT.REPORT_SUBMITTED
+      )
+      /** @param {ReportEvent} report */
+      const creditedIn = (report) =>
+        must(
+          skewedRows.registrations.find(
+            (planned) => planned.registrationId === report.registrationId
+          )
+        )
           .rows.filter(
             (row) =>
               row.contribution === CONTRIBUTION.CREDIT &&
               monthsOfPeriod(report).includes(row.period)
           )
           .reduce((sum, row) => sum + row.tonnage, 0)
-        if (credited === 0) {
-          assert.equal(report.tonnageRecycled, 0, report.registrationId)
-          continue
-        }
-        perCreditedTonne.add(
-          (must(report.tonnageRecycled) / credited).toFixed(4)
+
+      it('still lands the estate’s reports on the recycled figure, not on what the rows credit', () => {
+        const reported = skewedReports
+          .filter((report) => report.submissionNumber === 1)
+          .reduce((sum, report) => sum + (report.tonnageRecycled ?? 0), 0)
+        const expected = recycled * 12 * scale
+        assert.ok(reported <= expected, `${reported} over ${expected}`)
+        near(reported / expected, 1, 0.03, 'reported over recycled')
+      })
+
+      it('carries what the output template’s reprocessed rows credit in the period', () => {
+        const reports = skewedReports.filter(
+          (report) =>
+            must(
+              skewedRows.registrations.find(
+                (planned) => planned.registrationId === report.registrationId
+              )
+            ).stream === 'reprocessorOutput'
         )
-      }
-      assert.equal(perCreditedTonne.size, 1, [...perCreditedTonne].join(' '))
+        assert.ok(reports.length > 0)
+        for (const report of reports) {
+          assert.equal(
+            report.tonnageRecycled,
+            heldTonnage(creditedIn(report)),
+            report.registrationId
+          )
+        }
+      })
+
+      it('carries a third of what the input template’s received rows credit in the period', () => {
+        const reports = skewedReports.filter(
+          (report) =>
+            must(
+              skewedRows.registrations.find(
+                (planned) => planned.registrationId === report.registrationId
+              )
+            ).stream === 'reprocessorInput'
+        )
+        assert.ok(reports.length > 0)
+        for (const report of reports) {
+          assert.equal(
+            report.tonnageRecycled,
+            heldTonnage(creditedIn(report) / 3),
+            report.registrationId
+          )
+        }
+      })
+    })
+
+    it('refuses a calibration that gives the recycled worksheet no figure', () => {
+      const calibration = structuredClone(DEFAULT_CALIBRATION)
+      delete calibration.activity.summaryLogSheets.reprocessorOutput[
+        'Reprocessed (sections 3 and 4)'
+      ].monthlyTonnage
+      assert.throws(
+        () => planCalendar({ population, rows, to: TO, calibration }),
+        /gives reprocessorOutput worksheet "Reprocessed \(sections 3 and 4\)" no monthlyTonnage/
+      )
     })
 
     it('carries the same figure on a resubmission as on the first submission', () => {

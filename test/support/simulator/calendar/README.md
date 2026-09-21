@@ -162,15 +162,15 @@ more than ten days early. A return is missed altogether at
 yet rather than missed.
 
 A reprocessor's report carries `tonnageRecycled`, the one figure of it the
-operator types rather than the service aggregating from the summary log. It
-is the registration's share of the national tonnage recycled for the period:
-the figure the row planner anchors the output template's reprocessed
-worksheet on, scaled with the population, over each tonne the reprocessor
-estate's rows credit in the year, times what this registration's rows credit
-in the period. The estate's reports then land on the figure once whichever
-template the row planner put each registration on, and a registered-only
-reprocessor, whose rows credit nothing, reports none. An exporter's report
-carries null: it reports no such figure.
+operator types rather than the service aggregating from the summary log. On
+the output template it is what the registration's reprocessed rows credit in
+the period, the worksheet the row planner anchors on the national tonnage
+recycled. On the input template it is the yield of what the received rows
+credit: the national tonnage recycled over the national tonnage received. The
+row planner gives each template the same share of both national figures, so
+the estate's reports land on the recycled figure once whichever template each
+registration is on. A registered-only reprocessor, whose rows credit nothing,
+reports zero. An exporter's report carries null: it reports no such figure.
 
 A period is closed the moment its report is submitted, and only then: an upload
 that restates a row in a closed period is what the service reads as a
