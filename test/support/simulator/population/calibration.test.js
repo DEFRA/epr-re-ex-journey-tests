@@ -77,6 +77,118 @@ describe('loadCalibration', () => {
     )
   })
 
+  it('lets an overlay add a monthly tonnage to a worksheet the defaults leave without one', () => {
+    const sheet = 'Sent on (section 4)'
+    assert.equal(
+      DEFAULT_CALIBRATION.activity.summaryLogSheets.regOnlyExporter[sheet]
+        .monthlyTonnage,
+      undefined
+    )
+
+    const calibration = loadCalibration(
+      withOverlay({
+        activity: {
+          summaryLogSheets: {
+            regOnlyExporter: { [sheet]: { monthlyTonnage: 12345 } }
+          }
+        }
+      })
+    )
+
+    assert.equal(
+      calibration.activity.summaryLogSheets.regOnlyExporter[sheet]
+        .monthlyTonnage,
+      12345
+    )
+    assert.equal(
+      calibration.activity.summaryLogSheets.regOnlyExporter[sheet].rowShare,
+      DEFAULT_CALIBRATION.activity.summaryLogSheets.regOnlyExporter[sheet]
+        .rowShare
+    )
+  })
+
+  it('refuses an added monthly tonnage that is not a number', () => {
+    assert.throws(
+      () =>
+        loadCalibration(
+          withOverlay({
+            activity: {
+              summaryLogSheets: {
+                reprocessorInput: {
+                  'Reprocessed (section 4)': { monthlyTonnage: '12345' }
+                }
+              }
+            }
+          })
+        ),
+      /wrong type/
+    )
+  })
+
+  it('refuses a misspelt key on a worksheet', () => {
+    assert.throws(
+      () =>
+        loadCalibration(
+          withOverlay({
+            activity: {
+              summaryLogSheets: {
+                reprocessorInput: {
+                  'Reprocessed (section 4)': { monthlyTonage: 12345 }
+                }
+              }
+            }
+          })
+        ),
+      /Reprocessed \(section 4\)\.monthlyTonage/
+    )
+  })
+
+  it('refuses a monthly tonnage anywhere but on a worksheet', () => {
+    assert.throws(
+      () =>
+        loadCalibration(
+          withOverlay({
+            activity: { summaryLogSheets: { monthlyTonnage: 12345 } }
+          })
+        ),
+      /activity\.summaryLogSheets\.monthlyTonnage/
+    )
+  })
+
+  it('refuses a worksheet the defaults do not name', () => {
+    assert.throws(
+      () =>
+        loadCalibration(
+          withOverlay({
+            activity: {
+              summaryLogSheets: {
+                reprocessorInput: {
+                  'Reprocesed (section 4)': { monthlyTonnage: 12345 }
+                }
+              }
+            }
+          })
+        ),
+      /Reprocesed \(section 4\)/
+    )
+  })
+
+  /**
+   * JSON may name a key every object inherits, and an `in` check would read
+   * that as a setting the defaults carry.
+   */
+  it('refuses a worksheet named for an inherited property', () => {
+    assert.throws(
+      () =>
+        loadCalibration(
+          withOverlay(
+            '{"activity":{"summaryLogSheets":{"reprocessorInput":{"__proto__":{"monthlyTonnage":12}}}}}'
+          )
+        ),
+      /__proto__/
+    )
+  })
+
   it('refuses a setting given the wrong type', () => {
     assert.throws(
       () =>

@@ -6,10 +6,14 @@
  * published sources alone, so a checkout of this repository plans a population
  * shaped like the public register and behaving plausibly. A run that has
  * figures measured against production supplies them as an overlay instead,
- * through `loadCalibration`.
+ * through `loadCalibration`. An overlay overrides settings the defaults carry
+ * and adds the one figure they leave out where no public source gives it, a
+ * worksheet's monthly tonnage; see `UNANCHORED`.
  *
  * The register block is the pEPR public register of 10 September 2026, which is
- * published in full. Two of its counts are derived rather than read off. Sites
+ * published in full at
+ * https://www.gov.uk/government/publications/public-register-of-reprocessors-and-exporters-of-uk-packaging-waste.
+ * Two of its counts are derived rather than read off. Sites
  * total 148, which is the reprocessor-only organisations plus the ones doing
  * both. Tonnage bands total 369, which is 389 less the 20 registered-only
  * registrations, so a tonnage band belongs to an accreditation rather than to a
@@ -130,8 +134,97 @@ const ACTIVITY = {
   rowsPerSubmission: {
     exporter: { created: 50, updated: 50 },
     reprocessorInput: { created: 200, updated: 100 },
-    reprocessorOutput: { created: 500, updated: 500 }
+    reprocessorOutput: { created: 500, updated: 500 },
+    /**
+     * A registered-but-unaccredited operator reports on a shorter template.
+     * A month's worth, as the accredited figures are, whether the calendar
+     * sends it monthly or holds it for a quarterly return. Nominal, and low
+     * because nothing published says what they report.
+     */
+    registeredOnly: { created: 20, updated: 10 }
   },
+
+  /**
+   * How the accredited reprocessors divide between reporting their input and
+   * their output. A judgement: the register names an operator a reprocessor
+   * and stops there, so nothing published says which side of its process a
+   * registration reports. Even is the neutral reading, and the monthly
+   * aggregated workbook's tonnage received and tonnage recycled are close
+   * enough to each other to leave it there.
+   */
+  reprocessorStream: { reprocessorInput: 1, reprocessorOutput: 1 },
+
+  /**
+   * What each worksheet of a summary log carries: its share of the rows an
+   * upload holds, and the tonnage the whole UK reports through it in a month.
+   *
+   * The tonnages are the mean of January to June 2026 on the "UK" sheet of the
+   * accredited packaging waste monthly aggregated data workbook, 25 August
+   * 2026 edition, at
+   * https://www.gov.uk/government/statistical-data-sets/packaging-waste-data-reported-by-reprocessors-and-exporters.
+   * Its grand totals are per month and per side of the process. July is in
+   * the edition and left out: the newest month of a provisional dataset is the
+   * one late submissions have yet to reach. A reprocessor's tonnage received
+   * for recycling is read as the input stream's and its tonnage recycled as
+   * the output stream's, because that is how the two templates divide the same
+   * operator's year. Both are the whole reprocessor estate's figure, not one
+   * stream's. The service aggregates tonnage received and tonnage sent on
+   * from both templates alike, so those figures sit on both templates'
+   * worksheets and the row planner hands each template its share. Tonnage
+   * recycled is entered on the report rather than read off a worksheet, so
+   * the input template's reprocessed worksheet carries no figure.
+   *
+   * The row shares are a judgement, save that a sent-on share is set near the
+   * ratio the workbook gives between tonnage sent on and tonnage received,
+   * which holds while a sent-on load is no bigger than any other.
+   */
+  summaryLogSheets: {
+    exporter: {
+      'Exported (sections 1, 2 and 3)': {
+        rowShare: 0.94,
+        monthlyTonnage: 336289
+      },
+      'Sent on (sections 4 and 5)': { rowShare: 0.06, monthlyTonnage: 22220 }
+    },
+    reprocessorInput: {
+      'Received (sections 1, 2 and 3)': {
+        rowShare: 0.6,
+        monthlyTonnage: 308213
+      },
+      'Reprocessed (section 4)': { rowShare: 0.38 },
+      'Sent on (sections 5, 6 and 7)': { rowShare: 0.02, monthlyTonnage: 4302 }
+    },
+    reprocessorOutput: {
+      'Received (sections 1 and 2)': {
+        rowShare: 0.48,
+        monthlyTonnage: 308213
+      },
+      'Reprocessed (sections 3 and 4)': {
+        rowShare: 0.5,
+        monthlyTonnage: 307563
+      },
+      'Sent on (sections 5 and 6)': { rowShare: 0.02, monthlyTonnage: 4302 }
+    },
+    regOnlyExporter: {
+      'Received (section 1)': { rowShare: 0.47 },
+      'Exported (sections 2 and 3)': { rowShare: 0.47 },
+      'Sent on (section 4)': { rowShare: 0.06 }
+    },
+    regOnlyReprocessor: {
+      'Received (section 1)': { rowShare: 0.98 },
+      'Sent on (section 2)': { rowShare: 0.02 }
+    }
+  },
+
+  /**
+   * How often an exported load is stopped or refused in transit, which
+   * excludes it from the waste balance. Read off the same edition and months
+   * of the workbook as `summaryLogSheets`, as a share of tonnage exported that
+   * was stopped, and refused, against tonnage received for exporting. Both
+   * are around one load in ten thousand, so a run that draws them evenly
+   * excludes nearly everything it reports.
+   */
+  exportLoadOutcome: { stoppedShare: 0.00017, refusedShare: 0.000032 },
 
   /**
    * Monthly reports that never arrive. From the register: the share of periods
@@ -151,6 +244,12 @@ const ACTIVITY = {
   restatementRate: 0.05,
 
   uploads: {
+    /**
+     * Summary log uploads a registration makes per reporting period, so per
+     * month while accredited and per quarter while registered only. Nominal:
+     * an upload answers no calendar, so nothing published counts them.
+     */
+    perReportingPeriod: 2,
     /** How often a spreadsheet comes back with validation issues. Nominal. */
     rejectionRate: 0.2,
     /** Of those, the share fatal rather than errors on rows. Nominal. */
@@ -165,12 +264,56 @@ const ACTIVITY = {
   },
 
   /**
+   * What a rejected upload is rejected for, by severity. A fatal issue stops
+   * the whole upload: a row submitted before and now missing, a workbook the
+   * service cannot read, or text where a row's date should be. An error sits
+   * on a row: a required cell left blank. Nominal.
+   */
+  uploadIssueKinds: {
+    fatal: { removedRow: 0.9, unreadable: 0.05, badDate: 0.05 },
+    error: { blankField: 1 }
+  },
+
+  /**
    * PRNs raised a month per accreditation, before the operator's volume factor.
    * Nominal. The monthly aggregated workbook publishes the tonnage PRNs were
    * issued against, not how many notes carried it, and a note has no fixed
    * size, so it cannot answer this.
    */
   prnsPerAccreditationPerMonth: 2,
+
+  /**
+   * The share of the tonnage a registration credits to its waste balance that
+   * goes out on notes, by processing type. From the "UK" sheet of the
+   * accredited packaging waste monthly aggregated data workbook, 25 August
+   * 2026 edition, at
+   * https://www.gov.uk/government/statistical-data-sets/packaging-waste-data-reported-by-reprocessors-and-exporters:
+   * the tonnage of PRNs and PERNs issued over the tonnage recycled
+   * (reprocessors) and the tonnage exported for recycling (exporters), March
+   * to June 2026. January and February are the scheme's first two months, in
+   * which almost nothing was issued, so they would read a start-up lag as a
+   * habit.
+   */
+  prnIssuedShare: { reprocessor: 0.9, exporter: 0.6 },
+
+  /**
+   * What a tonne fetches on a note, by material suffix as
+   * `test/support/materials.js` spells it: the revenue over the tonnage
+   * issued on the "UK" sheet of the same workbook and edition as
+   * `prnIssuedShare`, March to June 2026, reprocessors and exporters
+   * together. The workbook carries no fibre-based composite row, so FB takes
+   * the paper and board price, as a fibre. Nominal for FB alone.
+   */
+  prnPricePerTonne: {
+    AL: 58,
+    FB: 5,
+    GR: 101,
+    GO: 91,
+    PA: 5,
+    PL: 299,
+    ST: 33,
+    WO: 13
+  },
 
   /** Nothing published follows a PRN past issue, so all of these are nominal. */
   prn: {
@@ -200,6 +343,16 @@ const ACTIVITY = {
  * The profile builder normalises the four, so rounding them separately is safe.
  */
 const PUNCTUALITY = {
+  /**
+   * The day of the month after the period that the shares below are measured
+   * against. GOV.UK's guidance for reprocessors and exporters, at
+   * https://www.gov.uk/guidance/recording-and-reporting-packaging-waste-reprocessors-and-exporters,
+   * says monthly reports "are due by the 21st day of each month" and quarterly
+   * ones "before the 21st day of each month following the end of the
+   * quarter". The service's own reporting calendar marks the 20th, so a report
+   * filed on the 21st reads as on time here and a day late there.
+   */
+  dueDay: 21,
   onTime: 0.726,
   lateWithin7: 0.095,
   lateWithin30: 0.111,
@@ -239,16 +392,32 @@ const PUNCTUALITY = {
  * @typedef {Object} BehaviourRates
  * @property {number} missedReturnRate
  * @property {number} restatementRate
- * @property {{rejectionRate: number, fatalShare: number, abandonRate: number, weekendVolumeShare: number}} uploads
+ * @property {{perReportingPeriod: number, rejectionRate: number, fatalShare: number, abandonRate: number, weekendVolumeShare: number}} uploads
  * @property {{deleteRate: number, discardRate: number, cancelRate: number, producerAcceptRate: number, sameMonthAcceptanceShare: number}} prn
  */
 
 /**
- * @typedef {BehaviourRates & {rowsPerSubmission: Record<string, {created: number, updated: number}>, prnsPerAccreditationPerMonth: number}} ActivityShape
+ * @typedef {Object} SheetShape
+ * @property {number} rowShare - this worksheet's share of an upload's rows
+ * @property {number} [monthlyTonnage] - what the whole UK reports through it in a month
+ */
+
+/**
+ * @typedef {BehaviourRates & {
+ *   rowsPerSubmission: Record<string, {created: number, updated: number}>,
+ *   reprocessorStream: Counts,
+ *   summaryLogSheets: Record<string, Record<string, SheetShape>>,
+ *   exportLoadOutcome: {stoppedShare: number, refusedShare: number},
+ *   uploadIssueKinds: {fatal: Counts, error: Counts},
+ *   prnsPerAccreditationPerMonth: number,
+ *   prnIssuedShare: Record<'exporter' | 'reprocessor', number>,
+ *   prnPricePerTonne: Counts
+ * }} ActivityShape
  */
 
 /**
  * @typedef {Object} PunctualityShape
+ * @property {number} dueDay - day of the month after the period the shares are measured against
  * @property {number} onTime
  * @property {number} lateWithin7
  * @property {number} lateWithin30
@@ -298,42 +467,77 @@ export const DEFAULT_CALIBRATION = deepFreeze({
 })
 
 /**
+ * The one setting an overlay may add rather than override: a worksheet's
+ * monthly tonnage, a number. The defaults carry it only where the monthly
+ * aggregated workbook publishes a figure, and a figure for the other
+ * worksheets is exactly what an overlay measured against production is for.
+ * Which of them can carry one is the row planner's to say: it refuses a
+ * figure on a worksheet whose rows carry no load.
+ */
+const UNANCHORED = ['activity', 'summaryLogSheets', '*', '*', 'monthlyTonnage']
+
+/** @param {string} at */
+const isUnanchored = (at) => {
+  const segments = at.split('.')
+  return (
+    segments.length === UNANCHORED.length &&
+    UNANCHORED.every((part, i) => part === '*' || part === segments[i])
+  )
+}
+
+/**
  * Lay an overlay over the defaults, key by key.
  *
- * An overlay may only set a key the defaults already carry, and only with a
- * value of the same shape. A file that misspells one otherwise plans a run on
- * the defaults while its author believes it is calibrated, which is the whole
- * failure this is here to prevent.
+ * An overlay may override a setting the defaults carry, with a value of the
+ * same shape, and may add only what `UNANCHORED` names. Any other key is
+ * refused: a file that misspells one otherwise plans a run on the defaults
+ * while its author believes it is calibrated, which is the whole failure this
+ * is here to prevent.
+ *
+ * @template {Record<string, unknown>} T
+ * @param {T} base
+ * @param {Record<string, unknown>} overlay
+ * @param {string} path
+ * @returns {T}
  */
 function merge(base, overlay, path) {
-  for (const key of Object.keys(overlay)) {
+  for (const [key, given] of Object.entries(overlay)) {
     const at = `${path}${key}`
-    if (!(key in base)) {
+    const carried = Object.hasOwn(base, key)
+    if (!carried && !isUnanchored(at)) {
       throw new Error(
         `Calibration overlay sets "${at}", which is not a setting`
       )
     }
-    if (isBranch(base[key]) !== isBranch(overlay[key])) {
+    const under = base[key]
+    if (isBranch(under) !== isBranch(given)) {
       throw new Error(`Calibration overlay gives "${at}" the wrong shape`)
     }
-    if (!isBranch(base[key]) && typeof base[key] !== typeof overlay[key]) {
+    const wrongType = carried
+      ? typeof given !== typeof under
+      : typeof given !== 'number'
+    if (!isBranch(given) && wrongType) {
       throw new Error(`Calibration overlay gives "${at}" the wrong type`)
     }
-    if (typeof overlay[key] === 'number' && !Number.isFinite(overlay[key])) {
+    if (typeof given === 'number' && !Number.isFinite(given)) {
       throw new Error(`Calibration overlay gives "${at}" no usable number`)
     }
   }
 
-  return Object.fromEntries(
-    Object.entries(base).map(([key, value]) => [
-      key,
-      overlay[key] === undefined
-        ? value
-        : isBranch(value)
-          ? merge(value, overlay[key], `${path}${key}.`)
-          : overlay[key]
-    ])
-  )
+  return {
+    ...base,
+    ...Object.fromEntries(
+      Object.entries(overlay).map(([key, given]) => {
+        const under = base[key]
+        return [
+          key,
+          isBranch(under) && isBranch(given)
+            ? merge(under, given, `${path}${key}.`)
+            : given
+        ]
+      })
+    )
+  }
 }
 
 /**

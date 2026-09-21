@@ -8,12 +8,19 @@ const SUMMARY_LOG_FAILURE_STATUSES = [
   'submission_failed'
 ]
 
+/**
+ * @param {BaseAPI} baseAPI
+ * @param {string} summaryLogPath
+ * @param {Record<string, string | undefined>} defraAuthHeader
+ * @param {string | string[]} targetStatus - the status to wait for, or any one of several
+ */
 export async function waitForSummaryLogStatus(
   baseAPI,
   summaryLogPath,
   defraAuthHeader,
   targetStatus
 ) {
+  const targets = [targetStatus].flat()
   const timeoutMs = 90000
   const startTime = Date.now()
   let status
@@ -26,12 +33,12 @@ export async function waitForSummaryLogStatus(
       `GET ${summaryLogPath}`
     )
     ;({ status } = responseData)
-    if (status === targetStatus) {
+    if (targets.includes(status)) {
       return responseData
     }
     if (SUMMARY_LOG_FAILURE_STATUSES.includes(status)) {
       throw new Error(
-        `Summary log reached '${status}' while waiting for '${targetStatus}'`
+        `Summary log reached '${status}' while waiting for '${targets.join("' or '")}'`
       )
     }
     // Matches wdio's waitforInterval (wdio.github.conf.js) so this polls no
@@ -40,33 +47,128 @@ export async function waitForSummaryLogStatus(
   }
 
   throw new Error(
-    `Timed out waiting for summary log status '${targetStatus}' (last seen: '${status}')`
+    `Timed out waiting for summary log status '${targets.join("' or '")}' (last seen: '${status}')`
   )
 }
 
-// Polls the waste-balances endpoint until it returns a non-empty body - the
-// balance is computed asynchronously by the same worker that validates/
-// submits the summary log, so it can lag slightly behind 'submitted'.
-export async function waitForWasteBalance(
+/**
+ * One accreditation's balance, as the route sends it: decimals as strings.
+ *
+ * @typedef {Object} WasteBalance
+ * @property {string} amount
+ * @property {string} availableAmount - what a note can draw on
+ * @property {string} [nonDecemberAvailableAmount] - what of that is outside the December portion, when the service marks one
+ */
+
+/**
+ * Polls the waste-balances endpoint until `until` accepts what it sends. The
+ * balance is computed asynchronously by the same worker that validates and
+ * submits the summary log, so it can lag slightly behind 'submitted'.
+ *
+ * @param {string} orgId
+ * @param {string} accreditationId
+ * @param {Record<string, string | undefined>} defraAuthHeader
+ * @param {(body: Record<string, WasteBalance>) => boolean} until
+ * @param {string} waitingFor - what the timeout says it waited for
+ * @param {number} timeoutMs
+ * @returns {Promise<Record<string, WasteBalance>>} by accreditation id
+ */
+async function pollWasteBalance(
   orgId,
   accreditationId,
   defraAuthHeader,
-  timeoutMs = 30000
+  until,
+  waitingFor,
+  timeoutMs
 ) {
   const baseAPI = new BaseAPI()
   const path = `/v1/organisations/${orgId}/waste-balances?accreditationIds=${accreditationId}`
   const startTime = Date.now()
+  /** @type {Record<string, WasteBalance>} */
+  let body = {}
 
   while (Date.now() - startTime < timeoutMs) {
     const response = await baseAPI.get(path, defraAuthHeader)
-    const body = await assertSuccessResponse(response, `GET ${path}`)
-    if (Object.keys(body).length > 0) {
+    body = await assertSuccessResponse(response, `GET ${path}`)
+    if (until(body)) {
       return body
     }
     await new Promise((resolve) => setTimeout(resolve, 1000))
   }
 
-  throw new Error(`Timed out waiting for a waste balance at ${path}`)
+  throw new Error(
+    `Timed out waiting for ${waitingFor} at ${path} (last seen: ${JSON.stringify(body)})`
+  )
+}
+
+/**
+ * Polls the waste-balances endpoint until it returns a non-empty body.
+ *
+ * @param {string} orgId
+ * @param {string} accreditationId
+ * @param {Record<string, string | undefined>} defraAuthHeader
+ * @param {number} [timeoutMs]
+ * @returns {Promise<Record<string, WasteBalance>>} by accreditation id, as the route sends it
+ */
+export function waitForWasteBalance(
+  orgId,
+  accreditationId,
+  defraAuthHeader,
+  timeoutMs = 30000
+) {
+  return pollWasteBalance(
+    orgId,
+    accreditationId,
+    defraAuthHeader,
+    (body) => Object.keys(body).length > 0,
+    'a waste balance',
+    timeoutMs
+  )
+}
+
+/**
+ * Whether a general note of `tonnage` could draw on the balance: the available
+ * amount outside any December portion, which only a December note can draw on.
+ *
+ * @param {Record<string, WasteBalance>} body - by accreditation id, as the route sends it
+ * @param {string} accreditationId
+ * @param {number} tonnage
+ */
+export function fundsGeneralNote(body, accreditationId, tonnage) {
+  const balance = body[accreditationId]
+  return (
+    balance !== undefined &&
+    Number(balance.nonDecemberAvailableAmount ?? balance.availableAmount) >=
+      tonnage
+  )
+}
+
+/**
+ * Polls the waste balance until a general note of `tonnage` could draw on it.
+ * The service refuses a draft over what it holds, so a note planned against a
+ * submitted log has to wait for the balance to catch up.
+ *
+ * @param {string} orgId
+ * @param {string} accreditationId
+ * @param {Record<string, string | undefined>} defraAuthHeader
+ * @param {number} tonnage
+ * @param {number} [timeoutMs]
+ */
+export async function waitForAvailableBalance(
+  orgId,
+  accreditationId,
+  defraAuthHeader,
+  tonnage,
+  timeoutMs = 30000
+) {
+  await pollWasteBalance(
+    orgId,
+    accreditationId,
+    defraAuthHeader,
+    (body) => fundsGeneralNote(body, accreditationId, tonnage),
+    `the ${tonnage} t the plan drafted a note against`,
+    timeoutMs
+  )
 }
 
 // Polls the reports calendar until some reporting period carries the given

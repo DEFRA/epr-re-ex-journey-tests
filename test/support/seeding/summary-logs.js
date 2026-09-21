@@ -213,6 +213,104 @@ export async function uploadAndSubmitSummaryLog(
       filePath
     )
 
+  await submitSummaryLog(summaryLogPath, defraAuthHeader, baseAPI)
+
+  return summaryLogId
+}
+
+/**
+ * The validation a summary log's read returns: fatal issues as `failures`,
+ * row issues under the table and row they sit on.
+ *
+ * @typedef {Object} ReportedValidation
+ * @property {{code: string}[]} [failures]
+ * @property {Record<string, {rows: {issues: {type: string, code: string}[]}[]}>} [concerns]
+ */
+
+/**
+ * What submitting content needs of an API: a post answering with a status
+ * and a body readable as JSON or as text.
+ *
+ * @typedef {{post: (endpoint: string, data: string, headers: Record<string, string | undefined>) => Promise<{statusCode: number, body: {json: () => Promise<unknown>, text: () => Promise<string>}}>}} ContentPoster
+ */
+
+/**
+ * @typedef {Object} SummaryLogAnswer - the document the dev route answers with
+ * @property {string} summaryLogId
+ * @property {'submitted' | 'invalid'} status
+ * @property {ReportedValidation} [validation]
+ */
+
+/**
+ * Submits a summary log from its content in one request through the dev
+ * route, which validates it and submits what validates. Answers with the
+ * document the route answered with: submitted, or invalid with its issues.
+ * Anything else, a conflict with another submission or a payload the route
+ * would not read, stops the caller.
+ *
+ * @param {string} refNo
+ * @param {string} registrationId
+ * @param {Record<string, string | undefined>} defraAuthHeader
+ * @param {import('../spreadsheet/summarylogs-content-generator.js').SummaryLogContent} content
+ * @param {ContentPoster} [baseAPI]
+ * @returns {Promise<SummaryLogAnswer>}
+ */
+export async function submitSummaryLogContent(
+  refNo,
+  registrationId,
+  defraAuthHeader,
+  content,
+  baseAPI = new BaseAPI()
+) {
+  const path = `/v1/dev/organisations/${refNo}/registrations/${registrationId}/summary-logs`
+  const response = await baseAPI.post(path, JSON.stringify(content), {
+    ...defraAuthHeader,
+    'content-type': 'application/json'
+  })
+  if (response.statusCode !== 200 && response.statusCode !== 422) {
+    // Read as text, not JSON: a gateway error or an HTML error page would
+    // throw on parse and take the status code down with it.
+    throw new Error(
+      `POST ${path}: expected the submitted or invalid document but got ${response.statusCode}\n${await response.body.text()}`
+    )
+  }
+  const body = await response.body.json()
+  if (!isSummaryLogAnswer(body)) {
+    throw new Error(
+      `POST ${path}: answered ${response.statusCode} with neither the submitted nor the invalid document\n${JSON.stringify(body, null, 2)}`
+    )
+  }
+  return body
+}
+
+/**
+ * @param {unknown} body
+ * @returns {body is SummaryLogAnswer}
+ */
+function isSummaryLogAnswer(body) {
+  return (
+    typeof body === 'object' &&
+    body !== null &&
+    'summaryLogId' in body &&
+    typeof body.summaryLogId === 'string' &&
+    'status' in body &&
+    (body.status === 'submitted' || body.status === 'invalid')
+  )
+}
+
+/**
+ * Submits a validated summary log and waits for the submission worker to land
+ * it.
+ *
+ * @param {string} summaryLogPath
+ * @param {Record<string, string | undefined>} defraAuthHeader
+ * @param {BaseAPI} [baseAPI]
+ */
+export async function submitSummaryLog(
+  summaryLogPath,
+  defraAuthHeader,
+  baseAPI = new BaseAPI()
+) {
   const submitResponse = await baseAPI.post(
     `${summaryLogPath}/submit`,
     '',
@@ -220,12 +318,10 @@ export async function uploadAndSubmitSummaryLog(
   )
   await assertSuccessResponse(submitResponse, `POST ${summaryLogPath}/submit`)
 
-  await waitForSummaryLogStatus(
+  return waitForSummaryLogStatus(
     baseAPI,
     summaryLogPath,
     defraAuthHeader,
     'submitted'
   )
-
-  return summaryLogId
 }

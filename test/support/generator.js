@@ -285,10 +285,19 @@ export class Organisation {
 }
 
 export class Registration {
+  /**
+   * @param {string | number} [orgId]
+   * @param {string} [refNo]
+   * @param {string} [streetAddress] - the site's first address line
+   * @param {string} [postcode] - the site's postcode, which keys the site
+   * @param {string} [town]
+   */
   constructor(
     orgId,
     refNo,
-    streetAddress = fakerEN_GB.location.streetAddress()
+    streetAddress = fakerEN_GB.location.streetAddress(),
+    postcode = fakerEN_GB.location.zipCode(),
+    town = fakerEN_GB.location.city()
   ) {
     this.phoneNumber = fakerEN_GB.phone.number()
     this.fullName = fakerEN_GB.person.fullName()
@@ -314,11 +323,8 @@ export class Registration {
       'CBDU' + fakerEN_GB.number.int({ min: 100000, max: 999999 })
     this.permitNo = `${fakerEN_GB.number.int({ min: 1000000000, max: 9999999999 })}`
 
-    const postcode = fakerEN_GB.location.zipCode()
-
     this.streetAddress = streetAddress
-    this.address =
-      streetAddress + ',' + fakerEN_GB.location.city() + ',' + postcode
+    this.address = streetAddress + ',' + town + ',' + postcode
 
     this.postcode = postcode
 

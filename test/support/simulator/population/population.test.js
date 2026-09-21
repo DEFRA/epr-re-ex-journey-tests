@@ -29,10 +29,10 @@ const tally = (members, read) => {
   return counts
 }
 
-const near = (actual, target, tolerance) =>
+const near = (actual, target, tolerance, of = '') =>
   assert.ok(
     Math.abs(actual - target) <= tolerance,
-    `${actual} is not within ${tolerance} of ${target}`
+    `${of} ${actual} is not within ${tolerance} of ${target}`.trim()
   )
 
 const rowTotal = (counts) =>
@@ -73,12 +73,13 @@ describe('the planned register at full scale', () => {
   })
 
   /**
-   * Within one organisation rather than exactly, and over a spread of seeds
-   * rather than the one the rest of this block reads. An organisation holding
-   * nothing it can register for a processing type takes on a material it can,
-   * which on about one seed in eighty moves a single organisation up a bucket.
-   * Asserting the spread exactly would pass here and fail in CI on the next
-   * change to the draw order.
+   * Within a few organisations rather than exactly, and over a spread of
+   * seeds rather than the one the rest of this block reads. An exporting
+   * organisation holds a material per registration, so which organisations
+   * the type draw makes exporters decides how many land above the bucket the
+   * register gave them. A thousand seeds run within five of the register on
+   * every bucket, most of them within one; asserting the spread exactly would
+   * pass here and fail in CI on the next change to the draw order.
    */
   it('gives organisations the spread of materials the register shows', () => {
     for (let seed = 0; seed < 20; seed++) {
@@ -94,7 +95,7 @@ describe('the planned register at full scale', () => {
       for (const [held, count] of Object.entries(
         REGISTER.materialsPerOrganisation
       )) {
-        near(spread[held], count, 1)
+        near(spread[held], count, 6)
       }
     }
   })
@@ -266,13 +267,14 @@ describe('the planned register at full scale', () => {
 })
 
 /**
- * Materials are drawn rather than handed out from a quota, so a single seed
- * swings on the small cells — exporting glass-other registers twice in the
- * whole register. Averaging over a spread of seeds is what shows the generator
- * itself sits on the register, rather than one draw happening to.
+ * What a seed moves is which organisations turn out to hold what, and a few
+ * of the estate's totals follow from that: how many rows export rather than
+ * reprocess, and so how many rows of each material a type's quota is spread
+ * over. Averaging over a spread of seeds is what shows the generator itself
+ * sits on the register, rather than one arrangement happening to.
  */
 describe('drawn distributions over a spread of seeds', () => {
-  const seeds = Array.from({ length: 12 }, (_, index) => `spread-${index}`)
+  const seeds = Array.from({ length: 40 }, (_, index) => `spread-${index}`)
   const plans = seeds.map((seed) => planPopulation({ seed }))
   const perSeed = plans.map((plan) =>
     plan.organisations.flatMap((organisation) => organisation.registrations)
@@ -293,45 +295,30 @@ describe('drawn distributions over a spread of seeds', () => {
     }
   })
 
+  /**
+   * Every cell within three percent or half a row, whichever is more, so a
+   * one-row material can be short but never absent. The rows of each
+   * material are a quota over the rows of its processing type, so what is
+   * left to the seed is how many rows that type holds.
+   */
   it('registers each material for each processing type as often as the register does', () => {
     for (const [processingType, materials] of Object.entries(
       REGISTER.rowsByTypeAndMaterial
     )) {
       for (const [suffix, target] of Object.entries(materials)) {
-        if (target < 10) continue
-
         const mean = meanCount(
           (row) =>
             row.processingType === processingType ? row.material.suffix : null,
           suffix
         )
 
-        near(mean, target, target * 0.2)
+        near(
+          mean,
+          target,
+          Math.max(0.5, target * 0.03),
+          `${processingType} ${suffix}`
+        )
       }
-    }
-  })
-
-  it('keeps the materials the register barely uses rare rather than absent', () => {
-    const rare = [
-      ['exporter', 'GR'],
-      ['exporter', 'GO'],
-      ['exporter', 'WO'],
-      ['reprocessor', 'AL'],
-      ['reprocessor', 'ST'],
-      ['reprocessor', 'FB']
-    ]
-
-    for (const [processingType, suffix] of rare) {
-      const mean = meanCount(
-        (row) =>
-          row.processingType === processingType ? row.material.suffix : null,
-        suffix
-      )
-
-      assert.ok(
-        mean >= 0.5 && mean <= 12,
-        `${processingType} ${suffix}: ${mean}`
-      )
     }
   })
 
@@ -349,17 +336,39 @@ describe('drawn distributions over a spread of seeds', () => {
   })
 
   /**
-   * R4 runs a little above its register share. The thirteen organisations
-   * holding three or more materials have to register the rarer ones to reach
-   * their material count, and aluminium and steel are what is left once
-   * plastic and paper are taken. It costs about seven registrations out of 389.
+   * The service refuses a second approved registration on the same key: the
+   * material for an exporting registration, the material and site for a
+   * reprocessing one. So an operator can export plastic once but reprocess it
+   * at each of its sites. Every seed and both scales, because one refusal
+   * stops a run.
    */
-  it('derives the Annex II process from the material, landing near the register counts', () => {
+  it('never plans two registrations one operator could not both hold', () => {
+    const scales = [1, 0.1]
+    for (const scale of scales) {
+      for (const seed of seeds) {
+        for (const organisation of planPopulation({ seed, scale })
+          .organisations) {
+          const keys = organisation.registrations.map(
+            (registration) =>
+              `${registration.processingType} ${registration.material.suffix} ${registration.siteId}`
+          )
+          assert.equal(
+            new Set(keys).size,
+            keys.length,
+            `${organisation.id} at scale ${scale} of ${seed}: ${keys.join(', ')}`
+          )
+        }
+      }
+    }
+  })
+
+  it('derives the Annex II process from the material, landing on the register counts', () => {
     for (const [process, target] of Object.entries(registerProcessRows())) {
       near(
         meanCount((row) => row.material.process, process),
         target,
-        target * 0.12
+        target * 0.03,
+        process
       )
     }
   })
@@ -719,6 +728,54 @@ describe('planning against a supplied calibration', () => {
         `a ${scale}-organisation run planned nothing approved`
       )
     }
+  })
+
+  /**
+   * Two exporters of two materials each over plastic twice, paper once and
+   * glass once: whichever draws first can take paper and glass together and
+   * leave the other two rows of plastic it cannot hold, which one seed in a
+   * few does. The rows are dealt again rather than the calibration refused.
+   */
+  it('deals the rows again when an earlier draw leaves a later organisation nothing it can take', () => {
+    const tight = {
+      ...DEFAULT_CALIBRATION,
+      register: {
+        ...REGISTER,
+        organisations: 2,
+        registrations: 4,
+        organisationType: { exporter: 2, reprocessor: 0, both: 0 },
+        registrationsPerOrganisation: { 2: 2 },
+        materialsPerOrganisation: { 2: 2 },
+        rowsByTypeAndMaterial: { exporter: { PL: 2, PA: 1, GR: 1 } }
+      }
+    }
+
+    for (let seed = 0; seed < 20; seed++) {
+      const plan = planPopulation({ seed: `tight-${seed}`, calibration: tight })
+      for (const organisation of plan.organisations) {
+        assert.equal(organisation.materials.length, 2, `seed ${seed}`)
+      }
+    }
+  })
+
+  it('refuses a shape the materials it registers cannot hold', () => {
+    const twoMaterials = {
+      ...DEFAULT_CALIBRATION,
+      register: {
+        ...REGISTER,
+        organisations: 4,
+        registrations: 12,
+        organisationType: { exporter: 4, reprocessor: 0, both: 0 },
+        registrationsPerOrganisation: { 3: 4 },
+        materialsPerOrganisation: { 3: 4 },
+        rowsByTypeAndMaterial: { exporter: { PL: 8, PA: 4 } }
+      }
+    }
+
+    assert.throws(
+      () => planPopulation({ seed: 'narrow', calibration: twoMaterials }),
+      /cannot hold 3 materials across 3 exporter registrations on 0 sites/
+    )
   })
 
   it('plans no status the calibration gives no registrations to', () => {

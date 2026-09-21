@@ -143,10 +143,13 @@ export async function createLinkedOrganisation(dataRows) {
     if (dataRow.material !== '') {
       material = dataRow.material
     }
-    let registration = new Registration(orgId, refNo)
-    if (dataRow.street !== '') {
-      registration = new Registration(orgId, refNo, dataRow.street)
-    }
+    const registration = new Registration(
+      orgId,
+      refNo,
+      dataRow.street || undefined,
+      dataRow.postcode || undefined,
+      dataRow.town || undefined
+    )
     payload =
       dataRow.wasteProcessingType === 'Reprocessor'
         ? registration.toAllMaterialsPayload(material, glassRecyclingProcess)
@@ -161,6 +164,9 @@ export async function createLinkedOrganisation(dataRows) {
     if (!dataRow.withoutAccreditation) {
       const accreditation = new Accreditation(orgId, refNo)
       accreditation.postcode = registration.postcode
+      if (dataRow.tonnageBand) {
+        accreditation.tonnageBand = dataRow.tonnageBand
+      }
       payload =
         dataRow.wasteProcessingType === 'Reprocessor'
           ? accreditation.toReprocessorPayload(material, glassRecyclingProcess)
@@ -194,6 +200,153 @@ export async function createLinkedOrganisation(dataRows) {
 // write it down.
 export const SEEDED_VALID_FROM = '2026-01-01'
 
+// Migration lands a moment after the migrate call returns, so the first read
+// of a freshly migrated organisation can miss it.
+async function readOrganisationOnceMigrated(baseAPI, authHeader, orgId) {
+  const timeout = 5000
+  const startTime = Date.now()
+
+  let response
+  while (Date.now() - startTime < timeout) {
+    response = await baseAPI.get(`/v1/organisations/${orgId}`, authHeader)
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    } else {
+      break
+    }
+  }
+
+  return assertSuccessResponse(response, `GET /v1/organisations/${orgId}`)
+}
+
+/**
+ * Reads a migrated organisation as the regulator sees it, lets `amend` change
+ * it in place, and writes it back through the non-prod twin of the
+ * organisation PUT, which is how a status or a number is seeded: the public
+ * route rejects status changes and the transition endpoints enforce number
+ * uniqueness.
+ *
+ * @template T
+ * @param {string} refNo
+ * @param {(organisation: any) => T} amend
+ * @returns {Promise<T>}
+ */
+export async function amendMigratedOrganisation(refNo, amend) {
+  const authClient = new AuthClient()
+  const baseAPI = new BaseAPI()
+  await authClient.authenticate()
+
+  const data = await readOrganisationOnceMigrated(
+    baseAPI,
+    authClient.authHeader(),
+    refNo
+  )
+  const result = amend(data)
+
+  const response = await baseAPI.put(
+    `/v1/dev/organisations/${refNo}`,
+    JSON.stringify({ version: Number(data.version), updateFragment: data }),
+    authClient.authHeader()
+  )
+  await assertSuccessResponse(response, `PUT /v1/dev/organisations/${refNo}`)
+
+  return result
+}
+
+/**
+ * Approves one registration of a migrated organisation, with the accreditation
+ * applied for beside it, where updateMigratedOrganisation approves them all at
+ * once. The organisation is approved with its first registration. Indices are
+ * positions in the order the registrations and accreditations were applied for.
+ * The service writes each status change to the history itself, dated today.
+ *
+ * @param {string} refNo
+ * @param {{registrationIndex: number, accreditationIndex?: number}} indices
+ * @param {Object} granted
+ * @param {string} granted.regNumber
+ * @param {string} [granted.accNumber]
+ * @param {'input' | 'output'} [granted.reprocessingType]
+ * @param {string} granted.validFrom - ISO date the registration and accreditation run from
+ * @param {string} [granted.validTo] - ISO date the accreditation runs to
+ * @param {string} granted.submittedToRegulator
+ * @returns {Promise<{registrationId: string, accreditationId: string | null, email: string}>}
+ *   the ids the service gave, and the initial user's email a Defra ID link needs
+ */
+export function approveMigratedRegistration(
+  refNo,
+  { registrationIndex, accreditationIndex },
+  granted
+) {
+  return amendMigratedOrganisation(refNo, (data) => {
+    const registration = data.registrations[registrationIndex]
+    const accreditation =
+      accreditationIndex === undefined
+        ? null
+        : data.accreditations[accreditationIndex]
+
+    registration.status = 'approved'
+    registration.validFrom = granted.validFrom
+    registration.registrationNumber = granted.regNumber
+    registration.submittedToRegulator = granted.submittedToRegulator
+    if (granted.reprocessingType) {
+      registration.reprocessingType = granted.reprocessingType
+    }
+
+    if (accreditation) {
+      registration.accreditationId = accreditation.id
+      accreditation.status = 'approved'
+      accreditation.validFrom = granted.validFrom
+      accreditation.validTo = granted.validTo
+      accreditation.accreditationNumber = granted.accNumber
+      accreditation.submittedToRegulator = granted.submittedToRegulator
+      if (granted.reprocessingType) {
+        accreditation.reprocessingType = granted.reprocessingType
+      }
+    }
+
+    // Linking a Defra ID user moves an approved organisation on to active, so
+    // a later registration's approval leaves it there.
+    if (!['approved', 'active'].includes(data.status)) {
+      data.status = 'approved'
+      data.submittedToRegulator = granted.submittedToRegulator
+    }
+
+    return {
+      registrationId: registration.id,
+      accreditationId: accreditation?.id ?? null,
+      email: data.submitterContactDetails.email
+    }
+  })
+}
+
+/**
+ * Moves a registration, its accreditation or both to a new status, as the
+ * regulator would. The service dates the change today.
+ *
+ * @param {string} refNo
+ * @param {{registrationIndex: number, accreditationIndex?: number}} indices
+ * @param {{registration?: string, accreditation?: string}} statuses
+ */
+export function changeMigratedStatus(
+  refNo,
+  { registrationIndex, accreditationIndex },
+  statuses
+) {
+  return amendMigratedOrganisation(refNo, (data) => {
+    if (statuses.registration) {
+      data.registrations[registrationIndex].status = statuses.registration
+    }
+    if (statuses.accreditation) {
+      if (accreditationIndex === undefined) {
+        throw new Error(
+          `Registration ${registrationIndex} of ${refNo} has no accreditation to make ${statuses.accreditation}`
+        )
+      }
+      data.accreditations[accreditationIndex].status = statuses.accreditation
+    }
+  })
+}
+
 export async function updateMigratedOrganisation(
   orgId,
   updateDataRows,
@@ -205,31 +358,13 @@ export async function updateMigratedOrganisation(
 
   await authClient.authenticate()
 
-  const timeout = 5000
-  const startTime = Date.now()
-
-  let response
-  // Poll for 5 seconds until organisation is available
-  while (Date.now() - startTime < timeout) {
-    response = await baseAPI.get(
-      `/v1/organisations/${orgId}`,
-      authClient.authHeader()
-    )
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-    } else {
-      break
-    }
-  }
-
-  const responseData = await assertSuccessResponse(
-    response,
-    `GET /v1/organisations/${orgId}`
+  const data = await readOrganisationOnceMigrated(
+    baseAPI,
+    authClient.authHeader(),
+    orgId
   )
 
   const currentYear = new Date().getFullYear()
-
-  const data = responseData
   let accreditationIndex = 0
 
   const accreditationIds = []
@@ -361,7 +496,7 @@ export async function updateMigratedOrganisation(
   // PUT: the public route rejects status changes (PAE-1645) and the
   // transition endpoints enforce number uniqueness, which the suite's shared
   // fixture workbooks cannot follow.
-  response = await baseAPI.put(
+  const response = await baseAPI.put(
     `/v1/dev/organisations/${orgId}`,
     JSON.stringify(payload),
     authClient.authHeader()
@@ -479,12 +614,14 @@ export async function updateRegistrationStatus(orgId, newStatus) {
  *
  * @param {string} orgRefNo - Organisation reference number
  * @param {number[]} registrationIndices - Indices of the exporter registration
- * @param orsIds - Array of ORS IDs to link to the registration
+ * @param {number[]} orsIds - Array of ORS IDs to link to the registration
+ * @param {string} [validFrom] - ISO date the site's approval runs from
  */
 export async function seedOverseasSites(
   orgRefNo,
   registrationIndices = [0],
-  orsIds = [100]
+  orsIds = [100],
+  validFrom = '2024-01-01'
 ) {
   const authClient = new AuthClient()
   const baseAPI = new BaseAPI()
@@ -500,7 +637,7 @@ export async function seedOverseasSites(
         townOrCity: 'Test City'
       },
       country: 'Germany',
-      validFrom: '2024-01-01'
+      validFrom
     }),
     authClient.authHeader()
   )
