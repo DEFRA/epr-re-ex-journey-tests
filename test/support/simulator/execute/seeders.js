@@ -21,15 +21,9 @@ import {
   updatePrnStatus
 } from '../../seeding/prns.js'
 import { seedReportSubmission } from '../../seeding/reports.js'
-import {
-  submitSummaryLog,
-  uploadSummaryLog
-} from '../../seeding/summary-logs.js'
-import {
-  waitForAvailableBalance,
-  waitForSummaryLogStatus
-} from '../../seeding/waiters.js'
-import { generateSpreadsheetData } from '../../spreadsheet/summarylogs-spreadsheet-data-generator.js'
+import { submitSummaryLogContent } from '../../seeding/summary-logs.js'
+import { waitForAvailableBalance } from '../../seeding/waiters.js'
+import { generateSummaryLogContent } from '../../spreadsheet/summarylogs-content-generator.js'
 
 export const liveSeeders = {
   createLinkedOrganisation,
@@ -39,10 +33,8 @@ export const liveSeeders = {
   createAndRegisterDefraIdUser,
   linkDefraIdUser,
   signInDefraIdUser,
-  generateSpreadsheetData,
-  uploadSummaryLog,
-  waitForSummaryLogStatus,
-  submitSummaryLog,
+  generateSummaryLogContent,
+  submitSummaryLogContent,
   seedReportSubmission,
   waitForAvailableBalance,
   createPrn,

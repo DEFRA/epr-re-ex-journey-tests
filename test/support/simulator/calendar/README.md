@@ -128,7 +128,7 @@ plan of a workbook that provokes one validation code the service raises:
 | Kind         | Severity | What the workbook does                                           | Code raised               |
 | ------------ | -------- | ---------------------------------------------------------------- | ------------------------- |
 | `removedRow` | fatal    | Omits rows submitted before. Only ever after a first submission. | SEQUENTIAL_ROW_REMOVED    |
-| `unreadable` | fatal    | Cannot be read at all; pass `unreadable` to the generator.       | SPREADSHEET_INVALID_ERROR |
+| `unreadable` | fatal    | Cannot be read at all.                                           | SPREADSHEET_INVALID_ERROR |
 | `badDate`    | fatal    | Puts text where a row's date should be.                          | INVALID_DATE              |
 | `blankField` | error    | Leaves the date of a row blank.                                  | FIELD_REQUIRED            |
 

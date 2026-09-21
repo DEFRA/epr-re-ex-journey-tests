@@ -33,7 +33,7 @@ calendar that emits something new stops rather than skipping it.
 | `registration.approved`      | The first time for an operator: applies for the organisation with every registration and accreditation the population gave it, and links a Defra ID user. Every time: approves that registration and its accreditation, granting their numbers, and registers an exporter's overseas site. |
 | `accreditation.suspended`    | Suspends the accreditation.                                                                                                                                                                                                                                                                |
 | `accreditation.cancelled`    | Cancels the registration, which the service cascades to the accreditation.                                                                                                                                                                                                                 |
-| `summary-log.uploaded`       | Renders the workbook `uploadRows` gives for it, uploads it through cdp-uploader, waits for the validation the plan expects, and submits it if the plan says it landed.                                                                                                                     |
+| `summary-log.uploaded`       | Sends the rows `uploadRows` gives for it as content through the dev route, which validates and submits them in one request and answers with the document. An upload the route cannot express is not made: see below.                                                                       |
 | `report.submitted`           | Creates, fills and submits the period's report.                                                                                                                                                                                                                                            |
 | `prn.drafted`                | Waits for the accreditation's waste balance to hold the tonnage the plan gives the note, then drafts it for that.                                                                                                                                                                          |
 | `prn.discarded`              | Moves the note to `discarded`.                                                                                                                                                                                                                                                             |
@@ -45,9 +45,15 @@ calendar that emits something new stops rather than skipping it.
 | `prn.cancelled`              | Moves it to `cancelled`.                                                                                                                                                                                                                                                                   |
 
 A summary log that comes back other than planned stops the run: a fatal
-rejection has to come back `invalid` and an error on a row `validated`, each
-reporting the issue the plan planted by its code, and anything else
-`validated` with no issue beyond a warning.
+rejection has to come back `invalid` reporting the issue the plan planted by
+its code, and a landed upload `submitted` with no issue beyond a warning.
+
+The route validates and submits in one request, so it cannot leave a log
+validated and unsubmitted. The calendar still plans an upload rejected for an
+error on a row, an abandoned draft and an unreadable workbook, and the
+executor makes none of them. The calibration summary counts every planned
+attempt off the journal, so its upload figures include the ones not made, and
+its invalid figure reads against a target that still counts them.
 
 ## What the operator types into a report
 

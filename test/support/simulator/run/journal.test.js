@@ -64,14 +64,12 @@ function fakeSeeders() {
         Promise.resolve({ userId: `user-for-${email}` }),
       linkDefraIdUser: answer({ Authorization: 'Bearer linked' }),
       signInDefraIdUser: answer({ Authorization: 'Bearer signed-in' }),
-      generateSpreadsheetData: answer('data/workbook.xlsx'),
-      uploadSummaryLog: answer({
+      generateSummaryLogContent: answer({ meta: {}, data: {} }),
+      submitSummaryLogContent: answer({
         summaryLogId: 'log',
-        summaryLogPath: '/summary-logs/log',
-        baseAPI: {}
+        status: 'submitted',
+        validation: {}
       }),
-      waitForSummaryLogStatus: answer({ status: 'validated', validation: {} }),
-      submitSummaryLog: answer({ status: 'submitted' }),
       seedReportSubmission: answer(undefined),
       waitForAvailableBalance: answer(undefined),
       createPrn: () => {

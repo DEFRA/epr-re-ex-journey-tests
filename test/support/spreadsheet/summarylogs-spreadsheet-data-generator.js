@@ -48,18 +48,34 @@ import pino from 'pino'
  */
 
 /** The worksheet row carrying the template's field markers. */
-const MARKER_ROW = 1
+export const MARKER_ROW = 1
 
 /** The first row of a worksheet that holds data rather than headings. */
 const FIRST_DATA_ROW = 4
 
+const UK_DATE = /^(\d{2})\/(\d{2})\/(\d{4})$/
+
 /**
- * Column letters of a worksheet's fields, keyed by their template marker.
+ * The parts of a cell value written as a UK date, or null for anything else.
+ *
+ * @param {string | number | undefined} value
+ * @returns {{day: number, month: number, year: number} | null}
+ */
+export function ukDateParts(value) {
+  const match = typeof value === 'string' ? UK_DATE.exec(value) : null
+  return match
+    ? { day: Number(match[1]), month: Number(match[2]), year: Number(match[3]) }
+    : null
+}
+
+/**
+ * Column letters of a worksheet's fields, keyed by their template marker, in
+ * column order.
  *
  * @param {import('exceljs').Worksheet} sheet
  * @returns {Record<string, string>}
  */
-function fieldColumns(sheet) {
+export function fieldColumns(sheet) {
   const columns = {}
   sheet.getRow(MARKER_ROW).eachCell((cell, column) => {
     const marker = String(cell.value)
@@ -113,6 +129,67 @@ function misplaceMetadataMarker(coverSheet) {
     }
   }
   throw new Error('Cover sheet carries no metadata marker to misplace')
+}
+
+/**
+ * @param {string} suffix
+ * @returns {(typeof MATERIALS)[number]}
+ */
+export function materialWithSuffix(suffix) {
+  const material = MATERIALS.find((m) => m.suffix === suffix.toUpperCase())
+  if (!material) {
+    throw new Error(
+      `Material with suffix '${suffix}' not found. Available: ${MATERIALS.map((m) => m.suffix).join(', ')}`
+    )
+  }
+  return material
+}
+
+/**
+ * A worksheet's planned rows as they are rendered, each keyed by column
+ * letter: the draw the row's seed gives, the pinned cells over it, the row id
+ * and the tonnage derived from the rest. A row that pins no id takes the
+ * worksheet's own series, as an unplanned workbook numbers its rows.
+ *
+ * @param {PlannedRow[]} plannedRows
+ * @param {object} options
+ * @param {{name: string, fn: (material: (typeof MATERIALS)[number]) => Record<string, string | number>}} options.worksheet
+ * @param {{rowId: number, tonnage?: (rowData: Record<string, string | number>, pinned: Record<string, string | number>) => void}} options.worksheetConfig
+ * @param {Record<string, string>} options.columns - column letters by template marker
+ * @param {(typeof MATERIALS)[number]} options.material
+ * @param {number} [options.rowOffset] - rows already in the worksheet's series
+ * @returns {Record<string, string | number>[]}
+ */
+export function fillRows(
+  plannedRows,
+  { worksheet, worksheetConfig, columns, material, rowOffset = 0 }
+) {
+  let seededAnyRow = false
+  try {
+    return plannedRows.map((plannedRow, i) => {
+      if (plannedRow.seed !== undefined) {
+        faker.seed(plannedRow.seed)
+        seededAnyRow = true
+      }
+      const rowData = worksheet.fn(material)
+      const plannedCells = cellsForFields(
+        plannedRow.fields ?? {},
+        columns,
+        worksheet.name
+      )
+      Object.assign(rowData, plannedCells)
+
+      rowData.B = `${plannedRow.rowId ?? worksheetConfig.rowId + rowOffset + i}`
+      worksheetConfig.tonnage?.(rowData, plannedCells)
+      return rowData
+    })
+  } finally {
+    // Leaving faker on a plan's seed would make every later draw in this
+    // process follow from it, including other callers' rows.
+    if (seededAnyRow) {
+      faker.seed()
+    }
+  }
 }
 
 function sanitiseFilenameComponent(input) {
@@ -190,25 +267,13 @@ export async function generateSpreadsheetData(options = {}) {
     logger.level = 'silent'
   }
 
-  let seededAnyRow = false
-
   try {
     logger.info('Reading spreadsheet template...')
 
     // Select material (random or specified)
-    let material
-    if (materialSuffix) {
-      material = MATERIALS.find(
-        (m) => m.suffix === materialSuffix.toUpperCase()
-      )
-      if (!material) {
-        throw new Error(
-          `Material with suffix '${materialSuffix}' not found. Available: ${MATERIALS.map((m) => m.suffix).join(', ')}`
-        )
-      }
-    } else {
-      material = faker.helpers.arrayElement(MATERIALS)
-    }
+    const material = materialSuffix
+      ? materialWithSuffix(materialSuffix)
+      : faker.helpers.arrayElement(MATERIALS)
 
     const registrationNumber =
       regNumber ||
@@ -309,32 +374,29 @@ export async function generateSpreadsheetData(options = {}) {
           rows === null
             ? Array.from({ length: numberOfRows }, () => ({}))
             : (rows[worksheet.name] ?? [])
-        const columns = fieldColumns(sheet)
+        const filledRows = fillRows(plannedRows, {
+          worksheet,
+          worksheetConfig,
+          columns: fieldColumns(sheet),
+          material,
+          rowOffset
+        })
 
-        for (const [i, plannedRow] of plannedRows.entries()) {
-          if (plannedRow.seed !== undefined) {
-            faker.seed(plannedRow.seed)
-            seededAnyRow = true
-          }
-          const rowData = worksheet.fn(material)
-          const plannedCells = cellsForFields(
-            plannedRow.fields ?? {},
-            columns,
-            worksheet.name
-          )
-          Object.assign(rowData, plannedCells)
-
-          rowData.B = `${plannedRow.rowId ?? worksheetConfig.rowId + rowOffset + i}`
-          worksheetConfig.tonnage?.(rowData, plannedCells)
-
+        for (const rowData of filledRows) {
           // Insert data only into specified columns
           Object.entries(rowData).forEach(([columnLetter, value]) => {
             const cell = sheet.getCell(`${columnLetter}${currentRow}`)
             cell.value = value
-            const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/
-            if (typeof value === 'string' && dateRegex.test(value)) {
-              const [day, month, year] = value.split('/').map(Number)
-              cell.value = new Date(year, month - 1, day, 12, 0, 0)
+            const date = ukDateParts(value)
+            if (date) {
+              cell.value = new Date(
+                date.year,
+                date.month - 1,
+                date.day,
+                12,
+                0,
+                0
+              )
               cell.numFmt = 'dd/mm/yyyy'
             }
           })
@@ -382,12 +444,6 @@ export async function generateSpreadsheetData(options = {}) {
     logger.error('Error generating spreadsheet:', error.message)
     logger.error(error.stack)
     throw error
-  } finally {
-    // Leaving faker on a plan's seed would make every later draw in this
-    // process follow from it, including other callers' rows.
-    if (seededAnyRow) {
-      faker.seed()
-    }
   }
 }
 
