@@ -8,9 +8,6 @@ service's own APIs under a simulated clock, so what you get is what a year of
 real use would have left behind, at whatever fraction of the register you ask
 for.
 
-The simulator lives on the `PAE-1979-simulator-integration` branch until it
-lands on `main`. Check that branch out to follow this guide.
-
 This is the walk from a fresh checkout to a signed-in operator with a
 tenth-scale year of data behind them. Each module under this directory has
 its own README with the depth; this page says which one to open.
