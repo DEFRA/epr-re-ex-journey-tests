@@ -13,6 +13,7 @@ import {
 import { CONTRIBUTION } from './sheets.js'
 
 /** @import {PlannedOperator} from '../population/population.js' */
+/** @import {PlannedRegistrationRows} from './rows.js' */
 /** @import {Calibration} from '../population/calibration.js' */
 
 const SEED = 'rows'
@@ -82,10 +83,15 @@ function monthlyTonnage(plan, stream, worksheet) {
 /**
  * What one registration reports in each of its months through one worksheet,
  * read off the cell, keyed by period.
+ *
+ * @param {PlannedRegistrationRows} registration
+ * @param {string} worksheet
+ * @returns {Record<string, number>}
  */
 function monthlyTotals(registration, worksheet) {
   const cell = TONNAGE_CELL[worksheet]
   assert.ok(cell, `no tonnage cell known for ${worksheet}`)
+  /** @type {Record<string, number>} */
   const totals = {}
   for (const row of registration.rows) {
     if (row.worksheet !== worksheet) continue
@@ -343,6 +349,7 @@ describe('planSummaryLogRows', () => {
       DEFAULT_CALIBRATION.activity.summaryLogSheets.reprocessorInput[worksheet]
         .monthlyTonnage
     assert.ok(published)
+    /** @param {string} stream */
     const monthsOn = (stream) =>
       tenth.registrations
         .filter((r) => r.stream === stream)
