@@ -51,9 +51,8 @@ its code, and a landed upload `submitted` with no issue beyond a warning.
 The route validates and submits in one request, so it cannot leave a log
 validated and unsubmitted. The calendar still plans an upload rejected for an
 error on a row, an abandoned draft and an unreadable workbook, and the
-executor makes none of them. The calibration summary counts every planned
-attempt off the journal, so its upload figures include the ones not made, and
-its invalid figure reads against a target that still counts them.
+executor makes none of them. `expectedOutcome` is null for those, and the
+calibration summary counts them out of its upload figures and their targets.
 
 ## What the operator types into a report
 

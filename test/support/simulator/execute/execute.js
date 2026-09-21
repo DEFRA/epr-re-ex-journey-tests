@@ -285,12 +285,15 @@ const changeStatus = (statuses) => async (run, event) => {
  * The code the service gives each kind of issue the route can be sent. A kind
  * absent here is one the route cannot express.
  *
- * @type {Partial<Record<UploadIssues['kind'], string>>}
+ * @type {Map<UploadIssues['kind'], string>}
  */
-const ISSUE_CODE = {
-  [ISSUE_KIND.BAD_DATE]: 'INVALID_DATE',
-  [ISSUE_KIND.REMOVED_ROW]: 'SEQUENTIAL_ROW_REMOVED'
-}
+const ISSUE_CODE = new Map([
+  [ISSUE_KIND.BAD_DATE, 'INVALID_DATE'],
+  [ISSUE_KIND.REMOVED_ROW, 'SEQUENTIAL_ROW_REMOVED']
+])
+
+/** The kinds of rejection the route can be sent, so the run makes. */
+export const EXPRESSIBLE_ISSUE_KINDS = [...ISSUE_CODE.keys()]
 
 /**
  * The document the route should answer with, given what the plan says became
@@ -316,7 +319,7 @@ export function expectedOutcome(upload) {
     )
   }
   const { severity, kind } = upload.issues
-  const code = ISSUE_CODE[kind]
+  const code = ISSUE_CODE.get(kind)
   return code ? { status: 'invalid', issue: { severity, code } } : null
 }
 

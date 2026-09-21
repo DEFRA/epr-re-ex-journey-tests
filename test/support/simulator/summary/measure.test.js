@@ -6,8 +6,13 @@ import {
   lastDayOfMonth,
   LATEST_RETURN_DAYS_AFTER_DUE
 } from '../calendar/calendar.js'
-import { EVENT, ISSUE_SEVERITY, UPLOAD_OUTCOME } from '../calendar/events.js'
-import { createRun, executeEvent } from '../execute/execute.js'
+import {
+  EVENT,
+  ISSUE_KIND,
+  ISSUE_SEVERITY,
+  UPLOAD_OUTCOME
+} from '../calendar/events.js'
+import { createRun, executeEvent, expectedOutcome } from '../execute/execute.js'
 import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { streamFor } from '../rows/rows.js'
 import { planRun } from '../run/plan.js'
@@ -154,18 +159,13 @@ function perfectService() {
       )
     })),
     summaryLogs: uploads.flatMap((upload) => {
-      const status =
-        upload.outcome === UPLOAD_OUTCOME.SUBMITTED
-          ? 'submitted'
-          : upload.issues?.severity === ISSUE_SEVERITY.FATAL
-            ? 'invalid'
-            : null
-      return status
+      const expected = expectedOutcome(upload)
+      return expected
         ? [
             {
               registrationId: upload.registrationId,
               uploadedAt: upload.at,
-              status
+              status: expected.status
             }
           ]
         : []
@@ -334,10 +334,19 @@ describe('summary logs a month', () => {
     )
   })
 
-  it('counts every attempt from the plan and the landed and refused ones from the service', () => {
+  it('counts the attempts the executor makes from the plan and the landed and refused ones from the service', () => {
     const values = row(logs, '2026-03')
     const inMarch = own.filter((upload) => month(upload) === '2026-03')
-    assert.equal(values.uploads.generated, inMarch.length)
+    const made = inMarch.filter((upload) => expectedOutcome(upload) !== null)
+    const kindsOf = (/** @type {UploadEvent[]} */ some) =>
+      new Set(some.map((upload) => upload.issues?.kind ?? upload.outcome))
+    assert.ok(kindsOf(made).has(ISSUE_KIND.REMOVED_ROW))
+    assert.ok(kindsOf(made).has(UPLOAD_OUTCOME.SUBMITTED))
+    assert.ok(!kindsOf(made).has(ISSUE_KIND.UNREADABLE))
+    assert.ok(!kindsOf(made).has(ISSUE_KIND.BLANK_FIELD))
+    assert.ok(!kindsOf(made).has(UPLOAD_OUTCOME.ABANDONED))
+    assert.ok(kindsOf(inMarch).has(ISSUE_KIND.BLANK_FIELD))
+    assert.equal(values.uploads.generated, made.length)
     assert.equal(
       values.submitted.generated,
       inMarch.filter((upload) => upload.outcome === UPLOAD_OUTCOME.SUBMITTED)
@@ -345,9 +354,8 @@ describe('summary logs a month', () => {
     )
     assert.equal(
       values.invalid.generated,
-      inMarch.filter(
-        (upload) => upload.issues?.severity === ISSUE_SEVERITY.FATAL
-      ).length
+      made.filter((upload) => upload.issues?.severity === ISSUE_SEVERITY.FATAL)
+        .length
     )
     assert.equal(
       values['amended rows'].generated,
@@ -361,23 +369,46 @@ describe('summary logs a month', () => {
     )
   })
 
-  it('targets the landing rate over the registrations owing the month, and more attempts than landings', () => {
+  const { fatal } = calibration.activity.uploadIssueKinds
+  const fatalWeight = Object.values(fatal).reduce((a, b) => a + b, 0)
+  /** The share of fatal rejections the executor makes on a stream it can spoil a date on. */
+  const madeFatalShare = (fatal.removedRow + fatal.badDate) / fatalWeight
+
+  it('targets the landing rate over the registrations owing the month, and the attempts the executor makes beyond it', () => {
     const values = row(logs, '2026-06')
-    const owing = population.organisations
-      .flatMap((operator) => operator.registrations)
-      .filter(
-        (registration) =>
-          ids.has(registration.id) && registration.activeFrom <= '2026-06-30'
-      )
+    const owing = population.organisations.flatMap((operator) =>
+      operator.registrations
+        .filter(
+          (registration) =>
+            ids.has(registration.id) && registration.activeFrom <= '2026-06-30'
+        )
+        .map((registration) => ({ operator, registration }))
+    )
     assert.equal(
       values.submitted.target,
       owing.length * calibration.activity.uploads.perReportingPeriod
     )
-    assert.ok(values.uploads.target > values.submitted.target)
-    assert.ok(values.invalid.target < values.uploads.target)
+    const madeRejections = owing.reduce((total, { operator }) => {
+      const rates = operator.profile.uploads
+      return (
+        total +
+        rates.perReportingPeriod *
+          rates.rejectionRate *
+          rates.extraAttemptsWhenRejected *
+          rates.fatalShare *
+          madeFatalShare
+      )
+    }, 0)
+    assert.ok(madeRejections > 0)
+    assert.ok(
+      Math.abs(
+        values.uploads.target - values.submitted.target - madeRejections
+      ) < 1e-9
+    )
+    assert.ok(Math.abs(values.invalid.target - madeRejections) < 1e-9)
   })
 
-  it('expects every rejection of a registered-only stream to be fatal, having no rows the service validates', () => {
+  it('expects every rejection of a registered-only stream to be fatal, and only a removed row to be made, having no rows the service validates', () => {
     const values = row(
       section(`Summary logs a month: ${streamFor(registeredOnly)}`),
       '2026-07'
@@ -393,7 +424,8 @@ describe('summary logs a month', () => {
         values.invalid.target -
           (rates.perReportingPeriod / 3) *
             rates.rejectionRate *
-            rates.extraAttemptsWhenRejected
+            rates.extraAttemptsWhenRejected *
+            (fatal.removedRow / fatalWeight)
       ) < 1e-9
     )
   })
