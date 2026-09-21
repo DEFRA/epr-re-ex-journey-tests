@@ -6,7 +6,6 @@ import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
 import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
 import { PRNIssuedPage } from 'page-objects/prn.issued.page.js'
 import { PRNViewPage } from 'page-objects/prn.view.page.js'
-import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
@@ -14,6 +13,8 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { externalAPICancelPrn } from '../support/seeding/prns.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { generateSummaryLogContent } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import {
   thirdTradingName as newTradingName,
@@ -23,6 +24,7 @@ import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { checkWasteBalanceForWindow } from '../support/waste-balance-mode.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
 
 test.describe('Issuing Packing Recycling Notes', () => {
   test('Should be able to create, issue and reject PRNs for Paper (Reprocessor Input) @issuePRNRepro @smoketest', async ({
@@ -88,24 +90,46 @@ test.describe('Issuing Packing Recycling Notes', () => {
       'sepa'
     )
 
-    await createLinkAndLogin(
+    const user = await createLinkAndLogin(
       currentPage,
       organisationDetails.refNo,
       migrationResponse.email
     )
 
-    // Tonnage value expected from Summary Log files upload
-    // Paper and board	40,608.86
-    const expectedWasteBalance = '40,405.86'
-    const originalWasteBalance = '40,608.86'
+    // Submitted via epr-backend's dev endpoint rather than driving the
+    // upload UI: this journey is about PRN issuance, not the upload itself,
+    // which the dedicated summary-log specs already cover.
+    const expectedWasteBalance = '797.00'
+    const originalWasteBalance = '1,000.00'
 
-    await dashboardPage.selectTableLink(1, 1)
-
-    await wasteRecordsPage.submitSummaryLogLink().click()
-
-    const filePath = `resources/sanity/reprocessorInput_${accNumber}_${regNumber}.xlsx`
-    const uploadSummaryLogPage = new UploadSummaryLogPage(currentPage)
-    await uploadSummaryLogPage.performUploadAndReturnToHomepage(filePath)
+    const summaryLogContent = await generateSummaryLogContent({
+      wasteProcessingType: 'reprocessorInput',
+      materialSuffix: 'PA',
+      regNumber,
+      accNumber,
+      rows: {
+        'Received (sections 1, 2 and 3)': [
+          {
+            rowId: 9001,
+            fields: {
+              WERE_PRN_OR_PERN_ISSUED_ON_THIS_WASTE: 'No',
+              GROSS_WEIGHT: 1000,
+              TARE_WEIGHT: 0,
+              PALLET_WEIGHT: 0,
+              WEIGHT_OF_NON_TARGET_MATERIALS: 0,
+              RECYCLABLE_PROPORTION_PERCENTAGE: 1,
+              BAILING_WIRE_PROTOCOL: 'No'
+            }
+          }
+        ]
+      }
+    })
+    await submitSummaryLogContent(
+      organisationDetails.refNo,
+      migrationResponse.registrationIds[0],
+      defraIdStub.authHeader(user.userId),
+      summaryLogContent
+    )
 
     await dashboardPage.selectTableLink(1, 1)
 
@@ -267,9 +291,9 @@ test.describe('Issuing Packing Recycling Notes', () => {
     await wasteRecordsPage.backLink().click()
 
     // Check that the waste balance has been updated from the cancelled PRN
-    // (40,608.86 original - 19 reserved by the still-issued second PRN)
+    // (originalWasteBalance - 19 reserved by the still-issued second PRN)
     const availableWasteBalance = await dashboardPage.availableWasteBalance(1)
-    expect(availableWasteBalance).toBe('40,589.86')
+    expect(availableWasteBalance).toBe('981.00')
 
     await homePage.signOutLink().click()
     await expect(currentPage).toHaveTitle(/Signed out/)
