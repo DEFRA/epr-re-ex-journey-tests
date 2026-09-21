@@ -1,4 +1,5 @@
 import { todayddMMMMyyyy } from './date.js'
+import { WASTE_BALANCE_POOL } from './waste-balance-pool.js'
 
 export const tradingName = 'CS_GENERATED_3982709_England'
 
@@ -25,10 +26,11 @@ export const tonnageWordings = {
  * @param {Object} [params.tonnageWordings]
  * @param {string} [params.selectDecemberWasteAnswer] - 'Yes' or 'No' to click on the create-PRN
  *   radios (only when the radios are expected to render); omit to leave them untouched.
- * @param {string} [params.wasteBalancePool] - 'December' or 'Non-December' to
- *   click on the create-PRN "Select which waste balance" radios (mutually
- *   exclusive with selectDecemberWasteAnswer - an accreditation renders one
- *   control or the other, never both); omit to leave them untouched.
+ * @param {string} [params.wasteBalancePool] - WASTE_BALANCE_POOL.december or
+ *   .nonDecember to click on the create-PRN "Select which waste balance"
+ *   radios (mutually exclusive with selectDecemberWasteAnswer - an
+ *   accreditation renders one control or the other, never both); omit to
+ *   leave them untouched.
  */
 export const createPrnDetails = ({
   process = 'R3',
@@ -71,6 +73,6 @@ export const createPrnDetails = ({
     // chosen.
     decemberWaste:
       selectDecemberWasteAnswer ??
-      (wasteBalancePool === 'December' ? 'Yes' : 'No')
+      (wasteBalancePool === WASTE_BALANCE_POOL.december ? 'Yes' : 'No')
   }
 }

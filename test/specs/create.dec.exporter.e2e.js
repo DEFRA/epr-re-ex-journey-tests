@@ -13,6 +13,7 @@ import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { createPrnDetails } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'
+import { WASTE_BALANCE_POOL } from '../support/waste-balance-pool.js'
 
 test.describe('Choosing a waste balance pool for a PERN (Exporter)', () => {
   test('Should show both balance options and move only the chosen pool @decWaste @createDecPRNExporter', async ({
@@ -86,11 +87,11 @@ test.describe('Choosing a waste balance pool for a PERN (Exporter)', () => {
 
     const decemberBefore = createPRNPage.wasteBalanceTonnage(
       options,
-      'December'
+      WASTE_BALANCE_POOL.december
     )
     const generalBefore = createPRNPage.wasteBalanceTonnage(
       options,
-      'Non-December'
+      WASTE_BALANCE_POOL.nonDecember
     )
 
     expect(panelBefore.december).toBeCloseTo(decemberBefore, 2)
@@ -102,7 +103,7 @@ test.describe('Choosing a waste balance pool for a PERN (Exporter)', () => {
       materialDesc: 'Wood',
       process: 'R3',
       tonnageWordings: { integer: 2, word: 'Two' },
-      wasteBalancePool: 'December'
+      wasteBalancePool: WASTE_BALANCE_POOL.december
     })
 
     await prnHelper.createAndCheckPrnDetails(prnDetails)
@@ -133,7 +134,7 @@ test.describe('Choosing a waste balance pool for a PERN (Exporter)', () => {
       materialDesc: 'Wood',
       process: 'R3',
       tonnageWordings: { integer: 3, word: 'Three' },
-      wasteBalancePool: 'Non-December'
+      wasteBalancePool: WASTE_BALANCE_POOL.nonDecember
     })
 
     await prnHelper.createAndCheckPrnDetails(secondPrnDetails)
