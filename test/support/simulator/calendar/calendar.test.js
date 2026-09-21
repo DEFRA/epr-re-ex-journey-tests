@@ -902,6 +902,28 @@ describe('reports', () => {
       })
     })
 
+    it('refuses an accredited reprocessor whose rows give it no stream to draw the figure from', () => {
+      const accredited = must(
+        registrations.find(
+          (registration) =>
+            registration.processingType === 'reprocessor' &&
+            registration.accreditation
+        )
+      )
+      const without = {
+        ...rows,
+        registrations: rows.registrations.filter(
+          (planned) => planned.registrationId !== accredited.id
+        )
+      }
+      assert.throws(
+        () => planCalendar({ population, rows: without, to: TO }),
+        new RegExp(
+          `${accredited.id} is an accredited reprocessor with no stream`
+        )
+      )
+    })
+
     it('refuses a calibration that gives the recycled worksheet no figure', () => {
       const calibration = structuredClone(DEFAULT_CALIBRATION)
       delete calibration.activity.summaryLogSheets.reprocessorOutput[

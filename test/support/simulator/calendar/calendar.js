@@ -536,6 +536,11 @@ function recycledPerCreditedTonne(calibration) {
         (worksheet) =>
           SHEETS[stream][worksheet].contribution === CONTRIBUTION.CREDIT
       )
+      if (crediting.length !== 1) {
+        throw new Error(
+          `${stream} credits ${crediting.length} worksheets, not the one a report's tonnage recycled is drawn against`
+        )
+      }
       return [stream, recycled / figure(stream, crediting[0])]
     })
   )
@@ -560,6 +565,16 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
   const { profile } = operator
   const allRows = rows?.rows ?? []
   const stream = rows?.stream ?? ''
+  const perCreditedTonne = context.recycledPerCreditedTonne.get(stream)
+  if (
+    registration.processingType === 'reprocessor' &&
+    registration.accreditation &&
+    perCreditedTonne === undefined
+  ) {
+    throw new Error(
+      `${registration.id} is an accredited reprocessor with no stream to draw its tonnage recycled from`
+    )
+  }
 
   /** @type {{day: string, period: Period}[]} */
   const reports = []
@@ -641,7 +656,7 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
           ? heldTonnage(
               credited(
                 allRows.filter((row) => period.months.includes(row.period))
-              ) * (context.recycledPerCreditedTonne.get(stream) ?? 0)
+              ) * (perCreditedTonne ?? 0)
             )
           : null
     }

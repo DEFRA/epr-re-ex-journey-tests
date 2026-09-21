@@ -225,7 +225,8 @@ function eventsFor(registration, planned, ending) {
     cadence: 'monthly',
     period,
     submissionNumber,
-    // The month's credited tonnage stands in for the calendar's planned figure.
+    // The month's credited tonnage stands in for the calendar's planned figure,
+    // unscaled: this checks the executor enters what the event carries.
     tonnageRecycled:
       registration.processingType === 'reprocessor'
         ? heldTonnage(
