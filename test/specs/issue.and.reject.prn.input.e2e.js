@@ -22,6 +22,7 @@ import {
 import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
+import { checkWasteBalanceForWindow } from '../support/waste-balance-mode.js'
 
 test.describe('Issuing Packing Recycling Notes', () => {
   test('Should be able to create, issue and reject PRNs for Paper (Reprocessor Input) @issuePRNRepro @smoketest', async ({
@@ -110,15 +111,19 @@ test.describe('Issuing Packing Recycling Notes', () => {
 
     await wasteRecordsPage.createNewPRNLink().click()
 
-    const wasteBalanceHint = await createPRNPage.wasteBalanceHint()
-    expect(wasteBalanceHint).toBe(
-      `Your waste balance available for creating PRNs is ${originalWasteBalance} tonnes.`
+    const ordinaryPool = await checkWasteBalanceForWindow(
+      createPRNPage,
+      organisationDetails.refNo,
+      migrationResponse.registrationIds[0],
+      migrationResponse.accreditationIds[0],
+      originalWasteBalance
     )
 
     const prnDetails = createPrnDetails({
       materialDesc,
       accNumber,
-      organisationDetails
+      organisationDetails,
+      wasteBalancePool: ordinaryPool
     })
 
     await prnHelper.createAndCheckPrnDetails(prnDetails)
@@ -186,7 +191,8 @@ test.describe('Issuing Packing Recycling Notes', () => {
       issuerNotes: newIssuerNotes,
       materialDesc,
       accNumber,
-      organisationDetails
+      organisationDetails,
+      wasteBalancePool: ordinaryPool
     })
 
     await prnHelper.createAndCheckPrnDetails(newPrnDetails)

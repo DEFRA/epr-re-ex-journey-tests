@@ -24,6 +24,7 @@ import {
 import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
+import { checkWasteBalanceForWindow } from '../support/waste-balance-mode.js'
 
 test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
   test('Should be able to create, issue and reject PRNs for Wood (Exporter) @issuePRNExp @smoketest', async ({
@@ -85,9 +86,13 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
 
     await wasteRecordsPage.createNewPERNLink().click()
 
-    const wasteBalanceHint = await createPRNPage.wasteBalanceHint()
-    expect(wasteBalanceHint).toBe(
-      `Your waste balance available for creating PERNs is ${originalWasteBalance} tonnes.`
+    const ordinaryPool = await checkWasteBalanceForWindow(
+      createPRNPage,
+      organisationDetails.refNo,
+      migrationResponse.registrationIds[0],
+      migrationResponse.accreditationIds[0],
+      originalWasteBalance,
+      'PERNs'
     )
 
     let prnHelper = new PrnHelper(currentPage, true)
@@ -95,7 +100,8 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     const pernDetails = createPrnDetails({
       materialDesc,
       accNumber,
-      organisationDetails
+      organisationDetails,
+      wasteBalancePool: ordinaryPool
     })
 
     await prnHelper.createAndCheckPrnDetails(pernDetails)
@@ -175,7 +181,8 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       issuerNotes: newIssuerNotes,
       materialDesc,
       accNumber,
-      organisationDetails
+      organisationDetails,
+      wasteBalancePool: ordinaryPool
     })
 
     await prnHelper.createAndCheckPrnDetails(newPernDetails)
@@ -244,7 +251,8 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       issuerNotes: newIssuerNotes,
       materialDesc,
       accNumber,
-      organisationDetails
+      organisationDetails,
+      wasteBalancePool: ordinaryPool
     })
 
     await prnHelper.createAndCheckPrnDetails(updatedPernDetails)
