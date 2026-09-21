@@ -57,10 +57,14 @@ registration, the event, how long it took and a running count:
 
 It ends with the calibration summary. On a laptop the tenth-scale year above
 took five and a half minutes on 21 September 2026: 29 operators, 2,873
-events, most of the time in summary log uploads. Time goes with the event
-count, which at full scale is 32,227 for 293 operators, so an hour or so by
-that rate; `--concurrency` is the lever, and the stack, not the simulator, is
-where the time goes.
+events, most of the time in summary log uploads. A full-scale year on the
+same laptop and day ran at about a thousand events a minute at the default
+concurrency, twice the tenth-scale rate: operators act side by side within a
+day, and 293 of them keep four lanes busy where 29 leave them idle. The whole
+of 2026 at full scale, `--to 2026-12-31`, plans 44,313 events on the
+committed calibration, so three quarters of an hour by that rate;
+`--concurrency` is the lever, and the stack, not the simulator, is where the
+time goes.
 
 The run keeps its settings, journal and manifest in
 `test-artifacts/simulator/<seed>/`, which is gitignored.
