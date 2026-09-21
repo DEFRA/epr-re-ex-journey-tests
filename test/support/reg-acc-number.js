@@ -16,8 +16,23 @@ function currentYear() {
   return new Date().getFullYear().toString().slice(-2)
 }
 
+const PROCESSING_TYPE_LETTERS = {
+  exporter: 'X',
+  regOnlyExporter: 'X',
+  reprocessor: 'R',
+  reprocessorInput: 'R',
+  reprocessorOutput: 'R',
+  regOnlyReprocessor: 'R'
+}
+
 function processingTypeChar(wasteProcessingType) {
-  return wasteProcessingType === 'exporter' ? 'X' : 'R'
+  const letter = PROCESSING_TYPE_LETTERS[wasteProcessingType]
+  if (!letter) {
+    throw new Error(
+      `No registration number letter for the processing type "${wasteProcessingType}"`
+    )
+  }
+  return letter
 }
 
 function buildNumber(
