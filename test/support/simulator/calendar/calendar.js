@@ -25,7 +25,7 @@ import {
 /** @import {PlannedRows, PlannedRegistrationRows, PlannedLogRow} from '../rows/rows.js' */
 /** @import {Calibration} from '../population/calibration.js' */
 /** @import {Random} from '../population/random.js' */
-/** @import {CalendarEvent, UploadEvent, PrnEvent, RowRef, UploadIssues, Drafted} from './events.js' */
+/** @import {CalendarEvent, UploadEvent, ReportEvent, PrnEvent, RowRef, UploadIssues, Drafted} from './events.js' */
 
 /**
  * @typedef {Object} PlannedCalendar
@@ -629,6 +629,7 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
 
   for (const report of reports) {
     const { period } = report
+    /** @type {Omit<Drafted<ReportEvent>, 'submissionNumber'>} */
     const submission = {
       type: EVENT.REPORT_SUBMITTED,
       registrationId: registration.id,
