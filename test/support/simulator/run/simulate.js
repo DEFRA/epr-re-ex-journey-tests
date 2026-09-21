@@ -9,19 +9,16 @@
  * See README.md beside this file for the settings, resuming and the manifest.
  */
 
-import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
 import config from '../../../config/config.js'
 import logger from '../../logger.js'
-import { planCalendar } from '../calendar/calendar.js'
 import { clearSimulatedClock, clockFile } from '../clock/simulated-clock.js'
 import { createRun, executeEvent } from '../execute/execute.js'
 import { loadCalibration } from '../population/calibration.js'
-import { planPopulation } from '../population/population.js'
-import { planSummaryLogRows } from '../rows/rows.js'
+import { summarise } from '../summary/summarise.js'
 import {
   appendJournal,
   entryFor,
@@ -32,13 +29,8 @@ import {
   writeManifest,
   writeSettings
 } from './journal.js'
-import {
-  clockSettled,
-  createStop,
-  eventKey,
-  eventsInOrder,
-  replay
-} from './runner.js'
+import { fingerprintOf, planRun } from './plan.js'
+import { clockSettled, createStop, eventKey, replay } from './runner.js'
 
 /** @import {Calibration} from '../population/calibration.js' */
 /** @import {RunSettings} from './journal.js' */
@@ -105,15 +97,6 @@ export function parseSettings(argv) {
     dir: values.dir
   }
 }
-
-/**
- * What a calibration plans: two calibrations with the same fingerprint plan
- * the same run.
- *
- * @param {Calibration} calibration
- */
-export const fingerprintOf = (calibration) =>
-  createHash('sha256').update(JSON.stringify(calibration)).digest('hex')
 
 /**
  * The settings a run in `directory` is planned from: what was asked for,
@@ -186,16 +169,8 @@ async function main() {
     }
   )
 
-  const population = planPopulation({ ...settings, calibration })
-  const rows = planSummaryLogRows({ population, calibration })
-  const calendar = planCalendar({
-    population,
-    rows,
-    from: settings.from,
-    to: settings.to,
-    calibration
-  })
-  const events = eventsInOrder(calendar)
+  const plan = planRun({ settings, calibration })
+  const { population, rows, events } = plan
   const run = createRun({ population, rows })
   const done = restore(run, readJournal(directory), events)
   if (!saved) writeSettings(directory, settings)
@@ -275,6 +250,16 @@ async function main() {
   logger.info(
     `Done: ${events.length} events, simulated now ${new Date().toISOString()}`
   )
+  try {
+    process.stdout.write(
+      `\n${await summarise({ settings, calibration, plan, run, done })}\n`
+    )
+  } catch (error) {
+    logger.error(error)
+    logger.error(
+      `The run completed; the summary did not. Print it again with: npm run simulate:summary -- --dir ${directory}`
+    )
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

@@ -87,3 +87,10 @@ containers, but not the volume.
 
 `complete` says whether every planned event was done, with `events` giving
 the count either way.
+
+## The summary
+
+A run that completes prints the calibration summary: what it generated next
+to what its calibration asked for at its scale, and the ratio, section by
+section. `../summary/README.md` says what each section measures and where the
+figures come from, and how to print it for a run at any time.

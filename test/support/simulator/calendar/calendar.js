@@ -65,10 +65,10 @@ import {
 const EARLIEST_STATUS_CHANGE_DAYS = 30
 
 /** How long after the deadline the latest of the late returns arrive. */
-const LATEST_RETURN_DAYS_AFTER_DUE = 90
+export const LATEST_RETURN_DAYS_AFTER_DUE = 90
 
 /** On-time returns are early when filed at least this long before the deadline. */
-const EARLY_DAYS_BEFORE_DUE = 10
+export const EARLY_DAYS_BEFORE_DUE = 10
 
 /** A resubmission follows the upload that restated the period within this many days. */
 const RESUBMISSION_DAYS_AFTER_UPLOAD = 14
@@ -96,7 +96,10 @@ const DECEMBER = '12'
  */
 const WORKING_HOURS = { first: 8, last: 16 }
 
-const MONTHS_PER_PERIOD = { [CADENCE.MONTHLY]: 1, [CADENCE.QUARTERLY]: 3 }
+export const MONTHS_PER_PERIOD = {
+  [CADENCE.MONTHLY]: 1,
+  [CADENCE.QUARTERLY]: 3
+}
 
 /**
  * The worksheet whose calibrated tonnage is the national tonnage recycled: the
@@ -118,10 +121,10 @@ const parse = (day) => new Date(`${day}T00:00:00Z`)
 /** @param {Date} date */
 const iso = (date) => date.toISOString().slice(0, 10)
 /** @param {string} day @param {number} days */
-const addDays = (day, days) =>
+export const addDays = (day, days) =>
   iso(new Date(parse(day).getTime() + days * DAY_MS))
 /** @param {string} from @param {string} to */
-const daysBetween = (from, to) =>
+export const daysBetween = (from, to) =>
   Math.round((parse(to).getTime() - parse(from).getTime()) / DAY_MS)
 /** @param {string} a @param {string} b */
 const later = (a, b) => (a > b ? a : b)
@@ -134,7 +137,8 @@ const monthKey = (day) => day.slice(0, 7)
 /** @param {number} year @param {number} month - 1 to 12 */
 const monthOf = (year, month) => `${year}-${String(month).padStart(2, '0')}`
 /** @param {number} year @param {number} month - 1 to 12 */
-const lastDayOfMonth = (year, month) => iso(new Date(Date.UTC(year, month, 0)))
+export const lastDayOfMonth = (year, month) =>
+  iso(new Date(Date.UTC(year, month, 0)))
 const today = () => iso(new Date())
 
 /** @param {RowRef} row */
