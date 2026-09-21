@@ -351,7 +351,7 @@ const uploadCount = (perPeriod, random) =>
  * @property {string} seed - the run's, which `random` and any further draw derive from
  * @property {Random} random
  * @property {string} to
- * @property {number} recycledPerCreditedTonne - what a reprocessor's report carries for each tonne its rows credit in the period
+ * @property {Map<string, number>} recycledPerCreditedTonne - by stream, what a reprocessor's report carries for each tonne its rows credit in the period
  * @property {Draft[]} drafts
  */
 
@@ -640,7 +640,7 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
           ? heldTonnage(
               credited(
                 allRows.filter((row) => period.months.includes(row.period))
-              ) * context.recycledPerCreditedTonne
+              ) * (context.recycledPerCreditedTonne.get(stream) ?? 0)
             )
           : null
     }
@@ -1065,10 +1065,7 @@ export function planCalendar({
               seed,
               random: createRandom(`${seed}/${registration.id}`),
               to,
-              recycledPerCreditedTonne:
-                perCreditedTonne.get(
-                  rowsByRegistration.get(registration.id)?.stream ?? ''
-                ) ?? 0,
+              recycledPerCreditedTonne: perCreditedTonne,
               drafts: []
             },
             start
