@@ -11,11 +11,13 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from './seeding/organisation.js'
-import { uploadAndSubmitSummaryLog } from './seeding/summary-logs.js'
+import { submitSummaryLogContent } from './seeding/summary-logs.js'
 import { createPrnDetails } from './fixtures.js'
 import { PrnHelper } from './prn.helper.js'
 import { createLinkAndLogin } from './login-helper.js'
 import { defraIdStub } from './defra-id-stub.js'
+
+/** @import {SummaryLogContent} from './spreadsheet/summarylogs-content-generator.js' */
 
 /**
  * Shared "unhappy paths" flow for creating a PRN/PERN: create a draft, discard
@@ -34,7 +36,7 @@ import { defraIdStub } from './defra-id-stub.js'
  * @param {string} config.accNumber
  * @param {string} [config.reprocessingType] - only set for Reprocessor scenarios, e.g. 'input'
  * @param {boolean} [config.seedOverseasSites] - Exporter-only setup step
- * @param {string} config.summaryLogFilePath - sanity fixture that credits a real balance for this accreditation
+ * @param {SummaryLogContent} config.summaryLogContent - JSON content (built via generateSummaryLogContent) that credits a real balance for this accreditation
  * @param {string} config.tradingName
  * @param {string} [config.process] - defaults to 'R3' in createPrnDetails when omitted
  * @param {boolean} [config.isPern]
@@ -51,7 +53,7 @@ export async function runCreatePrnUnhappyPaths(
     accNumber,
     reprocessingType,
     seedOverseasSites: shouldSeedOverseasSites = false,
-    summaryLogFilePath,
+    summaryLogContent,
     tradingName,
     process,
     isPern = false,
@@ -101,11 +103,11 @@ export async function runCreatePrnUnhappyPaths(
   // The create form now refuses an over-balance tonnage up front (the backend
   // rejects the draft and the create page re-renders with the error), so these
   // specs can no longer run against a zero-balance accreditation.
-  await uploadAndSubmitSummaryLog(
+  await submitSummaryLogContent(
     organisationDetails.refNo,
     migrationResponse.registrationIds[0],
     defraIdStub.authHeader(user.userId),
-    summaryLogFilePath
+    summaryLogContent
   )
 
   await dashboardPage.selectTableLink(1, 1)

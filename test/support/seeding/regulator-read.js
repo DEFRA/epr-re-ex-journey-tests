@@ -9,12 +9,15 @@ import {
 } from './organisation.js'
 import { createPrn, externalAPICancelPrn, updatePrnStatus } from './prns.js'
 import { seedReportSubmission } from './reports.js'
-import { summaryLogDatedAt, uploadAndSubmitSummaryLog } from './summary-logs.js'
+import {
+  uploadAndSubmitSummaryLog,
+  submitSummaryLogContent
+} from './summary-logs.js'
+import { generateSummaryLogContent } from '../spreadsheet/summarylogs-content-generator.js'
 import { waitForWasteBalance } from './waiters.js'
 import { defraIdStub } from '../defra-id-stub.js'
 import { generateRegNumber, generateAccNumber } from '../reg-acc-number.js'
 
-const FIXTURE_PATH = 'resources/summary-log.xlsx'
 export const REGISTRATION_NUMBER = 'R26ER5000000003PA'
 const ACCREDITATION_NUMBER = 'A26ER5000000002PA'
 
@@ -92,23 +95,47 @@ export async function seedAwaitingPrnAndSubmittedReport() {
   const { year, period } = lastCompletedPeriod('monthly')
   const reportPeriod = { year, cadence: 'monthly', period }
 
-  // The loads are dated into that same month rather than left on the fixture's
-  // own date. A page showing one reporting period at a time only holds this
-  // tonnage while the service is still reporting on the period the fixture was
-  // built in, so a fixed date is a failure waiting for a particular new year.
-  const datedFixture = await summaryLogDatedAt(
-    FIXTURE_PATH,
-    new Date(Date.UTC(year, period - 1, 1, 12))
-  )
+  // The load is dated into that same month rather than "today". A page showing
+  // one reporting period at a time only holds this tonnage while the service is
+  // still reporting on that period, so a fixed date is a failure waiting for a
+  // particular new year. Pinned fields take UK dates (DD/MM/YYYY), as a
+  // template cell would.
+  const periodDate = new Date(Date.UTC(year, period - 1, 1))
+  const ukPeriodDate = periodDate.toLocaleDateString('en-GB', {
+    timeZone: 'UTC'
+  })
 
   // A PRN draws its tonnage from the waste balance, which the summary log is
   // what produces - so the log has to be submitted and the balance computed
   // before the note can be created.
-  await uploadAndSubmitSummaryLog(
+  const content = await generateSummaryLogContent({
+    wasteProcessingType: 'reprocessorInput',
+    materialSuffix: 'PA',
+    regNumber: REGISTRATION_NUMBER,
+    accNumber: ACCREDITATION_NUMBER,
+    rows: {
+      'Received (sections 1, 2 and 3)': [
+        {
+          rowId: 9001,
+          fields: {
+            DATE_RECEIVED_FOR_REPROCESSING: ukPeriodDate,
+            WERE_PRN_OR_PERN_ISSUED_ON_THIS_WASTE: 'No',
+            GROSS_WEIGHT: SUMMARY_LOG_CREDIT,
+            TARE_WEIGHT: 0,
+            PALLET_WEIGHT: 0,
+            WEIGHT_OF_NON_TARGET_MATERIALS: 0,
+            RECYCLABLE_PROPORTION_PERCENTAGE: 1,
+            BAILING_WIRE_PROTOCOL: 'No'
+          }
+        }
+      ]
+    }
+  })
+  await submitSummaryLogContent(
     organisation.refNo,
     registrationId,
     defraAuthHeader,
-    datedFixture
+    content
   )
   await waitForWasteBalance(
     organisation.refNo,
