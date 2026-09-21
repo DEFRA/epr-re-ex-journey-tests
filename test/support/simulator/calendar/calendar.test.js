@@ -578,6 +578,54 @@ describe('summary log uploads', () => {
       }
     }
   })
+
+  /**
+   * A registration's first rejected upload, and whether it carries a row the
+   * service validates the cells of.
+   */
+  const firstRejections = registrations.flatMap((registration) => {
+    const own = uploadsOf(registration.id)
+    const first = own.filter((upload) => upload.cutoff === own[0].cutoff)
+    const { stream } = rowsOf(registration.id)
+    const validated = Object.values(SHEETS[stream]).some(
+      (sheet) => sheet.contribution !== CONTRIBUTION.NONE
+    )
+    return first
+      .filter((upload) => upload.outcome === UPLOAD_OUTCOME.REJECTED)
+      .map((upload) => ({ upload, validated }))
+  })
+
+  it('spoils a date on a first upload that draws a fatal issue, having nothing yet to remove', () => {
+    const fatal = firstRejections.filter(
+      ({ upload, validated }) =>
+        validated && must(upload.issues).severity === ISSUE_SEVERITY.FATAL
+    )
+    assert.ok(fatal.length > 0)
+    const kinds = tally(fatal, ({ upload }) => must(upload.issues).kind)
+    assert.equal(kinds.removedRow, undefined)
+    assert.ok(kinds.badDate > 0)
+    for (const { upload } of fatal.filter(
+      ({ upload }) => must(upload.issues).kind === ISSUE_KIND.BAD_DATE
+    )) {
+      assert.ok(must(upload.issues).rows.length > 0)
+    }
+  })
+
+  it('plants a bad date only where there is a validated row to spoil, and is unreadable otherwise', () => {
+    const unvalidated = firstRejections.filter(({ validated }) => !validated)
+    assert.ok(unvalidated.length > 0)
+    for (const { upload } of unvalidated) {
+      assert.equal(must(upload.issues).kind, ISSUE_KIND.UNREADABLE)
+    }
+    for (const upload of rejected.filter(
+      (upload) => must(upload.issues).kind !== ISSUE_KIND.UNREADABLE
+    )) {
+      assert.ok(
+        must(upload.issues).rows.length > 0,
+        `${upload.registrationId} ${upload.at} plants ${must(upload.issues).kind} on no row`
+      )
+    }
+  })
 })
 
 describe('the rows an upload carries', () => {

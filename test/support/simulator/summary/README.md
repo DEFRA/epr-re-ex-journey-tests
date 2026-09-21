@@ -34,7 +34,9 @@ number.
   owes a third of its quarterly rate each month. The rate is a steady state:
   the calendar lands a period's closing upload with its report, so a month
   can read a little under or over as the closing uploads fall either side of
-  it, and the run's last month reads light.
+  it, and the run's last month reads light. A registered-only registration's
+  first upload can plant no rejection the route expresses, so its first month
+  reads under its invalid target too.
 - Notes are expected from the month of the day after a registration first
   submitted a summary log, which the calendar gives a whole month's notes
   however late in it that day falls, and stop with a suspension or
@@ -52,11 +54,16 @@ Each section says. The service is read wherever it has a view:
 | Notes drafted a month                                 | The admin list of notes, by the day each was created                                                      |
 | Note transitions a month                              | The system log of status changes, by the day each was recorded                                            |
 
-Two figures the service holds but does not list come from the executed plan,
-read off the journal: every upload attempt, because the executor makes no
-upload the route cannot express (see `../execute/README.md`) and those are not
-in the list, and amended rows, because the service keeps a row's latest state
-and no count of how many times it changed.
+Two figures come from the executed plan, read off the journal. Uploads are
+every one the executor made, which the service's list should hold too, as
+submitted or invalid, so the two sides check each other. Amended rows the
+service does not list, because it keeps a row's latest state and no count of
+how many times it changed. The calendar also plans attempts the route cannot
+express, an abandoned draft, an error on a row and an unreadable workbook,
+and the executor makes none of them (see `../execute/README.md`), so they are
+left out of both the upload count and its target, and the invalid target
+likewise counts only the fatal kinds the stream can plant: a removed row on
+any stream, a bad date only where the service validates a row's cells.
 
 A report's lateness is against the calibration's due day, the 21st, rather
 than the 20th the service's own calendar marks, so the shares compare with

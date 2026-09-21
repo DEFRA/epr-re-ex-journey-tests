@@ -132,11 +132,13 @@ plan of a workbook that provokes one validation code the service raises:
 | `badDate`    | fatal    | Puts text where a row's date should be.                          | INVALID_DATE              |
 | `blankField` | error    | Leaves the date of a row blank.                                  | FIELD_REQUIRED            |
 
-An error sits on rows the upload adds where it adds any, because that is where
-an operator's new mistakes are, and only on a worksheet the service reads into
-the waste balance, because those are the only rows it validates the cells of.
-A workbook with none of those to plant on is rejected fatally instead, so a
-registered-only registration's rejections are all fatal.
+A first upload that draws a removed row spoils a date instead, having nothing
+yet to remove. An error sits on rows the upload adds where it adds any,
+because that is where an operator's new mistakes are, and only on a worksheet
+the service reads into the waste balance, because those are the only rows it
+validates the cells of. A workbook with none of those to plant on is rejected
+fatally instead, so a registered-only registration's rejections are all fatal,
+and where a fatal kind has no row to sit on either, the workbook is unreadable.
 
 Amendments are the calibrated `rowsPerSubmission[stream].updated`, a month's
 worth like the rows an upload creates, times the operator's volume factor and

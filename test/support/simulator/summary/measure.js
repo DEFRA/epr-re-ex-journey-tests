@@ -20,7 +20,13 @@ import {
   LATEST_RETURN_DAYS_AFTER_DUE,
   MONTHS_PER_PERIOD
 } from '../calendar/calendar.js'
-import { CADENCE, EVENT, UPLOAD_OUTCOME } from '../calendar/events.js'
+import {
+  CADENCE,
+  EVENT,
+  ISSUE_KIND,
+  UPLOAD_OUTCOME
+} from '../calendar/events.js'
+import { EXPRESSIBLE_ISSUE_KINDS, expectedOutcome } from '../execute/execute.js'
 import { CONTRIBUTION, SHEETS } from '../rows/sheets.js'
 import { eventKey } from '../run/runner.js'
 
@@ -408,9 +414,11 @@ function owesMonth(registration, month, cancelledOn, to) {
 }
 
 /**
- * Summary log uploads a month, per stream: what was attempted, what the
- * service refused outright, and what it accepted, against the rate each
- * registration's profile gives it.
+ * Summary log uploads a month, per stream: what was made, what the service
+ * refused outright, and what it accepted, against the rate each
+ * registration's profile gives it. The calendar plans attempts the executor
+ * does not make, because the route cannot express them (see
+ * `../execute/README.md`), and those are left out of both sides.
  *
  * @param {Object} options
  * @param {PlannedPopulation} options.population
@@ -436,8 +444,28 @@ function uploadSections({
   const planned = registrationsOf(population)
   const uploads = executed.filter(
     /** @returns {event is UploadEvent} */
-    (event) => event.type === EVENT.SUMMARY_LOG_UPLOADED
+    (event) =>
+      event.type === EVENT.SUMMARY_LOG_UPLOADED &&
+      expectedOutcome(event) !== null
   )
+  /**
+   * The share of a stream's fatal rejections the executor makes: the kinds
+   * the route can express that the stream has a row to plant on. A removed
+   * row only needs one submitted before; a bad date needs a row the service
+   * validates the cells of.
+   *
+   * @param {boolean} validated - whether the stream has such a worksheet
+   */
+  const madeFatalShare = (validated) => {
+    const { fatal } = calibration.activity.uploadIssueKinds
+    const plantable = EXPRESSIBLE_ISSUE_KINDS.filter(
+      (kind) => validated || kind === ISSUE_KIND.REMOVED_ROW
+    )
+    return (
+      sum(plantable, (kind) => fatal[kind] ?? 0) /
+      sum(Object.values(fatal), (weight) => weight)
+    )
+  }
   const byStream = new Map(
     [...new Set(streams.values())]
       .sort()
@@ -451,10 +479,9 @@ function uploadSections({
 
   /**
    * What one registration's profile expects of it in a month it owes: the
-   * uploads that land, the attempts they take and the fatal rejections
-   * among those attempts. The calendar rejects every upload of a stream
-   * with no worksheet the service validates fatally, whatever the profile's
-   * fatal share.
+   * uploads that land, and the fatal rejections the executor makes before
+   * them. The calendar rejects every upload of a stream with no worksheet
+   * the service validates fatally, whatever the profile's fatal share.
    *
    * @param {PlannedOperator} operator
    * @param {PlannedRegistration} registration
@@ -467,11 +494,16 @@ function uploadSections({
     )
     const landing =
       rates.perReportingPeriod / MONTHS_PER_PERIOD[cadenceOf(registration)]
-    const rejected = rates.rejectionRate * rates.extraAttemptsWhenRejected
+    const invalid =
+      landing *
+      rates.rejectionRate *
+      rates.extraAttemptsWhenRejected *
+      (validated ? rates.fatalShare : 1) *
+      madeFatalShare(validated)
     return {
       submitted: landing,
-      uploads: landing * (1 + rejected + rates.abandonRate),
-      invalid: landing * rejected * (validated ? rates.fatalShare : 1),
+      uploads: landing + invalid,
+      invalid,
       amended: rowsPerSubmissionOf(calibration, stream).updated * volumeFactor
     }
   }
@@ -525,7 +557,7 @@ function uploadSections({
     return {
       title: `Summary logs a month: ${stream}`,
       source:
-        'invalid and submitted from the service per registration; uploads and amended rows from the executed plan, which the service does not list',
+        'invalid and submitted from the service per registration; uploads from the journal of what the executor made, which the service list should match; amended rows from the executed plan, which the service does not list',
       metrics: ['uploads', 'invalid', 'submitted', 'amended rows'],
       rows
     }

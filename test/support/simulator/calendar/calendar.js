@@ -394,11 +394,13 @@ function amendmentCount(context, stream, period) {
  * What a rejected upload is rejected for, and the rows it is planted on.
  *
  * A row can only be missing if it was submitted before, so a first upload that
- * draws that kind is unreadable instead. An error sits on rows the upload
- * adds where it adds any, because that is where an operator's new mistakes
- * are, and only on a worksheet the service reads into the waste balance,
- * because those are the only rows it validates the cells of: a workbook with
- * none of those to plant on is rejected fatally instead.
+ * draws that kind spoils a date instead, which the route can express where an
+ * unreadable workbook cannot. An error sits on rows the upload adds where it
+ * adds any, because that is where an operator's new mistakes are, and only on
+ * a worksheet the service reads into the waste balance, because those are the
+ * only rows it validates the cells of: a workbook with none of those to plant
+ * on is rejected fatally instead. A kind left with no row to sit on is an
+ * unreadable workbook.
  *
  * @param {RegistrationContext} context
  * @param {PlannedLogRow[]} submitted - rows carried by the last submitted upload
@@ -424,17 +426,18 @@ function drawIssues(context, submitted, added) {
       `Calibration names "${drawn}" as a ${severity} upload issue, which is not one`
     )
   }
-  const kind =
+  const wanted =
     known === ISSUE_KIND.REMOVED_ROW && submitted.length === 0
-      ? ISSUE_KIND.UNREADABLE
+      ? ISSUE_KIND.BAD_DATE
       : known
-
   const pool =
-    kind === ISSUE_KIND.REMOVED_ROW
+    wanted === ISSUE_KIND.REMOVED_ROW
       ? submitted
-      : kind === ISSUE_KIND.UNREADABLE
+      : wanted === ISSUE_KIND.UNREADABLE
         ? []
         : validated
+  const kind = pool.length === 0 ? ISSUE_KIND.UNREADABLE : wanted
+
   const rows = random
     .shuffle(pool)
     .slice(0, random.int(1, MAX_ROWS_WITH_ISSUES))
