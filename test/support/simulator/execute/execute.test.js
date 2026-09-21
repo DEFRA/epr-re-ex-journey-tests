@@ -9,11 +9,7 @@ import {
   UPLOAD_OUTCOME
 } from '../calendar/events.js'
 import { planPopulation } from '../population/population.js'
-import {
-  CONTRIBUTION,
-  planSummaryLogRows,
-  rowsForUpload
-} from '../rows/rows.js'
+import { planSummaryLogRows, rowsForUpload } from '../rows/rows.js'
 import {
   createRun,
   executeEvent,
@@ -215,6 +211,8 @@ const reported = (registration, overrides = {}) => ({
   cadence: 'monthly',
   period: 1,
   submissionNumber: 1,
+  tonnageRecycled:
+    registration.processingType === 'reprocessor' ? 1234.56 : null,
   ...overrides
 })
 
@@ -809,63 +807,50 @@ describe('what the operator types into a report', () => {
     { tonnage: 3, pricePerTonne: 299.5, issued: null }
   ]
 
-  it('is the tonnage a reprocessor credited over the period, with the revenue and free tonnage of the notes issued in it', () => {
-    const planned = rowsOf(reprocessor)
-    const credited = planned.rows
-      .filter(
-        (row) =>
-          row.period === '2026-01' && row.contribution === CONTRIBUTION.CREDIT
-      )
-      .reduce((total, row) => total + row.tonnage, 0)
-    assert.ok(credited > 0)
-
-    assert.deepEqual(reportFields(reprocessor, planned.rows, january, notes), {
-      tonnageRecycled: Math.round(credited * 100) / 100,
+  it('is the tonnage recycled the plan gave a reprocessor’s report, with the revenue and free tonnage of the notes issued in the period', () => {
+    assert.deepEqual(reportFields(reprocessor, january, notes), {
+      tonnageRecycled: 1234.56,
       tonnageNotRecycled: 0,
       prnRevenue: 2995,
       freeTonnage: 5
     })
   })
 
-  it('reads the PRN figures as zero revenue and no free tonnage where nothing was issued', () => {
-    assert.deepEqual(
-      reportFields(exporter, rowsOf(exporter).rows, january, []),
-      {
-        prnRevenue: 0,
-        freeTonnage: 0
-      }
+  it('refuses a reprocessor’s report the plan gave no tonnage recycled', () => {
+    assert.throws(
+      () =>
+        reportFields(
+          reprocessor,
+          reported(reprocessor, { tonnageRecycled: null }),
+          notes
+        ),
+      /no tonnage recycled/
     )
   })
 
-  it('covers three months for a quarterly return', () => {
-    const planned = rowsOf(reprocessor)
-    const quarter = reported(reprocessor, { cadence: 'quarterly', period: 2 })
-    const credited = planned.rows
-      .filter(
-        (row) =>
-          ['2026-04', '2026-05', '2026-06'].includes(row.period) &&
-          row.contribution === CONTRIBUTION.CREDIT
-      )
-      .reduce((total, row) => total + row.tonnage, 0)
+  it('reads the PRN figures as zero revenue and no free tonnage where nothing was issued', () => {
+    assert.deepEqual(reportFields(exporter, january, []), {
+      prnRevenue: 0,
+      freeTonnage: 0
+    })
+  })
 
-    assert.equal(
-      reportFields(reprocessor, planned.rows, quarter, []).tonnageRecycled,
-      Math.round(credited * 100) / 100
-    )
+  it('counts the notes of all three months for a quarterly return', () => {
+    const quarter = reported(reprocessor, { cadence: 'quarterly', period: 1 })
+    assert.equal(reportFields(reprocessor, quarter, notes).prnRevenue, 5091.5)
   })
 
   it('is only the PRN figures for an accredited exporter, whose export the service aggregates', () => {
-    assert.deepEqual(
-      reportFields(exporter, rowsOf(exporter).rows, january, notes),
-      { prnRevenue: 2995, freeTonnage: 5 }
-    )
+    assert.deepEqual(reportFields(exporter, january, notes), {
+      prnRevenue: 2995,
+      freeTonnage: 5
+    })
   })
 
   it('is the tonnage not exported, at zero, for a registered-only exporter', () => {
     assert.deepEqual(
       reportFields(
         { ...registeredOnly, processingType: 'exporter' },
-        [],
         firstQuarter,
         []
       ),
@@ -877,8 +862,7 @@ describe('what the operator types into a report', () => {
     assert.deepEqual(
       reportFields(
         { ...registeredOnly, processingType: 'reprocessor' },
-        [],
-        firstQuarter,
+        { ...firstQuarter, tonnageRecycled: 0 },
         []
       ),
       { tonnageRecycled: 0, tonnageNotRecycled: 0 }

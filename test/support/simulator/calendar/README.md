@@ -51,7 +51,7 @@ member of `EVENT` and nothing the calendar plans is missed.
 | `accreditation.suspended`    | The regulator suspends the accreditation.                                                 |                                                                          |
 | `accreditation.cancelled`    | The regulator cancels the accreditation, and the registration with it.                    |                                                                          |
 | `summary-log.uploaded`       | A workbook is uploaded. See "An upload".                                                  | `cutoff`, `outcome`, `issues`, `amendments`, `restated`, `closedPeriods` |
-| `report.submitted`           | A report for one period is created and submitted.                                         | `year`, `cadence`, `period`, `submissionNumber`                          |
+| `report.submitted`           | A report for one period is created and submitted.                                         | `year`, `cadence`, `period`, `submissionNumber`, `tonnageRecycled`       |
 | `prn.drafted`                | The operator saves a draft note.                                                          | `prnId`, `tonnage`, `pricePerTonne`                                      |
 | `prn.discarded`              | The operator discards the draft.                                                          | `prnId`, `tonnage`, `pricePerTonne`                                      |
 | `prn.raised`                 | The operator raises it for authorisation.                                                 | `prnId`, `tonnage`, `pricePerTonne`                                      |
@@ -160,6 +160,17 @@ a month or three months late, with `reporting.earlyShare` of the on-time ones
 more than ten days early. A return is missed altogether at
 `reporting.missedReturnRate`, and one that would land after `to` is not filed
 yet rather than missed.
+
+A reprocessor's report carries `tonnageRecycled`, the one figure of it the
+operator types rather than the service aggregating from the summary log. It
+is the registration's share of the national tonnage recycled for the period:
+the figure the row planner anchors the output template's reprocessed
+worksheet on, scaled with the population, over each tonne the reprocessor
+estate's rows credit in the year, times what this registration's rows credit
+in the period. The estate's reports then land on the figure once whichever
+template the row planner put each registration on, and a registered-only
+reprocessor, whose rows credit nothing, reports none. An exporter's report
+carries null: it reports no such figure.
 
 A period is closed the moment its report is submitted, and only then: an upload
 that restates a row in a closed period is what the service reads as a

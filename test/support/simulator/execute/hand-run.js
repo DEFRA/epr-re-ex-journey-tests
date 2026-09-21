@@ -25,7 +25,7 @@ import {
 import { setSimulatedNow } from '../clock/simulated-clock.js'
 import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { planPopulation } from '../population/population.js'
-import { CONTRIBUTION, planSummaryLogRows } from '../rows/rows.js'
+import { CONTRIBUTION, heldTonnage, planSummaryLogRows } from '../rows/rows.js'
 import { createRun, executeEvent } from './execute.js'
 
 /** @import {PlannedRegistration} from '../population/population.js' */
@@ -224,7 +224,20 @@ function eventsFor(registration, planned, ending) {
     year: 2026,
     cadence: 'monthly',
     period,
-    submissionNumber
+    submissionNumber,
+    // What the month's rows credit, as the calendar would plan it at full scale.
+    tonnageRecycled:
+      registration.processingType === 'reprocessor'
+        ? heldTonnage(
+            planned.rows
+              .filter(
+                (row) =>
+                  row.contribution === CONTRIBUTION.CREDIT &&
+                  row.period === `2026-${String(period).padStart(2, '0')}`
+              )
+              .reduce((total, row) => total + row.tonnage, 0)
+          )
+        : null
   })
 
   return [
@@ -331,7 +344,8 @@ function registeredOnlyEventsFor(registration) {
       year: 2026,
       cadence: 'quarterly',
       period: 1,
-      submissionNumber: 1
+      submissionNumber: 1,
+      tonnageRecycled: registration.processingType === 'reprocessor' ? 0 : null
     }
   ]
 }
