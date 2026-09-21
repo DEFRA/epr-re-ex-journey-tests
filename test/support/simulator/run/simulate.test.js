@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import { loadCalibration } from '../population/calibration.js'
-import { fingerprintOf, parseSettings, settleSettings } from './simulate.js'
+import { fingerprintOf } from './plan.js'
+import { parseSettings, settleSettings } from './simulate.js'
 
 const defaults = { from: '2026-01-01', to: '2026-09-18' }
 const calibration = 'abc123'
