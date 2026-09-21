@@ -51,8 +51,8 @@ A row:
 | `fields`       | Cells to pin, keyed by template marker.                                                                                                                                                    |
 | `seed`         | Draws every cell the plan leaves alone, so the row renders identically every time it is uploaded.                                                                                          |
 
-`rowsForUpload(rows)` hands a selection of them to `generateSpreadsheetData` in
-the shape it takes, keyed by worksheet. Pass whichever rows an upload carries;
+`rowsForUpload(rows)` hands a selection of them to `generateSummaryLogContent`
+in the shape it takes, keyed by worksheet. Pass whichever rows an upload carries;
 that choice is the calendar planner's.
 
 ## Why a row is pinned at all

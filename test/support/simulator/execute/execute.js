@@ -17,7 +17,6 @@ import {
 import { heldTonnage, rowsForUpload } from '../rows/rows.js'
 import {
   applicationRow,
-  nationLetter,
   numbersFor,
   regulatorOf,
   reprocessingTypeOf
@@ -26,8 +25,9 @@ import { liveSeeders } from './seeders.js'
 
 /** @import {PlannedOperator, PlannedPopulation, PlannedRegistration} from '../population/population.js' */
 /** @import {PlannedRegistrationRows, PlannedRows} from '../rows/rows.js' */
-/** @import {CalendarEvent, PrnEvent, RegistrationEvent, ReportEvent, UploadEvent} from '../calendar/events.js' */
+/** @import {CalendarEvent, PrnEvent, RegistrationEvent, ReportEvent, UploadEvent, UploadIssues} from '../calendar/events.js' */
 /** @import {Seeders} from './seeders.js' */
+/** @import {ReportedValidation, SummaryLogAnswer} from '../../seeding/summary-logs.js' */
 
 /** A Defra ID token lasts an hour, and a clock jump can spend most of that at once. */
 const TOKEN_LIFETIME_MS = 60 * 60 * 1000
@@ -281,34 +281,43 @@ const changeStatus = (statuses) => async (run, event) => {
   )
 }
 
-/** The code the service gives each kind of issue the plan can plant. */
+/**
+ * The code the service gives each kind of issue the route can be sent. A kind
+ * absent here is one the route cannot express.
+ *
+ * @type {Partial<Record<UploadIssues['kind'], string>>}
+ */
 const ISSUE_CODE = {
-  [ISSUE_KIND.BLANK_FIELD]: 'FIELD_REQUIRED',
   [ISSUE_KIND.BAD_DATE]: 'INVALID_DATE',
-  [ISSUE_KIND.UNREADABLE]: 'SPREADSHEET_MALFORMED_MARKERS',
   [ISSUE_KIND.REMOVED_ROW]: 'SEQUENTIAL_ROW_REMOVED'
 }
 
-/** The statuses validation ends in. */
-const VALIDATED = ['validated', 'invalid']
-
 /**
- * The status the service should leave an upload in, and the issue it should
- * report, given what the plan says became of it. An upload rejected for an
- * error on a row still validates; it is the operator who does not submit it.
+ * The document the route should answer with, given what the plan says became
+ * of the upload: submitted where it landed, invalid with the planted issue
+ * where it was refused outright. The route validates and submits in one
+ * request, so it cannot express an upload that validates and is left, an
+ * error on a row or an abandoned draft, nor an unreadable workbook. Those are
+ * planned, the simulator makes none of them, and they are null here.
  *
  * @param {UploadEvent} upload
- * @returns {{status: 'validated' | 'invalid', issue: ValidationIssue | null}}
+ * @returns {ExpectedOutcome | null}
  */
-export function expectedValidation(upload) {
-  if (upload.outcome !== UPLOAD_OUTCOME.REJECTED || !upload.issues) {
-    return { status: 'validated', issue: null }
+export function expectedOutcome(upload) {
+  if (upload.outcome === UPLOAD_OUTCOME.SUBMITTED) {
+    return { status: 'submitted', issue: null }
+  }
+  if (upload.outcome !== UPLOAD_OUTCOME.REJECTED) {
+    return null
+  }
+  if (!upload.issues) {
+    throw new Error(
+      `${upload.registrationId} at ${upload.at}: planned rejected with no issue to plant`
+    )
   }
   const { severity, kind } = upload.issues
-  return {
-    status: severity === ISSUE_SEVERITY.FATAL ? 'invalid' : 'validated',
-    issue: { severity, code: ISSUE_CODE[kind] }
-  }
+  const code = ISSUE_CODE[kind]
+  return code ? { status: 'invalid', issue: { severity, code } } : null
 }
 
 /**
@@ -318,12 +327,9 @@ export function expectedValidation(upload) {
  */
 
 /**
- * The validation a summary log's read returns: fatal issues as `failures`,
- * row issues under the table and row they sit on.
- *
- * @typedef {Object} ReportedValidation
- * @property {{code: string}[]} [failures]
- * @property {Record<string, {rows: {issues: {type: string, code: string}[]}[]}>} [concerns]
+ * @typedef {Object} ExpectedOutcome
+ * @property {'submitted' | 'invalid'} status
+ * @property {ValidationIssue | null} issue
  */
 
 /**
@@ -351,10 +357,10 @@ function reportedIssues(validation) {
  * where none was.
  *
  * @param {UploadEvent} upload
- * @param {{status: string, validation?: ReportedValidation}} summaryLog
+ * @param {ExpectedOutcome} expected
+ * @param {SummaryLogAnswer} summaryLog
  */
-function assertValidatedAsPlanned(upload, summaryLog) {
-  const expected = expectedValidation(upload)
+function assertAsPlanned(upload, expected, summaryLog) {
   const issues = reportedIssues(summaryLog.validation)
   const asPlanned =
     summaryLog.status === expected.status &&
@@ -377,54 +383,43 @@ function assertValidatedAsPlanned(upload, summaryLog) {
 }
 
 /**
+ * Sends the rows the plan gives this upload through the route that validates
+ * and submits them in one request, and stops the run where the service
+ * answered other than the plan says.
+ *
  * @param {Run} run
  * @param {UploadEvent} event
  */
 async function uploadSummaryLog(run, event) {
   const { operator, registration } = liveOf(run, event)
-  const { seeders } = run
-
   registration.uploads.push(event)
+  const expected = expectedOutcome(event)
+  if (!expected) {
+    return
+  }
+
   const rows = uploadRows({
     registration: registration.rows,
     uploads: registration.uploads
   })
-  const workbook = await seeders.generateSpreadsheetData({
+  const content = await run.seeders.generateSummaryLogContent({
     wasteProcessingType: registration.rows.stream,
     materialSuffix: registration.planned.material.suffix,
-    nation: nationLetter(registration.planned.nation),
-    orgId: operator.orgId,
     regNumber: registration.regNumber,
     accNumber: registration.accNumber,
-    rows: rowsForUpload(rows),
-    unreadable: event.issues?.kind === ISSUE_KIND.UNREADABLE,
-    silentLogging: true
+    rows: rowsForUpload(rows)
   })
 
   const authHeader = await signedIn(run, operator)
-  const uploaded = await seeders.uploadSummaryLog(
+  const summaryLog = await run.seeders.submitSummaryLogContent(
     operator.refNo,
     registration.registrationId,
     authHeader,
-    workbook
+    content
   )
-  const summaryLog = await seeders.waitForSummaryLogStatus(
-    uploaded.baseAPI,
-    uploaded.summaryLogPath,
-    authHeader,
-    VALIDATED
-  )
-  assertValidatedAsPlanned(event, summaryLog)
+  assertAsPlanned(event, expected, summaryLog)
 
-  if (event.outcome === UPLOAD_OUTCOME.SUBMITTED) {
-    await seeders.submitSummaryLog(
-      uploaded.summaryLogPath,
-      authHeader,
-      uploaded.baseAPI
-    )
-  }
-
-  return { summaryLogId: uploaded.summaryLogId, validation: summaryLog }
+  return summaryLog
 }
 
 /**

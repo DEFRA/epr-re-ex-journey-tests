@@ -447,7 +447,7 @@ function planRegistration(plan, perRow, calibration, random) {
 }
 
 /**
- * Planned rows in the shape `generateSpreadsheetData` takes them, keyed by
+ * Planned rows in the shape `generateSummaryLogContent` takes them, keyed by
  * worksheet. Hand it whichever of a registration's rows an upload carries; a
  * worksheet none of them belong to gets no rows, as a worksheet the plan omits
  * does.

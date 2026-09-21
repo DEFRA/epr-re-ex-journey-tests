@@ -5,7 +5,11 @@ against the local stack under the simulated clock: the clock moves to each
 day anything happens, and that day's events go to the executors. A run leaves
 a journal it can resume from and a manifest of what it made.
 
-Bring the stack up on the clock (see `../clock/README.md`), then:
+Bring the stack up on the clock (see `../clock/README.md`). The executor
+submits summary logs through the backend's dev route
+`POST /v1/dev/organisations/{organisationId}/registrations/{registrationId}/summary-logs`,
+which `compose.yml` switches on with `FEATURE_FLAG_DEV_ENDPOINTS` and which a
+backend image from before 868afcced does not carry. Then:
 
 ```bash
 npm run simulate -- --scale 0.1

@@ -53,10 +53,10 @@ Each section says. The service is read wherever it has a view:
 | Note transitions a month                              | The system log of status changes, by the day each was recorded                                            |
 
 Two figures the service holds but does not list come from the executed plan,
-read off the journal: every upload attempt, because an upload that validated
-with errors on its rows or was abandoned as a draft is not in the list, and
-amended rows, because the service keeps a row's latest state and no count of
-how many times it changed.
+read off the journal: every upload attempt, because the executor makes no
+upload the route cannot express (see `../execute/README.md`) and those are not
+in the list, and amended rows, because the service keeps a row's latest state
+and no count of how many times it changed.
 
 A report's lateness is against the calibration's due day, the 21st, rather
 than the 20th the service's own calendar marks, so the shares compare with

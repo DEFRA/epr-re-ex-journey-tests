@@ -4,7 +4,8 @@
  * under the simulated clock. Every event the executors carry out is in it,
  * every way a summary log can come back, a report on each cadence, and a note
  * to every state a note can end in, so it is the check that they do against
- * the service what the plan says.
+ * the service what the plan says. The uploads the route cannot express prove
+ * only that the executor passes over them without stopping.
  *
  * Bring the stack up on the clock (see ../clock/README.md), then:
  *

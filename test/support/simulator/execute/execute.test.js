@@ -13,10 +13,9 @@ import { planSummaryLogRows, rowsForUpload } from '../rows/rows.js'
 import {
   createRun,
   executeEvent,
-  expectedValidation,
+  expectedOutcome,
   reportFields
 } from './execute.js'
-import { nationLetter } from './join.js'
 
 /** @import {PlannedRegistration} from '../population/population.js' */
 /** @import {RegistrationEvent, UploadEvent, ReportEvent, PrnEvent} from '../calendar/events.js' */
@@ -99,7 +98,7 @@ function recordingSeeders() {
 
   const seeders = {
     calls,
-    /** @type {{failures: {code: string}[], concerns: Record<string, {rows: {issues: {type: string, code: string}[]}[]}>}} what the next validation wait reports back */
+    /** @type {{failures: {code: string}[], concerns: Record<string, {rows: {issues: {type: string, code: string}[]}[]}>}} what the next submission answers with */
     validation: { failures: [], concerns: {} },
     of: (name) => calls.filter((call) => call.name === name),
     createLinkedOrganisation: record('createLinkedOrganisation', () => {
@@ -130,21 +129,14 @@ function recordingSeeders() {
       signIns += 1
       return { Authorization: `Bearer sign-in-${signIns}` }
     }),
-    generateSpreadsheetData: record(
-      'generateSpreadsheetData',
-      () => 'data/workbook.xlsx'
-    ),
-    uploadSummaryLog: record('uploadSummaryLog', () => ({
+    generateSummaryLogContent: record('generateSummaryLogContent', () => ({
+      meta: { MATERIAL: 'Paper and board' },
+      data: {}
+    })),
+    submitSummaryLogContent: record('submitSummaryLogContent', () => ({
       summaryLogId: 'log-1',
-      summaryLogPath: '/summary-logs/log-1',
-      baseAPI: {}
-    })),
-    waitForSummaryLogStatus: record('waitForSummaryLogStatus', () => ({
-      status: seeders.validation.failures.length > 0 ? 'invalid' : 'validated',
+      status: seeders.validation.failures.length > 0 ? 'invalid' : 'submitted',
       validation: seeders.validation
-    })),
-    submitSummaryLog: record('submitSummaryLog', () => ({
-      status: 'submitted'
     })),
     seedReportSubmission: record('seedReportSubmission', () => undefined),
     waitForAvailableBalance: record('waitForAvailableBalance', () => undefined),
@@ -367,38 +359,34 @@ describe('a run', () => {
   })
 
   describe('uploading a summary log', () => {
-    it('renders the rows the plan gives this upload, on the registration as the service numbered it', async () => {
+    it('submits the rows the plan gives this upload in one request, on the registration as the service numbered it', async () => {
       await executeEvent(run, approved(exporter))
       const upload = uploaded(exporter)
       await executeEvent(run, upload)
 
-      const [rendered] = seeders.of('generateSpreadsheetData')
+      const [generated] = seeders.of('generateSummaryLogContent')
       const [, , granted] = seeders.of('approveMigratedRegistration')[0].args
       const planned = rowsOf(exporter)
-      assert.deepEqual(rendered.args[0], {
+      assert.deepEqual(generated.args[0], {
         wasteProcessingType: planned.stream,
         materialSuffix: exporter.material.suffix,
-        nation: nationLetter(exporter.nation),
-        orgId: 500001,
         regNumber: granted.regNumber,
         accNumber: granted.accNumber,
         rows: rowsForUpload(
           uploadRows({ registration: planned, uploads: [upload] })
-        ),
-        unreadable: false,
-        silentLogging: true
+        )
       })
 
-      const [sent] = seeders.of('uploadSummaryLog')
+      const [sent] = seeders.of('submitSummaryLogContent')
       assert.deepEqual(sent.args, [
         'org-1',
         'org-1-reg-' + operatorOf(exporter).registrations.indexOf(exporter),
         { Authorization: 'Bearer linked' },
-        'data/workbook.xlsx'
+        { meta: { MATERIAL: 'Paper and board' }, data: {} }
       ])
     })
 
-    it('lays every earlier submitted upload under the one it renders', async () => {
+    it('lays every earlier submitted upload under the one it sends', async () => {
       await executeEvent(run, approved(exporter))
       const first = uploaded(exporter)
       const second = uploaded(exporter, {
@@ -409,32 +397,20 @@ describe('a run', () => {
       await executeEvent(run, first)
       await executeEvent(run, second)
 
-      const [, rendered] = seeders.of('generateSpreadsheetData')
+      const [, generated] = seeders.of('generateSummaryLogContent')
       const planned = rowsOf(exporter)
       assert.deepEqual(
-        rendered.args[0].rows,
+        generated.args[0].rows,
         rowsForUpload(
           uploadRows({ registration: planned, uploads: [first, second] })
         )
       )
     })
 
-    it('submits an upload the plan says was submitted, and only that', async () => {
-      await executeEvent(run, approved(exporter))
-      await executeEvent(run, uploaded(exporter))
-      await executeEvent(
-        run,
-        uploaded(exporter, { outcome: UPLOAD_OUTCOME.ABANDONED })
-      )
-
-      assert.equal(seeders.of('waitForSummaryLogStatus').length, 2)
-      assert.equal(seeders.of('submitSummaryLog').length, 1)
-    })
-
     it('accepts a fatally rejected upload that comes back invalid for the planted reason', async () => {
       await executeEvent(run, approved(exporter))
       seeders.validation = {
-        failures: [{ code: 'SPREADSHEET_MALFORMED_MARKERS' }],
+        failures: [{ code: 'SEQUENTIAL_ROW_REMOVED' }],
         concerns: {}
       }
       await executeEvent(
@@ -443,19 +419,71 @@ describe('a run', () => {
           outcome: UPLOAD_OUTCOME.REJECTED,
           issues: {
             severity: ISSUE_SEVERITY.FATAL,
-            kind: ISSUE_KIND.UNREADABLE,
-            rows: []
+            kind: ISSUE_KIND.REMOVED_ROW,
+            rows: [rowsOf(exporter).rows[0]]
           }
         })
       )
 
-      const [wait] = seeders.of('waitForSummaryLogStatus')
-      assert.deepEqual(wait.args[3], ['validated', 'invalid'])
-      assert.equal(
-        seeders.of('generateSpreadsheetData')[0].args[0].unreadable,
-        true
-      )
-      assert.equal(seeders.of('submitSummaryLog').length, 0)
+      assert.equal(seeders.of('submitSummaryLogContent').length, 1)
+    })
+
+    describe('an upload the route cannot express is planned but not made', () => {
+      /** @type {[string, Partial<UploadEvent>][]} */
+      const notMade = [
+        ['an abandoned draft', { outcome: UPLOAD_OUTCOME.ABANDONED }],
+        [
+          'an upload rejected for an error on a row',
+          {
+            outcome: UPLOAD_OUTCOME.REJECTED,
+            issues: {
+              severity: ISSUE_SEVERITY.ERROR,
+              kind: ISSUE_KIND.BLANK_FIELD,
+              rows: []
+            }
+          }
+        ],
+        [
+          'an unreadable workbook',
+          {
+            outcome: UPLOAD_OUTCOME.REJECTED,
+            issues: {
+              severity: ISSUE_SEVERITY.FATAL,
+              kind: ISSUE_KIND.UNREADABLE,
+              rows: []
+            }
+          }
+        ]
+      ]
+      for (const [what, overrides] of notMade) {
+        it(`makes nothing of ${what}`, async () => {
+          await executeEvent(run, approved(exporter))
+          const before = seeders.calls.length
+
+          await executeEvent(run, uploaded(exporter, overrides))
+
+          assert.equal(seeders.calls.length, before)
+        })
+      }
+
+      it('leaves it out from under the uploads that follow', async () => {
+        await executeEvent(run, approved(exporter))
+        const abandoned = uploaded(exporter, {
+          outcome: UPLOAD_OUTCOME.ABANDONED,
+          restated: [rowsOf(exporter).rows[0]]
+        })
+        const landed = uploaded(exporter, { at: '2026-02-03T11:00:00Z' })
+        await executeEvent(run, abandoned)
+        await executeEvent(run, landed)
+
+        const [generated] = seeders.of('generateSummaryLogContent')
+        assert.deepEqual(
+          generated.args[0].rows,
+          rowsForUpload(
+            uploadRows({ registration: rowsOf(exporter), uploads: [landed] })
+          )
+        )
+      })
     })
 
     it('stops when the service found errors the plan did not put there', async () => {
@@ -471,7 +499,19 @@ describe('a run', () => {
 
       await assert.rejects(
         executeEvent(run, uploaded(exporter)),
-        /planned submitted but came back validated with \["error VALUE_OUT_OF_RANGE"\]/
+        /planned submitted but came back submitted with \["error VALUE_OUT_OF_RANGE"\]/
+      )
+    })
+
+    it('stops on an upload planned rejected with no issue to plant', async () => {
+      await executeEvent(run, approved(exporter))
+
+      await assert.rejects(
+        executeEvent(
+          run,
+          uploaded(exporter, { outcome: UPLOAD_OUTCOME.REJECTED, issues: null })
+        ),
+        /planned rejected with no issue to plant/
       )
     })
 
@@ -498,7 +538,7 @@ describe('a run', () => {
       )
     })
 
-    it('stops when the service found none of the errors the plan put there', async () => {
+    it('stops when the service accepted a fatally planned upload', async () => {
       await executeEvent(run, approved(exporter))
       const planned = rowsOf(exporter)
 
@@ -508,13 +548,13 @@ describe('a run', () => {
           uploaded(exporter, {
             outcome: UPLOAD_OUTCOME.REJECTED,
             issues: {
-              severity: ISSUE_SEVERITY.ERROR,
-              kind: ISSUE_KIND.BLANK_FIELD,
+              severity: ISSUE_SEVERITY.FATAL,
+              kind: ISSUE_KIND.BAD_DATE,
               rows: [planned.rows[0]]
             }
           })
         ),
-        /planned rejected with error blankField/
+        /planned rejected with fatal badDate but came back submitted with \[\]/
       )
     })
 
@@ -526,7 +566,7 @@ describe('a run', () => {
       clock += HOUR
       await executeEvent(run, uploaded(exporter))
 
-      const uploads = seeders.of('uploadSummaryLog')
+      const uploads = seeders.of('submitSummaryLogContent')
       assert.deepEqual(
         uploads.map((upload) => upload.args[2].Authorization),
         ['Bearer linked', 'Bearer linked', 'Bearer sign-in-1']
@@ -749,45 +789,39 @@ describe('what an upload should come back as', () => {
       issues: { severity, kind, rows: [] }
     })
 
-  it('is validated and clean when it lands or is abandoned', () => {
-    assert.deepEqual(expectedValidation(uploaded(exporter)), {
-      status: 'validated',
+  it('is submitted and clean when it lands', () => {
+    assert.deepEqual(expectedOutcome(uploaded(exporter)), {
+      status: 'submitted',
       issue: null
     })
-    assert.deepEqual(
-      expectedValidation(
-        uploaded(exporter, { outcome: UPLOAD_OUTCOME.ABANDONED })
-      ),
-      { status: 'validated', issue: null }
-    )
   })
 
   it('is invalid with the planted code when rejected fatally', () => {
     assert.deepEqual(
-      expectedValidation(rejected(ISSUE_SEVERITY.FATAL, ISSUE_KIND.BAD_DATE)),
+      expectedOutcome(rejected(ISSUE_SEVERITY.FATAL, ISSUE_KIND.BAD_DATE)),
       { status: 'invalid', issue: { severity: 'fatal', code: 'INVALID_DATE' } }
     )
     assert.equal(
-      expectedValidation(rejected(ISSUE_SEVERITY.FATAL, ISSUE_KIND.UNREADABLE))
-        .issue?.code,
-      'SPREADSHEET_MALFORMED_MARKERS'
-    )
-    assert.equal(
-      expectedValidation(rejected(ISSUE_SEVERITY.FATAL, ISSUE_KIND.REMOVED_ROW))
-        .issue?.code,
+      expectedOutcome(rejected(ISSUE_SEVERITY.FATAL, ISSUE_KIND.REMOVED_ROW))
+        ?.issue?.code,
       'SEQUENTIAL_ROW_REMOVED'
     )
   })
 
-  it('is validated with the planted error when rejected for one on a row', () => {
-    assert.deepEqual(
-      expectedValidation(
-        rejected(ISSUE_SEVERITY.ERROR, ISSUE_KIND.BLANK_FIELD)
+  it('is not made when the route cannot express it', () => {
+    assert.equal(
+      expectedOutcome(
+        uploaded(exporter, { outcome: UPLOAD_OUTCOME.ABANDONED })
       ),
-      {
-        status: 'validated',
-        issue: { severity: 'error', code: 'FIELD_REQUIRED' }
-      }
+      null
+    )
+    assert.equal(
+      expectedOutcome(rejected(ISSUE_SEVERITY.ERROR, ISSUE_KIND.BLANK_FIELD)),
+      null
+    )
+    assert.equal(
+      expectedOutcome(rejected(ISSUE_SEVERITY.FATAL, ISSUE_KIND.UNREADABLE)),
+      null
     )
   })
 })
