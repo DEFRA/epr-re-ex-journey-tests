@@ -61,11 +61,11 @@ is typed here:
 | Exporter, accredited    | PRN revenue and free tonnage                                    |
 | Exporter, registered    | tonnage received but not exported                               |
 
-Tonnage recycled is what the registration's planned rows credited over the
-period. PRN revenue is what the notes issued in the period fetched, their
-tonnage at the price the plan gave each, and free tonnage is the tonnage of
-any issued at no price. The rest is zero: nothing planned is not recycled or
-not exported.
+Tonnage recycled is what the calendar planned on the report event; a
+reprocessor's report that carries none stops the run. PRN revenue is what the
+notes issued in the period fetched, their tonnage at the price the plan gave
+each, and free tonnage is the tonnage of any issued at no price. The rest is
+zero: nothing planned is not recycled or not exported.
 
 ## What a note is for
 

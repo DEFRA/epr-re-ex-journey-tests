@@ -14,7 +14,7 @@ import {
   ISSUE_SEVERITY,
   UPLOAD_OUTCOME
 } from '../calendar/events.js'
-import { CONTRIBUTION, heldTonnage, rowsForUpload } from '../rows/rows.js'
+import { heldTonnage, rowsForUpload } from '../rows/rows.js'
 import {
   applicationRow,
   nationLetter,
@@ -25,7 +25,7 @@ import {
 import { liveSeeders } from './seeders.js'
 
 /** @import {PlannedOperator, PlannedPopulation, PlannedRegistration} from '../population/population.js' */
-/** @import {PlannedLogRow, PlannedRegistrationRows, PlannedRows} from '../rows/rows.js' */
+/** @import {PlannedRegistrationRows, PlannedRows} from '../rows/rows.js' */
 /** @import {CalendarEvent, PrnEvent, RegistrationEvent, ReportEvent, UploadEvent} from '../calendar/events.js' */
 /** @import {Seeders} from './seeders.js' */
 
@@ -429,18 +429,17 @@ async function uploadSummaryLog(run, event) {
 
 /**
  * What the operator types into a report beyond what the service aggregates
- * from the summary log: the tonnage a reprocessor recycled, which is what its
- * uploads credited over the period, and for an accredited registration what
- * the notes it issued in the period fetched and how much of their tonnage
- * went for nothing.
+ * from the summary log: the tonnage a reprocessor recycled, which the plan
+ * gives the report, and for an accredited registration what the notes it
+ * issued in the period fetched and how much of their tonnage went for
+ * nothing.
  *
  * @param {Pick<PlannedRegistration, 'processingType' | 'accreditation'>} registration
- * @param {PlannedLogRow[]} rows
  * @param {ReportEvent} report
  * @param {Pick<LiveNote, 'tonnage' | 'pricePerTonne' | 'issued'>[]} notes - every note the registration has drafted
  * @returns {{tonnageRecycled?: number, tonnageNotRecycled?: number, tonnageNotExported?: number, prnRevenue?: number, freeTonnage?: number}}
  */
-export function reportFields(registration, rows, report, notes) {
+export function reportFields(registration, report, notes) {
   const accredited = registration.accreditation !== null
   const periods = new Set(monthsOfPeriod(report))
   const issued = notes.filter(
@@ -465,14 +464,13 @@ export function reportFields(registration, rows, report, notes) {
     return accredited ? prn : { tonnageNotExported: 0 }
   }
 
-  const recycled = rows
-    .filter(
-      (row) =>
-        periods.has(row.period) && row.contribution === CONTRIBUTION.CREDIT
+  if (report.tonnageRecycled === null) {
+    throw new Error(
+      `${report.registrationId}'s report for ${report.year}/${report.period} carries no tonnage recycled`
     )
-    .reduce((total, row) => total + row.tonnage, 0)
+  }
   return {
-    tonnageRecycled: heldTonnage(recycled),
+    tonnageRecycled: report.tonnageRecycled,
     tonnageNotRecycled: 0,
     ...prn
   }
@@ -492,9 +490,7 @@ async function submitReport(run, event) {
     registration.registrationId,
     authHeader,
     { year, cadence, period, submissionNumber },
-    reportFields(registration.planned, registration.rows.rows, event, [
-      ...registration.notes.values()
-    ])
+    reportFields(registration.planned, event, [...registration.notes.values()])
   )
 }
 

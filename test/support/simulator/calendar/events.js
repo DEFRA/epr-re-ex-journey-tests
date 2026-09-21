@@ -162,10 +162,13 @@ export const CADENCE = { MONTHLY: 'monthly', QUARTERLY: 'quarterly' }
  *   year: number,
  *   cadence: 'monthly' | 'quarterly',
  *   period: number,
- *   submissionNumber: number
+ *   submissionNumber: number,
+ *   tonnageRecycled: number | null
  * }} ReportEvent
  *   `period` counts from 1 within the year, months or quarters by `cadence`.
  *   A `submissionNumber` above 1 is a resubmission of a closed period.
+ *   `tonnageRecycled` is what a reprocessor enters on the report, in tonnes
+ *   to two decimals; null on an exporter's, which reports no such figure.
  */
 
 /**

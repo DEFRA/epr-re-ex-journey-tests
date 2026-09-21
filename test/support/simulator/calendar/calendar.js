@@ -10,6 +10,7 @@
 
 import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { createRandom } from '../population/random.js'
+import { heldTonnage } from '../rows/rows.js'
 import { CONTRIBUTION, SHEETS } from '../rows/sheets.js'
 import {
   CADENCE,
@@ -24,7 +25,7 @@ import {
 /** @import {PlannedRows, PlannedRegistrationRows, PlannedLogRow} from '../rows/rows.js' */
 /** @import {Calibration} from '../population/calibration.js' */
 /** @import {Random} from '../population/random.js' */
-/** @import {CalendarEvent, UploadEvent, PrnEvent, RowRef, UploadIssues, Drafted} from './events.js' */
+/** @import {CalendarEvent, UploadEvent, ReportEvent, PrnEvent, RowRef, UploadIssues, Drafted} from './events.js' */
 
 /**
  * @typedef {Object} PlannedCalendar
@@ -96,6 +97,17 @@ const DECEMBER = '12'
 const WORKING_HOURS = { first: 8, last: 16 }
 
 const MONTHS_PER_PERIOD = { [CADENCE.MONTHLY]: 1, [CADENCE.QUARTERLY]: 3 }
+
+/**
+ * The worksheet whose calibrated tonnage is the national tonnage recycled: the
+ * one the row planner anchors the output stream's reprocessed rows on. A
+ * report's tonnage recycled is drawn from the same figure, so the estate
+ * reports it once rather than from a second source.
+ */
+const RECYCLED_FIGURE = {
+  stream: 'reprocessorOutput',
+  worksheet: 'Reprocessed (sections 3 and 4)'
+}
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const MINUTE_MS = 60 * 1000
@@ -339,6 +351,7 @@ const uploadCount = (perPeriod, random) =>
  * @property {string} seed - the run's, which `random` and any further draw derive from
  * @property {Random} random
  * @property {string} to
+ * @property {Map<string, number>} recycledPerCreditedTonne - by stream, what a reprocessor's report carries for each tonne its rows credit in the period
  * @property {Draft[]} drafts
  */
 
@@ -477,6 +490,63 @@ function draftUploadAttempts(context, upload, submitted, added) {
 }
 
 /**
+ * What rows credit the balance between them.
+ *
+ * @param {PlannedLogRow[]} rows
+ * @returns {number}
+ */
+const credited = (rows) =>
+  rows
+    .filter((row) => row.contribution === CONTRIBUTION.CREDIT)
+    .reduce((sum, row) => sum + row.tonnage, 0)
+
+/**
+ * What a reprocessor's report carries for each tonne its rows credit, by
+ * stream: the national tonnage recycled over the calibrated tonnage of the
+ * worksheet the stream credits. On the output template that is the recycled
+ * worksheet itself, so a report carries what its reprocessed rows credit; on
+ * the input template it is the received worksheet, so a report carries the
+ * yield of what its received rows credit. The row planner gives each stream
+ * the same share of both figures, so the reports land on the recycled figure
+ * once whichever template each registration is on.
+ *
+ * @param {Calibration} calibration
+ * @returns {Map<string, number>} stream to tonnes recycled per tonne credited
+ */
+function recycledPerCreditedTonne(calibration) {
+  /**
+   * @param {string} stream
+   * @param {string} worksheet
+   * @returns {number}
+   */
+  const figure = (stream, worksheet) => {
+    const { monthlyTonnage } =
+      calibration.activity.summaryLogSheets[stream][worksheet]
+    if (monthlyTonnage === undefined) {
+      throw new Error(
+        `Calibration gives ${stream} worksheet "${worksheet}" no monthlyTonnage, which a report's tonnage recycled is drawn from`
+      )
+    }
+    return monthlyTonnage
+  }
+  const recycled = figure(RECYCLED_FIGURE.stream, RECYCLED_FIGURE.worksheet)
+  return new Map(
+    Object.keys(calibration.activity.reprocessorStream).map((stream) => {
+      const crediting = Object.keys(SHEETS[stream]).filter(
+        (worksheet) =>
+          SHEETS[stream][worksheet].contribution === CONTRIBUTION.CREDIT
+      )
+      if (crediting.length !== 1) {
+        throw new Error(
+          `${stream} credits ${crediting.length} worksheets, not the one a report's tonnage recycled is drawn against`
+        )
+      }
+      return [stream, recycled / figure(stream, crediting[0])]
+    })
+  )
+}
+
+/**
  * The uploads and reports of one registration's periods.
  *
  * Each period gets a closing upload after it ends, carrying everything to
@@ -495,6 +565,16 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
   const { profile } = operator
   const allRows = rows?.rows ?? []
   const stream = rows?.stream ?? ''
+  const perCreditedTonne = context.recycledPerCreditedTonne.get(stream)
+  if (
+    registration.processingType === 'reprocessor' &&
+    registration.accreditation &&
+    perCreditedTonne === undefined
+  ) {
+    throw new Error(
+      `${registration.id} is an accredited reprocessor with no stream to draw its tonnage recycled from`
+    )
+  }
 
   /** @type {{day: string, period: Period}[]} */
   const reports = []
@@ -564,14 +644,23 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
 
   for (const report of reports) {
     const { period } = report
-    draft(context, report.day, {
+    /** @type {Omit<Drafted<ReportEvent>, 'submissionNumber'>} */
+    const submission = {
       type: EVENT.REPORT_SUBMITTED,
       registrationId: registration.id,
       year: period.year,
       cadence: period.cadence,
       period: period.period,
-      submissionNumber: 1
-    })
+      tonnageRecycled:
+        registration.processingType === 'reprocessor'
+          ? heldTonnage(
+              credited(
+                allRows.filter((row) => period.months.includes(row.period))
+              ) * (perCreditedTonne ?? 0)
+            )
+          : null
+    }
+    draft(context, report.day, { ...submission, submissionNumber: 1 })
 
     if (random.float() >= profile.reporting.restatementRate) continue
     const restating = landed.find((upload) => upload.day > report.day)
@@ -590,14 +679,7 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
       profile.worksWeekends
     )
     if (!resubmitted || resubmitted > filingEnd) continue
-    draft(context, resubmitted, {
-      type: EVENT.REPORT_SUBMITTED,
-      registrationId: registration.id,
-      year: period.year,
-      cadence: period.cadence,
-      period: period.period,
-      submissionNumber: 2
-    })
+    draft(context, resubmitted, { ...submission, submissionNumber: 2 })
   }
 
   return landed
@@ -980,6 +1062,7 @@ export function planCalendar({
   const rowsByRegistration = new Map(
     rows.registrations.map((planned) => [planned.registrationId, planned])
   )
+  const perCreditedTonne = recycledPerCreditedTonne(calibration)
 
   return {
     seed,
@@ -998,6 +1081,7 @@ export function planCalendar({
               seed,
               random: createRandom(`${seed}/${registration.id}`),
               to,
+              recycledPerCreditedTonne: perCreditedTonne,
               drafts: []
             },
             start
