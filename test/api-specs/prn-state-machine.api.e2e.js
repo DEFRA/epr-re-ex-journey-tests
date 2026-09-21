@@ -17,19 +17,23 @@ import {
   externalAPIAcceptPrn,
   externalAPICancelPrn
 } from '../support/seeding/prns.js'
-import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { generateSummaryLogContent } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { waitForWasteBalance } from '../support/seeding/waiters.js'
 import { assertAuditLog } from '../support/docker-log-assertions.js'
 
-const FIXTURE_PATH = 'resources/summary-log.xlsx'
-
 // Sets up one linked, approved Reprocessor Input registration with a real
-// waste-balance ledger (via a real summary-log upload+submit). Both draft
-// creation and the draft->awaiting_authorisation transition now check the
-// requested tonnage against this balance, so an open ledger carrying a real
-// credit is needed to create within-balance drafts at all. The ledger itself
-// is only mutated by 6 specific transitions (confirmed via epr-backend's own
-// update-status-balance-effects.js); draft->discarded isn't one of them.
+// waste-balance ledger. Both draft creation and the draft->awaiting_authorisation
+// transition now check the requested tonnage against this balance, so an open
+// ledger carrying a real credit is needed to create within-balance drafts at
+// all. The ledger itself is only mutated by 6 specific transitions (confirmed
+// via epr-backend's own update-status-balance-effects.js); draft->discarded
+// isn't one of them.
+//
+// The credit comes from a summary log submitted through epr-backend's dev
+// content endpoint rather than a real xlsx upload: nothing here inspects or
+// downloads the summary-log document itself, only the balance it leaves
+// behind, so the faster JSON route is a safe substitute.
 async function setUpAccreditedReprocessorWithBalance() {
   const baseAPI = new BaseAPI()
   const authClient = new AuthClient()
@@ -55,12 +59,29 @@ async function setUpAccreditedReprocessorWithBalance() {
   const registrationId = migrated.registrationIds[0]
   const accreditationId = migrated.accreditationIds[0]
 
-  await uploadAndSubmitSummaryLog(
-    org.refNo,
-    registrationId,
-    authHeader,
-    FIXTURE_PATH
-  )
+  const content = await generateSummaryLogContent({
+    wasteProcessingType: 'reprocessorInput',
+    materialSuffix: 'PA',
+    regNumber: 'R26ER5000000003PA',
+    accNumber: 'A26ER5000000002PA',
+    rows: {
+      'Received (sections 1, 2 and 3)': [
+        {
+          rowId: 9001,
+          fields: {
+            WERE_PRN_OR_PERN_ISSUED_ON_THIS_WASTE: 'No',
+            GROSS_WEIGHT: 650,
+            TARE_WEIGHT: 100,
+            PALLET_WEIGHT: 50,
+            WEIGHT_OF_NON_TARGET_MATERIALS: 0,
+            RECYCLABLE_PROPORTION_PERCENTAGE: 1,
+            BAILING_WIRE_PROTOCOL: 'No'
+          }
+        }
+      ]
+    }
+  })
+  await submitSummaryLogContent(org.refNo, registrationId, authHeader, content)
 
   return {
     baseAPI,
@@ -73,9 +94,9 @@ async function setUpAccreditedReprocessorWithBalance() {
 }
 
 // The exporter twin of the reprocessor setup above, for the PERN create-time
-// balance check. Exporters need overseas sites seeded and use the dedicated
-// exporter summary-log fixture (whose accreditation and registration numbers
-// are baked into its filename), mirroring accredited.exporter.report.e2e.js.
+// balance check. Exporters need overseas sites seeded, and its summary log's
+// OSR_ID (default 100) has to match one of those seeded sites or the row is
+// excluded from the balance rather than credited.
 async function setUpAccreditedExporterWithBalance() {
   const regNumber = 'R26EX5000000002PA'
   const accNumber = 'A26EX5000000002PA'
@@ -96,12 +117,28 @@ async function setUpAccreditedExporterWithBalance() {
   const registrationId = migrated.registrationIds[0]
   const accreditationId = migrated.accreditationIds[0]
 
-  await uploadAndSubmitSummaryLog(
-    org.refNo,
-    registrationId,
-    authHeader,
-    `resources/sanity/exporter_${accNumber}_${regNumber}.xlsx`
-  )
+  const content = await generateSummaryLogContent({
+    wasteProcessingType: 'exporter',
+    materialSuffix: 'PA',
+    regNumber,
+    accNumber,
+    rows: {
+      'Exported (sections 1, 2 and 3)': [
+        {
+          rowId: 9001,
+          fields: {
+            WERE_PRN_OR_PERN_ISSUED_ON_THIS_WASTE: 'No',
+            DID_WASTE_PASS_THROUGH_AN_INTERIM_SITE: 'No',
+            WAS_THE_WASTE_REFUSED: 'No',
+            WAS_THE_WASTE_STOPPED: 'No',
+            OSR_ID: 100,
+            TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED: 500
+          }
+        }
+      ]
+    }
+  })
+  await submitSummaryLogContent(org.refNo, registrationId, authHeader, content)
 
   return {
     baseAPI,
