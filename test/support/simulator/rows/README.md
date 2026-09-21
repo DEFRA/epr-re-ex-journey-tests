@@ -161,7 +161,7 @@ service treats a null accreditation as accredited throughout.
 
 ## Where the numbers come from
 
-As with the population, this planner holds no figures of its own.
+As with the population, this planner holds no production figure of its own.
 `activity.summaryLogSheets` on the calibration gives each worksheet its share of
 an upload's rows and the tonnage the whole UK reports through it in a month,
 and `activity.rowsPerSubmission` gives the rows an upload carries.

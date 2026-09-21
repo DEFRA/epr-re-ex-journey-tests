@@ -81,6 +81,17 @@ function monthlyTonnage(plan, stream, worksheet) {
 }
 
 /**
+ * The registration-months a stream reports across the plan.
+ *
+ * @param {ReturnType<typeof planSummaryLogRows>} plan
+ * @param {string} stream
+ */
+const monthsOn = (plan, stream) =>
+  plan.registrations
+    .filter((r) => r.stream === stream)
+    .reduce((sum, r) => sum + new Set(r.rows.map((row) => row.period)).size, 0)
+
+/**
  * What one registration reports in each of its months through one worksheet,
  * read off the cell, keyed by period.
  *
@@ -270,15 +281,9 @@ describe('planSummaryLogRows', () => {
       population: planPopulation({ seed: SEED, scale: 0.1 }),
       calibration
     })
-    /** @param {string} stream */
-    const monthsOn = (stream) =>
-      skewed.registrations
-        .filter((r) => r.stream === stream)
-        .reduce(
-          (sum, r) => sum + new Set(r.rows.map((row) => row.period)).size,
-          0
-        )
-    const estate = monthsOn('reprocessorInput') + monthsOn('reprocessorOutput')
+    const estate =
+      monthsOn(skewed, 'reprocessorInput') +
+      monthsOn(skewed, 'reprocessorOutput')
     for (const [stream, worksheet] of [
       ['reprocessorInput', 'Received (sections 1, 2 and 3)'],
       ['reprocessorInput', 'Sent on (sections 5, 6 and 7)'],
@@ -289,7 +294,7 @@ describe('planSummaryLogRows', () => {
       const published =
         calibration.activity.summaryLogSheets[stream][worksheet].monthlyTonnage
       assert.ok(published, `${stream} ${worksheet} has no published figure`)
-      const expected = (published * 0.1 * monthsOn(stream)) / estate
+      const expected = (published * 0.1 * monthsOn(skewed, stream)) / estate
       const planned = monthlyTonnage(skewed, stream, worksheet)
       assert.ok(
         Math.abs(planned - expected) < expected * 0.01,
@@ -349,17 +354,10 @@ describe('planSummaryLogRows', () => {
       DEFAULT_CALIBRATION.activity.summaryLogSheets.reprocessorInput[worksheet]
         .monthlyTonnage
     assert.ok(published)
-    /** @param {string} stream */
-    const monthsOn = (stream) =>
-      tenth.registrations
-        .filter((r) => r.stream === stream)
-        .reduce(
-          (sum, r) => sum + new Set(r.rows.map((row) => row.period)).size,
-          0
-        )
     const share =
-      monthsOn('reprocessorInput') /
-      (monthsOn('reprocessorInput') + monthsOn('reprocessorOutput'))
+      monthsOn(tenth, 'reprocessorInput') /
+      (monthsOn(tenth, 'reprocessorInput') +
+        monthsOn(tenth, 'reprocessorOutput'))
     const expected = published * 0.1 * share
     const planned = monthlyTonnage(tenth, 'reprocessorInput', worksheet)
     // Variation that only redistributes a registration's year cannot move the

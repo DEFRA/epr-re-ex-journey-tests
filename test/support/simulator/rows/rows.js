@@ -84,7 +84,10 @@ const WHOLE_ESTATE = 1
 /** The rows a registered-only registration reports, whichever template it is on. */
 const REGISTERED_ONLY = 'registeredOnly'
 
-/** How far a registration's month may sit from its mean, either way. */
+/**
+ * How far a month's draw sits from one, either way, before a registration's
+ * months are brought back to a mean of exactly one.
+ */
 const MONTHLY_VARIATION = 0.3
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -384,10 +387,7 @@ export function planSummaryLogRows({
         perRow,
         calibration,
         createRandom(`${seed}/${plan.registration.id}`),
-        monthlyFactors(
-          plan.months.length,
-          createRandom(`${seed}/${plan.registration.id}/months`)
-        )
+        createRandom(`${seed}/${plan.registration.id}/months`)
       )
     )
   }
@@ -401,10 +401,10 @@ export function planSummaryLogRows({
  * @param {Map<string, number>} perRow
  * @param {Calibration} calibration
  * @param {Random} random
- * @param {number[]} factors - what each month carries of the mean, one per reporting month
+ * @param {Random} variation - draws what each month carries of the mean
  * @returns {PlannedRegistrationRows}
  */
-function planRegistration(plan, perRow, calibration, random, factors) {
+function planRegistration(plan, perRow, calibration, random, variation) {
   const { registration, stream, months, rowCounts } = plan
   const identity = {
     registrationId: registration.id,
@@ -419,6 +419,7 @@ function planRegistration(plan, perRow, calibration, random, factors) {
   }
   const nextRowId = new Map()
   const rows = []
+  const factors = monthlyFactors(months.length, variation)
 
   months.forEach((month, index) => {
     for (const [worksheet, sheet] of Object.entries(
