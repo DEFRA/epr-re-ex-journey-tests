@@ -83,11 +83,10 @@ id the service gave it, each registration with its ids and numbers, and the
 Defra ID user linked to the operator.
 
 To sign in as one through the stub: open the frontend, which sends the browser
-to the stub's sign-in page, and enter the manifest's email; the stub asks for
-no password. The browser has to reach the stub by the name the frontend
-redirects to, so `defra-id-stub` resolves to localhost, as for the browser
-journeys. The stub keeps its users in Redis, so they outlive the run and the
-containers, but not the volume.
+to the stub's sign-in page at `localhost:3200`, the `APP_BASE_URL` that
+`compose.yml` gives it, and enter the manifest's email; the stub asks for no
+password. The stub keeps its users in Redis, so they outlive the run but not
+the containers.
 
 `complete` says whether every planned event was done, with `events` giving
 the count either way.

@@ -18,6 +18,7 @@ separate journey-test repos, one per app.
   - [Feature flags in journey tests](#feature-flags-in-journey-tests)
   - [Generating test organisation data](#generating-test-organisation-data)
   - [Generating summary-log spreadsheets](#generating-summary-log-spreadsheets)
+  - [Simulating a year of operator activity](#simulating-a-year-of-operator-activity)
   - [Debugging local tests](#debugging-local-tests)
 - [Production](#production)
   - [Running tests with Profile](#running-tests-with-profile)
@@ -313,6 +314,16 @@ FILENAME=./data/filename.xlsx ROW_OFFSET=10 ROWS=10 MATERIAL=AL REG_NUMBER=R25SR
 
 Generated files are written to `data/` (gitignored - transient output only;
 `resources/templates/` holds the committed source templates, not `data/`).
+
+### Simulating a year of operator activity
+
+The two generators above make a handful of records to poke at. For a whole
+estate with a year of history behind it, shaped like production, run the
+operator activity simulator: it brings the local stack onto a simulated clock
+and replays a year of approvals, uploads, reports and PRNs through the
+service's own APIs, at whatever fraction of the register you ask for.
+[`test/support/simulator/README.md`](test/support/simulator/README.md) walks
+from a fresh checkout to a signed-in operator.
 
 ### Debugging local tests
 
