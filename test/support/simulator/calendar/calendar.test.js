@@ -854,13 +854,37 @@ describe('reports', () => {
           )
           .reduce((sum, row) => sum + row.tonnage, 0)
 
+      /**
+       * A fifth of the estate misses and cancels a lumpier share of the figure
+       * than the whole does, so the skewed run is held to what the same estate
+       * reports unskewed rather than to the figure itself.
+       */
       it('still lands the estate’s reports on the recycled figure, not on what the rows credit', () => {
-        const reported = skewedReports
-          .filter((report) => report.submissionNumber === 1)
-          .reduce((sum, report) => sum + (report.tonnageRecycled ?? 0), 0)
-        const expected = recycled * 12 * scale
-        assert.ok(reported <= expected, `${reported} over ${expected}`)
-        near(reported / expected, 1, 0.03, 'reported over recycled')
+        /** @param {ReportEvent[]} reports */
+        const reportedIn = (reports) =>
+          reports
+            .filter((report) => report.submissionNumber === 1)
+            .reduce((sum, report) => sum + (report.tonnageRecycled ?? 0), 0)
+        const unskewed = planCalendar({
+          population: skewedPopulation,
+          rows: planSummaryLogRows({ population: skewedPopulation }),
+          to: '2027-04-30'
+        })
+        const unskewedReports = eventsOfType(
+          unskewed.operators.flatMap((operator) => operator.events),
+          EVENT.REPORT_SUBMITTED
+        )
+        const reported = reportedIn(skewedReports)
+        assert.ok(
+          reported <= recycled * 12 * scale,
+          `${reported} over the figure`
+        )
+        near(
+          reported / reportedIn(unskewedReports),
+          1,
+          0.001,
+          'skewed over unskewed'
+        )
       })
 
       it('carries what the output template’s reprocessed rows credit in the period', () => {
@@ -1107,23 +1131,49 @@ describe('PRNs', () => {
     )
   })
 
+  /**
+   * A material with twenty-odd accreditations swings a sixth either side of
+   * the rate by the seed, and a third on a bad one. So a material below forty
+   * accreditations is held to a third on its own, which still catches one
+   * starved or over-issued, and the tenth is asked of them together. One with
+   * a handful is held only in that total, since its own rate is a coin toss.
+   */
   it('raises them for every accredited material at that material’s rate', () => {
     const suffixes = [
       ...new Set(accredited.map((registration) => registration.material.suffix))
     ]
-    assert.deepEqual(
-      Object.keys(
-        tally(drafted, (event) => registrationOf(event).material.suffix)
-      ).sort(),
-      suffixes.sort()
+    const everAccredited = new Set(
+      registrations
+        .filter((registration) => registration.accreditation)
+        .map((registration) => registration.material.suffix)
     )
+    for (const suffix of Object.keys(
+      tally(drafted, (event) => registrationOf(event).material.suffix)
+    )) {
+      assert.ok(everAccredited.has(suffix), `${suffix} drafted unaccredited`)
+    }
+    /** @type {PlannedRegistration[]} */
+    const rare = []
     for (const suffix of suffixes) {
       const members = accredited.filter(
         (registration) => registration.material.suffix === suffix
       )
-      if (members.length < 10) continue
-      near(draftedPerMonth(members), expectedPerMonth(members), 0.25, suffix)
+      const expected = expectedPerMonth(members)
+      if (members.length < 40) {
+        rare.push(...members)
+        if (members.length >= 10) {
+          near(draftedPerMonth(members), expected, expected / 3, suffix)
+        }
+        continue
+      }
+      near(draftedPerMonth(members), expected, 0.25, suffix)
     }
+    near(
+      draftedPerMonth(rare),
+      expectedPerMonth(rare),
+      expectedPerMonth(rare) / 10,
+      'the rarer materials together'
+    )
   })
 
   it('never raises one for a registered-only registration', () => {
