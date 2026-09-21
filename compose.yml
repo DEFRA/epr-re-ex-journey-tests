@@ -58,7 +58,7 @@ services:
       - '4566:4566'
 
   floci-init:
-    image: amazon/aws-cli:2.36.45@sha256:de71ba5460023cdafb0b163b8ba4553e221a5c23e4b851ab5543d29a85c98ef4
+    image: amazon/aws-cli:2.36.48@sha256:45056897f7c47a84e3ef5a4f9095f748bd9f5a24c5d54e7d5cfc3d4da52c9331
     entrypoint: /bin/sh
     command: /setup/init.sh
     networks:
@@ -177,7 +177,7 @@ services:
   # Simulates Entra ID (Microsoft) sign-in: used for epr-backend's
   # service-to-service auth and for epr-re-ex-admin-frontend's browser login.
   entra-stub:
-    image: defradigital/epr-re-ex-entra-stub:0.106.0@sha256:2301fa7580c2dc9637c7afc57d5e396ab6e277931394032c1774b4e10fabd584
+    image: defradigital/epr-re-ex-entra-stub:0.117.0@sha256:7d5548d50023f1fb9b3056e3128d66ababe8bf1d5aedc0f4fa2beadd0a362295
     networks:
       - cdp-tenant
     ports:
@@ -319,6 +319,7 @@ services:
       REAPPLY_ACCREDITATION_WINDOW_START: "01-01T00:00"
       REAPPLY_ACCREDITATION_WINDOW_END: "12-31T23:59"
       REDIS_HOST: redis
+      SESSION_CACHE_ENGINE: redis
       USE_SINGLE_INSTANCE_CACHE: true
       WASTE_ORGANISATIONS_API_URL: http://wire-mock:8080/waste-organisations/organisations
       WASTE_ORGANISATIONS_API_USERNAME: testuser
@@ -331,7 +332,7 @@ services:
       floci-init:
         condition: service_completed_successfully
       redis:
-        condition: service_started
+        condition: service_healthy
       epr-backend:
         condition: service_healthy
       cdp-uploader:

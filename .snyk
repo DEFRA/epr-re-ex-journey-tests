@@ -5,3 +5,38 @@ ignore:
     - '*':
         reason: 'Transitively pulled in by ExcelJS, via archiver > archiver-utils > glob and via unzipper > fstream > rimraf > glob, and by eslint > file-entry-cache > flat-cache > rimraf > glob. Test-only tooling that runs briefly and exits on controlled, local/test inputs; memory-leak impact is not exploitable in this context and there is no upstream fix.'
         expires: '2028-01-01T00:00:00.000Z'
+  # http-cache-semantics 4.2.0 is the latest published release and is itself the
+  # flagged version; only unreleased prereleases carry a fix, so there is no
+  # stable upstream patch. It reaches us only through browserstack-node-sdk's
+  # HTTP client (got > cacheable-request), which runs only during BrowserStack
+  # test execution against BrowserStack's own endpoints, not a production path.
+  'SNYK-JS-HTTPCACHESEMANTICS-19964064':
+    - '*':
+        reason: >-
+          Origin validation error in http-cache-semantics; no stable upstream
+          patch (4.2.0 is latest and is the flagged version). Reached only via
+          browserstack-node-sdk > got > cacheable-request during BrowserStack
+          test runs. Test-only tooling, not a production path.
+        expires: 2027-03-21T00:00:00.000Z
+  'SNYK-JS-HTTPCACHESEMANTICS-19964068':
+    - '*':
+        reason: >-
+          Improper authorization in http-cache-semantics; same path
+          (browserstack-node-sdk > got > cacheable-request) and no stable
+          upstream patch (4.2.0 is latest and is the flagged version).
+          Test-only BrowserStack tooling, not a production path.
+        expires: 2027-03-21T00:00:00.000Z
+  # Zip Slip in unzipper. Triggers only when extracting archive entries to disk.
+  # unzipper reaches us via exceljs, used by the test data/spreadsheet
+  # generators, which read xlsx zips in memory (unzipper.Open.buffer) and never
+  # extract entries to the filesystem. The advisory has no upstream patch: it was
+  # verified in this run that even the latest unzipper (0.12.5) is still flagged,
+  # and overriding to it also breaks exceljs (which pins 0.10.x).
+  'SNYK-JS-UNZIPPER-18365659':
+    - '*':
+        reason: >-
+          Disk-extraction-only Zip Slip sink in unzipper, reached only through
+          exceljs in the test data generators, which parse xlsx in memory and
+          never extract to disk. No upstream patch (latest unzipper 0.12.5 is
+          still flagged and is incompatible with exceljs). Test-only tooling.
+        expires: 2027-03-21T00:00:00.000Z

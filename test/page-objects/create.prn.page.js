@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test'
 import { Page } from 'page-objects/page'
+import { WASTE_BALANCE_POOL } from '../support/waste-balance-pool.js'
 
 const SUBMIT_SELECTOR = '#main-content button[type=submit]'
 
@@ -64,7 +65,8 @@ class CreatePRNPage extends Page {
   // render order - a label click or getByLabel().click() hung here even
   // though the target was present and clickable by hand.
   async selectWasteBalance(pool) {
-    const label = pool === 'December' ? /^December/ : /^Non-December/
+    const label =
+      pool === WASTE_BALANCE_POOL.december ? /^December/ : /^Non-December/
     await this.page
       .getByRole('group', { name: 'Select which waste balance' })
       .getByRole('radio', { name: label })
@@ -91,7 +93,10 @@ class CreatePRNPage extends Page {
   }
 
   wasteBalanceTonnage(options, pool) {
-    const prefix = pool === 'December' ? 'December' : 'Non-December'
+    const prefix =
+      pool === WASTE_BALANCE_POOL.december
+        ? WASTE_BALANCE_POOL.december
+        : WASTE_BALANCE_POOL.nonDecember
     const option = options.find((text) => text.startsWith(prefix))
     const [, tonnage] = option.match(/\(([\d,.]+) tonnes\)/)
     return parseFloat(tonnage.replace(/,/g, ''))
@@ -100,8 +105,8 @@ class CreatePRNPage extends Page {
   async wasteBalances() {
     const options = await this.wasteBalanceOptions()
     return {
-      december: this.wasteBalanceTonnage(options, 'December'),
-      general: this.wasteBalanceTonnage(options, 'Non-December')
+      december: this.wasteBalanceTonnage(options, WASTE_BALANCE_POOL.december),
+      general: this.wasteBalanceTonnage(options, WASTE_BALANCE_POOL.nonDecember)
     }
   }
 
