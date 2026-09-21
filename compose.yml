@@ -332,7 +332,7 @@ services:
       floci-init:
         condition: service_completed_successfully
       redis:
-        condition: service_started
+        condition: service_healthy
       epr-backend:
         condition: service_healthy
       cdp-uploader:
