@@ -15,30 +15,6 @@ import { buildAccessibilityHtmlReport } from './accessibility-report.js'
 // than throwing the summary table ordering off.
 const IMPACT_RANK = { critical: 0, serious: 1, moderate: 2, minor: 3 }
 
-// Lighthouse's own report (the "Full accessibility & performance report"
-// buildAccessibilityHtmlReport produces below) only gets read on CDP
-// Portal's post-deploy run against a real environment - nobody opens it
-// from a local/PR-CI run's Allure output, which runs against docker
-// compose and never sets ENVIRONMENT (see test/config/config.js). A full
-// page-reload-and-audit per page is also most of what makes a Lighthouse-
-// heavy spec file slow (see accessibility.e2e.js), so a local/PR-CI run
-// defaults to Axe-only everywhere except whichever page(s) a spec names
-// its canary: enough to catch the Lighthouse wiring itself breaking (a
-// dead Chrome launch, a renamed audit id, a config error) sooner than the
-// next deploy, without paying the full per-page cost on every run.
-const FULL_ACCESSIBILITY_AUDIT = Boolean(process.env.ENVIRONMENT)
-
-/**
- * Whether a page scan should include the Lighthouse audit portion
- * alongside its Axe scan - always when ENVIRONMENT is set (a real,
- * CDP-deployed target), otherwise only for a spec's designated canary
- * page(s).
- * @param {boolean} [isCanary]
- */
-export function shouldAuditWithLighthouse(isCanary = false) {
-  return FULL_ACCESSIBILITY_AUDIT || isCanary
-}
-
 function convertHTML(str) {
   const symbols = {
     '&': '&amp;',
