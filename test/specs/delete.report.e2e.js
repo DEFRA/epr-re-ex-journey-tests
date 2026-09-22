@@ -17,7 +17,8 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { expectActionRequiredStatus } from '../support/report-status.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -51,13 +52,16 @@ async function setupReprocessor(page) {
     migrationResponse.email
   )
 
-  // Upload summary log so report data exists
+  // Seed the summary log via epr-backend's dev endpoint rather than a real
+  // multipart upload: this journey is about deleting reports, not the
+  // upload itself, which the dedicated summary-log specs already cover.
   const filePath = `resources/sanity/reprocessorOutput_${ACC_NUMBER}_${REG_NUMBER}.xlsx`
-  await uploadAndSubmitSummaryLog(
+  const summaryLogContent = await summaryLogContentFromFixture(filePath)
+  await submitSummaryLogContent(
     organisationDetails.refNo,
     migrationResponse.registrationIds[0],
     defraIdStub.authHeader(user.userId),
-    filePath
+    summaryLogContent
   )
 
   const dashboardPage = new DashboardPage(page)

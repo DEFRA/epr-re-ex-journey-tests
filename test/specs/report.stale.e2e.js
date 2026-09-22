@@ -15,7 +15,8 @@ import {
   seedOverseasSites,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { expectActionRequiredStatus } from '../support/report-status.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -89,10 +90,12 @@ async function createDraftReportFromCurrentReportsPage(page) {
   await page.locator('a', { hasText: 'Go to reports' }).click()
 }
 
-// Uploading via the API instead of driving the upload wizard through the
-// browser is safe here — staleness is a backend flag on a registration's
-// summary-log version, keyed off the upload event itself, not off whether it
-// happened via UI or API.
+// Submitting via the dev endpoint instead of driving the upload wizard
+// through the browser is safe here — staleness is a backend flag on a
+// registration's summary-log version, keyed off the submission event itself,
+// not off whether it happened via UI or API. The content is read back out
+// and returned so a caller re-submitting the same fixture (to bump the
+// version again) sends the identical content rather than re-reading the file.
 async function setupAndCreateReport(
   page,
   material,
@@ -103,17 +106,18 @@ async function setupAndCreateReport(
   const { orgDetails, migrationResponse, user } =
     await setupAccreditedReprocessor(page, material, regNumber, accNumber)
 
-  await uploadAndSubmitSummaryLog(
+  const summaryLogContent = await summaryLogContentFromFixture(filePath)
+  await submitSummaryLogContent(
     orgDetails.refNo,
     migrationResponse.registrationIds[0],
     defraIdStub.authHeader(user.userId),
-    filePath
+    summaryLogContent
   )
   await navigateToReports(page)
 
   await createDraftReportFromCurrentReportsPage(page)
 
-  return { orgDetails, migrationResponse, user }
+  return { orgDetails, migrationResponse, user, summaryLogContent }
 }
 
 async function setupRegisteredOnlyExporter(page) {
@@ -153,21 +157,16 @@ test.describe('Stale report @staleReport', () => {
     const reportsPage = new ReportsPage(page)
     const reportStaleErrorPage = new ReportStaleErrorPage(page)
 
-    const { orgDetails, migrationResponse, user } = await setupAndCreateReport(
-      page,
-      'Plastic (R3)',
-      PL_REG,
-      PL_ACC,
-      PL_FILE
-    )
+    const { orgDetails, migrationResponse, user, summaryLogContent } =
+      await setupAndCreateReport(page, 'Plastic (R3)', PL_REG, PL_ACC, PL_FILE)
 
-    // Re-upload the same summary log via the API to bump its version and make
-    // the existing report stale.
-    await uploadAndSubmitSummaryLog(
+    // Re-submit the same content via the dev endpoint to bump its version
+    // and make the existing report stale.
+    await submitSummaryLogContent(
       orgDetails.refNo,
       migrationResponse.registrationIds[0],
       defraIdStub.authHeader(user.userId),
-      PL_FILE
+      summaryLogContent
     )
 
     // Navigating to the report now triggers the stale error page
@@ -219,11 +218,12 @@ test.describe('Stale report @staleReport', () => {
     const regId = migrationResponse.registrationIds[0]
     const authHeader = defraIdStub.authHeader(user.userId)
 
-    await uploadAndSubmitSummaryLog(
+    const summaryLogContent = await summaryLogContentFromFixture(REG_ONLY_FILE)
+    await submitSummaryLogContent(
       organisationDetails.refNo,
       regId,
       authHeader,
-      REG_ONLY_FILE
+      summaryLogContent
     )
     await navigateToReports(page)
 
@@ -231,13 +231,13 @@ test.describe('Stale report @staleReport', () => {
     await reportDetailPage.useThisData()
     await tonnesRecycledPage.saveAndComeBackLater()
 
-    // Re-upload the same summary log via the API to bump its version and make
-    // the existing report stale.
-    await uploadAndSubmitSummaryLog(
+    // Re-submit the same content via the dev endpoint to bump its version
+    // and make the existing report stale.
+    await submitSummaryLogContent(
       organisationDetails.refNo,
       regId,
       authHeader,
-      REG_ONLY_FILE
+      summaryLogContent
     )
 
     // Navigating to the report now triggers the stale error page

@@ -8,7 +8,8 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { parseTonnage } from '../support/tonnage.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -63,11 +64,19 @@ test.describe('Report tonnage reconciles with the waste balance — exporter @re
       migrationResponse.email
     )
 
-    await uploadAndSubmitSummaryLog(
+    // Submitted via epr-backend's dev endpoint rather than a real multipart
+    // upload: the fixture's four rows (and the drift they're built to
+    // expose - see resources/generate-reconciliation-fixtures.mjs) are read
+    // straight off the checked-in xlsx, so EXPECTED_RECONCILED_TONNAGE stays
+    // sourced from the same file either way.
+    const summaryLogContent = await summaryLogContentFromFixture(
+      'resources/exporter-reconciliation.xlsx'
+    )
+    await submitSummaryLogContent(
       organisationDetails.refNo,
       migrationResponse.registrationIds[0],
       defraIdStub.authHeader(user.userId),
-      'resources/exporter-reconciliation.xlsx'
+      summaryLogContent
     )
   })
 

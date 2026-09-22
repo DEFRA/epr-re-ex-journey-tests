@@ -7,12 +7,15 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude
 } from '../support/checks.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
-import { uploadSummaryLogAndNavigateToReports } from '../support/report-navigation.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
+import { navigateToReports } from '../support/report-navigation.js'
 
 const REG_NUMBER = 'R26ER5000000001PA'
 const ACC_NUMBER = 'A26ER5000000001PA'
@@ -34,11 +37,13 @@ const setupAccreditedReprocessor = async (page) => {
     ]
   )
 
-  await createLinkAndLogin(
+  const user = await createLinkAndLogin(
     page,
     organisationDetails.refNo,
     migrationResponse.email
   )
+
+  return { organisationDetails, migrationResponse, user }
 }
 
 test.describe('Incomplete report submit @incompleteReportBlock', () => {
@@ -50,11 +55,22 @@ test.describe('Incomplete report submit @incompleteReportBlock', () => {
     const reportDetailPage = new ReportDetailPage(page)
     const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
 
-    await setupAccreditedReprocessor(page)
-    await uploadSummaryLogAndNavigateToReports(
-      page,
+    const { organisationDetails, migrationResponse, user } =
+      await setupAccreditedReprocessor(page)
+
+    // Submitted via epr-backend's dev endpoint rather than driving the
+    // upload UI: this journey is about the incomplete-report guard, not the
+    // upload itself, which the dedicated summary-log specs already cover.
+    const summaryLogContent = await summaryLogContentFromFixture(
       `resources/sanity/reprocessorOutput_${ACC_NUMBER}_${REG_NUMBER}.xlsx`
     )
+    await submitSummaryLogContent(
+      organisationDetails.refNo,
+      migrationResponse.registrationIds[0],
+      defraIdStub.authHeader(user.userId),
+      summaryLogContent
+    )
+    await navigateToReports(page)
 
     // Start the report — creates it in `in_progress` with null manual fields
     // (tonnageRecycled, tonnageNotRecycled, prn.totalRevenue, prn.freeTonnage).

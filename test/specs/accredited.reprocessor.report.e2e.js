@@ -14,9 +14,12 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { unsubmitReport } from '../support/seeding/reports.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
-import { uploadSummaryLogAndNavigateToReports } from '../support/report-navigation.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
+import { navigateToReports } from '../support/report-navigation.js'
 import { ConfirmationPage } from '../page-objects/reports/confirmation.page.js'
 import {
   switchToNewTab,
@@ -49,20 +52,36 @@ async function setupAccreditedReprocessor(page) {
     ]
   )
 
-  await createLinkAndLogin(
+  const user = await createLinkAndLogin(
     page,
     organisationDetails.refNo,
     migrationResponse.email
   )
 
-  return { organisationDetails, migrationResponse }
+  return { organisationDetails, migrationResponse, user }
 }
 
-async function uploadAndNavigateToReports(page) {
-  await uploadSummaryLogAndNavigateToReports(
-    page,
+// Submitted via epr-backend's dev endpoint rather than driving the upload
+// UI: this journey is about the reports wizard, not the upload itself,
+// which the dedicated summary-log specs already cover. The fixture's real
+// row values are read straight off the checked-in xlsx, so they stay
+// exactly what a real upload of it would have carried.
+async function uploadAndNavigateToReports(
+  page,
+  organisationDetails,
+  migrationResponse,
+  user
+) {
+  const summaryLogContent = await summaryLogContentFromFixture(
     `resources/sanity/reprocessorOutput_${ACC_NUMBER}_${REG_NUMBER}.xlsx`
   )
+  await submitSummaryLogContent(
+    organisationDetails.refNo,
+    migrationResponse.registrationIds[0],
+    defraIdStub.authHeader(user.userId),
+    summaryLogContent
+  )
+  await navigateToReports(page)
 }
 
 test.describe('Accredited reprocessor report flow @accreditedReprocessor', () => {
@@ -78,7 +97,12 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
     test.beforeAll(async ({ browser }) => {
       page = await browser.newPage()
       setupResponse = await setupAccreditedReprocessor(page)
-      await uploadAndNavigateToReports(page)
+      await uploadAndNavigateToReports(
+        page,
+        setupResponse.organisationDetails,
+        setupResponse.migrationResponse,
+        setupResponse.user
+      )
     })
 
     test.afterAll(async () => {
