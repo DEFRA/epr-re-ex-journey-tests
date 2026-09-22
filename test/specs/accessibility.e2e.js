@@ -49,6 +49,18 @@ import { navigateToReports } from '../support/report-navigation.js'
 import { tonnageWordings, tradingName } from '../support/fixtures.js'
 
 test.describe('WCAG Accessibility @smoketest', () => {
+  // Each test below tours a different, independently-seeded org through its
+  // own `page` fixture, so nothing here needs the suite-wide serial default
+  // (playwright.config.js's fullyParallel: false, left alone for every other
+  // file). Lighthouse's Chrome instance (test/support/lighthouse.js) is a
+  // module-level singleton, but that module state lives per worker process,
+  // not per file, so parallel workers each launch their own on their own
+  // free port rather than colliding. This is what lets these three
+  // Lighthouse-heavy tours (the slowest file in the suite - each one is a
+  // full audit-per-page) run on separate workers instead of stacking up
+  // sequentially in one.
+  test.describe.configure({ mode: 'parallel' })
+
   test.afterAll(async () => {
     await closeLighthouseChrome()
   })
