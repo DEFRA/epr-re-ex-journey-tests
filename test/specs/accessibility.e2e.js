@@ -32,6 +32,8 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { externalAPICancelPrn } from '../support/seeding/prns.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import {
   assertNoSeriousOrCriticalViolations,
   attachAccessibilityReport,
@@ -42,10 +44,8 @@ import {
 import { closeLighthouseChrome } from '../support/lighthouse.js'
 import { checkBodyText } from '../support/checks.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
-import {
-  navigateToReports,
-  uploadSummaryLogAndNavigateToReports
-} from '../support/report-navigation.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
+import { navigateToReports } from '../support/report-navigation.js'
 import { tonnageWordings, tradingName } from '../support/fixtures.js'
 
 test.describe('WCAG Accessibility @smoketest', () => {
@@ -339,7 +339,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
               }
             ]
           )
-          await createLinkAndLogin(
+          const user = await createLinkAndLogin(
             page,
             organisationDetails.refNo,
             migrationResponse.email
@@ -365,10 +365,20 @@ test.describe('WCAG Accessibility @smoketest', () => {
           const confirmCancelPrnPage = new ConfirmCancelPRNPage(page)
           const prnCancelledPage = new PRNCancelledPage(page)
 
-          await uploadSummaryLogAndNavigateToReports(
-            page,
+          // Submitted via epr-backend's dev endpoint rather than driving the
+          // upload UI: this page tour is about the report/PRN flow, not the
+          // upload itself - the earlier test in this file already scans the
+          // upload/check/confirmation pages for violations.
+          const summaryLogContent = await summaryLogContentFromFixture(
             `resources/sanity/reprocessorOutput_${ACC_NUMBER}_${REG_NUMBER}.xlsx`
           )
+          await submitSummaryLogContent(
+            organisationDetails.refNo,
+            migrationResponse.registrationIds[0],
+            defraIdStub.authHeader(user.userId),
+            summaryLogContent
+          )
+          await navigateToReports(page)
 
           // --- Report wizard pages unique to the accredited reprocessor flow ---
           await reportsPage.selectActiveActionLink(1)

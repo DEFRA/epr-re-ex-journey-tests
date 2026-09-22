@@ -8,7 +8,8 @@ import {
   updateMigratedOrganisation,
   seedOverseasSites
 } from '../support/seeding/organisation.js'
-import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { createPrnDetails } from '../support/fixtures.js'
@@ -57,11 +58,18 @@ test.describe('Choosing a waste balance pool for a PERN (Exporter)', () => {
       migrationResponse.email
     )
 
-    await uploadAndSubmitSummaryLog(
+    // Submitted via epr-backend's dev endpoint rather than a real multipart
+    // upload: this journey is about the December waste balance pool, not
+    // the upload itself, which the dedicated summary-log specs already
+    // cover.
+    const summaryLogContent = await summaryLogContentFromFixture(
+      `resources/sanity/exporter_${accNumber}_${regNumber}.xlsx`
+    )
+    await submitSummaryLogContent(
       organisationDetails.refNo,
       migrationResponse.registrationIds[0],
       defraIdStub.authHeader(user.userId),
-      `resources/sanity/exporter_${accNumber}_${regNumber}.xlsx`
+      summaryLogContent
     )
 
     await dashboardPage.selectTableLink(1, 1)
