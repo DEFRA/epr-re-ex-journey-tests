@@ -84,6 +84,12 @@ const WHOLE_ESTATE = 1
 /** The rows a registered-only registration reports, whichever template it is on. */
 const REGISTERED_ONLY = 'registeredOnly'
 
+/**
+ * How far a month's draw sits from one, either way, before a registration's
+ * months are brought back to a mean of exactly one.
+ */
+const MONTHLY_VARIATION = 0.3
+
 const DAY_MS = 24 * 60 * 60 * 1000
 
 const iso = (date) => date.toISOString().slice(0, 10)
@@ -380,7 +386,8 @@ export function planSummaryLogRows({
         plan,
         perRow,
         calibration,
-        createRandom(`${seed}/${plan.registration.id}`)
+        createRandom(`${seed}/${plan.registration.id}`),
+        createRandom(`${seed}/${plan.registration.id}/months`)
       )
     )
   }
@@ -394,9 +401,10 @@ export function planSummaryLogRows({
  * @param {Map<string, number>} perRow
  * @param {Calibration} calibration
  * @param {Random} random
+ * @param {Random} variation - draws what each month carries of the mean
  * @returns {PlannedRegistrationRows}
  */
-function planRegistration(plan, perRow, calibration, random) {
+function planRegistration(plan, perRow, calibration, random, variation) {
   const { registration, stream, months, rowCounts } = plan
   const identity = {
     registrationId: registration.id,
@@ -411,12 +419,14 @@ function planRegistration(plan, perRow, calibration, random) {
   }
   const nextRowId = new Map()
   const rows = []
+  const factors = monthlyFactors(months.length, variation)
 
-  for (const month of months) {
+  months.forEach((month, index) => {
     for (const [worksheet, sheet] of Object.entries(
       sheetsOf(stream, calibration)
     )) {
-      for (let index = 0; index < rowCounts[worksheet]; index++) {
+      const tonnage = perRow.get(`${stream}/${worksheet}`)
+      for (let row = 0; row < rowCounts[worksheet]; row++) {
         const rowId =
           nextRowId.get(worksheet) ?? WORKSHEET_CONFIG[stream][worksheet].rowId
         nextRowId.set(worksheet, rowId + 1)
@@ -428,13 +438,14 @@ function planRegistration(plan, perRow, calibration, random) {
             month,
             window,
             random,
-            tonnage: perRow.get(`${stream}/${worksheet}`),
+            tonnage:
+              tonnage === undefined ? undefined : tonnage * factors[index],
             calibration
           })
         )
       }
     }
-  }
+  })
 
   const exporting = stream === 'exporter' || stream === 'regOnlyExporter'
   return {
@@ -444,6 +455,29 @@ function planRegistration(plan, perRow, calibration, random) {
       : null,
     rows
   }
+}
+
+/**
+ * A factor for each of a registration's months, drawn within
+ * `MONTHLY_VARIATION` of one and then scaled so they average exactly one. A
+ * registration's year is therefore what it was before the months moved, and so
+ * is the estate's.
+ *
+ * Drawn from its own seed rather than the registration's, so the days its rows
+ * fall on, and everything the calendar plans from them, hold still when the
+ * variation changes.
+ *
+ * @param {number} count
+ * @param {Random} random
+ * @returns {number[]}
+ */
+function monthlyFactors(count, random) {
+  const drawn = Array.from(
+    { length: count },
+    () => 1 + (random.float() * 2 - 1) * MONTHLY_VARIATION
+  )
+  const mean = drawn.reduce((sum, factor) => sum + factor, 0) / count
+  return drawn.map((factor) => factor / mean)
 }
 
 /**
