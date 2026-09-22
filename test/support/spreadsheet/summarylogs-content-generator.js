@@ -6,6 +6,7 @@ import {
 import {
   fieldColumns,
   fillRows,
+  FIRST_DATA_ROW,
   MARKER_ROW,
   materialWithSuffix,
   ukDateParts
@@ -168,4 +169,113 @@ export async function generateSummaryLogContent({
     },
     data
   }
+}
+
+/**
+ * The content of a summary log exactly as an already-filled workbook holds
+ * it: the cover's metadata, and for each worksheet carrying a data table,
+ * every row already present - wherever it sits in the sheet, the same way
+ * the service's own upload parser reads a real file, skipping only the rows
+ * a fixture leaves blank. Lets a checked-in xlsx fixture's real values be
+ * replayed through the dev endpoint instead of uploading the file itself.
+ *
+ * @param {string} fixturePath
+ * @returns {Promise<SummaryLogContent>}
+ */
+export async function summaryLogContentFromFixture(fixturePath) {
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.readFile(fixturePath)
+
+  const coverSheet = workbook.getWorksheet('Cover')
+  if (!coverSheet) {
+    throw new Error(`${fixturePath} carries no Cover sheet`)
+  }
+  const accreditationNumber = coverSheet.getCell('E13').value
+  const meta = {
+    MATERIAL: String(coverSheet.getCell('E7').value),
+    REGISTRATION_NUMBER: String(coverSheet.getCell('E10').value),
+    ...(accreditationNumber
+      ? { ACCREDITATION_NUMBER: String(accreditationNumber) }
+      : {})
+  }
+
+  /** @type {Record<string, TableContent>} */
+  const data = {}
+  workbook.eachSheet((sheet) => {
+    const table = tableOf(sheet)
+    if (!table) {
+      return
+    }
+    const columns = fieldColumns(sheet)
+    const headers = Object.keys(columns)
+    const rows = filledRowsOf(sheet, headers, columns)
+    if (rows.length > 0) {
+      data[table] = { headers, rows }
+    }
+  })
+
+  return { meta, data }
+}
+
+/**
+ * Every row of a worksheet's data table that carries a ROW_ID, from the
+ * first data row to the sheet's last - wherever it sits, since a fixture
+ * built to isolate a few loads (see
+ * resources/generate-reconciliation-fixtures.mjs) blanks the rows around the
+ * kept ones rather than only the rows after them. ROW_ID is the template's
+ * own signal for "this row carries data" (its formula is COUNTA over the
+ * row's fields), which every worksheet fills via `rowData.B` - it survives
+ * where a blanket "any field is non-empty" check would not, since an
+ * unfilled row's dropdown cells still carry their template placeholder text
+ * ("Choose option") as a genuine, non-empty cell value.
+ *
+ * @param {import('exceljs').Worksheet} sheet
+ * @param {string[]} headers
+ * @param {Record<string, string>} columns
+ * @returns {Cell[][]}
+ */
+function filledRowsOf(sheet, headers, columns) {
+  const rowIdColumn = columns.ROW_ID
+  const rows = []
+  for (
+    let rowNumber = FIRST_DATA_ROW;
+    rowNumber <= sheet.rowCount;
+    rowNumber++
+  ) {
+    const row = sheet.getRow(rowNumber)
+    if (fixtureCellValue(row.getCell(rowIdColumn).value) === null) {
+      continue
+    }
+    rows.push(
+      headers.map((header) =>
+        fixtureCellValue(row.getCell(columns[header]).value)
+      )
+    )
+  }
+  return rows
+}
+
+/**
+ * A cell as an already-filled fixture holds it: a formula's cached result
+ * rather than its expression, a date cell as the calendar date the dev
+ * endpoint expects, and a cell holding nothing as null.
+ *
+ * @param {import('exceljs').CellValue} value
+ * @returns {Cell}
+ */
+function fixtureCellValue(value) {
+  // A formula cell the workbook never recalculated carries no 'result' at
+  // all (only its expression), which reads the same as one COUNTA finds
+  // nothing under - both are unfilled, not a value to send on.
+  const resolved =
+    value && typeof value === 'object' && !(value instanceof Date)
+      ? /** @type {{ result?: unknown }} */ (value).result
+      : value
+  if (resolved === undefined || resolved === null || resolved === '') {
+    return null
+  }
+  if (resolved instanceof Date) {
+    return `${resolved.getUTCFullYear()}-${pad(resolved.getUTCMonth() + 1)}-${pad(resolved.getUTCDate())}`
+  }
+  return typeof resolved === 'number' ? resolved : String(resolved)
 }

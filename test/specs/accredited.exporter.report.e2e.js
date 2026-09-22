@@ -15,7 +15,8 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { unsubmitReport } from '../support/seeding/reports.js'
-import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -72,13 +73,17 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
         migrationResponse.email
       )
 
-      // Upload summary log so report data exists
+      // Seed the summary log via epr-backend's dev endpoint rather than a
+      // real multipart upload: this journey is about the reports wizard,
+      // not the upload itself, which the dedicated summary-log specs
+      // already cover.
       const filePath = `resources/sanity/exporter_${accNumber}_${regNumber}.xlsx`
-      await uploadAndSubmitSummaryLog(
+      const summaryLogContent = await summaryLogContentFromFixture(filePath)
+      await submitSummaryLogContent(
         organisationDetails.refNo,
         migrationResponse.registrationIds[0],
         defraIdStub.authHeader(user.userId),
-        filePath
+        summaryLogContent
       )
 
       // Navigate to reports — all tests start from the Reports page
