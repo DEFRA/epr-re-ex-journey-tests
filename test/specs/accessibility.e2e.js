@@ -39,6 +39,7 @@ import {
   attachAccessibilityReport,
   createAccessibilityCollector,
   scanPageForAccessibilityViolations,
+  shouldAuditWithLighthouse,
   tagAccessibilityTest
 } from '../support/accessibility.js'
 import { closeLighthouseChrome } from '../support/lighthouse.js'
@@ -47,6 +48,29 @@ import { createLinkAndLogin } from '../support/login-helper.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { navigateToReports } from '../support/report-navigation.js'
 import { tonnageWordings, tradingName } from '../support/fixtures.js'
+
+/**
+ * Scans a page for Axe violations and, only for the file's one designated
+ * Lighthouse canary (the Home page below) or when running against a real
+ * deployed environment, also runs the fuller Lighthouse audit through the
+ * same collector - see shouldAuditWithLighthouse for why. A machinery-level
+ * break (a dead Chrome launch, a renamed audit id, a config error) shows up
+ * on any page, so one canary across the whole file is enough to catch it
+ * sooner than the next CDP Portal deploy without paying a full page-
+ * reload-and-audit cost on every one of the ~30 pages these three tours
+ * cover.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} pageName
+ * @param {ReturnType<typeof createAccessibilityCollector>} collector
+ * @param {boolean} [isCanary]
+ */
+async function scan(page, pageName, collector, isCanary = false) {
+  return scanPageForAccessibilityViolations(
+    page,
+    pageName,
+    shouldAuditWithLighthouse(isCanary) ? collector : undefined
+  )
+}
 
 test.describe('WCAG Accessibility @smoketest', () => {
   // Each test below tours a different, independently-seeded org through its
@@ -65,9 +89,12 @@ test.describe('WCAG Accessibility @smoketest', () => {
     await closeLighthouseChrome()
   })
 
-  // Each test now also runs a Lighthouse audit per page alongside the Axe
-  // scan, which is slower (Lighthouse does a full page reload per page) -
-  // bumped well past the suite's default 2-minute ceiling to cover that.
+  // Against a real deployed environment (CDP Portal) every page also runs
+  // a Lighthouse audit alongside its Axe scan, which is slower (Lighthouse
+  // does a full page reload per page) - bumped well past the suite's
+  // default 2-minute ceiling to cover that. A local/PR-CI run only pays
+  // that cost once, for the file's single canary page (see `scan` above),
+  // but keeps the same generous ceiling regardless.
   const LIGHTHOUSE_TEST_TIMEOUT = 10 * 60 * 1000
 
   test('Should have no Serious/Critical accessibility violations on the public entry pages @accessibility', async ({
@@ -84,16 +111,13 @@ test.describe('WCAG Accessibility @smoketest', () => {
       await step('🌐 Page tour: Public entry pages', async () => {
         await homePage.open()
         violations.push(
-          ...(await scanPageForAccessibilityViolations(
-            page,
-            'Home page',
-            collector
-          ))
+          // The file's one Lighthouse canary - see the `scan` helper above.
+          ...(await scan(page, 'Home page', collector, true))
         )
 
         await homePage.openStart()
         violations.push(
-          ...(await scanPageForAccessibilityViolations(
+          ...(await scan(
             page,
             'Choose your organisation (start) page',
             collector
@@ -164,30 +188,14 @@ test.describe('WCAG Accessibility @smoketest', () => {
           const confirmDeleteReportPage = new ConfirmDeleteReportPage(page)
 
           // Login lands on the dashboard.
-          violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Dashboard',
-              collector
-            ))
-          )
+          violations.push(...(await scan(page, 'Dashboard', collector)))
 
           await dashboardPage.selectTableLink(1, 1)
-          violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Waste records',
-              collector
-            ))
-          )
+          violations.push(...(await scan(page, 'Waste records', collector)))
 
           await wasteRecordsPage.submitSummaryLogLink().click()
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Upload summary log',
-              collector
-            ))
+            ...(await scan(page, 'Upload summary log', collector))
           )
 
           await uploadSummaryLogPage.uploadFile(
@@ -196,19 +204,13 @@ test.describe('WCAG Accessibility @smoketest', () => {
           await uploadSummaryLogPage.continue()
           await checkBodyText(page, 'Your summary log is being checked', 30)
           await checkBodyText(page, 'Upload your summary log', 30)
-          violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Check summary log',
-              collector
-            ))
-          )
+          violations.push(...(await scan(page, 'Check summary log', collector)))
 
           await checkSummaryLogPage.uploadButton().click()
           await checkBodyText(page, 'Your waste records are being updated', 30)
           await checkBodyText(page, 'Summary log uploaded', 30)
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
+            ...(await scan(
               page,
               'Summary log uploaded (confirmation)',
               collector
@@ -217,41 +219,23 @@ test.describe('WCAG Accessibility @smoketest', () => {
 
           await uploadSummaryLogPage.returnToHomePageLink().click()
           await navigateToReports(page)
-          violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Reports list',
-              collector
-            ))
-          )
+          violations.push(...(await scan(page, 'Reports list', collector)))
 
           await reportsPage.selectActiveActionLink(1)
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Report detail (summary log data)',
-              collector
-            ))
+            ...(await scan(page, 'Report detail (summary log data)', collector))
           )
 
           await reportDetailPage.useThisData()
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Tonnes not exported',
-              collector
-            ))
+            ...(await scan(page, 'Tonnes not exported', collector))
           )
 
           // Detour into the delete-report confirmation page and back, so it gets
           // scanned without derailing the create/submit flow below.
           await tonnesNotExportedPage.deleteReportLink().click()
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Confirm delete report',
-              collector
-            ))
+            ...(await scan(page, 'Confirm delete report', collector))
           )
           await confirmDeleteReportPage.confirmDeletion()
 
@@ -260,36 +244,24 @@ test.describe('WCAG Accessibility @smoketest', () => {
           await tonnesNotExportedPage.enterTonnage('5.50')
           await tonnesNotExportedPage.continue()
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Supporting information',
-              collector
-            ))
+            ...(await scan(page, 'Supporting information', collector))
           )
 
           await reportSupportingInformationPage.continue()
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Check your answers',
-              collector
-            ))
+            ...(await scan(page, 'Check your answers', collector))
           )
 
           await reportCheckAnswersPage.createReport()
           await checkBodyText(page, 'report created', 30)
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Report created (confirmation)',
-              collector
-            ))
+            ...(await scan(page, 'Report created (confirmation)', collector))
           )
 
           await confirmationPage.goToReports().click()
           await reportsPage.selectActiveActionLink(1)
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
+            ...(await scan(
               page,
               'Confirm and submit report declaration',
               collector
@@ -298,11 +270,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
 
           await monthlyReportDraftDeclarationPage.confirmAndSubmit()
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Report submitted (confirmation)',
-              collector
-            ))
+            ...(await scan(page, 'Report submitted (confirmation)', collector))
           )
 
           await reportSubmittedPage.returnToReportsLink().click()
@@ -395,43 +363,23 @@ test.describe('WCAG Accessibility @smoketest', () => {
           // --- Report wizard pages unique to the accredited reprocessor flow ---
           await reportsPage.selectActiveActionLink(1)
           await reportDetailPage.useThisData()
-          violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Tonnes recycled',
-              collector
-            ))
-          )
+          violations.push(...(await scan(page, 'Tonnes recycled', collector)))
 
           await tonnesRecycledPage.enterTonnage('15.02')
           await tonnesRecycledPage.continue()
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Tonnes not recycled',
-              collector
-            ))
+            ...(await scan(page, 'Tonnes not recycled', collector))
           )
 
           await tonnesNotRecycledPage.enterTonnage('89.31')
           await tonnesNotRecycledPage.continue()
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Reprocessor PRN summary',
-              collector
-            ))
+            ...(await scan(page, 'Reprocessor PRN summary', collector))
           )
 
           await reprocessorPrnSummaryPage.enterRevenue('1576.12')
           await reprocessorPrnSummaryPage.continue()
-          violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Free PRNs',
-              collector
-            ))
-          )
+          violations.push(...(await scan(page, 'Free PRNs', collector)))
 
           // Abandon the draft report here (report submission is already covered by
           // the exporter flow above) and move on to the PRN pages. Navigate back to
@@ -442,7 +390,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
           // --- Waste records page for an accredited registration (PRN links) ---
           await dashboardPage.selectTableLink(1, 1)
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
+            ...(await scan(
               page,
               'Waste records (accredited reprocessor)',
               collector
@@ -451,13 +399,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
 
           // --- Create, view and delete a draft (awaiting authorisation) PRN ---
           await wasteRecordsPage.createNewPRNLink().click()
-          violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Create PRN',
-              collector
-            ))
-          )
+          violations.push(...(await scan(page, 'Create PRN', collector)))
 
           await createPRNPage.createPrn(
             tonnageWordings.integer,
@@ -465,27 +407,17 @@ test.describe('WCAG Accessibility @smoketest', () => {
             'Testing'
           )
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Check before creating PRN',
-              collector
-            ))
+            ...(await scan(page, 'Check before creating PRN', collector))
           )
 
           await checkBeforeCreatingPRNPage.createPRNButton().click()
-          violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'PRN created',
-              collector
-            ))
-          )
+          violations.push(...(await scan(page, 'PRN created', collector)))
 
           await prnCreatedPage.returnToRegistrationPage().click()
           await dashboardPage.selectTableLink(1, 1)
           await wasteRecordsPage.managePRNsLink().click()
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
+            ...(await scan(
               page,
               'PRN dashboard (awaiting authorisation)',
               collector
@@ -494,7 +426,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
 
           await prnDashboardPage.selectAwaitingLink(1)
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
+            ...(await scan(
               page,
               'PRN view (awaiting authorisation)',
               collector
@@ -504,31 +436,21 @@ test.describe('WCAG Accessibility @smoketest', () => {
           // Detour into the delete-PRN confirmation page and back.
           await prnViewPage.deletePRNButton().click()
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Confirm delete PRN',
-              collector
-            ))
+            ...(await scan(page, 'Confirm delete PRN', collector))
           )
           await confirmDeletePRNPage.backLink().click()
 
           // --- Issue the PRN, then have the recipient (RPD) reject it so the
           // cancellation confirmation pages can be scanned too ---
           await prnViewPage.issuePRNButton().click()
-          violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'PRN issued',
-              collector
-            ))
-          )
+          violations.push(...(await scan(page, 'PRN issued', collector)))
 
           const prnNumber = await prnIssuedPage.prnNumberText()
           await externalAPICancelPrn({ prnNumber })
 
           await prnIssuedPage.managePRNs().click()
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
+            ...(await scan(
               page,
               'PRN dashboard (awaiting cancellation)',
               collector
@@ -537,30 +459,16 @@ test.describe('WCAG Accessibility @smoketest', () => {
 
           await prnDashboardPage.selectAwaitingLink(1)
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'PRN view (awaiting cancellation)',
-              collector
-            ))
+            ...(await scan(page, 'PRN view (awaiting cancellation)', collector))
           )
 
           await prnViewPage.cancelPRNButton().click()
           violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'Confirm cancel PRN',
-              collector
-            ))
+            ...(await scan(page, 'Confirm cancel PRN', collector))
           )
 
           await confirmCancelPrnPage.confirmCancelPrn()
-          violations.push(
-            ...(await scanPageForAccessibilityViolations(
-              page,
-              'PRN cancelled',
-              collector
-            ))
-          )
+          violations.push(...(await scan(page, 'PRN cancelled', collector)))
 
           await prnCancelledPage.prnsPage().click()
           await homePage.signOutLink().click()

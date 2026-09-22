@@ -89,6 +89,8 @@ GREP='@delPRNExp' npm run test:local:grep
 GREP='@tonnageMonitoring' npm run test:local:grep
 ```
 
+`accessibility.e2e.js` only runs its (slow) Lighthouse audit against one canary page in a local or PR-CI run - every other page it tours gets an Axe scan only. A run against a real deployed environment (`ENVIRONMENT` set - CDP Portal's post-deploy check, not something to set for a local docker-compose run) runs Lighthouse against every page instead. See `shouldAuditWithLighthouse` in `test/support/accessibility.js`.
+
 **Tag conventions:**
 
 Tags are for `--grep` spec selection, not documentation. Every tag is camelCase (`@newTag`, not `@newtag` or `@new-tag`; a single-word tag like `@cma` is just lowercase). A handful of tags are additionally cross-cutting categories with an enforced meaning - use those to select a slice of the suite by concern, and hold any new one to the same bar: does it name a concern broad enough to span multiple spec files, or is it really a label for one spec?
