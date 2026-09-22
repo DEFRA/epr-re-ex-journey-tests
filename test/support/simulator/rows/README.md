@@ -161,7 +161,7 @@ service treats a null accreditation as accredited throughout.
 
 ## Where the numbers come from
 
-As with the population, this planner holds no figures of its own.
+As with the population, this planner holds no production figure of its own.
 `activity.summaryLogSheets` on the calibration gives each worksheet its share of
 an upload's rows and the tonnage the whole UK reports through it in a month,
 and `activity.rowsPerSubmission` gives the rows an upload carries.
@@ -181,6 +181,12 @@ estate's year land on the tonnage the calibration reports for that worksheet,
 scaled with the population so a tenth-scale run credits a tenth of it. It
 follows that raising the rows a submission carries shrinks the load behind each
 row rather than inflating the year's tonnage.
+
+A registration's months are not all the same. Each month is scaled by a factor
+drawn within `MONTHLY_VARIATION` of one, and the factors are brought back to an
+average of exactly one across that registration's months, so a month read on
+the regulator pages varies as production does while the registration's year,
+and the estate's, still lands where the calibration puts it.
 
 The reprocessor figures are the whole reprocessor estate's, and the input and
 output streams are two ways one estate reports the same process, so each

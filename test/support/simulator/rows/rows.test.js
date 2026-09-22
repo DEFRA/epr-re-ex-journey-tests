@@ -13,6 +13,7 @@ import {
 import { CONTRIBUTION } from './sheets.js'
 
 /** @import {PlannedOperator} from '../population/population.js' */
+/** @import {PlannedRegistrationRows} from './rows.js' */
 /** @import {Calibration} from '../population/calibration.js' */
 
 const SEED = 'rows'
@@ -77,6 +78,37 @@ function monthlyTonnage(plan, stream, worksheet) {
     .filter((r) => r.worksheet === worksheet)
     .reduce((sum, row) => sum + Number(row.fields[cell]), 0)
   return total / 12
+}
+
+/**
+ * The registration-months a stream reports across the plan.
+ *
+ * @param {ReturnType<typeof planSummaryLogRows>} plan
+ * @param {string} stream
+ */
+const monthsOn = (plan, stream) =>
+  plan.registrations
+    .filter((r) => r.stream === stream)
+    .reduce((sum, r) => sum + new Set(r.rows.map((row) => row.period)).size, 0)
+
+/**
+ * What one registration reports in each of its months through one worksheet,
+ * read off the cell, keyed by period.
+ *
+ * @param {PlannedRegistrationRows} registration
+ * @param {string} worksheet
+ * @returns {Record<string, number>}
+ */
+function monthlyTotals(registration, worksheet) {
+  const cell = TONNAGE_CELL[worksheet]
+  assert.ok(cell, `no tonnage cell known for ${worksheet}`)
+  /** @type {Record<string, number>} */
+  const totals = {}
+  for (const row of registration.rows) {
+    if (row.worksheet !== worksheet) continue
+    totals[row.period] = (totals[row.period] ?? 0) + Number(row.fields[cell])
+  }
+  return totals
 }
 
 /** The tonnage the service works out for a received or exported load. */
@@ -249,15 +281,9 @@ describe('planSummaryLogRows', () => {
       population: planPopulation({ seed: SEED, scale: 0.1 }),
       calibration
     })
-    /** @param {string} stream */
-    const monthsOn = (stream) =>
-      skewed.registrations
-        .filter((r) => r.stream === stream)
-        .reduce(
-          (sum, r) => sum + new Set(r.rows.map((row) => row.period)).size,
-          0
-        )
-    const estate = monthsOn('reprocessorInput') + monthsOn('reprocessorOutput')
+    const estate =
+      monthsOn(skewed, 'reprocessorInput') +
+      monthsOn(skewed, 'reprocessorOutput')
     for (const [stream, worksheet] of [
       ['reprocessorInput', 'Received (sections 1, 2 and 3)'],
       ['reprocessorInput', 'Sent on (sections 5, 6 and 7)'],
@@ -268,7 +294,7 @@ describe('planSummaryLogRows', () => {
       const published =
         calibration.activity.summaryLogSheets[stream][worksheet].monthlyTonnage
       assert.ok(published, `${stream} ${worksheet} has no published figure`)
-      const expected = (published * 0.1 * monthsOn(stream)) / estate
+      const expected = (published * 0.1 * monthsOn(skewed, stream)) / estate
       const planned = monthlyTonnage(skewed, stream, worksheet)
       assert.ok(
         Math.abs(planned - expected) < expected * 0.01,
@@ -294,6 +320,51 @@ describe('planSummaryLogRows', () => {
     assert.ok(
       Math.abs(part - whole * 0.1) < whole * 0.01,
       `a tenth-scale run credits ${Math.round(part)}t against ${Math.round(whole * 0.1)}t`
+    )
+  })
+
+  it("varies a registration's tonnage from month to month", () => {
+    const tenth = planSummaryLogRows({
+      population: planPopulation({ seed: SEED, scale: 0.1 })
+    })
+    const wholeYear = tenth.registrations.filter(
+      (r) =>
+        r.stream === 'reprocessorInput' &&
+        new Set(r.rows.map((row) => row.period)).size === 12
+    )
+    assert.ok(wholeYear.length > 0, 'no reprocessor reports the whole year')
+    for (const registration of wholeYear) {
+      const months = Object.values(
+        monthlyTotals(registration, 'Received (sections 1, 2 and 3)')
+      )
+      const spread = Math.max(...months) / Math.min(...months)
+      assert.ok(
+        spread > 1.1,
+        `${registration.registrationId} reports ${months.map(Math.round).join(', ')}`
+      )
+    }
+  })
+
+  it("keeps the estate's year on the national figure while the months vary", () => {
+    const tenth = planSummaryLogRows({
+      population: planPopulation({ seed: SEED, scale: 0.1 })
+    })
+    const worksheet = 'Received (sections 1, 2 and 3)'
+    const published =
+      DEFAULT_CALIBRATION.activity.summaryLogSheets.reprocessorInput[worksheet]
+        .monthlyTonnage
+    assert.ok(published)
+    const share =
+      monthsOn(tenth, 'reprocessorInput') /
+      (monthsOn(tenth, 'reprocessorInput') +
+        monthsOn(tenth, 'reprocessorOutput'))
+    const expected = published * 0.1 * share
+    const planned = monthlyTonnage(tenth, 'reprocessorInput', worksheet)
+    // Variation that only redistributes a registration's year cannot move the
+    // estate; noise drawn month by month would, by more than the weights round.
+    assert.ok(
+      Math.abs(planned - expected) < expected * 0.001,
+      `the estate reports ${planned.toFixed(1)}t a month against ${expected.toFixed(1)}t`
     )
   })
 
