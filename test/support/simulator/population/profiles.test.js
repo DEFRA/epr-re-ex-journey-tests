@@ -111,9 +111,11 @@ describe('archetypes', () => {
   /**
    * The spread multiplies the calibrated rate, so a calibration high enough to
    * put the tardy archetype past certainty has to say so rather than plan a run
-   * that quietly draws against an impossible number.
+   * that quietly draws against an impossible number. The bound is rounded down
+   * from the true 0.41666…, so a calibration set to exactly the printed figure
+   * is accepted rather than refused a second time.
    */
-  it('refuse a calibration they cannot spread', () => {
+  it('refuse a calibration they cannot spread, naming an achievable bound', () => {
     assert.throws(
       () =>
         buildArchetypes({
@@ -123,7 +125,16 @@ describe('archetypes', () => {
             uploads: { ...FIXTURE.activity.uploads, rejectionRate: 0.5 }
           }
         }),
-      /rejectionRate.*not a probability.*0\.417 or under/
+      /rejectionRate.*not a probability.*0\.416 or under/
+    )
+    assert.doesNotThrow(() =>
+      buildArchetypes({
+        ...FIXTURE,
+        activity: {
+          ...FIXTURE.activity,
+          uploads: { ...FIXTURE.activity.uploads, rejectionRate: 0.416 }
+        }
+      })
     )
   })
 
@@ -131,9 +142,11 @@ describe('archetypes', () => {
    * The rates that go right are spread by scaling their failure side, so those
    * have a floor rather than a ceiling. A measured producer acceptance below it
    * is an ordinary figure to find in an overlay, so the refusal has to name the
-   * bound it wants rather than only the value it reached.
+   * bound it wants rather than only the value it reached. The bound is rounded
+   * up from the true 0.58333…, for the same reason: the printed figure has to
+   * be achievable.
    */
-  it('refuse a calibration whose good rate cannot be bettered', () => {
+  it('refuse a calibration whose good rate cannot be bettered, naming an achievable bound', () => {
     assert.throws(
       () =>
         buildArchetypes({
@@ -143,7 +156,16 @@ describe('archetypes', () => {
             prn: { ...FIXTURE.activity.prn, producerAcceptRate: 0.55 }
           }
         }),
-      /producerAcceptRate.*not a probability.*0\.583 or over/
+      /producerAcceptRate.*not a probability.*0\.584 or over/
+    )
+    assert.doesNotThrow(() =>
+      buildArchetypes({
+        ...FIXTURE,
+        activity: {
+          ...FIXTURE.activity,
+          prn: { ...FIXTURE.activity.prn, producerAcceptRate: 0.584 }
+        }
+      })
     )
   })
 
@@ -161,6 +183,28 @@ describe('archetypes', () => {
           activity: {
             ...FIXTURE.activity,
             uploads: { ...FIXTURE.activity.uploads, weekendVolumeShare: 0.15 }
+          }
+        }),
+      /weekendVolumeShare.*not a probability.*0\.119 or under/
+    )
+  })
+
+  /**
+   * A `weekendVolumeShare` above `WEEKEND_SHARE_OF_A_WORKING_WEEK` (2/7 ≈
+   * 0.286) pushes the `typical` archetype past certainty before `tardy` is
+   * ever spread, because the conversion inflates it well past 1 while an
+   * ordinary activity rate never exceeds 1 to begin with. Naming `typical`'s
+   * own bound there would tell the reader 0.28 is fine when the actual,
+   * tighter constraint from `tardy` still refuses it at 0.119.
+   */
+  it('names the true tardy bound even when a laxer archetype fails first', () => {
+    assert.throws(
+      () =>
+        buildArchetypes({
+          ...FIXTURE,
+          activity: {
+            ...FIXTURE.activity,
+            uploads: { ...FIXTURE.activity.uploads, weekendVolumeShare: 0.3 }
           }
         }),
       /weekendVolumeShare.*not a probability.*0\.119 or under/
