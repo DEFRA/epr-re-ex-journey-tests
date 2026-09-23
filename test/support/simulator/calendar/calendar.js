@@ -625,6 +625,7 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
     const amendable = submitted.filter(
       (row) => !closedPeriods.includes(row.period)
     )
+    /** @type {UploadEvent['amendments']} */
     let amendments = null
     if (submitted.length > 0) {
       amendmentsOwed += amendmentCount(context, stream, upload.period)
