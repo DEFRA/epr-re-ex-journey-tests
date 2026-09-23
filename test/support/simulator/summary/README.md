@@ -34,9 +34,7 @@ number.
   owes a third of its quarterly rate each month. The rate is a steady state:
   the calendar lands a period's closing upload with its report, so a month
   can read a little under or over as the closing uploads fall either side of
-  it, and the run's last month reads light. A registered-only registration's
-  first upload can plant no rejection the route expresses, so its first month
-  reads under its invalid target too.
+  it, and the run's last month reads light.
 - Notes are expected from the month of the day after a registration first
   submitted a summary log, which the calendar gives a whole month's notes
   however late in it that day falls, and stop with a suspension or
@@ -62,8 +60,8 @@ how many times it changed. The calendar also plans attempts the route cannot
 express, an abandoned draft, an error on a row and an unreadable workbook,
 and the executor makes none of them (see `../execute/README.md`), so they are
 left out of both the upload count and its target, and the invalid target
-likewise counts only the fatal kinds the stream can plant: a removed row on
-any stream, a bad date only where the service validates a row's cells.
+likewise counts only the fatal kinds the route can express: a removed row or
+a bad date, on any stream.
 
 A report's lateness is against the calibration's due day, the 21st, rather
 than the 20th the service's own calendar marks, so the shares compare with
