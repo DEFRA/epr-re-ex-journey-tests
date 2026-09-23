@@ -620,6 +620,7 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
   const landed = []
   /** @type {string | null} */
   let submittedCutoff = null
+  let amendmentsOwed = 0
   for (const upload of uploads) {
     const carried = allRows.filter((row) => row.date <= upload.day)
     if (carried.length === 0) continue
@@ -632,6 +633,14 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
     const amendable = submitted.filter(
       (row) => !closedPeriods.includes(row.period)
     )
+    /** @type {UploadEvent['amendments']} */
+    let amendments = null
+    if (submitted.length > 0) {
+      amendmentsOwed += amendmentCount(context, stream, upload.period)
+      const count = Math.min(amendable.length, amendmentsOwed)
+      amendmentsOwed -= count
+      amendments = { count, seed: `${context.random.int(1, 2 ** 31 - 1)}` }
+    }
 
     const event = draftUploadAttempts(
       context,
@@ -639,16 +648,7 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
         day: upload.day,
         cutoff: upload.day,
         closedPeriods,
-        amendments:
-          submitted.length === 0
-            ? null
-            : {
-                count: Math.min(
-                  amendable.length,
-                  amendmentCount(context, stream, upload.period)
-                ),
-                seed: `${context.random.int(1, 2 ** 31 - 1)}`
-              }
+        amendments
       },
       submitted,
       added
