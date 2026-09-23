@@ -40,7 +40,9 @@ number.
 - Notes are expected from the month of the day after a registration first
   submitted a summary log, which the calendar gives a whole month's notes
   however late in it that day falls, and stop with a suspension or
-  cancellation.
+  cancellation. A month's notes are accepted in it at the same-month share
+  and the rest the month after, so a registration's first issuing month
+  expects only that share accepted.
 
 ## Where the generated figures come from
 

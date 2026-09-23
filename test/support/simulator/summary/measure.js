@@ -826,6 +826,24 @@ function noteSections({
       cancelled: requested
     }
   }
+  /**
+   * What one registration's profile expects of its notes in a month it issues
+   * in. A month's notes are accepted in it at the same-month share and the rest
+   * the month after, so in its first issuing month, with nothing issued the
+   * month before, only that share is accepted.
+   *
+   * @param {{operator: PlannedOperator, registration: PlannedRegistration}} member
+   * @param {keyof ReturnType<typeof expected>} metric
+   * @param {string} month
+   */
+  const expectedIn = ({ operator, registration }, metric, month) => {
+    const steady = expected(operator)[metric]
+    const monthBefore = monthOf(addDays(`${month}-01`, -1))
+    return metric !== 'accepted' ||
+      issuing.get(registration.id)?.has(monthBefore)
+      ? steady
+      : steady * operator.profile.prn.sameMonthAcceptanceShare
+  }
   const ownNotes = service.notes.filter((note) =>
     accreditationNumbers.has(note.accreditationNumber)
   )
@@ -844,7 +862,7 @@ function noteSections({
     )
     /** @param {keyof ReturnType<typeof expected>} metric */
     const target = (metric) =>
-      sum(active, ({ operator }) => expected(operator)[metric])
+      sum(active, (member) => expectedIn(member, metric, month))
     const transitions = tally(
       ownTransitions.filter((transition) => monthOf(transition.at) === month),
       transitionOf
@@ -884,11 +902,10 @@ function noteSections({
       const members = accredited.filter((member) => materialKey(member) === key)
       /** @param {keyof ReturnType<typeof expected>} metric */
       const target = (metric) =>
-        sum(
-          members,
-          ({ operator, registration }) =>
-            expected(operator)[metric] *
-            (issuing.get(registration.id)?.size ?? 0)
+        sum(members, (member) =>
+          sum([...(issuing.get(member.registration.id) ?? [])], (month) =>
+            expectedIn(member, metric, month)
+          )
         )
       const transitions = tally(
         ownTransitions.filter((transition) => keyOf(transition) === key),
