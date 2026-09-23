@@ -11,6 +11,7 @@ import {
   lastDayOfMonth,
   monthsOfPeriod,
   planCalendar,
+  statusChangeOf,
   uploadRows
 } from './calendar.js'
 import {
@@ -338,9 +339,33 @@ describe('registrations and their accreditations', () => {
     }
   })
 
+  it('changes an accreditation on the day the row planner stops its rows', () => {
+    for (const event of changed) {
+      assert.equal(
+        day(event),
+        must(statusChangeOf(registrationOf(event), population.seed)).day
+      )
+    }
+  })
+
+  it('uploads no load dated after the accreditation changed', () => {
+    for (const change of changed) {
+      const planned = rowsOf(must(change.registrationId))
+      for (const upload of uploadsOf(planned.registrationId)) {
+        for (const row of viewOf(planned, upload)) {
+          assert.ok(
+            row.date <= day(change),
+            `${planned.registrationId} uploads a load of ${row.date} after its ${change.type} on ${day(change)}`
+          )
+        }
+      }
+    }
+  })
+
   /**
-   * A suspended accreditation is still accredited: it owes its monthly reports
-   * and keeps recording its loads, and only its notes stop.
+   * A suspended accreditation owes its monthly reports and keeps uploading
+   * what it recorded before, though the service excludes any load dated after
+   * the suspension; its notes stop.
    */
   it('keeps a suspended registration uploading and reporting, but issuing nothing', () => {
     for (const change of ofType(EVENT.ACCREDITATION_SUSPENDED)) {
@@ -372,13 +397,22 @@ describe('registrations and their accreditations', () => {
     for (const event of changed) assert.ok(!isWeekend(event), event.at)
   })
 
-  it('leaves a status change unplanned rather than put it on a weekend', () => {
-    const sunday = '2026-01-04'
-    const planned = planCalendar({ population, rows, to: sunday })
+  it('plans no status change that falls after the run ends', () => {
+    const planned = planCalendar({ population, rows, to: '2026-01-30' })
     const changes = planned.operators
       .flatMap((operator) => operator.events)
       .filter((event) => event.type.startsWith('accreditation.'))
     assert.deepEqual(changes, [])
+  })
+
+  it('changes an accreditation on the first day of a run that starts after the change', () => {
+    const from = addDays(changed.map(day).sort().at(-1) ?? '', 1)
+    const planned = planCalendar({ population, rows, from, to: TO })
+    const changes = planned.operators
+      .flatMap((operator) => operator.events)
+      .filter((event) => event.type.startsWith('accreditation.'))
+    assert.equal(changes.length, changed.length)
+    for (const event of changes) assert.equal(day(event), from)
   })
 })
 

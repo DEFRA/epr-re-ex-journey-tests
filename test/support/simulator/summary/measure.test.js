@@ -677,19 +677,21 @@ describe('notes', () => {
   })
 
   it('counts a suspended or cancelled accreditation up to the month before its status changed', () => {
-    const suspended = events.find(
-      (event) => event.type === EVENT.ACCREDITATION_SUSPENDED
+    const changed = events.find(
+      (event) =>
+        event.type === EVENT.ACCREDITATION_SUSPENDED ||
+        event.type === EVENT.ACCREDITATION_CANCELLED
     )
-    assert.ok(suspended)
-    const [year, month] = suspended.at.split('-').map(Number)
-    const monthOf = suspended.at.slice(0, 7)
+    assert.ok(changed)
+    const [year, month] = changed.at.split('-').map(Number)
+    const monthOf = changed.at.slice(0, 7)
     const monthAfter = addDays(lastDayOfMonth(year, month), 1).slice(0, 7)
-    assert.ok(suspended.at.slice(0, 10) > `${monthOf}-01`)
+    assert.ok(changed.at.slice(0, 10) > `${monthOf}-01`)
     /** @param {string} inMonth */
     const ids = (inMonth) =>
       issuingIn(inMonth).map(({ registration }) => registration.id)
-    assert.ok(ids(monthOf).includes(suspended.registrationId))
-    assert.ok(!ids(monthAfter).includes(suspended.registrationId))
+    assert.ok(ids(monthOf).includes(changed.registrationId))
+    assert.ok(!ids(monthAfter).includes(changed.registrationId))
     for (const inMonth of [monthOf, monthAfter]) {
       assert.ok(
         Math.abs(

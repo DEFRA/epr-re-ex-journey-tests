@@ -65,11 +65,16 @@ A registration's events start with its approval, on the day it went active or
 the first day of the period if that is later, and carry a status change if the
 population ended it suspended or cancelled. The population states only where
 each accreditation ended up; the day is drawn here, at least a month into the
-registration's year. A cancellation ends everything: a registration is
-cancelled exactly where its accreditation is, so one event carries both, and
-nothing is planned after it. A suspension ends only the notes: a suspended
-accreditation is still accredited, so it keeps recording loads and owes its
-monthly reports. An accreditation that runs out stops recording loads on its
+accreditation's year. `statusChangeOf` draws it from the population's seed
+rather than the run's window, because the row planner reads the same day and
+plans no load after it. A change that falls after `to` is not planned, and one
+that falls before `from` is applied on the registration's first day in the
+run. A cancellation ends everything: a registration is cancelled exactly where
+its accreditation is, so one event carries both, and nothing is planned after
+it. A suspension stops the loads and the notes. The service excludes a load
+dated after the suspension, so none is planned there, but the registration
+keeps uploading what it recorded before and owes its monthly reports. An
+accreditation that runs out stops recording loads on its
 last day, but the uploads and reports for what it did carry on to `to`, so a
 period that ended with the accreditation is still filed.
 

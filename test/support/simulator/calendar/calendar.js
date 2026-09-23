@@ -10,8 +10,7 @@
 
 import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { createRandom } from '../population/random.js'
-import { heldTonnage } from '../rows/rows.js'
-import { CONTRIBUTION, SHEETS } from '../rows/sheets.js'
+import { CONTRIBUTION, SHEETS, heldTonnage } from '../rows/sheets.js'
 import {
   CADENCE,
   EVENT,
@@ -275,26 +274,35 @@ function reportingPeriods(registration, first, last, dueDay) {
 /**
  * Where a registration ends up, and when. The population states the end state
  * of each accreditation and nothing about the day it got there, so the day is
- * drawn here: somewhere after the registration has had a month to report.
+ * drawn here: somewhere in the accreditation's year after the registration has
+ * had a month to report.
+ *
+ * Drawn from the population alone, not from the run's window, because the row
+ * planner reads the same day to stop the registration's rows there.
  *
  * @param {PlannedRegistration} registration
- * @param {string} first
- * @param {string} last
- * @param {Random} random
+ * @param {string | number} populationSeed
  * @returns {{type: 'accreditation.suspended' | 'accreditation.cancelled', day: string} | null}
  */
-function statusChange(registration, first, last, random) {
-  const status = registration.accreditation?.status
+export function statusChangeOf(registration, populationSeed) {
+  const { accreditation } = registration
   const type =
-    status === 'suspended'
+    accreditation?.status === 'suspended'
       ? EVENT.ACCREDITATION_SUSPENDED
-      : status === 'cancelled'
+      : accreditation?.status === 'cancelled'
         ? EVENT.ACCREDITATION_CANCELLED
         : null
-  if (!type) return null
+  if (!accreditation || !type) return null
 
-  const earliest = earlier(addDays(first, EARLIEST_STATUS_CHANGE_DAYS), last)
-  const day = dayBetween(earliest, last, random, false)
+  const { validFrom, validTo } = accreditation
+  const earliest = earlier(
+    addDays(validFrom, EARLIEST_STATUS_CHANGE_DAYS),
+    validTo
+  )
+  const random = createRandom(
+    `${populationSeed}/status-change/${registration.id}`
+  )
+  const day = dayBetween(earliest, validTo, random, false)
   return day ? { type, day } : null
 }
 
@@ -353,6 +361,7 @@ const uploadCount = (perPeriod, random) =>
  * @property {PlannedRegistrationRows | undefined} rows
  * @property {Calibration} calibration
  * @property {string} seed - the run's, which `random` and any further draw derive from
+ * @property {string | number} populationSeed - what the registration's status change is drawn from
  * @property {Random} random
  * @property {string} to
  * @property {Map<string, number>} recycledPerCreditedTonne - by stream, what a reprocessor's report carries for each tonne its rows credit in the period
@@ -991,7 +1000,13 @@ function planRegistration(context, from) {
     registrationId: registration.id
   })
 
-  const change = statusChange(registration, first, last, random)
+  const drawn = statusChangeOf(registration, context.populationSeed)
+  // A change before the run starts is applied as it starts, since nothing of
+  // the registration is replayed before then.
+  const change =
+    drawn && drawn.day <= last
+      ? { ...drawn, day: later(drawn.day, first) }
+      : null
   if (change) {
     draft(context, change.day, {
       type: change.type,
@@ -1099,6 +1114,7 @@ export function planCalendar({
               rows: rowsByRegistration.get(registration.id),
               calibration,
               seed,
+              populationSeed: population.seed,
               random: createRandom(`${seed}/${registration.id}`),
               to,
               recycledPerCreditedTonne: perCreditedTonne,

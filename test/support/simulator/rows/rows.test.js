@@ -11,6 +11,8 @@ import {
   streamFor
 } from './rows.js'
 import { CONTRIBUTION } from './sheets.js'
+import { statusChangeOf } from '../calendar/calendar.js'
+import { EVENT } from '../calendar/events.js'
 
 /** @import {PlannedOperator} from '../population/population.js' */
 /** @import {PlannedRegistrationRows} from './rows.js' */
@@ -430,6 +432,37 @@ describe('a planned row that has to count', () => {
           assert.ok(
             day >= accreditation.validFrom && day <= accreditation.validTo,
             `${registration.registrationId} ${marker} ${day} falls outside ${accreditation.validFrom}..${accreditation.validTo}`
+          )
+        }
+      }
+    }
+  })
+
+  it('pins no date after the day its accreditation was suspended or cancelled', () => {
+    const changed = plan.registrations.flatMap((registration) => {
+      const change = statusChangeOf(
+        plannedFor(registration.registrationId).registration,
+        population.seed
+      )
+      return change ? [{ registration, change }] : []
+    })
+    assert.deepEqual(
+      [...new Set(changed.map(({ change }) => change.type))].sort(),
+      [EVENT.ACCREDITATION_CANCELLED, EVENT.ACCREDITATION_SUSPENDED]
+    )
+    for (const { registration, change } of changed) {
+      assert.ok(registration.rows.length > 0)
+      for (const row of registration.rows) {
+        const days = [
+          row.date,
+          ...pinnedDates(row).map(([, value]) =>
+            String(value).split('/').reverse().join('-')
+          )
+        ]
+        for (const day of days) {
+          assert.ok(
+            day <= change.day,
+            `${registration.registrationId} row ${row.rowId} pins ${day}, after its ${change.type} on ${change.day}`
           )
         }
       }

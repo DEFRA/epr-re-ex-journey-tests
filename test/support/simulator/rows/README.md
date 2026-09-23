@@ -152,9 +152,10 @@ tonnage bug rather than a planning one.
 
 An accreditation that is suspended or cancelled is a separate matter. The
 window itself never moves, but a date after the status changed is excluded, and
-when that change happened is the event calendar's to decide. So a registration
-the population plans as suspended will lose the tonnage of every row dated after
-the calendar suspends it.
+when that change happened is the event calendar's to decide. So the months stop
+on the day the calendar's `statusChangeOf` gives, and no row pins a date after
+it. A row dated on the day itself still counts, because the change takes effect
+at the moment it is recorded, later that day.
 
 A registration with no accreditation at all is not excluded on the window: the
 service treats a null accreditation as accredited throughout.

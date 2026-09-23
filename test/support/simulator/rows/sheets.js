@@ -6,6 +6,8 @@
  * survives the same field sitting in a different column of each template.
  */
 
+import Decimal from 'decimal.js'
+
 /** @import {Random} from '../population/random.js' */
 
 /**
@@ -18,6 +20,18 @@ export const CONTRIBUTION = {
   DEBIT: 'debit',
   NONE: 'none'
 }
+
+/**
+ * The tonnage the service holds for a cell: two decimal places, rounded half up
+ * in decimal arithmetic, as the service rounds it. Rounding the double instead
+ * reads 1.005 as just under the half and lands on the other side. A cell that
+ * rounds to nothing is 0, never -0.
+ *
+ * @param {number} cell
+ * @returns {number}
+ */
+export const heldTonnage = (cell) =>
+  new Decimal(cell).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber() || 0
 
 const round = (value) => Math.round(value * 100) / 100
 

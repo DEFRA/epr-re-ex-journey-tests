@@ -7,17 +7,17 @@
  * arrange before a planned row can count.
  */
 
-import Decimal from 'decimal.js'
 import { WORKSHEET_CONFIG } from '../../spreadsheet/spreadsheet-config.js'
+import { statusChangeOf } from '../calendar/calendar.js'
 import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { allocate, createRandom } from '../population/random.js'
-import { CONTRIBUTION, SHEETS } from './sheets.js'
+import { CONTRIBUTION, SHEETS, heldTonnage } from './sheets.js'
 
 /** @import {PlannedPopulation, PlannedRegistration} from '../population/population.js' */
 /** @import {Calibration} from '../population/calibration.js' */
 /** @import {Random} from '../population/random.js' */
 
-export { CONTRIBUTION }
+export { CONTRIBUTION, heldTonnage }
 
 /**
  * @typedef {Object} PlannedLogRow
@@ -108,18 +108,6 @@ const daysBetween = (from, to) =>
   Math.round((to.getTime() - from.getTime()) / DAY_MS)
 
 /**
- * The tonnage the service holds for a cell: two decimal places, rounded half up
- * in decimal arithmetic, as the service rounds it. Rounding the double instead
- * reads 1.005 as just under the half and lands on the other side. A cell that
- * rounds to nothing is 0, never -0.
- *
- * @param {number} cell
- * @returns {number}
- */
-export const heldTonnage = (cell) =>
-  new Decimal(cell).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber() || 0
-
-/**
  * Which of the generator's five streams a registration renders as.
  *
  * The population plans a registration as exporting or reprocessing and leaves
@@ -196,20 +184,26 @@ function sheetsOf(stream, calibration) {
 
 /**
  * The months a registration reports, which start when it went active and stop
- * at the end of its accreditation window.
+ * at the end of its accreditation window, or on the day the calendar suspends
+ * or cancels the accreditation.
  *
- * A row dated outside that window is ignored rather than counted, and over a
- * simulated year that is the likeliest way for a whole period's tonnage to
- * vanish, so the months are cut here rather than left for the service to find.
+ * A row dated outside that window, or after that day, is ignored rather than
+ * counted, and over a simulated year that is the likeliest way for a whole
+ * period's tonnage to vanish, so the months are cut here rather than left for
+ * the service to find.
  *
  * @param {PlannedRegistration} registration
  * @param {number} year
+ * @param {string | number} populationSeed
  * @returns {ReportingMonth[]}
  */
-function reportingMonths(registration, year) {
+function reportingMonths(registration, year, populationSeed) {
   const opened = new Date(`${registration.activeFrom}T00:00:00Z`)
-  const closed = registration.accreditation
-    ? new Date(`${registration.accreditation.validTo}T00:00:00Z`)
+  const lastDay =
+    statusChangeOf(registration, populationSeed)?.day ??
+    registration.accreditation?.validTo
+  const closed = lastDay
+    ? new Date(`${lastDay}T00:00:00Z`)
     : lastDayOf(year, 11)
 
   const months = []
@@ -371,7 +365,7 @@ export function planSummaryLogRows({
     return {
       registration,
       stream,
-      months: reportingMonths(registration, reportingYear),
+      months: reportingMonths(registration, reportingYear, population.seed),
       rowCounts: rowsPerMonth(stream, volumeFactor, calibration)
     }
   })
