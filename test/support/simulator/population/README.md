@@ -155,6 +155,44 @@ as one, because nothing published measures how a spreadsheet upload fares, how
 often a return is restated, or what becomes of a PRN once it is raised. Each
 figure says which it is where it stands.
 
+### The bound on a calibrated rate
+
+Most rates the archetypes are built from are spread either side of the
+calibration by up to the tardy archetype's factor, `SPREAD.tardy` in
+`profiles.js`, currently 2.4, and the spread still has to land inside a
+probability. A rate that worsens with the archetype —
+`missedReturnRate`, `restatementRate`, `uploads.rejectionRate`,
+`uploads.fatalShare`, `uploads.abandonRate`, and the PRN `deleteRate`,
+`discardRate` and `cancelRate` — is multiplied by that factor, so the
+calibrated figure has to stay under its reciprocal: at the current factor, a
+little under 0.417. A rate that improves instead — `producerAcceptRate` and
+`sameMonthAcceptanceShare` — is spread the other way, on its failure side, so
+the calibrated figure has to stay a little over one minus that reciprocal, at
+the current factor 0.583. `buildArchetypes` (`profiles.js`) refuses a
+calibration that crosses either bound, naming the rate and, rounded to three
+places, the bound it needs; the rounded figure itself is just past the true
+bound and would still be refused. `weekendVolumeShare` carries the same
+spread, but only after it is turned into a share of operators rather than of
+upload volume — see `WEEKEND_SHARE_OF_A_WORKING_WEEK` in `profiles.js` — so
+its own bound is smaller: a little under 0.119 rather than 0.417.
+
+Punctuality is spread the same way but is bound jointly rather than rate by
+rate: the three late buckets share one ceiling on their sum, and `earlyShare`'s
+bound depends on the calibration's own on-time split rather than being fixed.
+Their refusals report the value that failed but, unlike the rates above, name
+no bound to aim for, so reaching a workable figure there is trial and error
+against the refusal rather than arithmetic against a published number.
+
+A measured rate past its bound cannot be handed to the archetypes as measured.
+There is no setting that substitutes for it exactly: `fatalShare`, for
+instance, mostly decides how an already-rejected upload is rejected, fatal or
+row-level, so raising it does not recover a rejection frequency the bound
+would not let `rejectionRate` reach on its own. The workable move is to clamp
+the rate to its bound and record the shortfall against the measured figure
+somewhere the overlay itself cannot carry it, such as the commit or note that
+introduces the overlay, rather than trying to reach the measured figure
+through the archetype spread alone.
+
 ### Running against measured behaviour
 
 Point `SIMULATOR_CALIBRATION` at a JSON file and `loadCalibration()` lays it
