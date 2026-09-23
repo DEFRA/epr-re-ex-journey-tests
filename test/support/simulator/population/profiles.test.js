@@ -147,6 +147,26 @@ describe('archetypes', () => {
     )
   })
 
+  /**
+   * `weekendVolumeShare` is converted into a share of operators before it is
+   * spread (`WEEKEND_SHARE_OF_A_WORKING_WEEK`), so its bound in calibrated
+   * terms is smaller than the plain `1 / factor` an activity rate gets: the
+   * refusal has to convert back rather than quote the pre-conversion figure.
+   */
+  it('refuse a calibration whose weekend upload share cannot be spread, naming the converted bound', () => {
+    assert.throws(
+      () =>
+        buildArchetypes({
+          ...FIXTURE,
+          activity: {
+            ...FIXTURE.activity,
+            uploads: { ...FIXTURE.activity.uploads, weekendVolumeShare: 0.15 }
+          }
+        }),
+      /weekendVolumeShare.*not a probability.*0\.119 or under/
+    )
+  })
+
   it('refuse a calibration whose lateness spreads past every return', () => {
     assert.throws(
       () =>

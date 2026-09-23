@@ -71,9 +71,18 @@ function asProbability(value, of, bound = '') {
   return value
 }
 
-/** A rate that rises as an archetype gets less reliable. */
-const worse = (rate, factor, of) =>
-  asProbability(rate * factor, of, `${(1 / factor).toFixed(3)} or under`)
+/**
+ * A rate that rises as an archetype gets less reliable. `toCalibrated`
+ * converts the bound back into the units the calibration is written in, for a
+ * rate that is itself converted before it reaches here (`weekendVolumeShare`,
+ * a share of upload volume, against a bound on a share of operators).
+ */
+const worse = (rate, factor, of, toCalibrated = (bound) => bound) =>
+  asProbability(
+    rate * factor,
+    of,
+    `${toCalibrated(1 / factor).toFixed(3)} or under`
+  )
 
 /** A rate that falls instead, because it is the side that goes right. */
 const better = (rate, factor, of) =>
@@ -207,7 +216,12 @@ export function buildArchetypes(calibration) {
             'sameMonthAcceptanceShare'
           )
         },
-        weekendChance: worse(weekendWorkers, factor, 'weekendVolumeShare')
+        weekendChance: worse(
+          weekendWorkers,
+          factor,
+          'weekendVolumeShare',
+          (bound) => bound * WEEKEND_SHARE_OF_A_WORKING_WEEK
+        )
       }
     ])
   )
