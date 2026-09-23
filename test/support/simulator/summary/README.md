@@ -31,10 +31,16 @@ number.
   under another mix the target follows the mix, as the plan does.
 - A monthly figure counts the registrations that owe the month: active by
   its end, and not cancelled before it began. A registered-only registration
-  owes a third of its quarterly rate each month. The rate is a steady state:
-  the calendar lands a period's closing upload with its report, so a month
-  can read a little under or over as the closing uploads fall either side of
-  it, and the run's last month reads light.
+  owes a third of its quarterly rate each month. The calendar lands a
+  period's closing upload after the period, with its report, so a month
+  holds the rest of its own period's uploads and the one closing the period
+  before. The first period a registration owes in the run has none closing
+  before it, so it is asked one upload fewer. Beyond that the rate is a
+  steady state: a month can read a little under or over as the closing
+  uploads fall either side of it, and the run's last month reads light.
+  Amended rows are a steady state too. A registration's first upload has
+  nothing to amend and owes its share to the next, so its first month reads
+  light and the next one catches up.
 - Notes are expected from the month of the day after a registration first
   submitted a summary log, which the calendar gives a whole month's notes
   however late in it that day falls, and stop with a suspension or
