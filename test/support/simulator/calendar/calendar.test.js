@@ -535,10 +535,11 @@ describe('summary log uploads', () => {
   })
 
   /**
-   * The service only checks the cells of a row on a worksheet it reads into
-   * the waste balance, so an error planted anywhere else raises nothing.
+   * The required-field check an error spoils is gated by the same balance
+   * contribution that decides severity, so an error never sits on a
+   * non-crediting worksheet even though a bad date can.
    */
-  it('plants an error only on a worksheet the service validates the cells of', () => {
+  it('plants an error only on a worksheet the service reads into the waste balance', () => {
     const errors = rejected.filter(
       (upload) => must(upload.issues).severity === ISSUE_SEVERITY.ERROR
     )
@@ -601,21 +602,20 @@ describe('summary log uploads', () => {
     assert.ok(kinds.badDate > 0)
   })
 
-  it('spoils a date on a registered-only stream’s first rejection too, having no row the service credits to a balance', () => {
+  it('spoils a date on a registered-only stream’s first rejection too, unless it carries no row to spoil', () => {
     const onRegisteredOnly = firstRejections.filter(({ stream }) =>
       stream.startsWith('regOnly')
     )
     assert.ok(onRegisteredOnly.length > 0)
-    for (const { upload, stream } of onRegisteredOnly) {
-      assert.equal(
-        Object.values(SHEETS[stream]).some(
-          (sheet) => sheet.contribution !== CONTRIBUTION.NONE
-        ),
-        false
-      )
-      assert.equal(must(upload.issues).severity, ISSUE_SEVERITY.FATAL)
-      assert.equal(must(upload.issues).kind, ISSUE_KIND.BAD_DATE)
-      assert.ok(must(upload.issues).rows.length > 0)
+    const kinds = tally(
+      onRegisteredOnly,
+      ({ upload }) => must(upload.issues).kind
+    )
+    assert.ok(kinds.badDate > 0)
+    for (const { upload } of onRegisteredOnly) {
+      const { severity, kind } = must(upload.issues)
+      assert.equal(severity, ISSUE_SEVERITY.FATAL)
+      assert.ok(kind === ISSUE_KIND.BAD_DATE || kind === ISSUE_KIND.UNREADABLE)
     }
   })
 

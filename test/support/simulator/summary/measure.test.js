@@ -681,6 +681,22 @@ describe('the run reached', () => {
   })
 })
 
+describe('madeFatalShare', () => {
+  it('weighs the kinds the route can express against every fatal kind the calibration names', () => {
+    const share = madeFatalShare({
+      ...DEFAULT_CALIBRATION,
+      activity: {
+        ...DEFAULT_CALIBRATION.activity,
+        uploadIssueKinds: {
+          fatal: { removedRow: 3, badDate: 2, unreadable: 5 },
+          error: { blankField: 1 }
+        }
+      }
+    })
+    assert.equal(share, 0.5)
+  })
+})
+
 describe('monthsBetween', () => {
   it('lists every month from the first to the last, across a year end', () => {
     assert.deepEqual(monthsBetween('2026-11-15', '2027-02-01'), [
