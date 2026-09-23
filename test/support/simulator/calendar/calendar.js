@@ -216,8 +216,8 @@ export function cadenceOf(registration) {
  * Which reporting period a day or month falls in, on a cadence.
  *
  * @param {string} day - ISO date, or `YYYY-MM`
- * @param {'monthly' | 'quarterly'} cadence
- * @returns {{year: number, cadence: 'monthly' | 'quarterly', period: number}}
+ * @param {Period['cadence']} cadence
+ * @returns {Pick<Period, 'year' | 'cadence' | 'period'>}
  */
 export function periodOf(day, cadence) {
   const month = Number(day.slice(5, 7))
