@@ -23,6 +23,14 @@ const FIRST_FIGURE_CELL = 3
 // those due. Its header spans the two columns that name every other row.
 const REPORTS_ROW_HEADER = 'Monthly reports submitted'
 
+/**
+ * The figure a cell states. A figure few operators contributed to carries a
+ * mark on the lines beneath it, which says how many and is not the figure.
+ * @param {string} text
+ * @returns {string}
+ */
+const figureOf = (text) => text.trim().split('\n')[0].trim()
+
 class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
   /**
    * @returns {Locator}
@@ -90,7 +98,7 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
     const texts = await this.figureRows()
       .locator(`td:nth-child(n + ${FIRST_FIGURE_CELL})`)
       .allInnerTexts()
-    return texts.map((text) => text.trim())
+    return texts.map((text) => figureOf(text))
   }
 
   /**
