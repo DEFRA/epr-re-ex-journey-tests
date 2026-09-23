@@ -870,14 +870,15 @@ function draftPrns(context, landed, issuingEnd) {
 
     const [issuedYear, issuedMonth] = issued.split('-').map(Number)
     const issuedMonthEnd = lastDayOfMonth(issuedYear, issuedMonth)
-    const sameMonth =
-      random.float() < prn.sameMonthAcceptanceShare && issued < issuedMonthEnd
-    const [acceptFrom, acceptTo] = sameMonth
-      ? [addDays(issued, 1), issuedMonthEnd]
-      : [
-          later(addDays(issued, 1), addDays(issuedMonthEnd, 1)),
-          lastDayOfMonth(issuedYear, issuedMonth + 1)
-        ]
+    // The same-month window opens on the issue day, a day the operator works,
+    // so a note issued on the last such day of its month can be accepted in it.
+    const [acceptFrom, acceptTo] =
+      random.float() < prn.sameMonthAcceptanceShare
+        ? [issued, issuedMonthEnd]
+        : [
+            addDays(issuedMonthEnd, 1),
+            lastDayOfMonth(issuedYear, issuedMonth + 1)
+          ]
     const accepted = dayBetween(
       acceptFrom,
       acceptTo,
