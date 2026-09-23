@@ -155,6 +155,27 @@ as one, because nothing published measures how a spreadsheet upload fares, how
 often a return is restated, or what becomes of a PRN once it is raised. Each
 figure says which it is where it stands.
 
+### The bound on a calibrated rate
+
+Every rate the archetypes are built from is spread either side of the
+calibration by up to the tardy archetype's factor, 2.4, and the spread still
+has to land inside a probability. A rate that worsens with the archetype —
+`missedReturnRate`, `restatementRate`, `uploads.rejectionRate`,
+`uploads.fatalShare`, `uploads.abandonRate`, `weekendVolumeShare`, and the PRN
+`deleteRate`, `discardRate` and `cancelRate` — can be spread only up to 1 in
+2.4, so the calibrated figure must stay at or under 0.417. A rate that improves
+instead — `producerAcceptRate` and `sameMonthAcceptanceShare` — is spread the
+other way, on its failure side, so the calibrated figure must stay at or over
+0.583. `buildArchetypes` (`profiles.js`) refuses a calibration that crosses
+either bound, naming the rate and the bound it needs.
+
+A measured rate past its bound cannot be handed to the archetypes as it
+stands. Carry it on a different setting instead: a validation-issue rate past
+the 0.417 bound on `rejectionRate`, for instance, can keep `rejectionRate`
+inside the bound and raise `fatalShare` to carry the rest of what was
+measured. The right substitution depends on what the rate feeds; there is no
+general rule beyond keeping the spread rate itself under its bound.
+
 ### Running against measured behaviour
 
 Point `SIMULATOR_CALIBRATION` at a JSON file and `loadCalibration()` lays it
