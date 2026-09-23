@@ -144,6 +144,14 @@ const mean = (values) =>
 /**
  * @template T
  * @param {T[]} members
+ * @param {(member: T) => number} read
+ */
+const sum = (members, read) =>
+  members.reduce((total, member) => total + read(member), 0)
+
+/**
+ * @template T
+ * @param {T[]} members
  * @param {(member: T) => string} read
  */
 const tally = (members, read) => {
@@ -389,55 +397,51 @@ describe('summary log uploads', () => {
   })
 
   /**
-   * An amendment is drawn from rows submitted before in periods still open,
-   * and a period closes as soon as it is reported, so what an upload can amend
-   * is capped by a month or two of rows. The rate is held where the cap does
-   * not bind, and the cap itself is held to bind on no more than a fifth of
-   * what the calibration asks for.
+   * From April, clear of every registration's first upload, which has nothing
+   * submitted before it to amend. The registered-only streams are left out:
+   * they hold a handful of registrations, too few to measure a rate on.
    */
-  it('amends the calibrated share of a month’s rows on each upload', () => {
-    const settled = landed.filter(
-      (upload) =>
-        upload.amendments &&
-        upload.cutoff >= '2026-04-01' &&
-        upload.cutoff <= MEASURED_UNTIL &&
-        registrationOf(upload).accreditation?.status === 'approved'
-    )
-    assert.ok(settled.length > 100)
-    const measured = settled.map((upload) => {
-      const { profile } = operatorOf(upload)
-      const planned = rowsOf(upload.registrationId)
-      const sequence = uploadsOf(upload.registrationId)
-      const previous = sequence
-        .slice(0, sequence.indexOf(upload))
-        .filter((earlier) => earlier.outcome === UPLOAD_OUTCOME.SUBMITTED)
-        .at(-1)
-      const open = planned.rows.filter(
-        (row) =>
-          row.date <= must(previous).cutoff &&
-          !upload.closedPeriods.includes(row.period)
-      ).length
-      const rate =
-        (ACTIVITY.rowsPerSubmission[planned.stream].updated *
-          profile.volumeFactor) /
-        profile.uploads.perReportingPeriod
-      return { count: must(upload.amendments).count, rate, open }
+  describe('amends the calibrated rows a month', () => {
+    const settledFrom = '2026-04'
+    const reporting = rows.registrations.filter((planned) => {
+      const registration = registrationOf(planned)
+      return (
+        registration.status === 'approved' &&
+        registration.accreditation?.status === 'approved'
+      )
     })
-    const uncapped = measured.filter(({ rate, open }) => open >= rate)
-    assert.ok(uncapped.length > 100)
-    near(
-      mean(uncapped.map(({ count }) => count)) /
-        mean(uncapped.map(({ rate }) => rate)),
-      1,
-      0.05,
-      'amendments per upload'
-    )
-    assert.ok(
-      mean(measured.map(({ count }) => count)) /
-        mean(measured.map(({ rate }) => rate)) >
-        0.8,
-      'the open periods cap too much of the calibrated rate'
-    )
+
+    for (const stream of [
+      'exporter',
+      'reprocessorInput',
+      'reprocessorOutput'
+    ]) {
+      it(`on the ${stream} stream`, () => {
+        const members = reporting.filter((planned) => planned.stream === stream)
+        const amended = sum(members, (planned) =>
+          sum(
+            uploadsOf(planned.registrationId).filter(
+              (upload) =>
+                upload.outcome === UPLOAD_OUTCOME.SUBMITTED &&
+                month(upload) >= settledFrom
+            ),
+            (upload) => upload.amendments?.count ?? 0
+          )
+        )
+        const calibrated = sum(
+          members,
+          (planned) =>
+            ACTIVITY.rowsPerSubmission[stream].updated *
+            operatorOf(planned).profile.volumeFactor *
+            new Set(
+              planned.rows
+                .map((row) => row.period)
+                .filter((period) => period >= settledFrom)
+            ).size
+        )
+        near(amended / calibrated, 1, 0.05, `${stream} amended rows`)
+      })
+    }
   })
 
   it('carries every upload to its own day, and no earlier than the one before', () => {

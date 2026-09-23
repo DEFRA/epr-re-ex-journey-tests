@@ -144,8 +144,9 @@ Amendments are the calibrated `rowsPerSubmission[stream].updated`, a month's
 worth like the rows an upload creates, times the operator's volume factor and
 spread across the uploads a period gets. They are drawn from rows submitted
 before in periods still open, so an amendment is an adjustment and never an
-accidental restatement, and an upload with fewer such rows than that amends
-what there are. An amended row keeps every pinned cell and draws the
+accidental restatement. An upload with fewer such rows than that amends what
+there are and leaves the rest owed to the registration's next upload, so the
+year still lands on the calibrated volume. An amended row keeps every pinned cell and draws the
 rest afresh, and stays amended in every later upload, because a row that moved
 back would read as a second adjustment.
 
@@ -237,7 +238,7 @@ that are mechanics rather than behaviour, such as the three days a PRN takes to
 move a step, are constants at the top of `calendar.js`.
 
 `calendar.test.js` holds the estate to the calibration at full scale: uploads a
-month, amendments an upload, rejections and what they are for, punctuality and
+month, amended rows a month, rejections and what they are for, punctuality and
 missed returns, restatements, PRNs per accreditation and per material, the
 tonnage they carry against what the estate credits, and the transition rates. Punctuality is against the 21st the guidance gives and the
 research measured against; the service's own calendar marks the 20th, so a
