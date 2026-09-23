@@ -1303,21 +1303,23 @@ describe('PRNs', () => {
   /**
    * Weighted like the fatal share above: a punctual operator has more of its
    * notes accepted and accepted sooner, so the expectation is the mean of the
-   * profile rate over the notes that were accepted.
+   * profile rate over the notes that were accepted. The notes are the ones
+   * issued before the last measured month, so both months either could be
+   * accepted in are measured.
    */
   it('has each note accepted in the month of issue at its operator’s own rate', () => {
+    /** @param {PrnEvent} event */
+    const issueOf = (event) =>
+      must(
+        must(byPrn.get(event.prnId)).find(
+          (other) => other.type === EVENT.PRN_ISSUED
+        )
+      )
     const accepted = ofType(EVENT.PRN_ACCEPTED).filter(
-      (event) => month(event) <= MEASURED_UNTIL.slice(0, 7)
+      (event) => month(issueOf(event)) < MEASURED_UNTIL.slice(0, 7)
     )
     near(
-      share(accepted, (event) => {
-        const issued = must(
-          must(byPrn.get(event.prnId)).find(
-            (other) => other.type === EVENT.PRN_ISSUED
-          )
-        )
-        return month(issued) === month(event)
-      }),
+      share(accepted, (event) => month(issueOf(event)) === month(event)),
       mean(
         accepted.map(
           (event) => operatorOf(event).profile.prn.sameMonthAcceptanceShare
