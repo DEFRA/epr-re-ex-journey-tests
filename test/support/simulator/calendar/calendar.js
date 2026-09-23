@@ -213,6 +213,22 @@ export function cadenceOf(registration) {
 }
 
 /**
+ * Which reporting period a day or month falls in, on a cadence.
+ *
+ * @param {string} day - ISO date, or `YYYY-MM`
+ * @param {Period['cadence']} cadence
+ * @returns {Pick<Period, 'year' | 'cadence' | 'period'>}
+ */
+export function periodOf(day, cadence) {
+  const month = Number(day.slice(5, 7))
+  return {
+    year: Number(day.slice(0, 4)),
+    cadence,
+    period: Math.ceil(month / MONTHS_PER_PERIOD[cadence])
+  }
+}
+
+/**
  * The reporting period a day falls in, on a cadence.
  *
  * @param {string} day
@@ -221,11 +237,8 @@ export function cadenceOf(registration) {
  * @returns {Omit<Period, 'first' | 'last'>}
  */
 function periodContaining(day, cadence, dueDay) {
-  const year = Number(day.slice(0, 4))
-  const month = Number(day.slice(5, 7))
-  const months = MONTHS_PER_PERIOD[cadence]
-  const period = Math.ceil(month / months)
-  const endMonth = period * months
+  const { year, period } = periodOf(day, cadence)
+  const endMonth = period * MONTHS_PER_PERIOD[cadence]
   const dueYear = endMonth === 12 ? year + 1 : year
   const dueMonth = endMonth === 12 ? 1 : endMonth + 1
   return {
@@ -635,8 +648,8 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
     )
     /** @type {UploadEvent['amendments']} */
     let amendments = null
+    amendmentsOwed += amendmentCount(context, stream, upload.period)
     if (submitted.length > 0) {
-      amendmentsOwed += amendmentCount(context, stream, upload.period)
       const count = Math.min(amendable.length, amendmentsOwed)
       amendmentsOwed -= count
       amendments = { count, seed: `${context.random.int(1, 2 ** 31 - 1)}` }

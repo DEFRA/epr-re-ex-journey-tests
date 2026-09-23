@@ -131,6 +131,27 @@ const noteEvents = events.filter(
 )
 
 /**
+ * The summary logs the service would list had it taken every planned upload
+ * the executor makes exactly.
+ *
+ * @param {UploadEvent[]} planned
+ * @returns {ServiceView['summaryLogs']}
+ */
+const summaryLogsOf = (planned) =>
+  planned.flatMap((upload) => {
+    const expected = expectedOutcome(upload)
+    return expected
+      ? [
+          {
+            registrationId: upload.registrationId,
+            uploadedAt: upload.at,
+            status: expected.status
+          }
+        ]
+      : []
+  })
+
+/**
  * The service as it would stand had it taken every planned event exactly.
  *
  * @returns {ServiceView}
@@ -159,18 +180,7 @@ function perfectService() {
           : []
       )
     })),
-    summaryLogs: uploads.flatMap((upload) => {
-      const expected = expectedOutcome(upload)
-      return expected
-        ? [
-            {
-              registrationId: upload.registrationId,
-              uploadedAt: upload.at,
-              status: expected.status
-            }
-          ]
-        : []
-    }),
+    summaryLogs: summaryLogsOf(uploads),
     feedYear: '2026',
     reports: reports.map((report) => ({
       registrationNumber: numbersOf(report.registrationId).regNumber,
@@ -372,25 +382,33 @@ describe('summary logs a month', () => {
 
   const fatalShareExpressed = madeFatalShare(calibration)
 
-  it('targets the landing rate over the registrations owing the month, and the attempts the executor makes beyond it', () => {
-    const values = row(logs, '2026-06')
-    const owing = population.organisations.flatMap((operator) =>
+  /** @param {string} lastDay - ISO date */
+  const owingBy = (lastDay) =>
+    population.organisations.flatMap((operator) =>
       operator.registrations
         .filter(
           (registration) =>
-            ids.has(registration.id) && registration.activeFrom <= '2026-06-30'
+            ids.has(registration.id) && registration.activeFrom <= lastDay
         )
         .map((registration) => ({ operator, registration }))
     )
+  const { perReportingPeriod } = calibration.activity.uploads
+
+  it('targets the landing rate over the registrations owing the month, and the attempts the executor makes beyond it', () => {
+    const values = row(logs, '2026-06')
+    const owing = owingBy('2026-06-30')
+    /** @param {(typeof owing)[number]} member */
+    const landing = ({ registration }) =>
+      perReportingPeriod - (registration.activeFrom >= '2026-06-01' ? 1 : 0)
     assert.equal(
       values.submitted.target,
-      owing.length * calibration.activity.uploads.perReportingPeriod
+      owing.reduce((total, member) => total + landing(member), 0)
     )
-    const madeRejections = owing.reduce((total, { operator }) => {
-      const rates = operator.profile.uploads
+    const madeRejections = owing.reduce((total, member) => {
+      const rates = member.operator.profile.uploads
       return (
         total +
-        rates.perReportingPeriod *
+        landing(member) *
           rates.rejectionRate *
           rates.extraAttemptsWhenRejected *
           rates.fatalShare *
@@ -406,25 +424,131 @@ describe('summary logs a month', () => {
     assert.ok(Math.abs(values.invalid.target - madeRejections) < 1e-9)
   })
 
+  it('asks one upload fewer of a registration’s first reporting period, whose closing upload lands after it with nothing landing in it from before', () => {
+    assert.equal(
+      row(logs, '2026-01').submitted.target,
+      owingBy('2026-01-31').length * (perReportingPeriod - 1)
+    )
+  })
+
+  const registeredOnlyOperator = population.organisations.find(
+    ({ id }) => id === registeredOnly.organisationId
+  )
+  assert.ok(registeredOnlyOperator)
+  const registeredOnlyRates = registeredOnlyOperator.profile.uploads
+  const quarterly = section(
+    `Summary logs a month: ${streamFor(registeredOnly)}`
+  )
+
+  it('asks a registered-only registration for a quarter’s uploads but one across its months, and the one closing it in the month after, amending a share of the rows with each', () => {
+    assert.ok(registeredOnly.activeFrom <= '2026-01-31')
+    const inPeriod = (registeredOnlyRates.perReportingPeriod - 1) / 3
+    const share =
+      (calibration.activity.rowsPerSubmission.registeredOnly.updated *
+        registeredOnlyOperator.profile.volumeFactor *
+        3) /
+      registeredOnlyRates.perReportingPeriod
+    for (const [label, landing] of Object.entries({
+      '2026-01': inPeriod,
+      '2026-02': inPeriod,
+      '2026-03': inPeriod,
+      '2026-04': inPeriod + 1,
+      '2026-05': inPeriod,
+      '2026-06': inPeriod
+    })) {
+      const values = row(quarterly, label)
+      assert.ok(Math.abs(values.submitted.target - landing) < 1e-9, label)
+      assert.ok(
+        Math.abs(values['amended rows'].target - landing * share) < 1e-9,
+        label
+      )
+    }
+  })
+
   it('expects every rejection of a registered-only stream to be fatal, spoiling a removed row or a bad date at the same made share as an accredited one', () => {
-    const values = row(
-      section(`Summary logs a month: ${streamFor(registeredOnly)}`),
-      '2026-07'
-    )
+    const values = row(quarterly, '2026-07')
     assert.ok(registeredOnly.activeFrom <= '2026-07-31')
-    const operator = population.organisations.find(
-      ({ id }) => id === registeredOnly.organisationId
-    )
-    assert.ok(operator)
-    const rates = operator.profile.uploads
+    const rates = registeredOnlyRates
     assert.ok(
       Math.abs(
         values.invalid.target -
-          (rates.perReportingPeriod / 3) *
+          ((rates.perReportingPeriod - 1) / 3 + 1) *
             rates.rejectionRate *
             rates.extraAttemptsWhenRejected *
             fatalShareExpressed
       ) < 1e-9
+    )
+  })
+})
+
+/**
+ * Each registration draws its uploads a period evenly either side of the rate,
+ * so the accredited streams' January lands within about a tenth of target by the
+ * seed. A target asking a full first period reads it at about a half.
+ */
+describe('the first months of a seeded plan at full scale', () => {
+  const firstQuarter = {
+    ...settings,
+    seed: 'pepr',
+    scale: 1,
+    to: '2026-03-31'
+  }
+  const early = planRun({ settings: firstQuarter, calibration })
+  const measured = measure({
+    settings: firstQuarter,
+    calibration,
+    population: early.population,
+    rows: early.rows,
+    events: early.events,
+    done: new Set(early.events.map(eventKey)),
+    run: createRun({
+      population: early.population,
+      rows: early.rows,
+      seeders: grantingSeeders()
+    }),
+    service: {
+      organisations: [],
+      summaryLogs: summaryLogsOf(
+        early.events.filter(
+          /** @returns {event is UploadEvent} */
+          (event) => event.type === EVENT.SUMMARY_LOG_UPLOADED
+        )
+      ),
+      feedYear: '2026',
+      reports: [],
+      notes: [],
+      noteTransitions: []
+    }
+  })
+  /**
+   * What the streams submitted over some months, over what they were asked.
+   *
+   * @param {string[]} streams
+   * @param {string[]} months
+   */
+  const submittedRatio = (streams, months) => {
+    const values = streams.flatMap((stream) => {
+      const found = measured.find(
+        (candidate) => candidate.title === `Summary logs a month: ${stream}`
+      )
+      assert.ok(found, `no section for ${stream}`)
+      return found.rows
+        .filter((line) => months.includes(line.label))
+        .map((line) => line.values.submitted)
+    })
+    return (
+      values.reduce((total, value) => total + value.generated, 0) /
+      values.reduce((total, value) => total + value.target, 0)
+    )
+  }
+  it('submits the accredited streams’ January uploads at target', () => {
+    const ratio = submittedRatio(
+      ['exporter', 'reprocessorInput', 'reprocessorOutput'],
+      ['2026-01']
+    )
+    assert.ok(
+      Math.abs(ratio - 1) <= 0.15,
+      `January reads ${ratio.toFixed(2)} of target`
     )
   })
 })
