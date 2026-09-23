@@ -18,7 +18,9 @@ import {
   EARLY_DAYS_BEFORE_DUE,
   lastDayOfMonth,
   LATEST_RETURN_DAYS_AFTER_DUE,
-  MONTHS_PER_PERIOD
+  MONTHS_PER_PERIOD,
+  monthsOfPeriod,
+  periodOf
 } from '../calendar/calendar.js'
 import { CADENCE, EVENT, UPLOAD_OUTCOME } from '../calendar/events.js'
 import { EXPRESSIBLE_ISSUE_KINDS, expectedOutcome } from '../execute/execute.js'
@@ -440,6 +442,7 @@ function owesMonth(registration, month, cancelledOn, to) {
  * @param {ServiceView} options.service
  * @param {Calibration} options.calibration
  * @param {string[]} options.months
+ * @param {string} options.from - the first day of the run
  * @param {string} options.to - the last day the run reached
  * @returns {SummarySection[]}
  */
@@ -451,6 +454,7 @@ function uploadSections({
   service,
   calibration,
   months,
+  from,
   to
 }) {
   const planned = registrationsOf(population)
@@ -478,17 +482,31 @@ function uploadSections({
    * them. The calendar rejects every upload of a stream with no worksheet
    * the service validates fatally, whatever the profile's fatal share.
    *
+   * A period's uploads but one land across its months, and its closing upload
+   * lands in the month after it ends, so a period's first month also holds
+   * the upload closing the period before. The first period a registration
+   * owes in the run has none closing before it. Each upload amends its share
+   * of the period's rows.
+   *
    * @param {PlannedOperator} operator
    * @param {PlannedRegistration} registration
+   * @param {string} month - `YYYY-MM`
    */
-  const expected = (operator, registration) => {
+  const expected = (operator, registration, month) => {
     const { uploads: rates, volumeFactor } = operator.profile
     const stream = streams.get(registration.id) ?? ''
     const validated = Object.values(SHEETS[stream] ?? {}).some(
       (sheet) => sheet.contribution !== CONTRIBUTION.NONE
     )
+    const cadence = cadenceOf(registration)
+    const months = MONTHS_PER_PERIOD[cadence]
+    const [opening] = monthsOfPeriod(periodOf(month, cadence))
+    const firstPeriod = monthsOfPeriod(
+      periodOf(later(registration.activeFrom, from), cadence)
+    )
+    const closingBefore = month === opening && !firstPeriod.includes(month)
     const landing =
-      rates.perReportingPeriod / MONTHS_PER_PERIOD[cadenceOf(registration)]
+      (rates.perReportingPeriod - 1) / months + (closingBefore ? 1 : 0)
     const invalid =
       landing *
       rates.rejectionRate *
@@ -499,7 +517,12 @@ function uploadSections({
       submitted: landing,
       uploads: landing + invalid,
       invalid,
-      amended: rowsPerSubmissionOf(calibration, stream).updated * volumeFactor
+      amended:
+        (landing *
+          rowsPerSubmissionOf(calibration, stream).updated *
+          volumeFactor *
+          months) /
+        rates.perReportingPeriod
     }
   }
 
@@ -518,7 +541,7 @@ function uploadSections({
         sum(
           owing,
           ({ operator, registration }) =>
-            expected(operator, registration)[metric]
+            expected(operator, registration, month)[metric]
         )
       const inMonth = own.filter((upload) => monthOf(upload.at) === month)
       /** @param {string} status */
@@ -1015,6 +1038,7 @@ export function measure({
       service,
       calibration,
       months,
+      from: settings.from,
       to: reached
     }),
     ...reportSections({

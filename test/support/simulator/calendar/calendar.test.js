@@ -445,6 +445,39 @@ describe('summary log uploads', () => {
     }
   })
 
+  it('owes a first upload’s share of amendments, with nothing yet to amend, to the next upload', () => {
+    let checked = 0
+    for (const planned of rows.registrations) {
+      const [first, second] = uploadsOf(planned.registrationId).filter(
+        (upload) => upload.outcome === UPLOAD_OUTCOME.SUBMITTED
+      )
+      if (!second) continue
+      assert.equal(first.amendments, null)
+      const registration = registrationOf(planned)
+      const { profile } = operatorOf(planned)
+      const rowsKey = planned.stream.startsWith('regOnly')
+        ? 'registeredOnly'
+        : planned.stream
+      const share = Math.round(
+        (ACTIVITY.rowsPerSubmission[rowsKey].updated *
+          profile.volumeFactor *
+          (registration.accreditation ? 1 : 3)) /
+          profile.uploads.perReportingPeriod
+      )
+      const amendable = planned.rows.filter(
+        (row) =>
+          row.date <= first.cutoff && !second.closedPeriods.includes(row.period)
+      )
+      assert.equal(
+        must(second.amendments).count,
+        Math.min(amendable.length, 2 * share),
+        planned.registrationId
+      )
+      checked++
+    }
+    assert.ok(checked > 0)
+  })
+
   it('carries every upload to its own day, and no earlier than the one before', () => {
     for (const registration of registrations) {
       let cutoff = ''
