@@ -1239,25 +1239,30 @@ describe('PRNs', () => {
     )
   })
 
+  /**
+   * A few large operators draw most of a month's notes, so either processing
+   * type swings a sixth either side of its rate from one month to the next.
+   * A quarter still catches a month that drafts next to nothing.
+   */
   it('raises exporters and reprocessors their rate in every month, December included', () => {
     for (const processingType of ['exporter', 'reprocessor']) {
       const members = accredited.filter(
         (registration) => registration.processingType === processingType
       )
       for (let monthNumber = 2; monthNumber <= 12; monthNumber++) {
-        const month = `2026-${String(monthNumber).padStart(2, '0')}`
+        const counted = `2026-${String(monthNumber).padStart(2, '0')}`
         const issuing = members.filter(
-          (registration) => must(firstSubmission(registration)) < month
+          (registration) => must(firstSubmission(registration)) < counted
         )
         const expected =
           ACTIVITY.prnsPerAccreditationPerMonth *
           issuing.reduce((sum, registration) => sum + volumeOf(registration), 0)
         const generated = drafted.filter(
           (event) =>
-            event.at.startsWith(month) &&
+            month(event) === counted &&
             issuing.some(({ id }) => id === event.registrationId)
         ).length
-        near(generated, expected, expected / 4, `${processingType} ${month}`)
+        near(generated, expected, expected / 4, `${processingType} ${counted}`)
       }
     }
   })
