@@ -964,8 +964,9 @@ function draftPrns(context, landed, issuingEnd) {
     const weights = inDayOrder.map(() => weigh.float() + 0.5)
     // The share is of tonnage issued, and a drafted note is discarded or
     // deleted before issue at the operator's rates, so the drafts carry more.
-    // It is of everything credited, December included: an operator issues on
-    // through December from what it holds outside it, and an exporter, whose
+    // It is of everything credited, December included: an operator whose
+    // December credit is held back issues on through December from what it
+    // holds outside it, and an exporter, whose
     // loads reach the overseas reprocessor three weeks after they leave, has
     // nothing else newly on record that month.
     const monthly =
