@@ -3,8 +3,8 @@ import { describe, it } from 'node:test'
 
 import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { planPopulation } from '../population/population.js'
-import { CONTRIBUTION, heldTonnage, planSummaryLogRows } from '../rows/rows.js'
-import { SHEETS } from '../rows/sheets.js'
+import { planSummaryLogRows } from '../rows/rows.js'
+import { CONTRIBUTION, SHEETS, heldTonnage } from '../rows/sheets.js'
 import {
   addDays,
   cadenceOf,
@@ -339,7 +339,7 @@ describe('registrations and their accreditations', () => {
     }
   })
 
-  it('changes an accreditation on the day the row planner stops its rows', () => {
+  it('changes an accreditation on the day drawn for it from the population', () => {
     for (const event of changed) {
       assert.equal(
         day(event),
@@ -413,6 +413,19 @@ describe('registrations and their accreditations', () => {
       .filter((event) => event.type.startsWith('accreditation.'))
     assert.equal(changes.length, changed.length)
     for (const event of changes) assert.equal(day(event), from)
+  })
+
+  it('moves a change applied as a run starts at the weekend onto the Monday', () => {
+    const latest = changed.map(day).sort().at(-1) ?? ''
+    const saturday = addDays(latest, 6 - new Date(latest).getUTCDay() || 7)
+    const planned = planCalendar({ population, rows, from: saturday, to: TO })
+    const changes = planned.operators
+      .flatMap((operator) => operator.events)
+      .filter((event) => event.type.startsWith('accreditation.'))
+    assert.equal(changes.length, changed.length)
+    for (const event of changes) {
+      assert.equal(day(event), addDays(saturday, 2))
+    }
   })
 })
 

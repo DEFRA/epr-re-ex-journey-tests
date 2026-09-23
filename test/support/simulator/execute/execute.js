@@ -14,7 +14,8 @@ import {
   ISSUE_SEVERITY,
   UPLOAD_OUTCOME
 } from '../calendar/events.js'
-import { heldTonnage, rowsForUpload } from '../rows/rows.js'
+import { rowsForUpload } from '../rows/rows.js'
+import { heldTonnage } from '../rows/sheets.js'
 import {
   applicationRow,
   numbersFor,

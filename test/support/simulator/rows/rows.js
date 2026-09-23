@@ -8,7 +8,7 @@
  */
 
 import { WORKSHEET_CONFIG } from '../../spreadsheet/spreadsheet-config.js'
-import { statusChangeOf } from '../calendar/calendar.js'
+import { lastLoadDay, statusChangeOf } from '../calendar/calendar.js'
 import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { allocate, createRandom } from '../population/random.js'
 import { CONTRIBUTION, SHEETS, heldTonnage } from './sheets.js'
@@ -17,7 +17,7 @@ import { CONTRIBUTION, SHEETS, heldTonnage } from './sheets.js'
 /** @import {Calibration} from '../population/calibration.js' */
 /** @import {Random} from '../population/random.js' */
 
-export { CONTRIBUTION, heldTonnage }
+export { CONTRIBUTION }
 
 /**
  * @typedef {Object} PlannedLogRow
@@ -184,11 +184,11 @@ function sheetsOf(stream, calibration) {
 
 /**
  * The months a registration reports, which start when it went active and stop
- * at the end of its accreditation window, or on the day the calendar suspends
- * or cancels the accreditation.
+ * at the end of its accreditation window, or on the last day the calendar's
+ * suspension or cancellation leaves it recording loads.
  *
- * A row dated outside that window, or after that day, is ignored rather than
- * counted, and over a simulated year that is the likeliest way for a whole
+ * A row dated outside that window, or after that day, is ignored or never
+ * uploaded, and over a simulated year that is the likeliest way for a whole
  * period's tonnage to vanish, so the months are cut here rather than left for
  * the service to find.
  *
@@ -199,9 +199,10 @@ function sheetsOf(stream, calibration) {
  */
 function reportingMonths(registration, year, populationSeed) {
   const opened = new Date(`${registration.activeFrom}T00:00:00Z`)
-  const lastDay =
-    statusChangeOf(registration, populationSeed)?.day ??
-    registration.accreditation?.validTo
+  const change = statusChangeOf(registration, populationSeed)
+  const lastDay = change
+    ? lastLoadDay(change)
+    : registration.accreditation?.validTo
   const closed = lastDay
     ? new Date(`${lastDay}T00:00:00Z`)
     : lastDayOf(year, 11)

@@ -68,12 +68,14 @@ each accreditation ended up; the day is drawn here, at least a month into the
 accreditation's year. `statusChangeOf` draws it from the population's seed
 rather than the run's window, because the row planner reads the same day and
 plans no load after it. A change that falls after `to` is not planned, and one
-that falls before `from` is applied on the registration's first day in the
-run. A cancellation ends everything: a registration is cancelled exactly where
-its accreditation is, so one event carries both, and nothing is planned after
-it. A suspension stops the loads and the notes. The service excludes a load
-dated after the suspension, so none is planned there, but the registration
-keeps uploading what it recorded before and owes its monthly reports. An
+that falls before `from` is applied on the registration's first working day in
+the run. A cancellation ends everything: a registration is cancelled exactly
+where its accreditation is, so one event carries both, and nothing is planned
+on or after its day. A suspension stops the loads and the notes. The service
+excludes a load dated after the suspension from the balance, so a load planned
+there would carry calibrated tonnage that never counts; none is planned, and
+the registration keeps uploading what it recorded before and owes its monthly
+reports. `lastLoadDay` gives the last day each change leaves loads on. An
 accreditation that runs out stops recording loads on its
 last day, but the uploads and reports for what it did carry on to `to`, so a
 period that ended with the accreditation is still filed.

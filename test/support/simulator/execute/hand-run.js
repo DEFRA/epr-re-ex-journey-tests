@@ -26,7 +26,8 @@ import {
 import { setSimulatedNow } from '../clock/simulated-clock.js'
 import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { planPopulation } from '../population/population.js'
-import { CONTRIBUTION, heldTonnage, planSummaryLogRows } from '../rows/rows.js'
+import { planSummaryLogRows } from '../rows/rows.js'
+import { CONTRIBUTION, heldTonnage } from '../rows/sheets.js'
 import { createRun, executeEvent } from './execute.js'
 
 /** @import {PlannedRegistration} from '../population/population.js' */

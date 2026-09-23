@@ -4,13 +4,8 @@ import ExcelJS from 'exceljs'
 import { planPopulation } from '../population/population.js'
 import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { generateSpreadsheetData } from '../../spreadsheet/summarylogs-spreadsheet-data-generator.js'
-import {
-  heldTonnage,
-  planSummaryLogRows,
-  rowsForUpload,
-  streamFor
-} from './rows.js'
-import { CONTRIBUTION } from './sheets.js'
+import { planSummaryLogRows, rowsForUpload, streamFor } from './rows.js'
+import { CONTRIBUTION, heldTonnage } from './sheets.js'
 import { statusChangeOf } from '../calendar/calendar.js'
 import { EVENT } from '../calendar/events.js'
 
@@ -438,7 +433,11 @@ describe('a planned row that has to count', () => {
     }
   })
 
-  it('pins no date after the day its accreditation was suspended or cancelled', () => {
+  /**
+   * A cancelled registration uploads nothing from the day it is cancelled, so
+   * a row dated that day would never reach the service.
+   */
+  it('pins no date after a suspension, nor on or after a cancellation', () => {
     const changed = plan.registrations.flatMap((registration) => {
       const change = statusChangeOf(
         plannedFor(registration.registrationId).registration,
@@ -461,8 +460,10 @@ describe('a planned row that has to count', () => {
         ]
         for (const day of days) {
           assert.ok(
-            day <= change.day,
-            `${registration.registrationId} row ${row.rowId} pins ${day}, after its ${change.type} on ${change.day}`
+            change.type === EVENT.ACCREDITATION_CANCELLED
+              ? day < change.day
+              : day <= change.day,
+            `${registration.registrationId} row ${row.rowId} pins ${day} against its ${change.type} on ${change.day}`
           )
         }
       }

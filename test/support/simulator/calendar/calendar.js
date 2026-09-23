@@ -47,6 +47,12 @@ import {
  */
 
 /**
+ * @typedef {Object} StatusChange - where an accreditation ended up, and the day it got there
+ * @property {'accreditation.suspended' | 'accreditation.cancelled'} type
+ * @property {string} day - ISO date
+ */
+
+/**
  * @typedef {Object} Draft - an event before it is timestamped
  * @property {string} day - ISO date
  * @property {number} sequence - order among events of the same day
@@ -282,7 +288,7 @@ function reportingPeriods(registration, first, last, dueDay) {
  *
  * @param {PlannedRegistration} registration
  * @param {PlannedPopulation['seed']} populationSeed
- * @returns {{type: 'accreditation.suspended' | 'accreditation.cancelled', day: string} | null}
+ * @returns {StatusChange | null}
  */
 export function statusChangeOf(registration, populationSeed) {
   const { accreditation } = registration
@@ -305,6 +311,21 @@ export function statusChangeOf(registration, populationSeed) {
   const day = dayBetween(earliest, validTo, random, false)
   return day ? { type, day } : null
 }
+
+/**
+ * The last day a status change leaves a registration recording loads. A
+ * cancellation takes the registration with it, so nothing is uploaded on its
+ * day and the last load is the day before. A suspended registration keeps
+ * uploading, and a load dated on the day of the suspension still counts,
+ * because the suspension takes effect later that day.
+ *
+ * @param {StatusChange} change
+ * @returns {string}
+ */
+export const lastLoadDay = (change) =>
+  change.type === EVENT.ACCREDITATION_CANCELLED
+    ? addDays(change.day, -1)
+    : change.day
 
 /**
  * The day a report is filed, drawn from the operator's punctuality: on time,
@@ -1005,7 +1026,10 @@ function planRegistration(context, from) {
   // the registration is replayed before then.
   const change =
     drawn && drawn.day <= last
-      ? { ...drawn, day: later(drawn.day, first) }
+      ? {
+          ...drawn,
+          day: onWorkingDay(later(drawn.day, first), first, last)
+        }
       : null
   if (change) {
     draft(context, change.day, {
@@ -1014,7 +1038,7 @@ function planRegistration(context, from) {
     })
   }
   const cancelled = change?.type === EVENT.ACCREDITATION_CANCELLED
-  const activityEnd = change && cancelled ? addDays(change.day, -1) : last
+  const activityEnd = change && cancelled ? lastLoadDay(change) : last
   const filingEnd = cancelled ? activityEnd : to
   const issuingEnd = change ? addDays(change.day, -1) : last
 

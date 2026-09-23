@@ -153,9 +153,11 @@ tonnage bug rather than a planning one.
 An accreditation that is suspended or cancelled is a separate matter. The
 window itself never moves, but a date after the status changed is excluded, and
 when that change happened is the event calendar's to decide. So the months stop
-on the day the calendar's `statusChangeOf` gives, and no row pins a date after
-it. A row dated on the day itself still counts, because the change takes effect
-at the moment it is recorded, later that day.
+on the day the calendar's `lastLoadDay` gives for it, and no row pins a date
+after that. A suspended registration's rows run to the day of the suspension,
+which still counts because the change takes effect later that day. A cancelled
+registration's rows stop the day before, because it uploads nothing on the day
+it is cancelled.
 
 A registration with no accreditation at all is not excluded on the window: the
 service treats a null accreditation as accredited throughout.
