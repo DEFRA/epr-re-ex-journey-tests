@@ -169,12 +169,15 @@ little under 0.417. A rate that improves instead — `producerAcceptRate` and
 `sameMonthAcceptanceShare` — is spread the other way, on its failure side, so
 the calibrated figure has to stay a little over one minus that reciprocal, at
 the current factor 0.583. `buildArchetypes` (`profiles.js`) refuses a
-calibration that crosses either bound, naming the rate and, rounded to three
-places, the bound it needs; the rounded figure itself is just past the true
-bound and would still be refused. `weekendVolumeShare` carries the same
-spread, but only after it is turned into a share of operators rather than of
-upload volume — see `WEEKEND_SHARE_OF_A_WORKING_WEEK` in `profiles.js` — so
-its own bound is smaller: a little under 0.119 rather than 0.417.
+calibration that crosses either bound, naming the rate and the bound it
+needs, rounded to three places towards the achievable side (down for a "or
+under" bound, up for "or over"), so a calibration set to the printed figure
+is accepted rather than refused a second time. `weekendVolumeShare` carries
+the same spread, but only after it is turned into a share of operators
+rather than of upload volume — see `WEEKEND_SHARE_OF_A_WORKING_WEEK` in
+`profiles.js` — so its own bound is smaller: a little under 0.119 rather
+than 0.417. The bound named is always the one `tardy` needs, whichever
+archetype's own spread is the one that actually refuses the calibration.
 
 Punctuality is spread the same way but is bound jointly rather than rate by
 rate: the three late buckets share one ceiling on their sum, and `earlyShare`'s

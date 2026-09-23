@@ -38,6 +38,16 @@ export const WEEKEND_SHARE_OF_A_WORKING_WEEK = 2 / 7
  */
 const SPREAD = { punctual: 0.3, typical: 1, tardy: 2.4 }
 
+/**
+ * The factor that actually decides whether a calibrated rate can be spread at
+ * all. A rate is refused at whichever archetype's own factor first pushes it
+ * past a probability, which for a rate converted before it reaches `worse` or
+ * `better` (`weekendVolumeShare`) can be an earlier, laxer archetype than
+ * `tardy` — so the bound has to be worked out from this factor regardless of
+ * which archetype's call actually threw.
+ */
+const TIGHTEST_FACTOR = Math.max(...Object.values(SPREAD))
+
 /** How much less of a tardy operator's on-time filing is early. */
 const TARDY_EARLY_DEFICIT = 0.8
 
@@ -71,16 +81,36 @@ function asProbability(value, of, bound = '') {
   return value
 }
 
-/** A rate that rises as an archetype gets less reliable. */
-const worse = (rate, factor, of) =>
-  asProbability(rate * factor, of, `${(1 / factor).toFixed(3)} or under`)
+/**
+ * Round a bound towards the workable side rather than to the nearest three
+ * places, so a calibration set to exactly the printed figure is accepted
+ * rather than refused a second time.
+ */
+const floorTo3 = (value) => Math.floor(value * 1000) / 1000
+const ceilTo3 = (value) => Math.ceil(value * 1000) / 1000
+
+/**
+ * A rate that rises as an archetype gets less reliable. The bound is always
+ * worked out from `TIGHTEST_FACTOR`, not the archetype currently being
+ * spread, because that is the one the calibrated rate genuinely has to clear.
+ * `toCalibrated` converts it back into the units the calibration is written
+ * in, for a rate that is itself converted before it reaches here
+ * (`weekendVolumeShare`, a share of upload volume, against a bound on a share
+ * of operators).
+ */
+const worse = (rate, factor, of, toCalibrated = (bound) => bound) =>
+  asProbability(
+    rate * factor,
+    of,
+    `${floorTo3(toCalibrated(1 / TIGHTEST_FACTOR)).toFixed(3)} or under`
+  )
 
 /** A rate that falls instead, because it is the side that goes right. */
 const better = (rate, factor, of) =>
   asProbability(
     1 - (1 - rate) * factor,
     of,
-    `${(1 - 1 / factor).toFixed(3)} or over`
+    `${ceilTo3(1 - 1 / TIGHTEST_FACTOR).toFixed(3)} or over`
   )
 
 /** The calibrated shares are rounded separately and need not sum to one. */
@@ -207,7 +237,12 @@ export function buildArchetypes(calibration) {
             'sameMonthAcceptanceShare'
           )
         },
-        weekendChance: worse(weekendWorkers, factor, 'weekendVolumeShare')
+        weekendChance: worse(
+          weekendWorkers,
+          factor,
+          'weekendVolumeShare',
+          (bound) => bound * WEEKEND_SHARE_OF_A_WORKING_WEEK
+        )
       }
     ])
   )
