@@ -1,7 +1,10 @@
 import { describe, it, before } from 'node:test'
 import assert from 'node:assert/strict'
 import ExcelJS from 'exceljs'
-import { generateSummaryLogContent } from './summarylogs-content-generator.js'
+import {
+  generateSummaryLogContent,
+  summaryLogContentFromFixture
+} from './summarylogs-content-generator.js'
 import { PROCESSING_TYPE_CONFIG } from './spreadsheet-config.js'
 import { generateSpreadsheetData } from './summarylogs-spreadsheet-data-generator.js'
 
@@ -271,5 +274,73 @@ describe('summary log content generator', () => {
         )
       })
     }
+  })
+
+  describe('summaryLogContentFromFixture', () => {
+    it('reads a fixture built to isolate a few loads down to just those loads', async () => {
+      // resources/exporter-reconciliation.xlsx (see
+      // resources/generate-reconciliation-fixtures.mjs) keeps 4 real loads
+      // scattered across an otherwise-blanked sheet, most of whose
+      // "unfilled" rows still carry a formula cell ROW_ID never recalculated
+      // to a cached result - the case a naive "any field is non-empty" read
+      // would misread as data.
+      const content = await summaryLogContentFromFixture(
+        'resources/exporter-reconciliation.xlsx'
+      )
+
+      assert.deepEqual(content.meta, {
+        MATERIAL: 'Paper_and_board',
+        REGISTRATION_NUMBER: 'R26EX5000000002PA',
+        ACCREDITATION_NUMBER: 'A26EX5000000002PA'
+      })
+      assert.deepEqual(Object.keys(content.data), ['RECEIVED_LOADS_FOR_EXPORT'])
+
+      const table = content.data.RECEIVED_LOADS_FOR_EXPORT
+      assert.equal(table.rows.length, 4)
+
+      const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100
+      const tonnages = table.rows.map((_, i) =>
+        Number(field(table, 'TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED', i))
+      )
+      // The fixture generator refuses to write a fixture where
+      // round-each-then-sum and sum-then-round agree, and prints this total
+      // as EXPECTED - see report.reconciliation.exporter.e2e.js.
+      assert.equal(
+        round2(tonnages.reduce((sum, tonnage) => sum + round2(tonnage), 0)),
+        8.03
+      )
+    })
+
+    it('agrees with generateSummaryLogContent on a workbook rendered from the same rows', async () => {
+      const rows = {
+        [RECEIVED]: [
+          {
+            rowId: 1000,
+            seed: 30,
+            fields: { GROSS_WEIGHT: 200, TARE_WEIGHT: 20, PALLET_WEIGHT: 10 }
+          },
+          { rowId: 1001, seed: 31 }
+        ]
+      }
+      const written = await generateSummaryLogContent({ ...baseOptions, rows })
+      const file = await generateSpreadsheetData({
+        ...baseOptions,
+        rows,
+        silentLogging: true
+      })
+
+      const readBack = await summaryLogContentFromFixture(file)
+
+      assert.deepEqual(readBack.meta, written.meta)
+      assert.deepEqual(readBack.data, written.data)
+    })
+
+    it('leaves out a worksheet the fixture carries no rows for', async () => {
+      const content = await summaryLogContentFromFixture(
+        'resources/exporter-reconciliation.xlsx'
+      )
+
+      assert.ok(!('SENT_ON_LOADS' in content.data))
+    })
   })
 })

@@ -59,7 +59,11 @@ describe('the stack clock', () => {
       console.log(new Date().toISOString())
     `).split('\n')
 
-    const now = printed.at(-1) ?? ''
+    // logger.warn writes to stdout asynchronously (pino's default), so it
+    // can land before or after console.log's line: find the date by its
+    // shape rather than assuming it printed last.
+    const now =
+      printed.findLast((line) => /^\d{4}-\d{2}-\d{2}T/.test(line)) ?? ''
     assert.equal(now.slice(0, 16), '2026-02-16T17:30')
     assert.match(
       printed.join('\n'),

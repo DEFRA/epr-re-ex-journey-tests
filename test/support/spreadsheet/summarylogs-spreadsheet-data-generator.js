@@ -51,7 +51,7 @@ import pino from 'pino'
 export const MARKER_ROW = 1
 
 /** The first row of a worksheet that holds data rather than headings. */
-const FIRST_DATA_ROW = 4
+export const FIRST_DATA_ROW = 4
 
 const UK_DATE = /^(\d{2})\/(\d{2})\/(\d{4})$/
 

@@ -7,11 +7,10 @@ import {
   updateMigratedOrganisation
 } from './organisation.js'
 import { createPrn, externalAPIAcceptPrn, updatePrnStatus } from './prns.js'
-import { uploadAndSubmitSummaryLog } from './summary-logs.js'
+import { submitSummaryLogContent } from './summary-logs.js'
+import { generateSummaryLogContent } from '../spreadsheet/summarylogs-content-generator.js'
 import { waitForWasteBalance } from './waiters.js'
 import { defraIdStub } from '../defra-id-stub.js'
-
-const FIXTURE_PATH = 'resources/summary-log.xlsx'
 
 /**
  * Seeds one accredited reprocessor with real activity that the admin
@@ -65,12 +64,29 @@ export async function seedAdminActivityData({ acceptPrn = true } = {}) {
   await linkDefraIdUser(org.refNo, user.userId, migrated.email)
   const authHeader = defraIdStub.authHeader(user.userId)
 
-  await uploadAndSubmitSummaryLog(
-    org.refNo,
-    registrationId,
-    authHeader,
-    FIXTURE_PATH
-  )
+  const content = await generateSummaryLogContent({
+    wasteProcessingType: 'reprocessorInput',
+    materialSuffix: 'PA',
+    regNumber: registrationNumber,
+    accNumber: accreditationNumber,
+    rows: {
+      'Received (sections 1, 2 and 3)': [
+        {
+          rowId: 9001,
+          fields: {
+            WERE_PRN_OR_PERN_ISSUED_ON_THIS_WASTE: 'No',
+            GROSS_WEIGHT: 650,
+            TARE_WEIGHT: 100,
+            PALLET_WEIGHT: 50,
+            WEIGHT_OF_NON_TARGET_MATERIALS: 0,
+            RECYCLABLE_PROPORTION_PERCENTAGE: 1,
+            BAILING_WIRE_PROTOCOL: 'No'
+          }
+        }
+      ]
+    }
+  })
+  await submitSummaryLogContent(org.refNo, registrationId, authHeader, content)
   await waitForWasteBalance(org.refNo, accreditationId, authHeader)
 
   const tonnage = 5

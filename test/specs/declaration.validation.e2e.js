@@ -15,7 +15,8 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -75,11 +76,17 @@ test.describe('Declaration name validation @declarationValidation', () => {
       migrationResponse.email
     )
 
-    await uploadAndSubmitSummaryLog(
+    // Submitted via epr-backend's dev endpoint rather than a real multipart
+    // upload: this journey is about declaration name validation, not the
+    // upload itself, which the dedicated summary-log specs already cover.
+    const summaryLogContent = await summaryLogContentFromFixture(
+      'resources/reprocessor-output-regonly.xlsx'
+    )
+    await submitSummaryLogContent(
       organisationDetails.refNo,
       migrationResponse.registrationIds[0],
       defraIdStub.authHeader(user.userId),
-      'resources/reprocessor-output-regonly.xlsx'
+      summaryLogContent
     )
     await dashboardPage.selectTableLink(1, 1)
     await wasteRecordsPage.manageReportsLink().click()

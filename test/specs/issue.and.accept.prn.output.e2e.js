@@ -9,7 +9,6 @@ import { AccreditationDetailsPage } from 'page-objects/regulator/accreditation.d
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page.js'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page.js'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page.js'
-import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
@@ -18,11 +17,14 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { externalAPIAcceptPrn } from '../support/seeding/prns.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { generateSummaryLogContent } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import { createPrnDetails } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
 
 test.describe('Issuing Packing Recycling Notes', () => {
   test('Should be able to create, issue and accept PRNs for Plastic (Reprocessor Output) @issuePRNOutput @smoketest', async ({
@@ -59,27 +61,46 @@ test.describe('Issuing Packing Recycling Notes', () => {
       'nrw'
     )
 
-    await createLinkAndLogin(
+    const user = await createLinkAndLogin(
       currentPage,
       organisationDetails.refNo,
       migrationResponse.email
     )
 
-    // Tonnage value expected from Summary Log files upload
-    // Plastic 56,455.67
-    await dashboardPage.selectTableLink(1, 1)
-
-    await wasteRecordsPage.submitSummaryLogLink().click()
-
-    const filePath = `resources/sanity/reprocessorOutput_${accNumber}_${regNumber}.xlsx`
-    const uploadSummaryLogPage = new UploadSummaryLogPage(currentPage)
-    await uploadSummaryLogPage.performUploadAndReturnToHomepage(filePath)
+    // Submitted via epr-backend's dev endpoint rather than driving the
+    // upload UI: this journey is about PRN issuance, not the upload itself,
+    // which the dedicated summary-log specs already cover.
+    const summaryLogContent = await generateSummaryLogContent({
+      wasteProcessingType: 'reprocessorOutput',
+      materialSuffix: 'PL',
+      regNumber,
+      accNumber,
+      rows: {
+        'Reprocessed (sections 3 and 4)': [
+          {
+            rowId: 9001,
+            fields: {
+              PRODUCT_TONNAGE: 1000,
+              UK_PACKAGING_WEIGHT_PERCENTAGE: 1,
+              PRODUCT_UK_PACKAGING_WEIGHT_PROPORTION: 1000,
+              ADD_PRODUCT_WEIGHT: 'Yes'
+            }
+          }
+        ]
+      }
+    })
+    await submitSummaryLogContent(
+      organisationDetails.refNo,
+      migrationResponse.registrationIds[0],
+      defraIdStub.authHeader(user.userId),
+      summaryLogContent
+    )
 
     await dashboardPage.selectTableLink(1, 1)
 
     await wasteRecordsPage.createNewPRNLink().click()
 
-    const originalWasteBalance = '56,455.67'
+    const originalWasteBalance = '1,000.00'
     const wasteBalanceHint = await createPRNPage.wasteBalanceHint()
     expect(wasteBalanceHint).toBe(
       `Your waste balance available for creating PRNs is ${originalWasteBalance} tonnes.`
@@ -183,10 +204,10 @@ test.describe('Issuing Packing Recycling Notes', () => {
 
     // The accepted PRN's tonnage was drawn from the original balance the
     // instant it was created, so what the regulator sees here is the balance
-    // an operator never gets back to 56,455.67 - it stays down by the 203
-    // tonnes prnDetails.tonnageWordings.integer committed.
+    // an operator never gets back to originalWasteBalance - it stays down by
+    // the 203 tonnes prnDetails.tonnageWordings.integer committed.
     expect(accreditationSummary['Waste balance available (tonnes)']).toBe(
-      '56,252.67'
+      '797.00'
     )
 
     // A regulator's screens hold no PRN action of their own - no create, issue,

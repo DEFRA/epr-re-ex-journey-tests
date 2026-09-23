@@ -56,7 +56,16 @@ export class DockerLogParser {
   }
 
   generateLogKey(time, context) {
-    const contextString = JSON.stringify(context, Object.keys(context).sort())
+    // An audit log's context is always an object (see parseAuditLogs below),
+    // sorted so the same context hashes the same way regardless of key
+    // insertion order. waitForLog reuses this same method to key a plain
+    // log line by its message instead - a string, or entirely absent for a
+    // log line with no `message` field - so only sort keys when there are
+    // keys to sort.
+    const contextString =
+      context && typeof context === 'object'
+        ? JSON.stringify(context, Object.keys(context).sort())
+        : JSON.stringify(context ?? null)
     const contextHash = crypto
       .createHash('sha256')
       .update(contextString)

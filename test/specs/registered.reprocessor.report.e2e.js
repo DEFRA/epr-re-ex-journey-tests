@@ -14,11 +14,11 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { unsubmitReport } from '../support/seeding/reports.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
-import {
-  navigateToReports,
-  uploadSummaryLogAndNavigateToReports
-} from '../support/report-navigation.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
+import { navigateToReports } from '../support/report-navigation.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude
@@ -53,11 +53,25 @@ async function startAndSubmitReport(page) {
   await checkBodyText(page, 'report created', 30)
 }
 
-async function uploadAndNavigateToReports(page) {
-  await uploadSummaryLogAndNavigateToReports(
-    page,
+// Submitted via epr-backend's dev endpoint rather than driving the upload
+// UI: these journeys are about the reports wizard, not the upload itself,
+// which the dedicated summary-log specs already cover.
+async function uploadAndNavigateToReports(
+  page,
+  organisationDetails,
+  migrationResponse,
+  user
+) {
+  const summaryLogContent = await summaryLogContentFromFixture(
     'resources/reprocessor-output-regonly.xlsx'
   )
+  await submitSummaryLogContent(
+    organisationDetails.refNo,
+    migrationResponse.registrationIds[0],
+    defraIdStub.authHeader(user.userId),
+    summaryLogContent
+  )
+  await navigateToReports(page)
 }
 
 async function setupRegisteredOnlyReprocessor(page) {
@@ -81,13 +95,13 @@ async function setupRegisteredOnlyReprocessor(page) {
     ]
   )
 
-  await createLinkAndLogin(
+  const user = await createLinkAndLogin(
     page,
     organisationDetails.refNo,
     migrationResponse.email
   )
 
-  return { organisationDetails, migrationResponse }
+  return { organisationDetails, migrationResponse, user }
 }
 
 test.describe('Registered-only reprocessor report flow @registeredOnlyReprocessor', () => {
@@ -110,7 +124,12 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
     test.beforeAll(async ({ browser }) => {
       page = await browser.newPage()
       setupResponse = await setupRegisteredOnlyReprocessor(page)
-      await uploadAndNavigateToReports(page)
+      await uploadAndNavigateToReports(
+        page,
+        setupResponse.organisationDetails,
+        setupResponse.migrationResponse,
+        setupResponse.user
+      )
     })
 
     test.afterAll(async () => {
@@ -343,8 +362,14 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
     const homePage = new HomePage(page)
     const reportsPage = new ReportsPage(page)
 
-    await setupRegisteredOnlyReprocessor(page)
-    await uploadAndNavigateToReports(page)
+    const { organisationDetails, migrationResponse, user } =
+      await setupRegisteredOnlyReprocessor(page)
+    await uploadAndNavigateToReports(
+      page,
+      organisationDetails,
+      migrationResponse,
+      user
+    )
     await startAndSubmitReport(page)
 
     // Navigate back to check-answers — the guard should redirect to the reports list

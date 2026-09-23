@@ -6,7 +6,6 @@ import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
 import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
 import { PRNIssuedPage } from 'page-objects/prn.issued.page.js'
 import { PRNViewPage } from 'page-objects/prn.view.page.js'
-import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
@@ -15,6 +14,8 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { externalAPICancelPrn } from '../support/seeding/prns.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { generateSummaryLogContent } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import {
   secondTradingName as newTradingName,
@@ -25,6 +26,7 @@ import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { checkWasteBalanceForWindow } from '../support/waste-balance-mode.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
 
 test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
   test('Should be able to create, issue and reject PRNs for Wood (Exporter) @issuePRNExp @smoketest', async ({
@@ -63,24 +65,45 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
 
     await seedOverseasSites(organisationDetails.refNo)
 
-    await createLinkAndLogin(
+    const user = await createLinkAndLogin(
       currentPage,
       organisationDetails.refNo,
       migrationResponse.email
     )
 
-    // Tonnage value expected from Summary Log files upload
-    // Wood
-    const expectedWasteBalance = '1,325.09'
-    const originalWasteBalance = '1,528.09'
+    // Submitted via epr-backend's dev endpoint rather than driving the
+    // upload UI: this journey is about PERN issuance, not the upload itself,
+    // which the dedicated summary-log specs already cover.
+    const expectedWasteBalance = '797.00'
+    const originalWasteBalance = '1,000.00'
 
-    await dashboardPage.selectTableLink(1, 1)
-
-    await wasteRecordsPage.submitSummaryLogLink().click()
-
-    const filePath = `resources/sanity/exporter_${accNumber}_${regNumber}.xlsx`
-    const uploadSummaryLogPage = new UploadSummaryLogPage(currentPage)
-    await uploadSummaryLogPage.performUploadAndReturnToHomepage(filePath)
+    const summaryLogContent = await generateSummaryLogContent({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'WO',
+      regNumber,
+      accNumber,
+      rows: {
+        'Exported (sections 1, 2 and 3)': [
+          {
+            rowId: 9001,
+            fields: {
+              WERE_PRN_OR_PERN_ISSUED_ON_THIS_WASTE: 'No',
+              DID_WASTE_PASS_THROUGH_AN_INTERIM_SITE: 'No',
+              WAS_THE_WASTE_REFUSED: 'No',
+              WAS_THE_WASTE_STOPPED: 'No',
+              OSR_ID: 100,
+              TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED: 1000
+            }
+          }
+        ]
+      }
+    })
+    await submitSummaryLogContent(
+      organisationDetails.refNo,
+      migrationResponse.registrationIds[0],
+      defraIdStub.authHeader(user.userId),
+      summaryLogContent
+    )
 
     await dashboardPage.selectTableLink(1, 1)
 
@@ -305,7 +328,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     await wasteRecordsPage.backLink().click()
 
     // Check that the waste balance has been updated from the cancelled PRN
-    const expectedUpdatedWasteBalance = '1,494.09'
+    const expectedUpdatedWasteBalance = '966.00'
     const availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe(expectedUpdatedWasteBalance)
 

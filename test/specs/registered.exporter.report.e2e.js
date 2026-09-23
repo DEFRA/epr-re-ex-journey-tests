@@ -16,6 +16,8 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { unsubmitReport } from '../support/seeding/reports.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude
@@ -25,18 +27,30 @@ import {
   switchToNewTab
 } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
-import {
-  navigateToReports,
-  uploadSummaryLogAndNavigateToReports
-} from '../support/report-navigation.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
+import { navigateToReports } from '../support/report-navigation.js'
 
 const REG_NUMBER = 'R26EX5000000003PA'
 
-async function uploadAndNavigateToReports(page) {
-  await uploadSummaryLogAndNavigateToReports(
-    page,
+// Submitted via epr-backend's dev endpoint rather than driving the upload
+// UI: these journeys are about the reports wizard, not the upload itself,
+// which the dedicated summary-log specs already cover.
+async function uploadAndNavigateToReports(
+  page,
+  organisationDetails,
+  migrationResponse,
+  user
+) {
+  const summaryLogContent = await summaryLogContentFromFixture(
     'resources/exporter-regonly.xlsx'
   )
+  await submitSummaryLogContent(
+    organisationDetails.refNo,
+    migrationResponse.registrationIds[0],
+    defraIdStub.authHeader(user.userId),
+    summaryLogContent
+  )
+  await navigateToReports(page)
 }
 
 async function setupRegisteredOnlyExporter(page) {
@@ -59,13 +73,13 @@ async function setupRegisteredOnlyExporter(page) {
     ]
   )
 
-  await createLinkAndLogin(
+  const user = await createLinkAndLogin(
     page,
     organisationDetails.refNo,
     migrationResponse.email
   )
 
-  return { organisationDetails, migrationResponse }
+  return { organisationDetails, migrationResponse, user }
 }
 
 test.describe('Registered-only exporter report flow @registeredOnlyExporter', () => {
@@ -93,7 +107,12 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
         [0],
         [143, 297, 565, 893]
       )
-      await uploadAndNavigateToReports(page)
+      await uploadAndNavigateToReports(
+        page,
+        setupResponse.organisationDetails,
+        setupResponse.migrationResponse,
+        setupResponse.user
+      )
     })
 
     test.afterAll(async () => {
@@ -303,8 +322,14 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
 
     test.beforeAll(async ({ browser }) => {
       page = await browser.newPage()
-      await setupRegisteredOnlyExporter(page)
-      await uploadAndNavigateToReports(page)
+      const { organisationDetails, migrationResponse, user } =
+        await setupRegisteredOnlyExporter(page)
+      await uploadAndNavigateToReports(
+        page,
+        organisationDetails,
+        migrationResponse,
+        user
+      )
     })
 
     test.afterAll(async () => {

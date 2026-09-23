@@ -10,7 +10,8 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { externalAPICancelPrn } from '../support/seeding/prns.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -69,11 +70,18 @@ test.describe('Marking a PRN as December Waste (Reprocessor Output)', () => {
       migrationResponse.email
     )
 
-    await uploadAndSubmitSummaryLog(
+    // Submitted via epr-backend's dev endpoint rather than a real multipart
+    // upload: this journey is about the December Waste question on a PRN,
+    // not the upload itself, which the dedicated summary-log specs already
+    // cover.
+    const summaryLogContent = await summaryLogContentFromFixture(
+      `resources/sanity/reprocessorOutput_${accNumber}_${regNumber}.xlsx`
+    )
+    await submitSummaryLogContent(
       organisationDetails.refNo,
       migrationResponse.registrationIds[0],
       defraIdStub.authHeader(user.userId),
-      `resources/sanity/reprocessorOutput_${accNumber}_${regNumber}.xlsx`
+      summaryLogContent
     )
 
     await dashboardPage.selectTableLink(1, 1)

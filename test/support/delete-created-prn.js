@@ -13,10 +13,12 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from './seeding/organisation.js'
-import { uploadAndSubmitSummaryLog } from './seeding/summary-logs.js'
+import { submitSummaryLogContent } from './seeding/summary-logs.js'
 import { defraIdStub } from './defra-id-stub.js'
 import { createLinkAndLogin } from './login-helper.js'
 import { tonnageWordings, tradingName } from './fixtures.js'
+
+/** @import {SummaryLogContent} from './spreadsheet/summarylogs-content-generator.js' */
 
 /**
  * @import { Page } from '@playwright/test'
@@ -36,7 +38,7 @@ import { tonnageWordings, tradingName } from './fixtures.js'
  * @param {string} config.accNumber
  * @param {string} [config.reprocessingType] - only set for Reprocessor scenarios, e.g. 'output'
  * @param {boolean} [config.seedOverseasSites] - Exporter-only setup step
- * @param {string} config.summaryLogFilePath
+ * @param {SummaryLogContent} config.summaryLogContent - JSON content (built via generateSummaryLogContent) that credits a real balance for this accreditation
  * @param {string} config.expectedWasteBalance
  * @param {string} config.expectedDeductedWasteBalance
  * @param {boolean} [config.isPern]
@@ -52,7 +54,7 @@ export async function runDeleteCreatedPrn(
     accNumber,
     reprocessingType,
     seedOverseasSites: shouldSeedOverseasSites = false,
-    summaryLogFilePath,
+    summaryLogContent,
     expectedWasteBalance,
     expectedDeductedWasteBalance,
     isPern = false,
@@ -100,11 +102,11 @@ export async function runDeleteCreatedPrn(
     migrationResponse.email
   )
 
-  await uploadAndSubmitSummaryLog(
+  await submitSummaryLogContent(
     organisationDetails.refNo,
     migrationResponse.registrationIds[0],
     defraIdStub.authHeader(user.userId),
-    summaryLogFilePath
+    summaryLogContent
   )
 
   await dashboardPage.selectTableLink(1, 1)
