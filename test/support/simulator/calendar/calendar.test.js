@@ -6,7 +6,9 @@ import { planPopulation } from '../population/population.js'
 import { CONTRIBUTION, heldTonnage, planSummaryLogRows } from '../rows/rows.js'
 import { SHEETS } from '../rows/sheets.js'
 import {
+  addDays,
   cadenceOf,
+  lastDayOfMonth,
   monthsOfPeriod,
   planCalendar,
   uploadRows
@@ -173,6 +175,11 @@ const isWeekend = (event) => [0, 6].includes(new Date(event.at).getUTCDay())
 /** @param {string} from @param {string} to */
 const daysBetween = (from, to) =>
   Math.round((Date.parse(to) - Date.parse(from)) / 86400000)
+/** @param {{at: string}} event */
+const monthEndOf = (event) => {
+  const [year, monthNumber] = month(event).split('-').map(Number)
+  return lastDayOfMonth(year, monthNumber)
+}
 
 /** @param {string} registrationId */
 const uploadsOf = (registrationId) =>
@@ -1332,12 +1339,10 @@ describe('PRNs', () => {
     ofType(EVENT.PRN_ISSUED).reduce((sum, issued) => {
       const { prn } = operatorOf(issued).profile
       const accepted = (1 - prn.cancelRate) * prn.producerAcceptRate
-      const next = new Date(`${month(issued)}-01`)
-      next.setUTCMonth(next.getUTCMonth() + 1)
       if (month(issued) === of) {
         return sum + accepted * prn.sameMonthAcceptanceShare
       }
-      if (next.toISOString().slice(0, 7) === of) {
+      if (addDays(monthEndOf(issued), 1).slice(0, 7) === of) {
         return sum + accepted * (1 - prn.sameMonthAcceptanceShare)
       }
       return sum
@@ -1371,17 +1376,12 @@ describe('PRNs', () => {
    */
   it('accepts a note issued on its operator’s last working day of the month at its operator’s rates', () => {
     const lastWorkingDay = ofType(EVENT.PRN_ISSUED).filter((issued) => {
-      const [year, monthNumber] = month(issued).split('-').map(Number)
-      if (monthNumber === 12) return false
-      const daysLeft =
-        new Date(Date.UTC(year, monthNumber, 0)).getUTCDate() -
-        Number(day(issued).slice(8, 10))
+      if (month(issued).endsWith('-12')) return false
+      const daysLeft = daysBetween(day(issued), monthEndOf(issued))
       for (let ahead = 1; ahead <= daysLeft; ahead++) {
-        const after = new Date(issued.at)
-        after.setUTCDate(after.getUTCDate() + ahead)
         if (
           operatorOf(issued).profile.worksWeekends ||
-          !isWeekend({ at: after.toISOString() })
+          !isWeekend({ at: addDays(day(issued), ahead) })
         ) {
           return false
         }
