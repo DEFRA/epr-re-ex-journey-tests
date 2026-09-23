@@ -482,10 +482,11 @@ function uploadSections({
    * them. The calendar rejects every upload of a stream with no worksheet
    * the service validates fatally, whatever the profile's fatal share.
    *
-   * A period's closing upload lands after it ends, so a month holds the rest
-   * of its own period's uploads and the one closing the period before. The
-   * first period a registration owes in the run has none closing before it,
-   * so it lands one upload fewer.
+   * A period's uploads but one land across its months, and its closing upload
+   * lands in the month after it ends, so a period's first month also holds
+   * the upload closing the period before. The first period a registration
+   * owes in the run has none closing before it. Each upload amends its share
+   * of the period's rows.
    *
    * @param {PlannedOperator} operator
    * @param {PlannedRegistration} registration
@@ -498,12 +499,14 @@ function uploadSections({
       (sheet) => sheet.contribution !== CONTRIBUTION.NONE
     )
     const cadence = cadenceOf(registration)
+    const months = MONTHS_PER_PERIOD[cadence]
+    const [opening] = monthsOfPeriod(periodOf(month, cadence))
     const firstPeriod = monthsOfPeriod(
       periodOf(later(registration.activeFrom, from), cadence)
     )
+    const closingBefore = month === opening && !firstPeriod.includes(month)
     const landing =
-      (rates.perReportingPeriod - (firstPeriod.includes(month) ? 1 : 0)) /
-      MONTHS_PER_PERIOD[cadence]
+      (rates.perReportingPeriod - 1) / months + (closingBefore ? 1 : 0)
     const invalid =
       landing *
       rates.rejectionRate *
@@ -514,7 +517,12 @@ function uploadSections({
       submitted: landing,
       uploads: landing + invalid,
       invalid,
-      amended: rowsPerSubmissionOf(calibration, stream).updated * volumeFactor
+      amended:
+        (landing *
+          rowsPerSubmissionOf(calibration, stream).updated *
+          volumeFactor *
+          months) /
+        rates.perReportingPeriod
     }
   }
 

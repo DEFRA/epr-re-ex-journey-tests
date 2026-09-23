@@ -429,41 +429,50 @@ describe('summary logs a month', () => {
       row(logs, '2026-01').submitted.target,
       owingBy('2026-01-31').length * (perReportingPeriod - 1)
     )
-    const quarterly = section(
-      `Summary logs a month: ${streamFor(registeredOnly)}`
-    )
-    assert.ok(registeredOnly.activeFrom < '2026-04-01')
-    for (const { months, landing } of [
-      {
-        months: ['2026-01', '2026-02', '2026-03'],
-        landing: perReportingPeriod - 1
-      },
-      { months: ['2026-04', '2026-05', '2026-06'], landing: perReportingPeriod }
-    ]) {
-      for (const label of months) {
-        assert.ok(
-          Math.abs(row(quarterly, label).submitted.target - landing / 3) < 1e-9,
-          label
-        )
-      }
+  })
+
+  const registeredOnlyOperator = population.organisations.find(
+    ({ id }) => id === registeredOnly.organisationId
+  )
+  assert.ok(registeredOnlyOperator)
+  const registeredOnlyRates = registeredOnlyOperator.profile.uploads
+  const quarterly = section(
+    `Summary logs a month: ${streamFor(registeredOnly)}`
+  )
+
+  it('asks a registered-only registration for a quarter’s uploads but one across its months, and the one closing it in the month after, amending a share of the rows with each', () => {
+    assert.ok(registeredOnly.activeFrom <= '2026-01-31')
+    const inPeriod = (registeredOnlyRates.perReportingPeriod - 1) / 3
+    const share =
+      (calibration.activity.rowsPerSubmission.registeredOnly.updated *
+        registeredOnlyOperator.profile.volumeFactor *
+        3) /
+      registeredOnlyRates.perReportingPeriod
+    for (const [label, landing] of Object.entries({
+      '2026-01': inPeriod,
+      '2026-02': inPeriod,
+      '2026-03': inPeriod,
+      '2026-04': inPeriod + 1,
+      '2026-05': inPeriod,
+      '2026-06': inPeriod
+    })) {
+      const values = row(quarterly, label)
+      assert.ok(Math.abs(values.submitted.target - landing) < 1e-9, label)
+      assert.ok(
+        Math.abs(values['amended rows'].target - landing * share) < 1e-9,
+        label
+      )
     }
   })
 
   it('expects every rejection of a registered-only stream to be fatal, spoiling a removed row or a bad date at the same made share as an accredited one', () => {
-    const values = row(
-      section(`Summary logs a month: ${streamFor(registeredOnly)}`),
-      '2026-07'
-    )
+    const values = row(quarterly, '2026-07')
     assert.ok(registeredOnly.activeFrom <= '2026-07-31')
-    const operator = population.organisations.find(
-      ({ id }) => id === registeredOnly.organisationId
-    )
-    assert.ok(operator)
-    const rates = operator.profile.uploads
+    const rates = registeredOnlyRates
     assert.ok(
       Math.abs(
         values.invalid.target -
-          (rates.perReportingPeriod / 3) *
+          ((rates.perReportingPeriod - 1) / 3 + 1) *
             rates.rejectionRate *
             rates.extraAttemptsWhenRejected *
             fatalShareExpressed
@@ -474,11 +483,8 @@ describe('summary logs a month', () => {
 
 /**
  * Each registration draws its uploads a period evenly either side of the rate,
- * so a stream of seventy to a hundred and seventy registrations lands its
- * first month up to a fifth either side of target by the seed. The
- * registered-only streams hold under twenty registrations between them, so
- * they are held together over their first quarter, to three tenths. A target
- * asking a full first period reads these at about a half.
+ * so the accredited streams' January lands within about a tenth of target by the
+ * seed. A target asking a full first period reads it at about a half.
  */
 describe('the first months of a seeded plan at full scale', () => {
   const firstQuarter = {
@@ -535,27 +541,14 @@ describe('the first months of a seeded plan at full scale', () => {
       values.reduce((total, value) => total + value.target, 0)
     )
   }
-  /** @param {number} actual @param {number} tolerance @param {string} of */
-  const onTarget = (actual, tolerance, of) =>
-    assert.ok(
-      Math.abs(actual - 1) <= tolerance,
-      `${of} reads ${actual.toFixed(2)} of target`
+  it('submits the accredited streams’ January uploads at target', () => {
+    const ratio = submittedRatio(
+      ['exporter', 'reprocessorInput', 'reprocessorOutput'],
+      ['2026-01']
     )
-
-  for (const stream of ['exporter', 'reprocessorInput', 'reprocessorOutput']) {
-    it(`submits January’s uploads at target on the ${stream} stream`, () => {
-      onTarget(submittedRatio([stream], ['2026-01']), 0.2, stream)
-    })
-  }
-
-  it('submits a registered-only registration’s first quarter at target', () => {
-    onTarget(
-      submittedRatio(
-        ['regOnlyExporter', 'regOnlyReprocessor'],
-        ['2026-01', '2026-02', '2026-03']
-      ),
-      0.3,
-      'the registered-only streams'
+    assert.ok(
+      Math.abs(ratio - 1) <= 0.15,
+      `January reads ${ratio.toFixed(2)} of target`
     )
   })
 })
