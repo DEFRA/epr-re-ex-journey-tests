@@ -161,20 +161,28 @@ Every rate the archetypes are built from is spread either side of the
 calibration by up to the tardy archetype's factor, 2.4, and the spread still
 has to land inside a probability. A rate that worsens with the archetype —
 `missedReturnRate`, `restatementRate`, `uploads.rejectionRate`,
-`uploads.fatalShare`, `uploads.abandonRate`, `weekendVolumeShare`, and the PRN
-`deleteRate`, `discardRate` and `cancelRate` — can be spread only up to 1 in
-2.4, so the calibrated figure must stay at or under 0.417. A rate that improves
+`uploads.fatalShare`, `uploads.abandonRate`, and the PRN `deleteRate`,
+`discardRate` and `cancelRate` — is multiplied by up to 2.4, so the calibrated
+figure has to stay under 1 in 2.4, a little under 0.417. A rate that improves
 instead — `producerAcceptRate` and `sameMonthAcceptanceShare` — is spread the
-other way, on its failure side, so the calibrated figure must stay at or over
-0.583. `buildArchetypes` (`profiles.js`) refuses a calibration that crosses
-either bound, naming the rate and the bound it needs.
+other way, on its failure side, so the calibrated figure has to stay a little
+over 0.583. `buildArchetypes` (`profiles.js`) refuses a calibration that
+crosses either bound, naming the rate and, rounded to three places, the bound
+it needs; the rounded figure itself is just past the true bound and would
+still be refused.
+
+`weekendVolumeShare` carries the same 2.4 spread, but only after it is turned
+into a share of operators rather than of upload volume — see
+`WEEKEND_SHARE_OF_A_WORKING_WEEK` in `profiles.js` — so its own bound is
+smaller: a little under 0.119 rather than 0.417.
 
 A measured rate past its bound cannot be handed to the archetypes as it
-stands. Carry it on a different setting instead: a validation-issue rate past
-the 0.417 bound on `rejectionRate`, for instance, can keep `rejectionRate`
-inside the bound and raise `fatalShare` to carry the rest of what was
-measured. The right substitution depends on what the rate feeds; there is no
-general rule beyond keeping the spread rate itself under its bound.
+stands, and there is no setting that substitutes for it exactly: `fatalShare`,
+for one, only splits an upload already picked as rejected into fatal or
+row-level, so raising it changes the severity mix rather than how often an
+upload is rejected at all. Carrying a rate past its bound is a judgement about
+which setting the calibration should bend on instead, made and recorded
+against the measured figure it stands in for, not a mechanical substitution.
 
 ### Running against measured behaviour
 
