@@ -145,8 +145,9 @@ worth like the rows an upload creates, times the operator's volume factor and
 spread across the uploads a period gets. They are drawn from rows submitted
 before in periods still open, so an amendment is an adjustment and never an
 accidental restatement. An upload with fewer such rows than that amends what
-there are and leaves the rest owed to the registration's next upload, so the
-year still lands on the calibrated volume. An amended row keeps every pinned cell and draws the
+there are and leaves the rest owed to the registration's next upload, so a
+shortfall is made up over the year rather than lost; whatever is still owed when
+the plan ends is dropped. An amended row keeps every pinned cell and draws the
 rest afresh, and stays amended in every later upload, because a row that moved
 back would read as a second adjustment.
 

@@ -397,11 +397,14 @@ describe('summary log uploads', () => {
   })
 
   /**
-   * From April, clear of every registration's first upload, which has nothing
-   * submitted before it to amend. The registered-only streams are left out:
-   * they hold a handful of registrations, too few to measure a rate on.
+   * Over the year from April. What an upload cannot amend is owed to the next
+   * one, so a registration runs short in the months after its first upload,
+   * with nothing yet owed to make up, and catches up later; a quarter's
+   * window would judge the catching up rather than the volume. The
+   * registered-only streams are left out: they hold a handful of
+   * registrations, too few to measure a rate on.
    */
-  describe('amends the calibrated rows a month', () => {
+  describe('amends the calibrated rows over the year', () => {
     const settledFrom = '2026-04'
     const reporting = rows.registrations.filter((planned) => {
       const registration = registrationOf(planned)
