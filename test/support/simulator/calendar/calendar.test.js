@@ -1542,9 +1542,16 @@ describe('PRNs', () => {
   })
 
   /**
+   * The streams the service keeps December credit apart for, to be drawn only
+   * by a December note: the exporter and the reprocessor on input. An output
+   * reprocessor's December credit is ordinary balance.
+   */
+  const DECEMBER_POOL_STREAMS = new Set(['exporter', 'reprocessorInput'])
+
+  /**
    * Whether the service keeps a credit for a December note: the overseas
-   * reprocessor received an exported load in December, or a reprocessor
-   * received or reprocessed one then. Spelt out here, apart from what the
+   * reprocessor received an exported load in December, or an input
+   * reprocessor received one then. Spelt out here, apart from what the
    * sheets declare, so the plan is checked against the service's rule rather
    * than its own.
    *
@@ -1553,20 +1560,22 @@ describe('PRNs', () => {
    */
   const isDecemberCredit = (registration, row) =>
     row.contribution === CONTRIBUTION.CREDIT &&
+    DECEMBER_POOL_STREAMS.has(rowsOf(registration.id).stream) &&
     (registration.processingType === 'exporter'
       ? String(row.fields.DATE_RECEIVED_BY_OSR).slice(3, 5)
       : row.date.slice(5, 7)) === '12'
 
   /**
    * The balance the service holds for an accreditation, replayed from its
-   * events: what its submitted uploads credited outside December, less what
-   * they debited, less every note holding tonnage. A note draws it when
+   * events: what its submitted uploads credited, less what is held back, less
+   * what they debited, less every note holding tonnage. A note draws it when
    * raised and gives it back when deleted or cancelled.
    *
    * @param {PlannedRegistration} registration
+   * @param {(registration: PlannedRegistration, row: PlannedLogRow) => boolean} [heldBack]
    * @returns {number} the lowest the balance went at a raise
    */
-  const lowestBalanceAtRaise = (registration) => {
+  const lowestBalanceAtRaise = (registration, heldBack = isDecemberCredit) => {
     const planned = rowsOf(registration.id)
     const own = events.filter(
       (event) =>
@@ -1583,8 +1592,7 @@ describe('PRNs', () => {
       ) {
         credited = planned.rows
           .filter(
-            (row) =>
-              row.date <= event.cutoff && !isDecemberCredit(registration, row)
+            (row) => row.date <= event.cutoff && !heldBack(registration, row)
           )
           .reduce(
             (sum, row) =>
@@ -1616,6 +1624,25 @@ describe('PRNs', () => {
       const lowest = lowestBalanceAtRaise(registration)
       assert.ok(lowest >= 0, `${registration.id} went to ${lowest} t`)
     }
+  })
+
+  it('funds an output reprocessor’s notes from its December credit too', () => {
+    /**
+     * @param {PlannedRegistration} _registration
+     * @param {PlannedLogRow} row
+     */
+    const creditedInDecember = (_registration, row) =>
+      row.contribution === CONTRIBUTION.CREDIT && row.date.slice(5, 7) === '12'
+    const output = accredited.filter(
+      (registration) => rowsOf(registration.id).stream === 'reprocessorOutput'
+    )
+    assert.ok(output.length > 0)
+    assert.ok(
+      output.some(
+        (registration) =>
+          lowestBalanceAtRaise(registration, creditedInDecember) < 0
+      )
+    )
   })
 
   it('issues the calibrated share of what each processing type credits, December included', () => {

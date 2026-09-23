@@ -84,10 +84,14 @@ const MAX_ROWS_WITH_ISSUES = 3
 
 /**
  * Waste received in December can be carried into the next year's obligation,
- * so the service keeps it apart on the balance and only a December note can
- * draw on it. No note planned here is one, so December's credits are left.
+ * so for an exporter or an input reprocessor the service keeps it apart on the
+ * balance and only a December note can draw on it (epr-backend's
+ * `accruesDecember`). No note planned here is one, so those streams' December
+ * credits are left. An output reprocessor's December credit is ordinary
+ * balance, and its notes draw on it.
  */
 const DECEMBER = '12'
+const DECEMBER_POOL_STREAMS = new Set(['exporter', 'reprocessorInput'])
 
 /**
  * The hours a time of day is drawn from. Events drawn on one day keep their
@@ -779,7 +783,9 @@ function draftPrns(context, landed, issuingEnd) {
   const credits = allRows.filter(
     (row) => row.contribution === CONTRIBUTION.CREDIT
   )
-  const drawable = credits.filter((row) => creditedIn(row) !== DECEMBER)
+  const drawable = DECEMBER_POOL_STREAMS.has(rows?.stream ?? '')
+    ? credits.filter((row) => creditedIn(row) !== DECEMBER)
+    : credits
   const debits = allRows.filter(
     (row) => row.contribution === CONTRIBUTION.DEBIT
   )
@@ -802,9 +808,9 @@ function draftPrns(context, landed, issuingEnd) {
   /** @type {Hold[]} */
   const holds = []
   /**
-   * What the balance has to give on a day: credited outside December and on
-   * record before it, less debited by its end, less every earlier note's
-   * tonnage not given back before that day. An upload submitted on the day
+   * What the balance has to give on a day: drawable credit on record before
+   * it, less debited by its end, less every earlier note's tonnage not given
+   * back before that day. An upload submitted on the day
    * and a note released on it both count against the draw, because either
    * may come earlier in the day than it: an upload's credit may be December's
    * while its debits are not.
