@@ -24,12 +24,12 @@ const FIRST_FIGURE_CELL = 3
 const REPORTS_ROW_HEADER = 'Monthly reports submitted'
 
 /**
- * The figure a cell states. A figure few operators contributed to carries a
- * mark on the lines beneath it, which says how many and is not the figure.
+ * The figure a cell states. A figure few operators contributed to is followed
+ * by the confidential shorthand, which is not part of the figure.
  * @param {string} text
  * @returns {string}
  */
-const figureOf = (text) => text.trim().split('\n')[0].trim()
+const figureOf = (text) => text.trim().replace(/ \[c\]$/, '')
 
 class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
   /**
