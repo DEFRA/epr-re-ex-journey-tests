@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
+import { reprocessingTypeOf } from '../execute/join.js'
 import { DEFAULT_CALIBRATION } from '../population/calibration.js'
 import { planPopulation } from '../population/population.js'
 import { CONTRIBUTION, heldTonnage, planSummaryLogRows } from '../rows/rows.js'
@@ -1542,25 +1543,20 @@ describe('PRNs', () => {
   })
 
   /**
-   * The streams the service keeps December credit apart for, to be drawn only
-   * by a December note: the exporter and the reprocessor on input. An output
-   * reprocessor's December credit is ordinary balance.
-   */
-  const DECEMBER_POOL_STREAMS = new Set(['exporter', 'reprocessorInput'])
-
-  /**
    * Whether the service keeps a credit for a December note: the overseas
-   * reprocessor received an exported load in December, or an input
-   * reprocessor received one then. Spelt out here, apart from what the
-   * sheets declare, so the plan is checked against the service's rule rather
-   * than its own.
+   * reprocessor received an exported load in December, or a reprocessor
+   * registered on input received one then. An output reprocessor's December
+   * credit is ordinary balance. Spelt out here from what the service is told,
+   * apart from what the plan declares, so the plan is checked against the
+   * service's rule rather than its own.
    *
    * @param {PlannedRegistration} registration
    * @param {PlannedLogRow} row
    */
   const isDecemberCredit = (registration, row) =>
     row.contribution === CONTRIBUTION.CREDIT &&
-    DECEMBER_POOL_STREAMS.has(rowsOf(registration.id).stream) &&
+    (registration.processingType === 'exporter' ||
+      reprocessingTypeOf(rowsOf(registration.id).stream) === 'input') &&
     (registration.processingType === 'exporter'
       ? String(row.fields.DATE_RECEIVED_BY_OSR).slice(3, 5)
       : row.date.slice(5, 7)) === '12'
@@ -1636,12 +1632,14 @@ describe('PRNs', () => {
     const output = accredited.filter(
       (registration) => rowsOf(registration.id).stream === 'reprocessorOutput'
     )
-    assert.ok(output.length > 0)
-    assert.ok(
-      output.some(
-        (registration) =>
-          lowestBalanceAtRaise(registration, creditedInDecember) < 0
+    const lowest = Math.min(
+      ...output.map((registration) =>
+        lowestBalanceAtRaise(registration, creditedInDecember)
       )
+    )
+    assert.ok(
+      lowest < 0,
+      `none of ${output.length} output reprocessors drew on December credit; lowest balance without it ${lowest} t`
     )
   })
 
