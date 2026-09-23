@@ -608,6 +608,74 @@ describe('notes', () => {
     assert.ok(values.accepted.target < values.issued.target)
   })
 
+  /**
+   * A month's notes are accepted in it at the same-month share and the rest
+   * the month after, so a registration's first issuing month has only its own
+   * notes' share to accept.
+   *
+   * @param {string} inMonth
+   */
+  const acceptedTarget = (inMonth) => {
+    const monthBefore = addDays(`${inMonth}-01`, -1).slice(0, 7)
+    const carrying = new Set(
+      issuingIn(monthBefore).map(({ registration }) => registration.id)
+    )
+    return issuingIn(inMonth).reduce((sum, { operator, registration }) => {
+      const { prn, volumeFactor } = operator.profile
+      const accepted =
+        calibration.activity.prnsPerAccreditationPerMonth *
+        volumeFactor *
+        (1 - prn.discardRate) *
+        (1 - prn.deleteRate) *
+        (1 - prn.cancelRate) *
+        prn.producerAcceptRate
+      return (
+        sum +
+        (carrying.has(registration.id)
+          ? accepted
+          : accepted * prn.sameMonthAcceptanceShare)
+      )
+    }, 0)
+  }
+
+  it('targets acceptances in the month the calibration lands them, with none carried into a registration’s first issuing month', () => {
+    const starting = monthly.rows.filter(({ label }) => {
+      const monthBefore = addDays(`${label}-01`, -1).slice(0, 7)
+      const before = new Set(
+        issuingIn(monthBefore).map(({ registration }) => registration.id)
+      )
+      return issuingIn(label).some(
+        ({ registration }) => !before.has(registration.id)
+      )
+    })
+    assert.ok(starting.length >= 2)
+    assert.ok(starting.length < monthly.rows.length)
+    for (const { label, values } of monthly.rows) {
+      assert.ok(
+        Math.abs(values.accepted.target - acceptedTarget(label)) < 1e-9,
+        label
+      )
+    }
+  })
+
+  it('targets the run’s acceptances by material as the months’ targets add up', () => {
+    const byMaterial = section(
+      'Notes by material and export flag, over the run'
+    )
+    assert.ok(
+      Math.abs(
+        byMaterial.rows.reduce(
+          (sum, line) => sum + line.values.accepted.target,
+          0
+        ) -
+          monthly.rows.reduce(
+            (sum, line) => sum + line.values.accepted.target,
+            0
+          )
+      ) < 1e-9
+    )
+  })
+
   it('counts a suspended or cancelled accreditation up to the month before its status changed', () => {
     const suspended = events.find(
       (event) => event.type === EVENT.ACCREDITATION_SUSPENDED

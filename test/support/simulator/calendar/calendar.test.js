@@ -6,7 +6,9 @@ import { planPopulation } from '../population/population.js'
 import { CONTRIBUTION, heldTonnage, planSummaryLogRows } from '../rows/rows.js'
 import { SHEETS } from '../rows/sheets.js'
 import {
+  addDays,
   cadenceOf,
+  lastDayOfMonth,
   monthsOfPeriod,
   planCalendar,
   uploadRows
@@ -173,6 +175,11 @@ const isWeekend = (event) => [0, 6].includes(new Date(event.at).getUTCDay())
 /** @param {string} from @param {string} to */
 const daysBetween = (from, to) =>
   Math.round((Date.parse(to) - Date.parse(from)) / 86400000)
+/** @param {{at: string}} event */
+const monthEndOf = (event) => {
+  const [year, monthNumber] = month(event).split('-').map(Number)
+  return lastDayOfMonth(year, monthNumber)
+}
 
 /** @param {string} registrationId */
 const uploadsOf = (registrationId) =>
@@ -1299,21 +1306,23 @@ describe('PRNs', () => {
   /**
    * Weighted like the fatal share above: a punctual operator has more of its
    * notes accepted and accepted sooner, so the expectation is the mean of the
-   * profile rate over the notes that were accepted.
+   * profile rate over the notes that were accepted. The notes are the ones
+   * issued before the last measured month, so both months either could be
+   * accepted in are measured.
    */
   it('has each note accepted in the month of issue at its operator’s own rate', () => {
+    /** @param {PrnEvent} event */
+    const issueOf = (event) =>
+      must(
+        must(byPrn.get(event.prnId)).find(
+          (other) => other.type === EVENT.PRN_ISSUED
+        )
+      )
     const accepted = ofType(EVENT.PRN_ACCEPTED).filter(
-      (event) => month(event) <= MEASURED_UNTIL.slice(0, 7)
+      (event) => month(issueOf(event)) < MEASURED_UNTIL.slice(0, 7)
     )
     near(
-      share(accepted, (event) => {
-        const issued = must(
-          must(byPrn.get(event.prnId)).find(
-            (other) => other.type === EVENT.PRN_ISSUED
-          )
-        )
-        return month(issued) === month(event)
-      }),
+      share(accepted, (event) => month(issueOf(event)) === month(event)),
       mean(
         accepted.map(
           (event) => operatorOf(event).profile.prn.sameMonthAcceptanceShare
@@ -1321,6 +1330,100 @@ describe('PRNs', () => {
       ),
       0.03,
       'same month'
+    )
+  })
+
+  /**
+   * What the calibration expects accepted in a month, from the notes the plan
+   * issued: each operator's accepted share of a month's issues lands that
+   * month at its same-month share, and the rest the month after.
+   *
+   * @param {string} of - `YYYY-MM`
+   */
+  const expectedAcceptedIn = (of) =>
+    ofType(EVENT.PRN_ISSUED).reduce((sum, issued) => {
+      const { prn } = operatorOf(issued).profile
+      const accepted = (1 - prn.cancelRate) * prn.producerAcceptRate
+      if (month(issued) === of) {
+        return sum + accepted * prn.sameMonthAcceptanceShare
+      }
+      if (addDays(monthEndOf(issued), 1).slice(0, 7) === of) {
+        return sum + accepted * (1 - prn.sameMonthAcceptanceShare)
+      }
+      return sum
+    }, 0)
+
+  /**
+   * The count a month is drawn to varies with a few large operators, so a
+   * month is held to a tenth and the year, where that evens out, to a fiftieth.
+   */
+  it('lands each month’s acceptances in the month the calibration puts them', () => {
+    const accepted = ofType(EVENT.PRN_ACCEPTED)
+    const months = [...new Set(ofType(EVENT.PRN_ISSUED).map(month))].sort()
+    for (const of of months) {
+      const expected = expectedAcceptedIn(of)
+      near(
+        accepted.filter((event) => month(event) === of).length,
+        expected,
+        expected / 10,
+        `accepted in ${of}`
+      )
+    }
+    const overYear = months.reduce((sum, of) => sum + expectedAcceptedIn(of), 0)
+    near(accepted.length, overYear, overYear / 50, 'accepted over the year')
+  })
+
+  /**
+   * A note issued on the last day its operator works in the month is accepted
+   * at the same rates as any other, which in that month means on the day of
+   * issue. December's are left out: the month after is past the end of the
+   * calendar.
+   */
+  it('accepts a note issued on its operator’s last working day of the month at its operator’s rates', () => {
+    const lastWorkingDay = ofType(EVENT.PRN_ISSUED).filter((issued) => {
+      if (month(issued).endsWith('-12')) return false
+      const daysLeft = daysBetween(day(issued), monthEndOf(issued))
+      for (let ahead = 1; ahead <= daysLeft; ahead++) {
+        if (
+          operatorOf(issued).profile.worksWeekends ||
+          !isWeekend({ at: addDays(day(issued), ahead) })
+        ) {
+          return false
+        }
+      }
+      return must(byPrn.get(issued.prnId)).every(
+        (other) => other.type !== EVENT.PRN_CANCELLATION_REQUESTED
+      )
+    })
+    assert.ok(lastWorkingDay.length >= 100, `${lastWorkingDay.length}`)
+    /** @param {PrnEvent} issued */
+    const acceptanceOf = (issued) =>
+      must(byPrn.get(issued.prnId)).find(
+        (other) => other.type === EVENT.PRN_ACCEPTED
+      )
+    const accepted = lastWorkingDay.filter(acceptanceOf)
+    near(
+      accepted.length / lastWorkingDay.length,
+      mean(
+        lastWorkingDay.map(
+          (issued) => operatorOf(issued).profile.prn.producerAcceptRate
+        )
+      ),
+      0.1,
+      'accepted'
+    )
+    near(
+      share(
+        accepted,
+        (issued) => month(must(acceptanceOf(issued))) === month(issued)
+      ),
+      mean(
+        accepted.map(
+          (issued) => operatorOf(issued).profile.prn.sameMonthAcceptanceShare
+        )
+      ),
+      0.1,
+      'accepted in the month of issue'
     )
   })
 
