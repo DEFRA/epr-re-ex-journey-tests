@@ -790,18 +790,23 @@ function draftPrns(context, landed, issuingEnd) {
   const holds = []
   /**
    * What the balance has to give on a day: credited outside December and on
-   * record, less debited, less every earlier note's tonnage not given back
-   * before that day. A note released on the day still holds, because the
-   * release may come later in it than the draw.
+   * record before it, less debited by its end, less every earlier note's
+   * tonnage not given back before that day. An upload submitted on the day
+   * and a note released on it both count against the draw, because either
+   * may come earlier in the day than it: an upload's credit may be December's
+   * while its debits are not.
    *
    * @param {string} day
    */
   const available = (day) => {
-    const cutoff = onRecordBefore(day)
     const held = holds
       .filter((hold) => hold.released === null || hold.released >= day)
       .reduce((sum, hold) => sum + hold.tonnage, 0)
-    return tonnageOf(drawable, cutoff) - tonnageOf(debits, cutoff) - held
+    return (
+      tonnageOf(drawable, onRecordBefore(day)) -
+      tonnageOf(debits, onRecordBefore(addDays(day, 1))) -
+      held
+    )
   }
 
   /**
@@ -910,7 +915,13 @@ function draftPrns(context, landed, issuingEnd) {
     const [year, monthNumber] = month.split('-').map(Number)
     const notBefore = later(first, `${month}-01`)
     const notAfter = earlier(lastDayOfMonth(year, monthNumber), issuingEnd)
-    const count = random.int(0, Math.round(mean * 2))
+    // Drawn evenly up to twice the mean, the top rounded up by the chance of
+    // its fraction, so the count averages the mean however small it is.
+    const top = mean * 2
+    const count = random.int(
+      0,
+      Math.floor(top) + (random.float() < top % 1 ? 1 : 0)
+    )
     /** @type {NoteDraw[]} */
     const notes = []
     for (let index = 0; index < count; index++) {

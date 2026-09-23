@@ -189,7 +189,8 @@ submitted upload carries one of the period's rows in `restated`, and a second
 
 Each accredited registration drafts `activity.prnsPerAccreditationPerMonth`
 notes a month, times the operator's volume factor, spread evenly either side of
-that, from the day after its first summary log is submitted: a note is issued
+that however small it is, from the day after its first summary log is
+submitted: a note is issued
 against the balance the uploads have built, so none comes before it. A note is
 raised the day it is drafted and issued within three days, then accepted at
 `prn.producerAcceptRate`, in the month of issue at
@@ -217,8 +218,10 @@ reprocessor received it, which the sheet declares as its `balanceDate`, and
 any other by the row's own day. That credit still counts in the share the
 month's notes are sized from, so December issues like any other month from
 what the balance holds outside it. An exporter's loads reach the overseas
-reprocessor three weeks after they leave, so without it an exporter would have
-nothing to issue in December. Tonnage is in whole tonnes; the price is the
+reprocessor three weeks after they leave, so without it an exporter's December
+share would be almost nothing. A day's debits count against a note drafted
+that day, since the upload that brings them may land before it. Tonnage is in
+whole tonnes; the price is the
 calibration's `activity.prnPricePerTonne` for the registration's material,
 and a material it prices nothing for is refused rather than planned free.
 

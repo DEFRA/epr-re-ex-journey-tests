@@ -1240,6 +1240,34 @@ describe('PRNs', () => {
   })
 
   /**
+   * A registration at a note a month or less is where a count rounded to whole
+   * notes before it is drawn reads light, and one under a quarter of a note
+   * would never draft at all. A material or export flag with two or three
+   * registrations is often made of these, so their rate is held on its own.
+   */
+  it('raises its rate for a registration at under a note a month', () => {
+    const small = accredited.filter(
+      (registration) =>
+        issuingMonths(registration) > 0 &&
+        ACTIVITY.prnsPerAccreditationPerMonth * volumeOf(registration) < 1
+    )
+    assert.ok(small.length >= 40, `only ${small.length} small registrations`)
+    const expected = expectedPerMonth(small)
+    near(draftedPerMonth(small), expected, expected / 10, 'small registrations')
+    const tiny = small.filter(
+      (registration) =>
+        ACTIVITY.prnsPerAccreditationPerMonth * volumeOf(registration) < 0.25
+    )
+    assert.ok(tiny.length > 0, 'no registration under a quarter of a note')
+    assert.ok(
+      drafted.some((event) =>
+        tiny.some(({ id }) => id === event.registrationId)
+      ),
+      'no registration under a quarter of a note a month drafted one'
+    )
+  })
+
+  /**
    * A few large operators draw most of a month's notes, so either processing
    * type swings a sixth either side of its rate from one month to the next.
    * A quarter still catches a month that drafts next to nothing.
@@ -1249,11 +1277,17 @@ describe('PRNs', () => {
       const members = accredited.filter(
         (registration) => registration.processingType === processingType
       )
-      for (let monthNumber = 2; monthNumber <= 12; monthNumber++) {
-        const counted = `2026-${String(monthNumber).padStart(2, '0')}`
-        const issuing = members.filter(
-          (registration) => must(firstSubmission(registration)) < counted
-        )
+      const [year, lastMonth] = TO.split('-')
+      for (
+        let monthNumber = 2;
+        monthNumber <= Number(lastMonth);
+        monthNumber++
+      ) {
+        const counted = `${year}-${String(monthNumber).padStart(2, '0')}`
+        const issuing = members.filter((registration) => {
+          const first = firstSubmission(registration)
+          return first !== null && first < counted
+        })
         const expected =
           ACTIVITY.prnsPerAccreditationPerMonth *
           issuing.reduce((sum, registration) => sum + volumeOf(registration), 0)
