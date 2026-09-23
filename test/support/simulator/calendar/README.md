@@ -133,12 +133,14 @@ plan of a workbook that provokes one validation code the service raises:
 | `blankField` | error    | Leaves the date of a row blank.                                  | FIELD_REQUIRED            |
 
 A first upload that draws a removed row spoils a date instead, having nothing
-yet to remove. An error sits on rows the upload adds where it adds any,
-because that is where an operator's new mistakes are, and only on a worksheet
-the service reads into the waste balance, because those are the only rows it
-validates the cells of. A workbook with none of those to plant on is rejected
-fatally instead, so a registered-only registration's rejections are all fatal,
-and where a fatal kind has no row to sit on either, the workbook is unreadable.
+yet to remove: any worksheet with a date field can carry it, on every stream,
+because the service validates every table it has a schema for. A blank-field
+error sits on rows the upload adds where it adds any, because that is where an
+operator's new mistakes are, and only on a worksheet the service reads into
+the waste balance, because that is what gates the required-field check: a
+workbook with none of those to plant on is rejected fatally instead, so a
+registered-only registration's rejections are all fatal. Where a kind has no
+row to sit on either way, the workbook is unreadable.
 
 Amendments are the calibrated `rowsPerSubmission[stream].updated`, a month's
 worth like the rows an upload creates, times the operator's volume factor and

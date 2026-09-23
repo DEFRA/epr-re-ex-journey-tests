@@ -20,12 +20,7 @@ import {
   LATEST_RETURN_DAYS_AFTER_DUE,
   MONTHS_PER_PERIOD
 } from '../calendar/calendar.js'
-import {
-  CADENCE,
-  EVENT,
-  ISSUE_KIND,
-  UPLOAD_OUTCOME
-} from '../calendar/events.js'
+import { CADENCE, EVENT, UPLOAD_OUTCOME } from '../calendar/events.js'
 import { EXPRESSIBLE_ISSUE_KINDS, expectedOutcome } from '../execute/execute.js'
 import { CONTRIBUTION, SHEETS } from '../rows/sheets.js'
 import { eventKey } from '../run/runner.js'
@@ -115,6 +110,23 @@ function rowsPerSubmissionOf(calibration, stream) {
     )
   }
   return rows
+}
+
+/**
+ * The share of a stream's fatal rejections the executor makes: the route can
+ * express a removed row or a bad date, and every stream has a worksheet with
+ * a date field to spoil one on, so the share is the same whatever stream it
+ * is measured against.
+ *
+ * @param {Calibration} calibration
+ * @returns {number}
+ */
+export function madeFatalShare(calibration) {
+  const { fatal } = calibration.activity.uploadIssueKinds
+  return (
+    sum(EXPRESSIBLE_ISSUE_KINDS, (kind) => fatal[kind] ?? 0) /
+    sum(Object.values(fatal), (weight) => weight)
+  )
 }
 
 /** How the report submissions feed labels a monthly period, before the year. */
@@ -448,24 +460,7 @@ function uploadSections({
       event.type === EVENT.SUMMARY_LOG_UPLOADED &&
       expectedOutcome(event) !== null
   )
-  /**
-   * The share of a stream's fatal rejections the executor makes: the kinds
-   * the route can express that the stream has a row to plant on. A removed
-   * row only needs one submitted before; a bad date needs a row the service
-   * validates the cells of.
-   *
-   * @param {boolean} validated - whether the stream has such a worksheet
-   */
-  const madeFatalShare = (validated) => {
-    const { fatal } = calibration.activity.uploadIssueKinds
-    const plantable = EXPRESSIBLE_ISSUE_KINDS.filter(
-      (kind) => validated || kind === ISSUE_KIND.REMOVED_ROW
-    )
-    return (
-      sum(plantable, (kind) => fatal[kind] ?? 0) /
-      sum(Object.values(fatal), (weight) => weight)
-    )
-  }
+  const fatalShareExpressed = madeFatalShare(calibration)
   const byStream = new Map(
     [...new Set(streams.values())]
       .sort()
@@ -499,7 +494,7 @@ function uploadSections({
       rates.rejectionRate *
       rates.extraAttemptsWhenRejected *
       (validated ? rates.fatalShare : 1) *
-      madeFatalShare(validated)
+      fatalShareExpressed
     return {
       submitted: landing,
       uploads: landing + invalid,

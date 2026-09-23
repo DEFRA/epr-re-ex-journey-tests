@@ -19,6 +19,7 @@ import { planRun } from '../run/plan.js'
 import { eventKey } from '../run/runner.js'
 import {
   format,
+  madeFatalShare,
   measure,
   MONTH_LABELS,
   monthsBetween,
@@ -369,10 +370,7 @@ describe('summary logs a month', () => {
     )
   })
 
-  const { fatal } = calibration.activity.uploadIssueKinds
-  const fatalWeight = Object.values(fatal).reduce((a, b) => a + b, 0)
-  /** The share of fatal rejections the executor makes on a stream it can spoil a date on. */
-  const madeFatalShare = (fatal.removedRow + fatal.badDate) / fatalWeight
+  const fatalShareExpressed = madeFatalShare(calibration)
 
   it('targets the landing rate over the registrations owing the month, and the attempts the executor makes beyond it', () => {
     const values = row(logs, '2026-06')
@@ -396,7 +394,7 @@ describe('summary logs a month', () => {
           rates.rejectionRate *
           rates.extraAttemptsWhenRejected *
           rates.fatalShare *
-          madeFatalShare
+          fatalShareExpressed
       )
     }, 0)
     assert.ok(madeRejections > 0)
@@ -408,7 +406,7 @@ describe('summary logs a month', () => {
     assert.ok(Math.abs(values.invalid.target - madeRejections) < 1e-9)
   })
 
-  it('expects every rejection of a registered-only stream to be fatal, and only a removed row to be made, having no rows the service validates', () => {
+  it('expects every rejection of a registered-only stream to be fatal, spoiling a removed row or a bad date at the same made share as an accredited one', () => {
     const values = row(
       section(`Summary logs a month: ${streamFor(registeredOnly)}`),
       '2026-07'
@@ -425,7 +423,7 @@ describe('summary logs a month', () => {
           (rates.perReportingPeriod / 3) *
             rates.rejectionRate *
             rates.extraAttemptsWhenRejected *
-            (fatal.removedRow / fatalWeight)
+            fatalShareExpressed
       ) < 1e-9
     )
   })
@@ -748,6 +746,22 @@ describe('the run reached', () => {
       logs?.rows.map((line) => line.label),
       ['2026-01', '2026-02', '2026-03']
     )
+  })
+})
+
+describe('madeFatalShare', () => {
+  it('weighs the kinds the route can express against every fatal kind the calibration names', () => {
+    const share = madeFatalShare({
+      ...DEFAULT_CALIBRATION,
+      activity: {
+        ...DEFAULT_CALIBRATION.activity,
+        uploadIssueKinds: {
+          fatal: { removedRow: 3, badDate: 2, unreadable: 5 },
+          error: { blankField: 1 }
+        }
+      }
+    })
+    assert.equal(share, 0.5)
   })
 })
 

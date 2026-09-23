@@ -395,12 +395,14 @@ function amendmentCount(context, stream, period) {
  *
  * A row can only be missing if it was submitted before, so a first upload that
  * draws that kind spoils a date instead, which the route can express where an
- * unreadable workbook cannot. An error sits on rows the upload adds where it
- * adds any, because that is where an operator's new mistakes are, and only on
- * a worksheet the service reads into the waste balance, because those are the
- * only rows it validates the cells of: a workbook with none of those to plant
- * on is rejected fatally instead. A kind left with no row to sit on is an
- * unreadable workbook.
+ * unreadable workbook cannot: any worksheet with a date field can carry it, on
+ * every stream, because the service validates every table it has a schema for
+ * and every worksheet's date columns carry one. A blank-field error sits on
+ * rows the upload adds where it adds any, because that is where an operator's
+ * new mistakes are, and only on a worksheet the service reads into the waste
+ * balance, because that is what gates the required-field check: a workbook
+ * with none of those to plant on is rejected fatally instead. A kind left with
+ * no row to sit on is an unreadable workbook.
  *
  * @param {RegistrationContext} context
  * @param {PlannedLogRow[]} submitted - rows carried by the last submitted upload
@@ -410,10 +412,14 @@ function amendmentCount(context, stream, period) {
 function drawIssues(context, submitted, added) {
   const { random, operator, calibration } = context
   const sheets = context.rows ? SHEETS[context.rows.stream] : {}
-  const validated = (added.length ? added : submitted).filter((row) => {
+  const candidates = added.length ? added : submitted
+  const validated = candidates.filter((row) => {
     const contribution = sheets[row.worksheet]?.contribution
     return contribution !== undefined && contribution !== CONTRIBUTION.NONE
   })
+  const dated = candidates.filter(
+    (row) => sheets[row.worksheet]?.dateFields !== undefined
+  )
   const severity =
     validated.length === 0 ||
     random.float() < operator.profile.uploads.fatalShare
@@ -435,7 +441,9 @@ function drawIssues(context, submitted, added) {
       ? submitted
       : wanted === ISSUE_KIND.UNREADABLE
         ? []
-        : validated
+        : wanted === ISSUE_KIND.BAD_DATE
+          ? dated
+          : validated
   const kind = pool.length === 0 ? ISSUE_KIND.UNREADABLE : wanted
 
   const rows = random

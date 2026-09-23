@@ -549,10 +549,11 @@ describe('summary log uploads', () => {
   })
 
   /**
-   * The service only checks the cells of a row on a worksheet it reads into
-   * the waste balance, so an error planted anywhere else raises nothing.
+   * The required-field check an error spoils is gated by the same balance
+   * contribution that decides severity, so an error never sits on a
+   * non-crediting worksheet even though a bad date can.
    */
-  it('plants an error only on a worksheet the service validates the cells of', () => {
+  it('plants an error only on a worksheet the service reads into the waste balance', () => {
     const errors = rejected.filter(
       (upload) => must(upload.issues).severity === ISSUE_SEVERITY.ERROR
     )
@@ -594,43 +595,45 @@ describe('summary log uploads', () => {
   })
 
   /**
-   * A registration's first rejected upload, and whether it carries a row the
-   * service validates the cells of.
+   * A registration's first rejected upload, and its stream.
    */
   const firstRejections = registrations.flatMap((registration) => {
     const own = uploadsOf(registration.id)
     const first = own.filter((upload) => upload.cutoff === own[0].cutoff)
     const { stream } = rowsOf(registration.id)
-    const validated = Object.values(SHEETS[stream]).some(
-      (sheet) => sheet.contribution !== CONTRIBUTION.NONE
-    )
     return first
       .filter((upload) => upload.outcome === UPLOAD_OUTCOME.REJECTED)
-      .map((upload) => ({ upload, validated }))
+      .map((upload) => ({ upload, stream }))
   })
 
   it('spoils a date on a first upload that draws a fatal issue, having nothing yet to remove', () => {
     const fatal = firstRejections.filter(
-      ({ upload, validated }) =>
-        validated && must(upload.issues).severity === ISSUE_SEVERITY.FATAL
+      ({ upload }) => must(upload.issues).severity === ISSUE_SEVERITY.FATAL
     )
     assert.ok(fatal.length > 0)
     const kinds = tally(fatal, ({ upload }) => must(upload.issues).kind)
     assert.equal(kinds.removedRow, undefined)
     assert.ok(kinds.badDate > 0)
-    for (const { upload } of fatal.filter(
-      ({ upload }) => must(upload.issues).kind === ISSUE_KIND.BAD_DATE
-    )) {
-      assert.ok(must(upload.issues).rows.length > 0)
+  })
+
+  it('spoils a date on a registered-only stream’s first rejection too, unless it carries no row to spoil', () => {
+    const onRegisteredOnly = firstRejections.filter(({ stream }) =>
+      stream.startsWith('regOnly')
+    )
+    assert.ok(onRegisteredOnly.length > 0)
+    const kinds = tally(
+      onRegisteredOnly,
+      ({ upload }) => must(upload.issues).kind
+    )
+    assert.ok(kinds.badDate > 0)
+    for (const { upload } of onRegisteredOnly) {
+      const { severity, kind } = must(upload.issues)
+      assert.equal(severity, ISSUE_SEVERITY.FATAL)
+      assert.ok(kind === ISSUE_KIND.BAD_DATE || kind === ISSUE_KIND.UNREADABLE)
     }
   })
 
-  it('plants a bad date only where there is a validated row to spoil, and is unreadable otherwise', () => {
-    const unvalidated = firstRejections.filter(({ validated }) => !validated)
-    assert.ok(unvalidated.length > 0)
-    for (const { upload } of unvalidated) {
-      assert.equal(must(upload.issues).kind, ISSUE_KIND.UNREADABLE)
-    }
+  it('leaves no rejection but an unreadable one without a row to sit on', () => {
     for (const upload of rejected.filter(
       (upload) => must(upload.issues).kind !== ISSUE_KIND.UNREADABLE
     )) {
