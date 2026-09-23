@@ -194,7 +194,7 @@ function sheetsOf(stream, calibration) {
  *
  * @param {PlannedRegistration} registration
  * @param {number} year
- * @param {string | number} populationSeed
+ * @param {PlannedPopulation['seed']} populationSeed
  * @returns {ReportingMonth[]}
  */
 function reportingMonths(registration, year, populationSeed) {

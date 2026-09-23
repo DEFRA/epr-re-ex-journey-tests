@@ -281,7 +281,7 @@ function reportingPeriods(registration, first, last, dueDay) {
  * planner reads the same day to stop the registration's rows there.
  *
  * @param {PlannedRegistration} registration
- * @param {string | number} populationSeed
+ * @param {PlannedPopulation['seed']} populationSeed
  * @returns {{type: 'accreditation.suspended' | 'accreditation.cancelled', day: string} | null}
  */
 export function statusChangeOf(registration, populationSeed) {
@@ -361,7 +361,7 @@ const uploadCount = (perPeriod, random) =>
  * @property {PlannedRegistrationRows | undefined} rows
  * @property {Calibration} calibration
  * @property {string} seed - the run's, which `random` and any further draw derive from
- * @property {string | number} populationSeed - what the registration's status change is drawn from
+ * @property {PlannedPopulation['seed']} populationSeed - what the registration's status change is drawn from
  * @property {Random} random
  * @property {string} to
  * @property {Map<string, number>} recycledPerCreditedTonne - by stream, what a reprocessor's report carries for each tonne its rows credit in the period
