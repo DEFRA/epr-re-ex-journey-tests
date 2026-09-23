@@ -233,23 +233,14 @@ const firstSubmission = (registration) => {
 }
 
 /**
- * The last month the note count is measured over. December is left out: what
- * an operator receives in December is kept for a December note, which the
- * calendar does not plan, so it drafts fewer general notes that month.
- */
-const LAST_COUNTED_MONTH = '2026-11'
-
-/**
- * Whole months a registration could issue notes in, up to the last counted
- * month: those after the month of its first submitted summary log.
+ * Whole months a registration could issue notes in, to the end of the year:
+ * those after the month of its first submitted summary log.
  *
  * @param {PlannedRegistration} registration
  */
 const issuingMonths = (registration) => {
   const first = firstSubmission(registration)
-  return first
-    ? Number(LAST_COUNTED_MONTH.slice(5, 7)) - Number(first.slice(5, 7))
-    : 0
+  return first ? Number(TO.slice(5, 7)) - Number(first.slice(5, 7)) : 0
 }
 
 describe('the calendar at full scale', () => {
@@ -1172,8 +1163,7 @@ describe('PRNs', () => {
       members.some(
         (registration) =>
           registration.id === event.registrationId &&
-          month(event) > must(firstSubmission(registration)) &&
-          month(event) <= LAST_COUNTED_MONTH
+          month(event) > must(firstSubmission(registration))
       )
     ).length /
     members.reduce((sum, registration) => sum + issuingMonths(registration), 0)
@@ -1197,41 +1187,49 @@ describe('PRNs', () => {
   })
 
   /**
-   * A material with twenty-odd accreditations swings a sixth either side of
-   * the rate by the seed, and a third on a bad one. So a material below forty
-   * accreditations is held to a third on its own, which still catches one
-   * starved or over-issued, and the tenth is asked of them together. One with
-   * a handful is held only in that total, since its own rate is a coin toss.
+   * A registration's material and export flag, spelt as the end-of-run
+   * summary labels its notes.
+   *
+   * @param {PlannedRegistration} registration
    */
-  it('raises them for every accredited material at that material’s rate', () => {
-    const suffixes = [
-      ...new Set(accredited.map((registration) => registration.material.suffix))
-    ]
+  const splitOf = (registration) =>
+    `${registration.processingType === 'exporter' ? 'export' : 'reprocess'} ${registration.material.suffix}`
+
+  /**
+   * A material and export flag with twenty-odd accreditations swings a sixth
+   * either side of the rate by the seed, and a third on a bad one. So one
+   * below forty accreditations is held to a third on its own, which still
+   * catches one starved or over-issued, and the tenth is asked of them
+   * together. One with a handful is held only in that total, since its own
+   * rate is a coin toss.
+   */
+  it('raises them for every material and export flag at its rate', () => {
+    const splits = [...new Set(accredited.map(splitOf))]
     const everAccredited = new Set(
       registrations
         .filter((registration) => registration.accreditation)
-        .map((registration) => registration.material.suffix)
+        .map(splitOf)
     )
-    for (const suffix of Object.keys(
-      tally(drafted, (event) => registrationOf(event).material.suffix)
+    for (const split of Object.keys(
+      tally(drafted, (event) => splitOf(registrationOf(event)))
     )) {
-      assert.ok(everAccredited.has(suffix), `${suffix} drafted unaccredited`)
+      assert.ok(everAccredited.has(split), `${split} drafted unaccredited`)
     }
     /** @type {PlannedRegistration[]} */
     const rare = []
-    for (const suffix of suffixes) {
+    for (const split of splits) {
       const members = accredited.filter(
-        (registration) => registration.material.suffix === suffix
+        (registration) => splitOf(registration) === split
       )
       const expected = expectedPerMonth(members)
       if (members.length < 40) {
         rare.push(...members)
         if (members.length >= 10) {
-          near(draftedPerMonth(members), expected, expected / 3, suffix)
+          near(draftedPerMonth(members), expected, expected / 3, split)
         }
         continue
       }
-      near(draftedPerMonth(members), expected, 0.25, suffix)
+      near(draftedPerMonth(members), expected, 0.25, split)
     }
     near(
       draftedPerMonth(rare),
@@ -1239,6 +1237,29 @@ describe('PRNs', () => {
       expectedPerMonth(rare) / 10,
       'the rarer materials together'
     )
+  })
+
+  it('raises exporters and reprocessors their rate in every month, December included', () => {
+    for (const processingType of ['exporter', 'reprocessor']) {
+      const members = accredited.filter(
+        (registration) => registration.processingType === processingType
+      )
+      for (let monthNumber = 2; monthNumber <= 12; monthNumber++) {
+        const month = `2026-${String(monthNumber).padStart(2, '0')}`
+        const issuing = members.filter(
+          (registration) => must(firstSubmission(registration)) < month
+        )
+        const expected =
+          ACTIVITY.prnsPerAccreditationPerMonth *
+          issuing.reduce((sum, registration) => sum + volumeOf(registration), 0)
+        const generated = drafted.filter(
+          (event) =>
+            event.at.startsWith(month) &&
+            issuing.some(({ id }) => id === event.registrationId)
+        ).length
+        near(generated, expected, expected / 4, `${processingType} ${month}`)
+      }
+    }
   })
 
   it('never raises one for a registered-only registration', () => {
@@ -1525,7 +1546,7 @@ describe('PRNs', () => {
     }
   })
 
-  it('issues the calibrated share of what each processing type credits outside December', () => {
+  it('issues the calibrated share of what each processing type credits, December included', () => {
     const issued = ofType(EVENT.PRN_ISSUED)
     for (const processingType of ['reprocessor', 'exporter']) {
       const members = accredited.filter(
@@ -1553,8 +1574,7 @@ describe('PRNs', () => {
           .rows.filter(
             (row) =>
               row.contribution === CONTRIBUTION.CREDIT &&
-              row.date <= must(cutoff) &&
-              !isDecemberCredit(registration, row)
+              row.date <= must(cutoff)
           )
           .reduce((sum, row) => sum + row.tonnage, 0)
       }

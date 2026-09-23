@@ -764,9 +764,9 @@ function draftPrns(context, landed, issuingEnd) {
       : row.date.slice(5, 7)
   }
   const credits = allRows.filter(
-    (row) =>
-      row.contribution === CONTRIBUTION.CREDIT && creditedIn(row) !== DECEMBER
+    (row) => row.contribution === CONTRIBUTION.CREDIT
   )
+  const drawable = credits.filter((row) => creditedIn(row) !== DECEMBER)
   const debits = allRows.filter(
     (row) => row.contribution === CONTRIBUTION.DEBIT
   )
@@ -789,10 +789,10 @@ function draftPrns(context, landed, issuingEnd) {
   /** @type {Hold[]} */
   const holds = []
   /**
-   * What the balance has to give on a day: credited and on record, less
-   * debited, less every earlier note's tonnage not given back before that
-   * day. A note released on the day still holds, because the release may
-   * come later in it than the draw.
+   * What the balance has to give on a day: credited outside December and on
+   * record, less debited, less every earlier note's tonnage not given back
+   * before that day. A note released on the day still holds, because the
+   * release may come later in it than the draw.
    *
    * @param {string} day
    */
@@ -801,7 +801,7 @@ function draftPrns(context, landed, issuingEnd) {
     const held = holds
       .filter((hold) => hold.released === null || hold.released >= day)
       .reduce((sum, hold) => sum + hold.tonnage, 0)
-    return tonnageOf(credits, cutoff) - tonnageOf(debits, cutoff) - held
+    return tonnageOf(drawable, cutoff) - tonnageOf(debits, cutoff) - held
   }
 
   /**
@@ -934,6 +934,10 @@ function draftPrns(context, landed, issuingEnd) {
     const weights = inDayOrder.map(() => weigh.float() + 0.5)
     // The share is of tonnage issued, and a drafted note is discarded or
     // deleted before issue at the operator's rates, so the drafts carry more.
+    // It is of everything credited, December included: an operator issues on
+    // through December from what it holds outside it, and an exporter, whose
+    // loads reach the overseas reprocessor three weeks after they leave, has
+    // nothing else newly on record that month.
     const monthly =
       (issuedShare * tonnageOf(credits, onRecordBefore(addDays(notAfter, 1)))) /
       ((1 - prn.discardRate) * (1 - prn.deleteRate))
