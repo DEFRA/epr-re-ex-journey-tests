@@ -189,7 +189,8 @@ submitted upload carries one of the period's rows in `restated`, and a second
 
 Each accredited registration drafts `activity.prnsPerAccreditationPerMonth`
 notes a month, times the operator's volume factor, spread evenly either side of
-that, from the day after its first summary log is submitted: a note is issued
+that however small it is, from the day after its first summary log is
+submitted: a note is issued
 against the balance the uploads have built, so none comes before it. A note is
 raised the day it is drafted and issued within three days, then accepted at
 `prn.producerAcceptRate`, in the month of issue at
@@ -210,11 +211,17 @@ never more than the balance holds on its day: what is credited and on record,
 less what is debited, less every note holding tonnage that day. A note draws
 the balance when it is raised and gives it back when it is deleted or
 cancelled, and one that would carry under a tonne is not planned at all, so
-the plan never asks for a note the balance cannot fund. A credit the service
-dates in December is left alone, because it is kept for a December note,
+the plan never asks for a note the balance cannot fund. No note draws on a
+credit the service dates in December, because it is kept for a December note,
 which none of these is: an exported load is dated by the day the overseas
 reprocessor received it, which the sheet declares as its `balanceDate`, and
-any other by the row's own day. Tonnage is in whole tonnes; the price is the
+any other by the row's own day. That credit still counts in the share the
+month's notes are sized from, so December issues like any other month from
+what the balance holds outside it. An exporter's loads reach the overseas
+reprocessor three weeks after they leave, so without it an exporter's December
+share would be almost nothing. A day's debits count against a note drafted
+that day, since the upload that brings them may land before it. Tonnage is in
+whole tonnes; the price is the
 calibration's `activity.prnPricePerTonne` for the registration's material,
 and a material it prices nothing for is refused rather than planned free.
 
