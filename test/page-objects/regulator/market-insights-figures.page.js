@@ -14,6 +14,14 @@ const STATES_A_YEAR = /\d{4}$/
 // How a page of figures stamps the moment they were taken.
 const DATA_TAKEN_AT = /^Data taken at /
 
+/**
+ * The figure a cell states. A figure few operators contributed to is followed
+ * by the confidential shorthand, which is not part of the figure.
+ * @param {string} text
+ * @returns {string}
+ */
+const figureOf = (text) => text.trim().replace(/ \[c\]$/, '')
+
 class MarketInsightsFiguresPage extends Page {
   /**
    * The months the figures cover, as the heading states them above the page's
@@ -37,4 +45,4 @@ class MarketInsightsFiguresPage extends Page {
   }
 }
 
-export { MarketInsightsFiguresPage }
+export { MarketInsightsFiguresPage, figureOf }

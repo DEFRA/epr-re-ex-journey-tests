@@ -1,4 +1,7 @@
-import { MarketInsightsFiguresPage } from 'page-objects/regulator/market-insights-figures.page'
+import {
+  MarketInsightsFiguresPage,
+  figureOf
+} from 'page-objects/regulator/market-insights-figures.page'
 
 /**
  * The reprocessor and exporter figures laid out the way the published tab is,
@@ -37,7 +40,7 @@ class MarketInsightsReprocessorExporterPage extends MarketInsightsFiguresPage {
       .getByRole('table')
       .getByRole('cell')
       .allInnerTexts()
-    return texts.map((text) => text.trim())
+    return texts.map((text) => figureOf(text))
   }
 }
 
