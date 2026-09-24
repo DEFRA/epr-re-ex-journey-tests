@@ -1,4 +1,7 @@
-import { MarketInsightsFiguresPage } from 'page-objects/regulator/market-insights-figures.page'
+import {
+  MarketInsightsFiguresPage,
+  figureOf
+} from 'page-objects/regulator/market-insights-figures.page'
 
 /**
  * @import { Locator } from '@playwright/test'
@@ -22,14 +25,6 @@ const FIRST_FIGURE_CELL = 3
 // The row beneath the figures counts the monthly reports submitted against
 // those due. Its header spans the two columns that name every other row.
 const REPORTS_ROW_HEADER = 'Monthly reports submitted'
-
-/**
- * The figure a cell states. A figure few operators contributed to is followed
- * by the confidential shorthand, which is not part of the figure.
- * @param {string} text
- * @returns {string}
- */
-const figureOf = (text) => text.trim().replace(/ \[c\]$/, '')
 
 class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
   /**
