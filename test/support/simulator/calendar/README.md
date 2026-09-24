@@ -211,15 +211,17 @@ never more than the balance holds on its day: what is credited and on record,
 less what is debited, less every note holding tonnage that day. A note draws
 the balance when it is raised and gives it back when it is deleted or
 cancelled, and one that would carry under a tonne is not planned at all, so
-the plan never asks for a note the balance cannot fund. No note draws on a
-credit the service dates in December, because it is kept for a December note,
-which none of these is: an exported load is dated by the day the overseas
-reprocessor received it, which the sheet declares as its `balanceDate`, and
-any other by the row's own day. That credit still counts in the share the
-month's notes are sized from, so December issues like any other month from
-what the balance holds outside it. An exporter's loads reach the overseas
-reprocessor three weeks after they leave, so without it an exporter's December
-share would be almost nothing. A day's debits count against a note drafted
+the plan never asks for a note the balance cannot fund. An exporter's or an
+input reprocessor's notes draw on no credit the service dates in December,
+because it is kept for a December note, which none of these is: an exported
+load is dated by the day the overseas reprocessor received it, which the sheet
+declares as its `balanceDate`, and a received load by the row's own day. An
+output reprocessor has no December pool, so its December credit is ordinary
+balance and its notes draw on it. The held-back credit still counts in the
+share the month's notes are sized from, so December issues like any other
+month from what the balance holds outside it. An exporter's loads reach the
+overseas reprocessor three weeks after they leave, so without it an exporter's
+December share would be almost nothing. A day's debits count against a note drafted
 that day, since the upload that brings them may land before it. Tonnage is in
 whole tonnes; the price is the
 calibration's `activity.prnPricePerTonne` for the registration's material,
