@@ -58,7 +58,7 @@ services:
       - '4566:4566'
 
   floci-init:
-    image: amazon/aws-cli:2.37.3@sha256:83f8ffe939569070c5b66d22231862ab78718766d9d8e4c44ca84dd0be5569a5
+    image: amazon/aws-cli:2.37.4@sha256:fdd8d1fcbea9c371678dee5a40df8b178c7a781b4586605756ee28114c97ead6
     entrypoint: /bin/sh
     command: /setup/init.sh
     networks:
@@ -177,7 +177,7 @@ services:
   # Simulates Entra ID (Microsoft) sign-in: used for epr-backend's
   # service-to-service auth and for epr-re-ex-admin-frontend's browser login.
   entra-stub:
-    image: defradigital/epr-re-ex-entra-stub:0.121.0@sha256:9fac36b5985d49f8e378d5467b8f1082798d2d3141c4ae46582dc7da258d7d78
+    image: defradigital/epr-re-ex-entra-stub:0.125.0@sha256:62a9eadc2b9ad0cb79632c6280ca37ba26489011c15c2bddd5b9bab1637bbf5a
     networks:
       - cdp-tenant
     ports:
