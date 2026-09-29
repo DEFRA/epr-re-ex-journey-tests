@@ -8,7 +8,10 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { ingestSummaryLogFixture } from '../support/seeding/summary-logs.js'
+import {
+  ingestSummaryLogFixture,
+  registrationStartYear
+} from '../support/seeding/summary-logs.js'
 import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import {
@@ -42,6 +45,7 @@ test.describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnl
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
     const authHeader = defraIdStub.authHeader(user.userId)
     const registrationId = migrated.registrationIds[0]
+    const year = registrationStartYear('2025-02-02')
 
     const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
       org.refNo,
@@ -50,7 +54,8 @@ test.describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnl
       {
         s3Key: 'exporter-regonly-valid-key',
         filename: 'exporter-regonly-valid.xlsx'
-      }
+      },
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,
@@ -118,6 +123,7 @@ test.describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnl
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
     const authHeader = defraIdStub.authHeader(user.userId)
     const registrationId = migrated.registrationIds[0]
+    const year = registrationStartYear('2025-02-02')
 
     const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
       org.refNo,
@@ -126,7 +132,8 @@ test.describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnl
       {
         s3Key: 'exporter-regonly-invalid-key',
         filename: 'exporter-regonly-invalid.xlsx'
-      }
+      },
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,
@@ -213,6 +220,7 @@ test.describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessor
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
     const authHeader = defraIdStub.authHeader(user.userId)
     const registrationId = migrated.registrationIds[0]
+    const year = registrationStartYear('2025-02-02')
 
     const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
       org.refNo,
@@ -221,7 +229,8 @@ test.describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessor
       {
         s3Key: 'reprocessor-regonly-valid-key',
         filename: 'reprocessor-regonly-valid.xlsx'
-      }
+      },
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,
@@ -295,6 +304,7 @@ test.describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessor
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
     const authHeader = defraIdStub.authHeader(user.userId)
     const registrationId = migrated.registrationIds[0]
+    const year = registrationStartYear('2025-02-02')
 
     const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
       org.refNo,
@@ -303,7 +313,8 @@ test.describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessor
       {
         s3Key: 'reprocessor-regonly-invalid-key',
         filename: 'reprocessor-regonly-invalid.xlsx'
-      }
+      },
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,

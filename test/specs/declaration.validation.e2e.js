@@ -15,7 +15,10 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import {
+  registrationStartYear,
+  submitSummaryLogContent
+} from '../support/seeding/summary-logs.js'
 import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
@@ -86,7 +89,8 @@ test.describe('Declaration name validation @declarationValidation', () => {
       organisationDetails.refNo,
       migrationResponse.registrationIds[0],
       defraIdStub.authHeader(user.userId),
-      summaryLogContent
+      summaryLogContent,
+      registrationStartYear()
     )
     await dashboardPage.selectTableLink(1, 1)
     await wasteRecordsPage.manageReportsLink().click()

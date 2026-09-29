@@ -382,7 +382,8 @@ describe('a run', () => {
         'org-1',
         'org-1-reg-' + operatorOf(exporter).registrations.indexOf(exporter),
         { Authorization: 'Bearer linked' },
-        { meta: { MATERIAL: 'Paper and board' }, data: {} }
+        { meta: { MATERIAL: 'Paper and board' }, data: {} },
+        new Date(exporter.activeFrom).getUTCFullYear()
       ])
     })
 

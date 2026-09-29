@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
-import { submitSummaryLogContent } from './summary-logs.js'
+import {
+  registrationStartYear,
+  submitSummaryLogContent
+} from './summary-logs.js'
 
 /** @import {ContentPoster} from './summary-logs.js' */
 
 const content = { meta: { MATERIAL: 'Paper_and_board' }, data: {} }
 const auth = { Authorization: 'Bearer signed-in' }
+const year = 2026
 
 /**
  * A BaseAPI answering every post with the one response, and remembering
@@ -36,8 +40,18 @@ function answering(statusCode, body) {
   }
 }
 
+describe('registrationStartYear', () => {
+  it('defaults to the year seeded organisations start from', () => {
+    assert.equal(registrationStartYear(), 2026)
+  })
+
+  it('reads the year from a given validFrom', () => {
+    assert.equal(registrationStartYear('2025-02-02'), 2025)
+  })
+})
+
 describe('submitting a summary log as content', () => {
-  it('posts the content as JSON to the dev route and answers with the submitted document', async () => {
+  it('posts the content as JSON to the year-scoped dev route and answers with the submitted document', async () => {
     const { baseAPI, posts } = answering(
       200,
       JSON.stringify({ summaryLogId: 'log-1', status: 'submitted' })
@@ -48,6 +62,7 @@ describe('submitting a summary log as content', () => {
       'reg-1',
       auth,
       content,
+      year,
       baseAPI
     )
 
@@ -55,7 +70,7 @@ describe('submitting a summary log as content', () => {
     assert.deepEqual(posts, [
       {
         endpoint:
-          '/v1/dev/organisations/500001/registrations/reg-1/summary-logs',
+          '/v1/dev/organisations/500001/registrations/reg-1/summary-logs/2026',
         data: JSON.stringify(content),
         headers: { ...auth, 'content-type': 'application/json' }
       }
@@ -74,6 +89,7 @@ describe('submitting a summary log as content', () => {
       'reg-1',
       auth,
       content,
+      year,
       baseAPI
     )
 
@@ -88,7 +104,7 @@ describe('submitting a summary log as content', () => {
     const { baseAPI } = answering(502, '<html>Bad Gateway</html>')
 
     await assert.rejects(
-      submitSummaryLogContent('500001', 'reg-1', auth, content, baseAPI),
+      submitSummaryLogContent('500001', 'reg-1', auth, content, year, baseAPI),
       /expected the submitted or invalid document but got 502\n<html>Bad Gateway<\/html>/
     )
   })
@@ -100,7 +116,7 @@ describe('submitting a summary log as content', () => {
     )
 
     await assert.rejects(
-      submitSummaryLogContent('500001', 'reg-1', auth, content, baseAPI),
+      submitSummaryLogContent('500001', 'reg-1', auth, content, year, baseAPI),
       /answered 422 with neither the submitted nor the invalid document/
     )
   })

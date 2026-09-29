@@ -414,11 +414,13 @@ async function uploadSummaryLog(run, event) {
   })
 
   const authHeader = await signedIn(run, operator)
+  const year = new Date(registration.planned.activeFrom).getUTCFullYear()
   const summaryLog = await run.seeders.submitSummaryLogContent(
     operator.refNo,
     registration.registrationId,
     authHeader,
-    content
+    content,
+    year
   )
   assertAsPlanned(event, expected, summaryLog)
 

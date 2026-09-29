@@ -15,7 +15,10 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { unsubmitReport } from '../support/seeding/reports.js'
-import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import {
+  registrationStartYear,
+  submitSummaryLogContent
+} from '../support/seeding/summary-logs.js'
 import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
@@ -83,7 +86,8 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
         organisationDetails.refNo,
         migrationResponse.registrationIds[0],
         defraIdStub.authHeader(user.userId),
-        summaryLogContent
+        summaryLogContent,
+        registrationStartYear()
       )
 
       // Navigate to reports — all tests start from the Reports page

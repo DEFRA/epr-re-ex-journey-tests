@@ -17,7 +17,10 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { externalAPIAcceptPrn } from '../support/seeding/prns.js'
-import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import {
+  registrationStartYear,
+  submitSummaryLogContent
+} from '../support/seeding/summary-logs.js'
 import { generateSummaryLogContent } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import { createPrnDetails } from '../support/fixtures.js'
@@ -93,7 +96,8 @@ test.describe('Issuing Packing Recycling Notes', () => {
       organisationDetails.refNo,
       migrationResponse.registrationIds[0],
       defraIdStub.authHeader(user.userId),
-      summaryLogContent
+      summaryLogContent,
+      registrationStartYear()
     )
 
     await dashboardPage.selectTableLink(1, 1)
