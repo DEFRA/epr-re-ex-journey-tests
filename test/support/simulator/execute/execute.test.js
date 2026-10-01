@@ -387,7 +387,7 @@ describe('a run', () => {
       ])
     })
 
-    it('submits each upload under the year it happened in, not the registration start year', async () => {
+    it('submits each upload under the year it happened in', async () => {
       await executeEvent(run, approved(exporter))
       await executeEvent(run, uploaded(exporter))
       await executeEvent(
