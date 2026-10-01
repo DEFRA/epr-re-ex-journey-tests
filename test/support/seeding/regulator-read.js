@@ -137,7 +137,7 @@ export async function seedAwaitingPrnAndSubmittedReport() {
     registrationId,
     defraAuthHeader,
     content,
-    registrationStartYear()
+    year
   )
   await waitForWasteBalance(
     organisation.refNo,

@@ -383,8 +383,22 @@ describe('a run', () => {
         'org-1-reg-' + operatorOf(exporter).registrations.indexOf(exporter),
         { Authorization: 'Bearer linked' },
         { meta: { MATERIAL: 'Paper and board' }, data: {} },
-        new Date(exporter.activeFrom).getUTCFullYear()
+        2026
       ])
+    })
+
+    it('submits each upload under the year it happened in, not the registration start year', async () => {
+      await executeEvent(run, approved(exporter))
+      await executeEvent(run, uploaded(exporter))
+      await executeEvent(
+        run,
+        uploaded(exporter, { at: '2027-02-03T10:00:00Z', cutoff: '2027-02-02' })
+      )
+
+      const years = seeders
+        .of('submitSummaryLogContent')
+        .map(({ args }) => args[4])
+      assert.deepEqual(years, [2026, 2027])
     })
 
     it('lays every earlier submitted upload under the one it sends', async () => {
