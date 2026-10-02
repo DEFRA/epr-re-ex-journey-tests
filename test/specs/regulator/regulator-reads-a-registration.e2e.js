@@ -152,7 +152,8 @@ test.describe('A regulator reading a registration @regulator', () => {
       /^\d{1,3}(,\d{3})*\.\d{2}$/
     )
 
-    // The registration's records, offered as a file.
+    // The seed's summary log and the registration's records, offered as files.
+    expect(accreditationSummary['Latest summary log']).toBe('Download')
     expect(accreditationSummary['Latest waste record CSV']).toBe('Download')
 
     // Comparing the whole set is what says "and nothing else". The total the
@@ -163,6 +164,7 @@ test.describe('A regulator reading a registration @regulator', () => {
       'Accreditation status',
       'Accreditation number',
       'Waste balance available (tonnes)',
+      'Latest summary log',
       'Latest waste record CSV'
     ])
 
