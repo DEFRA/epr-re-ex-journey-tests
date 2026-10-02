@@ -9,6 +9,7 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import {
+  registrationStartYear,
   uploadSummaryLog,
   uploadAndValidateSummaryLog
 } from '../support/seeding/summary-logs.js'
@@ -84,9 +85,11 @@ async function seedRegistration(stream) {
   const user = await createAndRegisterDefraIdUser(migrated.email)
   await linkDefraIdUser(org.refNo, user.userId, migrated.email)
 
+  const registrationId = migrated.registrationIds[0]
   return {
     refNo: org.refNo,
-    registrationId: migrated.registrationIds[0],
+    registrationId,
+    year: registrationStartYear(VALID_FROM),
     authHeader: defraIdStub.authHeader(user.userId)
   }
 }
@@ -203,7 +206,7 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     test(`validates clean for ${wasteProcessingType} @summaryLogGeneratedRowsValid`, async () => {
       test.setTimeout(120000)
 
-      const { refNo, registrationId, authHeader } =
+      const { refNo, registrationId, year, authHeader } =
         await seedRegistration(stream)
       const { rows, rowIds } = planRows(wasteProcessingType, 3)
       const workbook = await renderWorkbook(wasteProcessingType, stream, rows)
@@ -212,7 +215,8 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
         refNo,
         registrationId,
         authHeader,
-        workbook
+        workbook,
+        year
       )
       const responseData = await waitForSummaryLogStatus(
         baseAPI,
@@ -233,7 +237,8 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     test.setTimeout(120000)
 
     const stream = STREAMS.reprocessorInput
-    const { refNo, registrationId, authHeader } = await seedRegistration(stream)
+    const { refNo, registrationId, year, authHeader } =
+      await seedRegistration(stream)
     const { rows: planned, rowIds } = planRows('reprocessorInput', 3)
     const rows = pinFields(planned, RECEIVED_SHEET, 1001, { EWC_CODE: '' })
     const stillValid = rowIds.split(',').filter((rowId) => rowId !== '1001')
@@ -243,7 +248,8 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
       refNo,
       registrationId,
       authHeader,
-      workbook
+      workbook,
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,
@@ -279,7 +285,8 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     test.setTimeout(120000)
 
     const stream = STREAMS.reprocessorInput
-    const { refNo, registrationId, authHeader } = await seedRegistration(stream)
+    const { refNo, registrationId, year, authHeader } =
+      await seedRegistration(stream)
     const rows = pinFields(
       planRows('reprocessorInput', 3).rows,
       RECEIVED_SHEET,
@@ -292,7 +299,8 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
       refNo,
       registrationId,
       authHeader,
-      workbook
+      workbook,
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,
@@ -318,7 +326,8 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     test.setTimeout(180000)
 
     const stream = STREAMS.reprocessorInput
-    const { refNo, registrationId, authHeader } = await seedRegistration(stream)
+    const { refNo, registrationId, year, authHeader } =
+      await seedRegistration(stream)
 
     const date = new Date().toLocaleDateString('en-GB')
 
@@ -332,7 +341,8 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
       refNo,
       registrationId,
       authHeader,
-      firstWorkbook
+      firstWorkbook,
+      year
     )
     const firstSubmit = await firstUpload.baseAPI.post(
       `${firstUpload.summaryLogPath}/submit`,
@@ -359,7 +369,8 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
       refNo,
       registrationId,
       authHeader,
-      amendedWorkbook
+      amendedWorkbook,
+      year
     )
     const amendedData = await waitForSummaryLogStatus(
       amendedUpload.baseAPI,
@@ -396,7 +407,8 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
       refNo,
       registrationId,
       authHeader,
-      shortenedWorkbook
+      shortenedWorkbook,
+      year
     )
     const shortenedData = await waitForSummaryLogStatus(
       shortenedUpload.baseAPI,
@@ -418,7 +430,8 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     test.setTimeout(120000)
 
     const stream = STREAMS.reprocessorInput
-    const { refNo, registrationId, authHeader } = await seedRegistration(stream)
+    const { refNo, registrationId, year, authHeader } =
+      await seedRegistration(stream)
     const { rows } = planRows('reprocessorInput', 3)
 
     const workbook = await renderWorkbook('reprocessorInput', stream, rows, {
@@ -428,7 +441,8 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
       refNo,
       registrationId,
       authHeader,
-      workbook
+      workbook,
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,

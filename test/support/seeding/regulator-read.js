@@ -10,6 +10,7 @@ import {
 import { createPrn, externalAPICancelPrn, updatePrnStatus } from './prns.js'
 import { seedReportSubmission } from './reports.js'
 import {
+  registrationStartYear,
   uploadAndSubmitSummaryLog,
   submitSummaryLogContent
 } from './summary-logs.js'
@@ -135,7 +136,8 @@ export async function seedAwaitingPrnAndSubmittedReport() {
     organisation.refNo,
     registrationId,
     defraAuthHeader,
-    content
+    content,
+    year
   )
   await waitForWasteBalance(
     organisation.refNo,
@@ -370,7 +372,8 @@ export async function seedRegisteredOnlySubmittedSummaryLog() {
     organisation.refNo,
     registrationId,
     defraAuthHeader,
-    REGISTERED_ONLY_FIXTURE_PATH
+    REGISTERED_ONLY_FIXTURE_PATH,
+    registrationStartYear()
   )
 
   return {

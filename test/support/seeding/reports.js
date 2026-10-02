@@ -17,7 +17,10 @@ import {
   lastCompletedPeriod,
   updateMigratedOrganisation
 } from './organisation.js'
-import { uploadAndSubmitSummaryLog } from './summary-logs.js'
+import {
+  registrationStartYear,
+  uploadAndSubmitSummaryLog
+} from './summary-logs.js'
 
 export async function unsubmitReport(
   organisationId,
@@ -303,7 +306,8 @@ export async function seedRestatedClosedPeriod({ tonnageRecycled = 100 } = {}) {
     refNo,
     registrationId,
     defraAuthHeader,
-    RESTATED_CMA_FIXTURE
+    RESTATED_CMA_FIXTURE,
+    registrationStartYear()
   )
   await waitForReportingPeriodStatus(
     refNo,

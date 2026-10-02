@@ -8,7 +8,10 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { ingestSummaryLogFixture } from '../support/seeding/summary-logs.js'
+import {
+  ingestSummaryLogFixture,
+  registrationStartYear
+} from '../support/seeding/summary-logs.js'
 import {
   waitForSummaryLogStatus,
   waitForWasteBalance
@@ -33,6 +36,7 @@ test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput',
   let orgId
   let registrationId
   let accreditationId
+  let year
   let authHeader
 
   test.beforeAll(async () => {
@@ -54,6 +58,7 @@ test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput',
     orgId = org.refNo
     registrationId = migrated.registrationIds[0]
     accreditationId = migrated.accreditationIds[0]
+    year = registrationStartYear('2025-02-02')
   })
 
   test('creates a Waste Record, then a second upload rejects a removed row, then adjustments update the balance @summaryLogReprocessorInputValidatedFlow', async () => {
@@ -66,7 +71,8 @@ test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput',
       {
         s3Key: 'reprocessor-input-valid-key',
         filename: 'reprocessor-input-valid.xlsx'
-      }
+      },
+      year
     )
     const firstData = await waitForSummaryLogStatus(
       first.baseAPI,
@@ -160,7 +166,8 @@ test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput',
       {
         s3Key: 'valid-summary-log-input-2-key',
         filename: 'valid-summary-log-input-2.xlsx'
-      }
+      },
+      year
     )
     const secondData = await waitForSummaryLogStatus(
       second.baseAPI,
@@ -219,7 +226,8 @@ test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput',
       {
         s3Key: 'reprocessor-input-adjustments-key',
         filename: 'reprocessor-input-adjustments.xlsx'
-      }
+      },
+      year
     )
     const thirdData = await waitForSummaryLogStatus(
       third.baseAPI,
@@ -326,7 +334,8 @@ test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput',
       {
         s3Key: 'reprocessor-input-invalid-key',
         filename: 'reprocessor-input-invalid.xlsx'
-      }
+      },
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,
@@ -464,7 +473,8 @@ test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput',
       {
         s3Key: 'reprocessor-input-senton-invalid-key',
         filename: 'reprocessor-input-senton-invalid.xlsx'
-      }
+      },
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,
