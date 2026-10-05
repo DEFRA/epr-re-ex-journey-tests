@@ -60,7 +60,8 @@ test.describe('Admin summary log document view', () => {
     // The whole stored document is rendered verbatim: its version, its
     // submitted status, and the loadsByReportingPeriod breakdown the page
     // exists to surface - open and closed period loads, their balance-affecting
-    // tonnage deltas, and the closed periods.
+    // tonnage deltas, the closed periods touched, and those requiring
+    // resubmission.
     const document = await summaryLogDocumentPage.getDocument()
     expect(document.version).toBeDefined()
     expect(document.status).toBe('submitted')
@@ -73,7 +74,8 @@ test.describe('Admin summary log document view', () => {
       closedPeriodLoads: {
         added: { balanceAffecting: { count: expect.any(Number) } }
       },
-      closedPeriods: expect.any(Array)
+      closedPeriods: expect.any(Array),
+      periodsRequiringResubmission: expect.any(Array)
     })
     expect(
       loads.openPeriodLoads.added.balanceAffecting.tonnageDelta
