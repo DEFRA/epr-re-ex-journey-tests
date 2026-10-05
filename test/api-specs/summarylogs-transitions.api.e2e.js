@@ -3,6 +3,7 @@ import { expect } from 'chai'
 import { randomUUID } from 'crypto'
 import { BaseAPI } from '../apis/base-api.js'
 import { SummaryLog } from '../support/generator.js'
+import { registrationStartYear } from '../support/seeding/summary-logs.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
@@ -27,7 +28,7 @@ async function submitUploadCompleted(baseAPI, summaryLog, fileStatus) {
     summaryLog.filename,
     fileStatus
   )
-  const path = `/v1/organisations/${summaryLog.orgId}/registrations/${summaryLog.regId}/summary-logs/${summaryLog.summaryLogId}/upload-completed`
+  const path = `/v1/organisations/${summaryLog.orgId}/registrations/${summaryLog.regId}/summary-logs/${registrationStartYear()}/${summaryLog.summaryLogId}/upload-completed`
   return baseAPI.post(
     path,
     JSON.stringify(summaryLog.toUploadCompletedPayload())
