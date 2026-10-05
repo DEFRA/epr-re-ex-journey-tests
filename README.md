@@ -388,11 +388,11 @@ afterwards:
 
 An environment stubs some identity providers and deploys others for real, and the combination differs between environments. `test/config/config.js` holds the default for each environment. Set a provider's mode variable to follow an environment that is wired differently, or that is rewired after the default was written:
 
-| Provider   | Mode variable     | Real by default in | Credentials it then needs                                                                                                                                        |
-| ---------- | ----------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Entra      | `ENTRA_MODE`      | `test`, `ext-test` | `AUTH_CLIENT_SECRET`, `AUTH_USERNAME`, `AUTH_PASSWORD`, `REGULATOR_USERNAME`, `REGULATOR_PASSWORD`, `UNRECOGNISED_ENTRA_USERNAME`, `UNRECOGNISED_ENTRA_PASSWORD` |
-| Basic auth | `BASIC_AUTH_MODE` | `test`             | `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD`                                                                                                                     |
-| Cognito    | `COGNITO_MODE`    | `test`             | `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`                                                                                                                     |
+| Provider   | Mode variable     | Real by default in | Credentials it then needs                                                                                                                                                       |
+| ---------- | ----------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entra      | `ENTRA_MODE`      | `test`, `ext-test` | `ENTRA_CLIENT_SECRET`, `ENTRA_USERNAME`, `ENTRA_PASSWORD`, `REGULATOR_ENTRA_USERNAME`, `REGULATOR_ENTRA_PASSWORD`, `UNRECOGNISED_ENTRA_USERNAME`, `UNRECOGNISED_ENTRA_PASSWORD` |
+| Basic auth | `BASIC_AUTH_MODE` | `test`             | `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD`                                                                                                                                    |
+| Cognito    | `COGNITO_MODE`    | `test`             | `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`                                                                                                                                    |
 
 Defra ID isn't in the table above - every spec except the ext-test-only operator smoketest signs in through the Defra ID stub regardless of environment (see the note in `test/config/config.js`). That one spec needs `DEFRA_ID_USERNAME`/`DEFRA_ID_PASSWORD` - a GOV.UK One Login account already linked to an organisation in ext-test.
 

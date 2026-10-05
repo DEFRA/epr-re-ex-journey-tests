@@ -23,8 +23,8 @@ class RegulatorLoginPage extends Page {
   // The identity this service recognises, by its one app role.
   async loginAsRegulator() {
     await this.login(
-      requireValue(config.regulatorUser.username, 'REGULATOR_USERNAME'),
-      requireValue(config.regulatorUser.password, 'REGULATOR_PASSWORD')
+      requireValue(config.regulatorUser.username, 'REGULATOR_ENTRA_USERNAME'),
+      requireValue(config.regulatorUser.password, 'REGULATOR_ENTRA_PASSWORD')
     )
   }
 
