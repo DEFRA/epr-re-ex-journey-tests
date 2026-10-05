@@ -22,6 +22,18 @@ class AccreditationDetailsPage extends Page {
   }
 
   /**
+   * The link in the summary row with this key.
+   * @param {string} key
+   * @returns {import('@playwright/test').Locator}
+   */
+  summaryLink(key) {
+    return this.page
+      .locator('#main-content dl.govuk-summary-list > div')
+      .filter({ has: this.page.locator('dt', { hasText: key }) })
+      .locator('dd a')
+  }
+
+  /**
    * The way back to the registration. The organisation crumb above it stops at
    * the organisation, so the registration is the only crumb naming one.
    * @returns {import('@playwright/test').Locator}
