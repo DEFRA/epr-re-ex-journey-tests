@@ -81,8 +81,11 @@ export async function summaryLogDatedAt(fixturePath, date) {
  * Writes a copy of a summary log fixture with one cell of one load changed, and
  * returns the path to the copy.
  *
+ * Formulas are not recalculated and the backend reads their cached results, so
+ * change a derived cell itself rather than one of its inputs.
+ *
  * @param {string} fixturePath
- * @param {{ sheet: string, rowId: number, column: string, value: string | number }} change - column is the header marker, e.g. SUPPLIER_PHONE_NUMBER
+ * @param {{ sheet: string, rowId: number, column: string, value: string | number }} change - column is the header marker, e.g. CARRIER_VEHICLE_REGISTRATION_NUMBER
  * @returns {Promise<string>}
  */
 export async function summaryLogWithCellChanged(

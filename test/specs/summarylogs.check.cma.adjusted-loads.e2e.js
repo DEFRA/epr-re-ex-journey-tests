@@ -4,13 +4,17 @@ import { UploadSummaryLogPage } from '../page-objects/upload.summary.log.page.js
 import { CheckSummaryLogPage } from '../page-objects/check.summary.log.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
-import { checkBodyText } from '../support/checks.js'
+import {
+  checkBodyText,
+  checkBodyTextDoesNotInclude
+} from '../support/checks.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { seedSubmittedReport } from '../support/seeding/reports.js'
+import { summaryLogWithCellChanged } from '../support/seeding/summary-logs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 // The adjusted-loads accordion splits each balance-affecting load by the
@@ -20,6 +24,7 @@ import { createLinkAndLogin } from '../support/login-helper.js'
 const ADJUSTED_ADDED_HEADING = 'This load has added to your waste balance'
 const ADJUSTED_REDUCED_HEADING = 'This load has reduced your waste balance'
 const MISSING_DATA_HEADING = 'does NOT have all the required summary log data'
+const FURTHER_ACTION_HEADING = 'Further action needed'
 
 // Split from summarylogs.check.cma.e2e.js (PAE-1405 CI runtime work): this
 // group covers adjusted-load sub-state rendering (headings, accordions,
@@ -29,7 +34,7 @@ const MISSING_DATA_HEADING = 'does NOT have all the required summary log data'
 // worker scheduling run these in parallel instead of serially in one
 // ~4 minute file.
 test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => {
-  test('should display closed period adjusted loads when a reported load is amended @cmaAdjusted @cma', async ({
+  test('should display closed period adjusted loads when a reported load is amended, asking for resubmission only once the reported figures change @cmaAdjusted @closedPeriodMessaging @cma', async ({
     page
   }) => {
     const homePage = new HomePage(page)
@@ -92,16 +97,59 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
       { prnRevenue: 100, freeTonnage: 0 }
     )
 
+    // The report never reads a vehicle registration, so this closed-month edit
+    // must not ask for resubmission.
+    const vehicleRegistrationEdit = {
+      sheet: 'Exported (sections 1, 2 and 3)',
+      rowId: 1002,
+      column: 'CARRIER_VEHICLE_REGISTRATION_NUMBER',
+      value: 'AB12 CDE'
+    }
+
     await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await uploadSummaryLogPage.uploadFile('resources/exporter-adjustments.xlsx')
+    await uploadSummaryLogPage.uploadFile(
+      await summaryLogWithCellChanged(
+        'resources/exporter.xlsx',
+        vehicleRegistrationEdit
+      )
+    )
+    await uploadSummaryLogPage.continue()
+
+    await checkBodyText(page, 'Your summary log is being checked', 30)
+    await checkBodyText(page, 'Upload your summary log', 30)
+    await checkBodyText(page, 'Closed periods: adjusted loads', 30)
+    expect(await checkSummaryLogPage.importantBanner().count()).toBe(0)
+
+    await checkSummaryLogPage.uploadButton().click()
+    await checkBodyText(page, 'Summary log uploaded', 30)
+    await checkBodyTextDoesNotInclude(page, FURTHER_ACTION_HEADING, 5)
+
+    await uploadSummaryLogPage.returnToHomePageLink().click()
+    await dashboardPage.exportingTabLink().click()
+    await dashboardPage.selectLink(1)
+    await wasteRecordsPage.manageReportsLink().click()
+    await checkBodyTextDoesNotInclude(page, 'Requires resubmission', 5)
+
+    // Carrying the same edit isolates the real amendments from it.
+    await homePage.homeLink().click()
+    await dashboardPage.exportingTabLink().click()
+    await dashboardPage.selectLink(1)
+    await wasteRecordsPage.submitSummaryLogLink().click()
+    await uploadSummaryLogPage.uploadFile(
+      await summaryLogWithCellChanged(
+        'resources/exporter-adjustments.xlsx',
+        vehicleRegistrationEdit
+      )
+    )
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
     await checkBodyText(page, 'Upload your summary log', 30)
 
     await checkBodyText(page, 'Closed periods: adjusted loads', 30)
+    expect(await checkSummaryLogPage.importantBanner().count()).toBe(1)
 
     const sections = await checkSummaryLogPage.allSectionHeadings()
     expect(sections).toEqual(
