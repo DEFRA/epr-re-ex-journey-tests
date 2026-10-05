@@ -23,8 +23,8 @@ class AdminLoginPage extends AdminPage {
       await this.open()
       await signInAtMicrosoft(
         this.page,
-        requireValue(username, 'AUTH_USERNAME'),
-        requireValue(password, 'AUTH_PASSWORD')
+        requireValue(username, 'ENTRA_USERNAME'),
+        requireValue(password, 'ENTRA_PASSWORD')
       )
     } else {
       await this.page.context().clearCookies()

@@ -29,11 +29,11 @@ class RegulatorStartPage extends Page {
   async loginAsRegulator() {
     const username = requireValue(
       config.regulatorUser.username,
-      'REGULATOR_USERNAME'
+      'REGULATOR_ENTRA_USERNAME'
     )
     const password = requireValue(
       config.regulatorUser.password,
-      'REGULATOR_PASSWORD'
+      'REGULATOR_ENTRA_PASSWORD'
     )
 
     if (config.usesRealEntra) {
