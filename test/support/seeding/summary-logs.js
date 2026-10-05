@@ -77,6 +77,55 @@ export async function summaryLogDatedAt(fixturePath, date) {
   return copyPath
 }
 
+/**
+ * Writes a copy of a summary log fixture with one cell of one load changed, and
+ * returns the path to the copy.
+ *
+ * @param {string} fixturePath
+ * @param {{ sheet: string, rowId: number, column: string, value: string | number }} change - column is the header marker, e.g. SUPPLIER_PHONE_NUMBER
+ * @returns {Promise<string>}
+ */
+export async function summaryLogWithCellChanged(
+  fixturePath,
+  { sheet, rowId, column, value }
+) {
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.readFile(fixturePath)
+
+  const worksheet = workbook.getWorksheet(sheet)
+  if (!worksheet) {
+    throw new Error(`${fixturePath} has no sheet named ${sheet}`)
+  }
+  const markers = /** @type {unknown[]} */ (worksheet.getRow(1).values)
+  const rowIdColumn = markers.indexOf('ROW_ID')
+  const changedColumn = markers.indexOf(column)
+  if (rowIdColumn === -1 || changedColumn === -1) {
+    throw new Error(`${sheet} has no ROW_ID or ${column} column`)
+  }
+
+  let changed = false
+  worksheet.eachRow((row, rowNumber) => {
+    // Row IDs are formulas in the template, so read the cached result.
+    const idCell = row.getCell(rowIdColumn)
+    if (
+      rowNumber >= FIRST_LOAD_ROW &&
+      (idCell.result ?? idCell.value) === rowId
+    ) {
+      row.getCell(changedColumn).value = value
+      changed = true
+    }
+  })
+  if (!changed) {
+    throw new Error(`${sheet} has no load with row ID ${rowId}`)
+  }
+
+  const copyPath = `data/${basename(fixturePath, '.xlsx')}-${randomUUID()}.xlsx`
+  await mkdir(dirname(copyPath), { recursive: true })
+  await workbook.xlsx.writeFile(copyPath)
+
+  return copyPath
+}
+
 // Initiates a summary log against a real registration, then feeds the
 // upload-completed callback a pre-seeded floci S3 object directly (matching
 // docker/scripts/floci/init.sh's summary-log fixture keys) rather than

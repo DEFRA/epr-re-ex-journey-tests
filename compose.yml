@@ -257,6 +257,7 @@ services:
       FEATURE_FLAG_DEV_ENDPOINTS: true
       FEATURE_FLAG_PRN_ADMIN_CANCELLATION: true
       FEATURE_FLAG_REPORT_DATA_VALIDATION: true
+      FEATURE_FLAG_RESUBMISSION_FIGURE_GATE: true
       GOVUK_NOTIFY_API_KEY: fake-key-for-testing
       LOG_FORMAT: ecs
       MONGO_URI: mongodb://mongodb:27017/
