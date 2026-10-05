@@ -124,10 +124,10 @@ const auth = {
     : `https://epr-re-ex-entra-stub.${environment}.cdp-int.defra.cloud`,
   // The credentials below come from portal-side secrets against real Entra,
   // and are the stub's fixed values otherwise.
-  clientSecret: process.env.AUTH_CLIENT_SECRET,
+  clientSecret: process.env.ENTRA_CLIENT_SECRET,
   clientId: 'bd06da51-53f6-46d0-a9f0-ac562864c887',
-  username: usesRealEntra ? process.env.AUTH_USERNAME : 'ea@test.gov.uk',
-  password: usesRealEntra ? process.env.AUTH_PASSWORD : 'pass',
+  username: usesRealEntra ? process.env.ENTRA_USERNAME : 'ea@test.gov.uk',
+  password: usesRealEntra ? process.env.ENTRA_PASSWORD : 'pass',
   scope: 'api://bd06da51-53f6-46d0-a9f0-ac562864c887/.default',
   grantType: 'password'
 }
@@ -139,9 +139,9 @@ const auth = {
 // `EPR.Customer` user serves that purpose locally.
 const regulatorUser = {
   username: usesRealEntra
-    ? process.env.REGULATOR_USERNAME
+    ? process.env.REGULATOR_ENTRA_USERNAME
     : 'standard.regulator@test.gov.uk',
-  password: usesRealEntra ? process.env.REGULATOR_PASSWORD : 'pass'
+  password: usesRealEntra ? process.env.REGULATOR_ENTRA_PASSWORD : 'pass'
 }
 
 const unrecognisedEntraUser = {
