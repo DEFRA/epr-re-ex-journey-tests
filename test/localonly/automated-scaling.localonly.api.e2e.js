@@ -8,7 +8,10 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { uploadAndSubmitSummaryLog } from '../support/seeding/summary-logs.js'
+import {
+  registrationStartYear,
+  uploadAndSubmitSummaryLog
+} from '../support/seeding/summary-logs.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { generateSpreadsheetData } from '../support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
 import {
@@ -68,6 +71,7 @@ test.describe('Automated scaling - Summary Logs Reprocessor on Input @automatedS
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
     const authHeader = defraIdStub.authHeader(user.userId)
     const registrationId = migrated.registrationIds[0]
+    const year = registrationStartYear('2025-02-02')
 
     const dockerLogParser = new DockerLogParser(
       config.dockerLogParser.containerName
@@ -101,7 +105,8 @@ test.describe('Automated scaling - Summary Logs Reprocessor on Input @automatedS
           org.refNo,
           registrationId,
           authHeader,
-          filename
+          filename,
+          year
         )
       } catch (error) {
         if (!config.testLogs) {

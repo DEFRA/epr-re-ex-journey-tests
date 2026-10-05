@@ -8,7 +8,10 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { ingestSummaryLogFixture } from '../support/seeding/summary-logs.js'
+import {
+  ingestSummaryLogFixture,
+  registrationStartYear
+} from '../support/seeding/summary-logs.js'
 import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import {
@@ -26,6 +29,7 @@ import {
 test.describe('Summary log row-level validation @summaryLogValidation', () => {
   let orgId
   let registrationId
+  let year
   let authHeader
 
   test.beforeAll(async () => {
@@ -69,6 +73,7 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
     authHeader = defraIdStub.authHeader(user.userId)
     orgId = org.refNo
     registrationId = migrated.registrationIds[0]
+    year = registrationStartYear('2025-01-01')
   })
 
   test('fails validation (Fatal) for Invalid Row ID and cannot be submitted @summaryLogInvalidRowId', async () => {
@@ -76,7 +81,8 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
       orgId,
       registrationId,
       authHeader,
-      { s3Key: 'invalid-row-id-key', filename: 'invalid-row-id.xlsx' }
+      { s3Key: 'invalid-row-id-key', filename: 'invalid-row-id.xlsx' },
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,
@@ -123,7 +129,8 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
       orgId,
       registrationId,
       authHeader,
-      { s3Key: 'invalid-table-name-key', filename: 'invalid-table-name.xlsx' }
+      { s3Key: 'invalid-table-name-key', filename: 'invalid-table-name.xlsx' },
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,
@@ -164,7 +171,8 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
       {
         s3Key: 'invalid-test-upload-key',
         filename: 'invalid-test-upload.xlsx'
-      }
+      },
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,
@@ -192,7 +200,8 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
         s3Key: 'test-upload-key',
         filename: 'test-upload.xlsx',
         fileStatus: 'pending'
-      }
+      },
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,
@@ -213,7 +222,8 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
         s3Key: 'test-upload-key',
         filename: 'test-upload.xlsx',
         fileStatus: 'rejected'
-      }
+      },
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,
@@ -242,7 +252,8 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
       orgId,
       registrationId,
       authHeader,
-      { s3Key: 'missing-date-row-key', filename: 'missing-date-row.xlsx' }
+      { s3Key: 'missing-date-row-key', filename: 'missing-date-row.xlsx' },
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,

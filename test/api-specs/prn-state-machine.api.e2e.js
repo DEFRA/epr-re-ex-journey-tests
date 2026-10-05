@@ -17,7 +17,10 @@ import {
   externalAPIAcceptPrn,
   externalAPICancelPrn
 } from '../support/seeding/prns.js'
-import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import {
+  registrationStartYear,
+  submitSummaryLogContent
+} from '../support/seeding/summary-logs.js'
 import { generateSummaryLogContent } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { waitForWasteBalance } from '../support/seeding/waiters.js'
 import { assertAuditLog } from '../support/docker-log-assertions.js'
@@ -81,7 +84,13 @@ async function setUpAccreditedReprocessorWithBalance() {
       ]
     }
   })
-  await submitSummaryLogContent(org.refNo, registrationId, authHeader, content)
+  await submitSummaryLogContent(
+    org.refNo,
+    registrationId,
+    authHeader,
+    content,
+    registrationStartYear()
+  )
 
   return {
     baseAPI,
@@ -138,7 +147,13 @@ async function setUpAccreditedExporterWithBalance() {
       ]
     }
   })
-  await submitSummaryLogContent(org.refNo, registrationId, authHeader, content)
+  await submitSummaryLogContent(
+    org.refNo,
+    registrationId,
+    authHeader,
+    content,
+    registrationStartYear()
+  )
 
   return {
     baseAPI,

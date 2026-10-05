@@ -8,7 +8,10 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { ingestSummaryLogFixture } from '../support/seeding/summary-logs.js'
+import {
+  ingestSummaryLogFixture,
+  registrationStartYear
+} from '../support/seeding/summary-logs.js'
 import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { assertValidationFailures } from '../support/summary-log-assertions.js'
@@ -44,7 +47,8 @@ test.describe('Summary Logs - Exporter @summaryLogExporter', () => {
       org.refNo,
       registrationId,
       authHeader,
-      { s3Key: 'exporter-invalid-key', filename: 'exporter-invalid.xlsx' }
+      { s3Key: 'exporter-invalid-key', filename: 'exporter-invalid.xlsx' },
+      registrationStartYear()
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,

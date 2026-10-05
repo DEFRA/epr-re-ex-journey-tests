@@ -15,7 +15,10 @@ import {
   seedOverseasSites,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import {
+  registrationStartYear,
+  submitSummaryLogContent
+} from '../support/seeding/summary-logs.js'
 import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { expectActionRequiredStatus } from '../support/report-status.js'
@@ -111,7 +114,8 @@ async function setupAndCreateReport(
     orgDetails.refNo,
     migrationResponse.registrationIds[0],
     defraIdStub.authHeader(user.userId),
-    summaryLogContent
+    summaryLogContent,
+    registrationStartYear()
   )
   await navigateToReports(page)
 
@@ -166,7 +170,8 @@ test.describe('Stale report @staleReport', () => {
       orgDetails.refNo,
       migrationResponse.registrationIds[0],
       defraIdStub.authHeader(user.userId),
-      summaryLogContent
+      summaryLogContent,
+      registrationStartYear()
     )
 
     // Navigating to the report now triggers the stale error page
@@ -216,6 +221,7 @@ test.describe('Stale report @staleReport', () => {
     )
 
     const regId = migrationResponse.registrationIds[0]
+    const year = registrationStartYear()
     const authHeader = defraIdStub.authHeader(user.userId)
 
     const summaryLogContent = await summaryLogContentFromFixture(REG_ONLY_FILE)
@@ -223,7 +229,8 @@ test.describe('Stale report @staleReport', () => {
       organisationDetails.refNo,
       regId,
       authHeader,
-      summaryLogContent
+      summaryLogContent,
+      year
     )
     await navigateToReports(page)
 
@@ -237,7 +244,8 @@ test.describe('Stale report @staleReport', () => {
       organisationDetails.refNo,
       regId,
       authHeader,
-      summaryLogContent
+      summaryLogContent,
+      year
     )
 
     // Navigating to the report now triggers the stale error page

@@ -7,7 +7,10 @@ import {
   updateMigratedOrganisation
 } from './organisation.js'
 import { createPrn, externalAPIAcceptPrn, updatePrnStatus } from './prns.js'
-import { submitSummaryLogContent } from './summary-logs.js'
+import {
+  registrationStartYear,
+  submitSummaryLogContent
+} from './summary-logs.js'
 import { generateSummaryLogContent } from '../spreadsheet/summarylogs-content-generator.js'
 import { waitForWasteBalance } from './waiters.js'
 import { defraIdStub } from '../defra-id-stub.js'
@@ -86,7 +89,13 @@ export async function seedAdminActivityData({ acceptPrn = true } = {}) {
       ]
     }
   })
-  await submitSummaryLogContent(org.refNo, registrationId, authHeader, content)
+  await submitSummaryLogContent(
+    org.refNo,
+    registrationId,
+    authHeader,
+    content,
+    registrationStartYear()
+  )
   await waitForWasteBalance(org.refNo, accreditationId, authHeader)
 
   const tonnage = 5

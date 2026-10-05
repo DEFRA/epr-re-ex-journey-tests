@@ -13,7 +13,10 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from './seeding/organisation.js'
-import { submitSummaryLogContent } from './seeding/summary-logs.js'
+import {
+  registrationStartYear,
+  submitSummaryLogContent
+} from './seeding/summary-logs.js'
 import { defraIdStub } from './defra-id-stub.js'
 import { createLinkAndLogin } from './login-helper.js'
 import { tonnageWordings, tradingName } from './fixtures.js'
@@ -106,7 +109,8 @@ export async function runDeleteCreatedPrn(
     organisationDetails.refNo,
     migrationResponse.registrationIds[0],
     defraIdStub.authHeader(user.userId),
-    summaryLogContent
+    summaryLogContent,
+    registrationStartYear()
   )
 
   await dashboardPage.selectTableLink(1, 1)
