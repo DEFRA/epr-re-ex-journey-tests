@@ -152,8 +152,21 @@ test.describe('A regulator reading a registration @regulator', () => {
       /^\d{1,3}(,\d{3})*\.\d{2}$/
     )
 
-    // The registration's records, offered as a file.
+    // The seed's summary log and the registration's records, offered as files.
+    expect(accreditationSummary['Latest summary log']).toBe('Download')
     expect(accreditationSummary['Latest waste record CSV']).toBe('Download')
+
+    // The seed's log is stored without a file, so the link is asserted
+    // rather than followed.
+    expect(
+      await accreditationPage
+        .summaryLink('Latest summary log')
+        .getAttribute('href')
+    ).toMatch(
+      new RegExp(
+        `/registrations/${seeded.registrationId}/summary-logs/files/[0-9a-f-]{36}/download$`
+      )
+    )
 
     // Comparing the whole set is what says "and nothing else". The total the
     // accreditation has ever held is deliberately not shown beside the
@@ -163,6 +176,7 @@ test.describe('A regulator reading a registration @regulator', () => {
       'Accreditation status',
       'Accreditation number',
       'Waste balance available (tonnes)',
+      'Latest summary log',
       'Latest waste record CSV'
     ])
 
