@@ -230,8 +230,11 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
 
       // Verify tonnage not exported value and change link present on CYA
       await checkBodyText(page, '5.50', 10)
-      const changeLink = page.locator('a[href*="tonnes-not-exported"]')
-      expect(await changeLink.count()).toBeGreaterThan(0)
+      await expect(
+        page.getByRole('link', {
+          name: 'Change Total tonnage received but not exported'
+        })
+      ).toBeVisible()
 
       // Verify NO PERN section present
       await checkBodyTextDoesNotInclude(page, 'PERN revenue', 5)

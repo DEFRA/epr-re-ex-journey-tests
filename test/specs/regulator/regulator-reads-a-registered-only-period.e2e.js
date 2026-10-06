@@ -95,41 +95,35 @@ test.describe('A regulator reading a registered-only period @regulator', () => {
     // A regulator reads and does not write.
     expect(await registeredOnlyPage.changeControlCount()).toBe(0)
 
-    // The download is the point of the Actions column, so it is followed
+    // The download is the point of the Actions column, so it is clicked
     // rather than merely asserted to be there.
-    const href = await ledgerPage.downloadLink().getAttribute('href')
+    const attachment = await registeredOnlyPage.download(
+      ledgerPage.downloadLink()
+    )
 
-    expect(href).toBeTruthy()
-
-    const attachment = await registeredOnlyPage.fetchAttachment(href ?? '')
-
-    expect(attachment.status).toBe(200)
+    expect(attachment.failure).toBeNull()
     expect(attachment.byteLength).toBeGreaterThan(0)
 
     // Named for the registration and the moment of submission, not for the
     // file the operator happened to upload. The moment belongs to the run.
-    expect(attachment.contentDisposition).toMatch(
+    expect(attachment.filename).toMatch(
       new RegExp(
-        `attachment; filename="${seeded.registrationNumber}-\\d{4}-\\d{2}-\\d{2}-\\d{6}\\.xlsx"`
+        `^${seeded.registrationNumber}-\\d{4}-\\d{2}-\\d{2}-\\d{6}\\.xlsx$`
       )
     )
 
     // The CSV of the same submission: the records the service holds for it,
     // rather than the workbook the operator sent.
-    const csvHref = await ledgerPage.csvDownloadLink().getAttribute('href')
+    const csv = await registeredOnlyPage.download(ledgerPage.csvDownloadLink())
 
-    expect(csvHref).toBeTruthy()
-
-    const csv = await registeredOnlyPage.fetchAttachment(csvHref ?? '')
-
-    expect(csv.status).toBe(200)
+    expect(csv.failure).toBeNull()
     expect(csv.byteLength).toBeGreaterThan(0)
 
     // The same name as its XLSX twin, so a submission's two downloads sit
     // together wherever the regulator saves them.
-    expect(csv.contentDisposition).toMatch(
+    expect(csv.filename).toMatch(
       new RegExp(
-        `attachment; filename="${seeded.registrationNumber}-\\d{4}-\\d{2}-\\d{2}-\\d{6}\\.csv"`
+        `^${seeded.registrationNumber}-\\d{4}-\\d{2}-\\d{2}-\\d{6}\\.csv$`
       )
     )
   })

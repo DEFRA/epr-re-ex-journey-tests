@@ -138,12 +138,12 @@ class OrganisationsPage extends AdminPage {
     return this.page.locator('#organisation-success-message').innerText()
   }
 
-  // Anchored on the link's target rather than its position in the button
-  // group, which moves as search fields are added to the form. Scoped to
-  // #main-content because the service navigation links to /organisations too.
   async clearSearch() {
     await this.page
-      .locator('#main-content form a[href="/organisations"]')
+      .getByRole('link', {
+        name: 'Clear search and view all organisations',
+        exact: true
+      })
       .click()
     // The click triggers a full page load, and the counting reads that follow
     // (searchResultExists, getTableRowCount) take the DOM as-is with no

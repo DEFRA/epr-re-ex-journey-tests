@@ -12,7 +12,10 @@ test.describe('An operator at the regulator door @regulator', () => {
   // Welsh is checked alongside English because every route in the service is
   // doubled under a /cy prefix. A guard that holds on one prefix and not the
   // other is a way in, and nothing else in the suite looks for it.
-  for (const prefix of ['', '/cy']) {
+  for (const [prefix, language] of [
+    ['', 'en'],
+    ['/cy', 'cy']
+  ]) {
     test(`cannot open the regulators area at ${prefix || '/'} @operatorAtRegulatorDoor`, async ({
       page
     }) => {
@@ -46,6 +49,9 @@ test.describe('An operator at the regulator door @regulator', () => {
       await page.goto(`${prefix}/regulators/home`)
 
       await expect(page.locator('main h1')).not.toHaveText('Organisations')
+      // The page declares the language the address asked for, which is what
+      // tells a Welsh reader's browser and screen reader how to read it.
+      await expect(page.locator('html')).toHaveAttribute('lang', language)
       expect(await refusalPage.getHeadingText()).toBe(
         'You do not have permission'
       )
@@ -58,12 +64,16 @@ test.describe('An operator at the regulator door @regulator', () => {
       expect(await serviceNavigation.serviceName()).toBe(
         'Record reprocessed or exported packaging waste'
       )
-      expect(await serviceNavigation.serviceUrl()).toBe(`${prefix}/start`)
       expect(await serviceNavigation.linkTexts()).toEqual([
         'Home',
         'Manage account',
         'Sign out'
       ])
+
+      await serviceNavigation.serviceNameLink().click()
+      await expect(page.locator('main h1')).toHaveText(
+        'Record reprocessed or exported packaging waste'
+      )
     })
   }
 })

@@ -44,24 +44,29 @@ class Page {
   }
 
   /**
-   * Follows a download link as the signed-in user and answers what came back.
+   * Clicks a link that saves a file and answers what the browser was given.
    * The body of a spreadsheet is not worth asserting, so only its size is.
-   *
-   * `page.request` shares the browser's cookies, so the session goes with it.
-   * @param {string} href
+   * @param {import('@playwright/test').Locator} link
    * @returns {Promise<{
-   *   status: number,
-   *   contentDisposition: string,
+   *   failure: string | null,
+   *   filename: string,
    *   byteLength: number
    * }>}
    */
-  async fetchAttachment(href) {
-    const response = await this.page.request.get(href)
+  async download(link) {
+    const [download] = await Promise.all([
+      this.page.waitForEvent('download'),
+      link.click()
+    ])
+    let byteLength = 0
+    for await (const chunk of await download.createReadStream()) {
+      byteLength += chunk.length
+    }
 
     return {
-      status: response.status(),
-      contentDisposition: response.headers()['content-disposition'] ?? '',
-      byteLength: (await response.body()).length
+      failure: await download.failure(),
+      filename: download.suggestedFilename(),
+      byteLength
     }
   }
 

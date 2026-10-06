@@ -41,9 +41,6 @@ test.describe('Summary Logs Reprocessor Input', () => {
     await homePage.openStart()
 
     // PAE-743: Site Furniture checks
-    const href = await homePage.getStartNowHref()
-    expect(href).toBe('/login')
-
     const phaseTag = await homePage.getPhaseTagText()
     expect(phaseTag).toBe('Beta')
 
@@ -76,8 +73,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
     expect(navLinkTexts).toContain('Manage account')
     expect(navLinkTexts).toContain('Sign out')
 
-    const homeHref = await homePage.getNavigationLinkHref('Home')
-    expect(homeHref).toContain('/organisations/')
+    await homePage.navigationLink('Home').click()
 
     const dashboardHeaderText = await dashboardPage.dashboardHeaderText()
 

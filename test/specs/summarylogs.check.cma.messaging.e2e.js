@@ -4,6 +4,7 @@ import { UploadSummaryLogPage } from '../page-objects/upload.summary.log.page.js
 import { CheckSummaryLogPage } from '../page-objects/check.summary.log.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
+import { ReportsPage } from '../page-objects/reports/reports.page.js'
 import { checkBodyText } from '../support/checks.js'
 import {
   createLinkedOrganisation,
@@ -130,11 +131,12 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
     expect((await uploadSummaryLogPage.goToReportsButton().count()) > 0).toBe(
       true
     )
-    expect(
-      await uploadSummaryLogPage.goToReportsButton().getAttribute('href')
-    ).toBe(
-      `/organisations/${organisationDetails.refNo}/registrations/${regId}/reports`
-    )
+    await uploadSummaryLogPage.goToReportsButton().click()
+    // The caption names the material of the one registration this operator
+    // holds, so it is that registration's reports and not just a reports page.
+    const reportsPage = new ReportsPage(page)
+    expect(await reportsPage.headingText()).toContain('Reports')
+    expect(await reportsPage.captionText()).toBe('Paper and board')
 
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)

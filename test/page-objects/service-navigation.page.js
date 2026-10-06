@@ -16,10 +16,8 @@ class ServiceNavigation {
       .innerText()
   }
 
-  async serviceUrl() {
-    return this.page
-      .locator('.govuk-service-navigation__service-name a')
-      .getAttribute('href')
+  serviceNameLink() {
+    return this.page.locator('.govuk-service-navigation__service-name a')
   }
 
   // The tab the service navigation marks as the page being read. GOV.UK sets
