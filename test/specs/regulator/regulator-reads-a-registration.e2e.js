@@ -398,6 +398,10 @@ test.describe('A regulator reading a registration @regulator', () => {
       'Packaging Waste Recycling Note'
     )
 
+    // A note awaiting authorisation has no number yet, so its last crumb names
+    // it by its id.
+    expect((await prnViewPage.breadcrumbs()).at(-1)).toBe(seeded.prnId)
+
     await prnViewPage.crumbLink('PRNs').click()
     await expect(prnsPage.detailedView()).toBeVisible()
 

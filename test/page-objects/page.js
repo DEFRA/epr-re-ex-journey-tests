@@ -1,5 +1,3 @@
-import { stat } from 'node:fs/promises'
-
 import { checkDoubleClickPrevented } from '../support/double-click.js'
 
 class Page {
@@ -60,12 +58,15 @@ class Page {
       this.page.waitForEvent('download'),
       link.click()
     ])
-    const path = await download.path()
+    let byteLength = 0
+    for await (const chunk of await download.createReadStream()) {
+      byteLength += chunk.length
+    }
 
     return {
       failure: await download.failure(),
       filename: download.suggestedFilename(),
-      byteLength: (await stat(path)).size
+      byteLength
     }
   }
 

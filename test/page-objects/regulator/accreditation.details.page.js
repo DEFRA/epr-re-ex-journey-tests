@@ -22,18 +22,6 @@ class AccreditationDetailsPage extends Page {
   }
 
   /**
-   * The link in the summary row with this key.
-   * @param {string} key
-   * @returns {import('@playwright/test').Locator}
-   */
-  summaryLink(key) {
-    return this.page
-      .locator('#main-content dl.govuk-summary-list > div')
-      .filter({ has: this.page.locator('dt', { hasText: key }) })
-      .locator('dd a')
-  }
-
-  /**
    * @returns {Promise<string[]>}
    */
   async reportHeadings() {
