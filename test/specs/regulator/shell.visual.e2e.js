@@ -16,6 +16,7 @@ test.describe('Page shell visual baseline @visual', () => {
       page
     }) => {
       await new RegulatorStartPage(page).loginAsRegulator()
+      await expect(page).toHaveURL(/\/regulators\/home/)
       const header = page.getByRole('banner')
 
       await expect(header).toHaveScreenshot('header-narrow-closed.png')
@@ -37,6 +38,7 @@ test.describe('Page shell visual baseline @visual', () => {
 
     test('Should keep the header looking the same', async ({ page }) => {
       await new RegulatorStartPage(page).loginAsRegulator()
+      await expect(page).toHaveURL(/\/regulators\/home/)
       const header = page.getByRole('banner')
 
       await expect(header).toHaveScreenshot('header-wide.png')
