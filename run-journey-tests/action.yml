@@ -273,6 +273,23 @@ runs:
         esac
         npm run report
 
+    # Pixel baselines only hold in one rendering environment, so these specs run
+    # in the same Playwright image the Dockerfile pins rather than on the
+    # runner. Host networking lets the browser reach the compose services on
+    # localhost. A failure touches FAILED, like the specs above.
+    - name: Run visual snapshot tests
+      if: inputs.test-scope != 'admin' && inputs.december-scope != 'only'
+      shell: bash
+      run: |
+        image=$(sed -n 's/^FROM //p' Dockerfile)
+        docker run --rm --network host \
+          --user "$(id -u):$(id -g)" \
+          -e HOME=/tmp -e CI=true \
+          -e NODE_OPTIONS='--loader esm-module-alias/loader' \
+          -v "$PWD":/app -w /app "$image" \
+          npx playwright test --config=playwright.visual.config.js \
+          || touch FAILED
+
     # After the specs, not before: generated organisations land in the same
     # stack the specs assert against. withLinking is the widest variant - it
     # covers createOrganisation, updateOrganisationData and the Defra ID link
@@ -296,6 +313,14 @@ runs:
       with:
         name: allure-report${{ inputs.artifact-suffix }}
         path: ./allure-report
+
+    - name: Upload visual snapshot results
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: visual-results${{ inputs.artifact-suffix }}
+        path: ./test-results-visual
+        if-no-files-found: ignore
 
     - name: Upload docker compose logs
       if: always()

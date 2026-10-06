@@ -23,6 +23,9 @@ const chromeArgs = [
 export default defineConfig({
   testDir: './test/specs',
   testMatch: '**/*.e2e.js',
+  // Pixel baselines only hold in the pinned Playwright image, which
+  // playwright.visual.config.js runs them in.
+  testIgnore: '**/*.visual.e2e.js',
 
   fullyParallel: false,
   forbidOnly: isCI,
