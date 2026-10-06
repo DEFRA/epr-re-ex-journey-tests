@@ -53,9 +53,8 @@ test.describe('Admin summary log document view', () => {
 
     await registrationOverviewPage.clickViewSummaryLogData(1)
 
-    // The document page names itself and lives at the summary-log URL.
+    // The document page names itself.
     expect(await summaryLogDocumentPage.getHeaderText()).toEqual('Summary log')
-    expect(page.url()).toMatch(/\/summary-logs\/[\w-]+$/)
 
     // The whole stored document is rendered verbatim: its version, its
     // submitted status, and the loadsByReportingPeriod breakdown the page

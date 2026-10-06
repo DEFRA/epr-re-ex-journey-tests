@@ -41,17 +41,6 @@ const expectActionLink = async (page, rowIndex, tableXPath, label) => {
     .waitFor({ state: 'attached', timeout: 5000 })
 }
 
-// Returns the href of the row's action anchor, so callers can assert the CTA
-// targets the expected submission (e.g. a resubmitted period's "View" link
-// must point at submission 2, not the superseded submission 1).
-const getActionLinkHref = async (page, rowIndex, tableXPath) => {
-  return page
-    .locator(
-      `${rowXPath(tableXPath, rowIndex)}//a[contains(@class,'govuk-link')]`
-    )
-    .getAttribute('href')
-}
-
 const getStatusBadgeLocator = (page, rowIndex, tableXPath) =>
   page.locator(
     `${rowXPath(tableXPath, rowIndex)}//*[contains(@class,'govuk-tag')]`
@@ -121,10 +110,6 @@ class ReportsPage extends Page {
     )
   }
 
-  async getSubmittedActionLinkHref(rowIndex) {
-    return getActionLinkHref(this.page, rowIndex, this.#submittedTableXPath)
-  }
-
   // The Action required section renders an empty message instead of a table
   // when no period needs action, so a missing table is the empty state.
   async activeTableText() {
@@ -153,17 +138,6 @@ class ReportsPage extends Page {
 
   async getActiveNumberOfRows() {
     return this.page.locator(this.#activeTableXPath + '//tbody/tr').count()
-  }
-
-  // Every action anchor the Action required section offers. A period in that
-  // section has no report to read, so the action a row carries is always a
-  // write one - and a session that cannot write is offered none of them.
-  async getActiveNumberOfActionLinks() {
-    return this.page
-      .locator(
-        `${this.#activeTableXPath}//tbody//a[contains(@class,'govuk-link')]`
-      )
-      .count()
   }
 }
 

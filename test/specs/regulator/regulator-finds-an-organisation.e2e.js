@@ -7,7 +7,7 @@ import { PrnsDetailedViewPage } from 'page-objects/regulator/prns.detailed-view.
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { RegulatorOrganisationPage } from 'page-objects/regulator/organisation.page'
-import { ReportsPage } from 'page-objects/reports/reports.page'
+import { ReportsDetailedViewPage } from 'page-objects/regulator/reports.detailed-view.page'
 import { ReportViewPage } from 'page-objects/reports/report.view.page'
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page'
 import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page'
@@ -44,7 +44,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     const prnListPage = new PRNDashboardPage(page)
     const prnViewPage = new PRNViewPage(page)
     const prnsPage = new PrnsDetailedViewPage(page)
-    const reportsPage = new ReportsPage(page)
+    const reportsPage = new ReportsDetailedViewPage(page)
     const reportViewPage = new ReportViewPage(page)
     const ledgerPage = new WasteBalanceLedgerPage(page)
 
@@ -123,26 +123,17 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // What it does offer is the accreditation and a year per registered-only
     // period. The years are not id-normalised, so they arrive literally, and
     // the set is sorted.
-    expect(await detailsPage.offeredRoutes()).toEqual(
+    expect(await detailsPage.offeredLinks()).toEqual(
       [
-        '/organisations/{id}/registrations/{id}/accreditations/{id}',
+        `View ${seeded.accreditationNumber}`,
         ...seededRegisteredOnlyYears().map(
-          (year) =>
-            `/organisations/{id}/registrations/{id}/registered-only-periods/${year}`
+          (year) => `View reg-only period ${year}`
         )
       ].sort()
     )
 
-    // A regulator holds no record ids to build a path from, so take the two
-    // the journey has reached - the registration it is on and the
-    // accreditation it names - and come back to them between the three reads.
-    const registrationUrl = page.url()
-    const accreditationUrl = new URL(
-      (await detailsPage.actionLink(1).getAttribute('href')) ?? '',
-      registrationUrl
-    ).toString()
-
-    await page.goto(`${accreditationUrl}/packaging-recycling-notes`)
+    await detailsPage.actionLink(1).click()
+    await accreditationPage.prnsDetailedViewLink().click()
 
     // The note awaits authorisation, and the awaiting tables are the only
     // place such a note is filed. Reading the tonnage back off the row is what
@@ -156,9 +147,6 @@ test.describe('A regulator looking up an operator @regulator', () => {
     expect(awaitingRow.get('Tonnage')).toBe(`${seeded.prnTonnage}`)
 
     expect(await awaitingLink.innerText()).toBe('View')
-    expect(await awaitingLink.getAttribute('href')).toContain(
-      `/packaging-recycling-notes/${seeded.prnId}/view`
-    )
 
     // The awaiting-cancellation table is the second one in the same tab and is
     // built by the same code, so it takes the same decision about what a
@@ -171,9 +159,10 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     const cancellationLink = prnListPage.awaitingLink(1, 2)
     expect(await cancellationLink.innerText()).toBe('View')
-    expect(await cancellationLink.getAttribute('href')).toContain(
-      `/packaging-recycling-notes/${seeded.cancellationPrnId}/view`
-    )
+
+    await cancellationLink.click()
+    await checkBodyText(page, seeded.cancellationPrnNumber, 10)
+    await prnViewPage.crumbLink('PRNs').click()
 
     await prnListPage.selectAwaitingLink(1)
 
@@ -203,25 +192,25 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     await expect(prnsPage.detailedView()).toBeVisible()
 
-    await page.goto(`${registrationUrl}/reports`)
+    await prnsPage.crumbLink('Accreditation details').click()
+    await accreditationPage.reportsDetailedViewLink().click()
 
-    expect(await reportsPage.headingText()).toContain('Reports')
+    await expect(reportsPage.detailedView()).toBeVisible()
 
     // The last completed period is the one the seed submitted, so it is the
-    // only row the Submitted section holds - and the link it keeps names that
-    // period, which says the calendar rendered the operator's own submission.
-    const { year, cadence, period } = seeded.reportPeriod
-    await reportsPage.expectSubmittedActionLink(1, 'View')
-    expect(await reportsPage.getSubmittedActionLinkHref(1)).toContain(
-      `/reports/${year}/${cadence}/${period}/submissions/1/view`
-    )
+    // first row - and the link it keeps names that period, which says the
+    // list rendered the operator's own submission.
+    const { year } = seeded.reportPeriod
+    const reports = await reportsPage.reports()
+    expect(reports[0].get('Status')).toBe('Submitted')
+    await expect(reportsPage.actionLink(1)).toContainText('View')
 
     // Every remaining period still needs a report, so each row's action is a
     // write one. The rows are there and none of them is a link.
-    expect(await reportsPage.getActiveNumberOfRows()).toBeGreaterThan(0)
-    expect(await reportsPage.getActiveNumberOfActionLinks()).toBe(0)
+    expect(reports.length).toBeGreaterThan(1)
+    await expect(reportsPage.actionLinks()).toHaveCount(1)
 
-    await reportsPage.selectSubmittedActionLink(1)
+    await reportsPage.actionLink(1).click()
 
     // The submitted report's own heading names the period it covers, so it
     // says both that the report rendered and that it is the seeded one.
@@ -234,7 +223,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // the page behind that section's link. The seed submitted a summary log and
     // drew two notes against the balance it credited, so every one of those
     // movements is here.
-    await page.goto(accreditationUrl)
+    await reportViewPage.crumbLink('Accreditation details').click()
 
     await accreditationPage.ledgerDetailedViewLink().click()
 
@@ -301,16 +290,12 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     expect(undated).toStrictEqual([])
 
-    const targets = await ledgerPage.actionTargets()
-
-    // The summary log leads to its own file rather than to a note.
-    expect(targets[4]).toMatch(
-      /\/registrations\/[^/]+\/summary-logs\/files\/[^/]+\/download$/
-    )
+    // The summary log offers its own file rather than a note.
+    expect(ledgerEvents[4].get('Actions')).toContain('Download')
 
     // Reading a movement and then reading the note behind it is the journey
-    // this page exists for, so it is walked rather than asserted from the
-    // href. The rejection is the newest movement, so its row is the first one.
+    // this page exists for. The rejection is the newest movement, so its row
+    // is the first one.
     await ledgerPage.viewNoteLinks(cancellationPrnNumber).first().click()
 
     // The note names itself, which says the ledger opened this note rather

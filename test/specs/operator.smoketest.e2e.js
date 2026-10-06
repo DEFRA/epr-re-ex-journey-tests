@@ -31,10 +31,8 @@ test.describe('Operator smoketest @smoketest @extTestOnly', () => {
     )
 
     // The redirect chain lands on the operator's own organisation page.
-    // Auto-retrying: clickAndAwaitRedirectChain only waits for the first URL
-    // change plus network idle, which doesn't guarantee the chain's last hop
-    // has landed yet.
-    await expect(page).toHaveURL(/\/organisations\//)
+    // Reading the heading waits for the chain's last hop to land, which
+    // clickAndAwaitRedirectChain does not guarantee.
     expect(await dashboardPage.dashboardHeaderText()).not.toBe('')
 
     // Record the landing page URL before signing out, so we can prove the

@@ -27,17 +27,6 @@ class RegisteredOnlyPeriodPage extends Page {
   }
 
   /**
-   * The way back to the registration. The organisation crumb above it stops at
-   * the organisation, so the registration is the only crumb naming one.
-   * @returns {import('@playwright/test').Locator}
-   */
-  registrationLink() {
-    return this.page.locator(
-      '.govuk-breadcrumbs__list-item a[href*="/registrations/"]'
-    )
-  }
-
-  /**
    * @returns {Promise<number>}
    */
   async changeControlCount() {

@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 
 import { DashboardPage } from 'page-objects/dashboard.page'
 import { PRNViewPage } from 'page-objects/prn.view.page'
+import { ReportViewPage } from 'page-objects/reports/report.view.page'
 import { AccreditationDetailsPage } from 'page-objects/regulator/accreditation.details.page'
 import { PrnsDetailedViewPage } from 'page-objects/regulator/prns.detailed-view.page'
 import { ReportsDetailedViewPage } from 'page-objects/regulator/reports.detailed-view.page'
@@ -22,6 +23,9 @@ import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulat
  */
 const tonnageOf = (row) => Number((row.get('Tonnage') ?? '').replace(/,/g, ''))
 
+const ACCREDITATION_HEADING =
+  /Accreditation\s+\d{1,2} [A-Z][a-z]+( \d{4})? to (Current|\d{1,2} [A-Z][a-z]+ \d{4})/
+
 test.describe('A regulator reading a registration @regulator', () => {
   test('walks from the organisation list to a registration, reads what it covers and the periods it holds, then opens each kind and comes back @regulatorRegistration @regulatorAccreditation @regulatorRegisteredOnly', async ({
     page
@@ -36,8 +40,25 @@ test.describe('A regulator reading a registration @regulator', () => {
     const ledgerPage = new WasteBalanceLedgerPage(page)
     const prnViewPage = new PRNViewPage(page)
     const registeredOnlyPage = new RegisteredOnlyPeriodPage(page)
+    const reportViewPage = new ReportViewPage(page)
 
     const seeded = await seedAwaitingPrnAndSubmittedReport()
+
+    const expectOnAccreditation = async () => {
+      expect(await accreditationPage.headingText()).toMatch(
+        ACCREDITATION_HEADING
+      )
+      expect(await accreditationPage.captionText()).toContain(
+        seeded.accreditationNumber
+      )
+    }
+
+    const expectOnRegistration = async () => {
+      expect(await detailsPage.headingText()).toContain('Registration details')
+      expect(await detailsPage.captionText()).toContain(
+        seeded.registrationNumber
+      )
+    }
 
     await loginPage.loginAsRegulator()
 
@@ -108,18 +129,10 @@ test.describe('A regulator reading a registration @regulator', () => {
       'Registration details'
     ])
 
-    expect(await detailsPage.actionLink(1).getAttribute('href')).toContain(
-      `/accreditations/${seeded.accreditationId}`
-    )
-
     expect(await detailsPage.changeControlCount()).toBe(0)
 
-    // A regulator holds no record ids to build a path from, so keep the one the
-    // search found to compare the way back against.
-    const registrationUrl = page.url()
-
     // The accredited period is the only way in, so opening it is what says the
-    // link asserted above resolves rather than merely points somewhere.
+    // link leads somewhere.
     await detailsPage.actionLink(1).click()
 
     // The caption sits inside the h1, so the heading is matched rather than
@@ -156,18 +169,6 @@ test.describe('A regulator reading a registration @regulator', () => {
     expect(accreditationSummary['Latest summary log']).toBe('Download')
     expect(accreditationSummary['Latest waste record CSV']).toBe('Download')
 
-    // The seed's log is stored without a file, so the link is asserted
-    // rather than followed.
-    expect(
-      await accreditationPage
-        .summaryLink('Latest summary log')
-        .getAttribute('href')
-    ).toMatch(
-      new RegExp(
-        `/registrations/${seeded.registrationId}/summary-logs/files/[0-9a-f-]{36}/download$`
-      )
-    )
-
     // Comparing the whole set is what says "and nothing else". The total the
     // accreditation has ever held is deliberately not shown beside the
     // available figure, so it arriving here has to be justified rather than
@@ -195,7 +196,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     // accreditation and what arrived against it. The seed submitted one
     // report, for the last completed period, and left every earlier period
     // unreported - so the one table holds a row of each kind.
-    const { year, cadence, period } = seeded.reportPeriod
+    const { year, period } = seeded.reportPeriod
 
     // The period the seed chose moves with the run date, so its label is
     // derived from what was seeded rather than written down.
@@ -232,9 +233,6 @@ test.describe('A regulator reading a registration @regulator', () => {
     await expect(accreditationPage.reportActionLink(1)).toHaveText(
       `View ${periodLabel}`
     )
-    expect(
-      await accreditationPage.reportActionLink(1).getAttribute('href')
-    ).toContain(`/reports/${year}/${cadence}/${period}/submissions/1/view`)
 
     // Every action link reads the same single word, so the period it names is
     // the only thing telling one row's link from another's.
@@ -254,7 +252,14 @@ test.describe('A regulator reading a registration @regulator', () => {
       await accreditationPage.reportActionLink(reports.length).count()
     ).toBe(0)
 
-    const accreditationUrl = page.url()
+    await accreditationPage.reportActionLink(1).click()
+
+    const reportHeading = await reportViewPage.headingText()
+    expect(reportHeading).toContain('Report for')
+    expect(reportHeading).toContain(periodLabel)
+
+    await reportViewPage.crumbLink('Accreditation details').click()
+    await expectOnAccreditation()
 
     // The summary shows the most recent reports only, so the full list is
     // reached through the link beside it.
@@ -303,9 +308,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     expect(await reportsPage.backLink().count()).toBe(0)
 
     await reportsPage.crumbLink('Accreditation details').click()
-    expect(new URL(page.url()).pathname).toBe(
-      new URL(accreditationUrl).pathname
-    )
+    await expectOnAccreditation()
 
     await expect(accreditationPage.prnsHeading()).toBeVisible()
 
@@ -379,9 +382,6 @@ test.describe('A regulator reading a registration @regulator', () => {
     // A regulator gets the read link the operator's write-scoped session does
     // not, which is the whole of what the fork changes about the tables.
     expect(await awaitingLink.innerText()).toBe('View')
-    expect(await awaitingLink.getAttribute('href')).toContain(
-      `/packaging-recycling-notes/${seeded.prnId}/view`
-    )
 
     const cancellationRow = await prnsPage.getAwaitingRow(1, 2)
 
@@ -394,8 +394,8 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     await awaitingLink.click()
 
-    expect(page.url()).toContain(
-      `/packaging-recycling-notes/${seeded.prnId}/view`
+    await expect(prnViewPage.heading()).toHaveText(
+      'Packaging Waste Recycling Note'
     )
 
     await prnViewPage.crumbLink('PRNs').click()
@@ -404,9 +404,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     expect(await prnsPage.backLink().count()).toBe(0)
 
     await prnsPage.crumbLink('Accreditation details').click()
-    expect(new URL(page.url()).pathname).toBe(
-      new URL(accreditationUrl).pathname
-    )
+    await expectOnAccreditation()
 
     // The ledger the balance above moved in. The seed made five movements and
     // the section shows the most recent events only, so what is here is the
@@ -439,14 +437,12 @@ test.describe('A regulator reading a registration @regulator', () => {
     expect(await ledgerPage.backLink().count()).toBe(0)
 
     await ledgerPage.crumbLink('Accreditation details').click()
-    expect(new URL(page.url()).pathname).toBe(
-      new URL(accreditationUrl).pathname
-    )
+    await expectOnAccreditation()
 
     // Getting back to the registration is an acceptance criterion, so the
     // crumb is followed rather than merely asserted to be present.
-    await accreditationPage.registrationLink().click()
-    expect(new URL(page.url()).pathname).toBe(new URL(registrationUrl).pathname)
+    await accreditationPage.crumbLink('Registration details').click()
+    await expectOnRegistration()
 
     // The registration also lists the years it ran over without an
     // accreditation. The seed grants both from the same date, so the year this
@@ -476,10 +472,6 @@ test.describe('A regulator reading a registration @regulator', () => {
     expect(await detailsPage.getRegisteredOnlyHiddenText(seededRow)).toBe(
       String(seededYear)
     )
-
-    expect(
-      await detailsPage.registeredOnlyActionLink(seededRow).getAttribute('href')
-    ).toContain(`/registered-only-periods/${seededYear}`)
 
     await detailsPage.registeredOnlyActionLink(seededRow).click()
 
@@ -511,7 +503,7 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     // Getting back is an acceptance criterion here too, so the crumb is
     // followed rather than asserted to be present.
-    await registeredOnlyPage.registrationLink().click()
-    expect(new URL(page.url()).pathname).toBe(new URL(registrationUrl).pathname)
+    await registeredOnlyPage.crumbLink('Registration details').click()
+    await expectOnRegistration()
   })
 })

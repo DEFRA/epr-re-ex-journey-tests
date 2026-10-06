@@ -24,7 +24,8 @@ test.describe('Regulator login @regulator @smoketest', () => {
     expect(await serviceNavigation.serviceName()).toBe(
       'Record reprocessed or exported packaging waste: regulators'
     )
-    expect(await serviceNavigation.serviceUrl()).toBe('/regulators/home')
+    await serviceNavigation.serviceNameLink().click()
+    expect(await homePage.getHeadingText()).toBe('All organisations')
     // The landing page is their home, so the navigation names it once.
     expect(await serviceNavigation.linkTexts()).toEqual(['Home', 'Sign out'])
 

@@ -20,10 +20,7 @@ class RegistrationOverviewPage extends AdminPage {
       const links = []
       for (let j = 0; j < linkCount; j++) {
         const link = linkLocators.nth(j)
-        links.push({
-          text: await link.innerText(),
-          href: await link.getAttribute('href')
-        })
+        links.push({ text: await link.innerText() })
       }
 
       data.push({
@@ -93,10 +90,7 @@ class RegistrationOverviewPage extends AdminPage {
     const data = []
     for (let i = 0; i < count; i++) {
       const link = links.nth(i)
-      data.push({
-        text: await link.innerText(),
-        href: await link.getAttribute('href')
-      })
+      data.push({ text: await link.innerText() })
     }
     return data
   }

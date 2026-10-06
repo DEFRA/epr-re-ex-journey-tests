@@ -194,14 +194,6 @@ test.describe('Issuing Packing Recycling Notes', () => {
 
     await regulatorDashboardPage.selectLink(1)
 
-    // A regulator holds no ids to build a path from, so the accreditation's
-    // own URL is kept here and used below to reach its PRN list directly,
-    // the same way an operator would from a link this page does not offer.
-    const accreditationUrl = new URL(
-      (await registrationDetailsPage.actionLink(1).getAttribute('href')) ?? '',
-      currentPage.url()
-    ).toString()
-
     await registrationDetailsPage.actionLink(1).click()
 
     const accreditationSummary = await accreditationDetailsPage.summary()
@@ -262,21 +254,13 @@ test.describe('Issuing Packing Recycling Notes', () => {
     ])
 
     // Every PRN row leads to the same note, because there is only one; the
-    // summary log leads to its own file.
-    const actionTargets = await ledgerPage.actionTargets()
-
-    expect(actionTargets.slice(0, 3)).toEqual([
-      actionTargets[0],
-      actionTargets[0],
-      actionTargets[0]
-    ])
-    expect(actionTargets[3]).toMatch(
-      /\/registrations\/[^/]+\/summary-logs\/files\/[^/]+\/download$/
-    )
+    // summary log offers its own file.
+    await expect(ledgerPage.viewNoteLinks(prnDetails.prnNumber)).toHaveCount(3)
+    expect(ledgerEvents[3].get('Actions')).toContain('Download')
 
     // Reading a movement and then reading the note behind it is what the
-    // ledger is for, so it is walked rather than asserted from the href
-    // alone. The acceptance is the newest movement, so its row is the first.
+    // ledger is for. The acceptance is the newest movement, so its row is the
+    // first.
     await ledgerPage.viewNoteLinks(prnDetails.prnNumber).first().click()
 
     await checkBodyText(currentPage, prnDetails.prnNumber, 10)
@@ -290,7 +274,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     // the accreditation rather than reached from the ledger. It is where an
     // operator manages their PRNs, and a regulator is given the same list
     // with nothing on it to manage.
-    await currentPage.goto(`${accreditationUrl}/packaging-recycling-notes`)
+    await regulatorPrnViewPage.crumbLink('PRNs').click()
 
     await regulatorPrnDashboardPage.issuedTab().click()
     await prnHelper.checkIssuedRows(prnDetails, 1)

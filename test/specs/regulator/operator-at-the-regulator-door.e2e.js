@@ -58,12 +58,16 @@ test.describe('An operator at the regulator door @regulator', () => {
       expect(await serviceNavigation.serviceName()).toBe(
         'Record reprocessed or exported packaging waste'
       )
-      expect(await serviceNavigation.serviceUrl()).toBe(`${prefix}/start`)
       expect(await serviceNavigation.linkTexts()).toEqual([
         'Home',
         'Manage account',
         'Sign out'
       ])
+
+      await serviceNavigation.serviceNameLink().click()
+      await expect(page.locator('main h1')).toHaveText(
+        'Record reprocessed or exported packaging waste'
+      )
     })
   }
 })

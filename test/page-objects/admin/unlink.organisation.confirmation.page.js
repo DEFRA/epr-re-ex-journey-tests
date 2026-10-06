@@ -1,3 +1,4 @@
+import { expect } from '@playwright/test'
 import { AdminPage } from 'page-objects/admin/page'
 
 class UnlinkOrganisationConfirmationPage extends AdminPage {
@@ -17,10 +18,10 @@ class UnlinkOrganisationConfirmationPage extends AdminPage {
 
   async cancel() {
     await this.page.getByRole('link', { name: 'Cancel', exact: true }).click()
-    // Wait for the navigation back to the organisation overview: callers
-    // query that page immediately with non-waiting locators (e.g. count()),
-    // which otherwise race the page load and flake.
-    await this.page.waitForURL(/\/organisations\/[^/]+\/overview$/)
+    // Wait for the confirm page to go: callers query the organisation
+    // overview immediately with non-waiting locators (e.g. count()), which
+    // otherwise race the page load and flake.
+    await expect(this.confirmUnlinkButton()).toBeHidden()
   }
 }
 

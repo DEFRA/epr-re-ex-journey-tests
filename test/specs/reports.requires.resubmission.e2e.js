@@ -5,6 +5,7 @@ import { CheckSummaryLogPage } from '../page-objects/check.summary.log.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { ReportsPage } from 'page-objects/reports/reports.page.js'
+import { ReportViewPage } from 'page-objects/reports/report.view.page.js'
 import { ResubmissionExplainerPage } from 'page-objects/reports/resubmission.explainer.page.js'
 import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
 import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js'
@@ -38,6 +39,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     const dashboardPage = new DashboardPage(page)
     const wasteRecordsPage = new WasteRecordsPage(page)
     const reportsPage = new ReportsPage(page)
+    const reportViewPage = new ReportViewPage(page)
     const resubmissionExplainerPage = new ResubmissionExplainerPage(page)
     const reportDetailPage = new ReportDetailPage(page)
     const tonnesRecycledPage = new TonnesRecycledPage(page)
@@ -212,11 +214,14 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     expect(await reportsPage.getSubmittedStatusColour(1)).toBe('green')
     await reportsPage.expectSubmittedActionLink(1, 'View')
 
-    // The "View" CTA opens the resubmission (submission 2 — the latest
-    // submitted report), not the superseded submission 1.
-    expect(await reportsPage.getSubmittedActionLinkHref(1)).toContain(
-      '/submissions/2/view'
-    )
+    // The "View" CTA opens the resubmission (the latest submitted report),
+    // not the superseded one: it shows the tonnages entered above and not the
+    // 100 the first submission held.
+    await reportsPage.selectSubmittedActionLink(1)
+    await checkBodyText(page, '12.50', 10)
+    await checkBodyText(page, '7.50', 10)
+    await checkBodyTextDoesNotInclude(page, '100.00', 10)
+    await reportViewPage.backLink().click()
 
     // The period is gone from Action required: the purple "Requires
     // resubmission" status no longer appears anywhere on the landing page, and
