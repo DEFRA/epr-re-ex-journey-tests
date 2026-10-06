@@ -290,6 +290,47 @@ runs:
           npx playwright test --config=playwright.visual.config.js \
           || touch FAILED
 
+    - name: Upload visual snapshot results
+      id: visual-upload
+      if: always() && inputs.test-scope != 'admin' && inputs.december-scope != 'only'
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: visual-results${{ inputs.artifact-suffix }}
+        path: ./test-results-visual
+        if-no-files-found: ignore
+
+    # The raw expected, actual and diff images are in the artifact, but nobody
+    # opens an artifact to find out a PR changed how a page looks. So the
+    # failing snapshots are also written to the job summary and kept in one
+    # sticky PR comment, which clears itself on the next run that is clean.
+    - name: Summarise visual snapshot changes
+      id: visual-summary
+      if: always() && inputs.test-scope != 'admin' && inputs.december-scope != 'only'
+      shell: bash
+      env:
+        ARTIFACT_URL: ${{ steps.visual-upload.outputs.artifact-url }}
+      run: |
+        summary="$RUNNER_TEMP/visual-summary.md"
+        node bin/visual-summary.js test-results-visual "$summary"
+        if [ -s "$summary" ]; then
+          cat "$summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Post visual snapshot summary
+      if: always() && github.event_name == 'pull_request' && steps.visual-summary.outputs.changed == 'true'
+      uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
+      with:
+        header: visual-snapshots${{ inputs.artifact-suffix }}
+        path: ${{ runner.temp }}/visual-summary.md
+
+    - name: Clear visual snapshot summary
+      if: always() && github.event_name == 'pull_request' && steps.visual-summary.outcome == 'success' && steps.visual-summary.outputs.changed != 'true'
+      uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
+      with:
+        header: visual-snapshots${{ inputs.artifact-suffix }}
+        delete: true
+
     # After the specs, not before: generated organisations land in the same
     # stack the specs assert against. withLinking is the widest variant - it
     # covers createOrganisation, updateOrganisationData and the Defra ID link
@@ -313,14 +354,6 @@ runs:
       with:
         name: allure-report${{ inputs.artifact-suffix }}
         path: ./allure-report
-
-    - name: Upload visual snapshot results
-      if: always()
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: visual-results${{ inputs.artifact-suffix }}
-        path: ./test-results-visual
-        if-no-files-found: ignore
 
     - name: Upload docker compose logs
       if: always()
