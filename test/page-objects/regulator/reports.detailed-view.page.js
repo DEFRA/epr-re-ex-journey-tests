@@ -51,24 +51,6 @@ class ReportsDetailedViewPage extends Page {
   }
 
   /**
-   * @param {number} row
-   * @returns {import('@playwright/test').Locator}
-   */
-  actionLink(row) {
-    return this.page.locator(
-      `${REPORTS_TABLE} > tbody > tr:nth-child(${row}) td:last-child a`
-    )
-  }
-
-  /**
-   * Every link the table's Actions column offers, so a journey can count them.
-   * @returns {import('@playwright/test').Locator}
-   */
-  actionLinks() {
-    return this.page.locator(`${REPORTS_TABLE} > tbody > tr td:last-child a`)
-  }
-
-  /**
    * @returns {Promise<number>}
    */
   async changeControlCount() {

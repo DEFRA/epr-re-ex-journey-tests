@@ -7,7 +7,7 @@ import { PrnsDetailedViewPage } from 'page-objects/regulator/prns.detailed-view.
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { RegulatorOrganisationPage } from 'page-objects/regulator/organisation.page'
-import { ReportsDetailedViewPage } from 'page-objects/regulator/reports.detailed-view.page'
+import { ReportsPage } from 'page-objects/reports/reports.page'
 import { ReportViewPage } from 'page-objects/reports/report.view.page'
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page'
 import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page'
@@ -44,7 +44,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     const prnListPage = new PRNDashboardPage(page)
     const prnViewPage = new PRNViewPage(page)
     const prnsPage = new PrnsDetailedViewPage(page)
-    const reportsPage = new ReportsDetailedViewPage(page)
+    const reportsPage = new ReportsPage(page)
     const reportViewPage = new ReportViewPage(page)
     const ledgerPage = new WasteBalanceLedgerPage(page)
 
@@ -132,6 +132,10 @@ test.describe('A regulator looking up an operator @regulator', () => {
       ].sort()
     )
 
+    // No page a regulator reads links to the registration's reports list, so
+    // it is reached by the registration's address, kept here to come back to.
+    const registrationUrl = page.url()
+
     await detailsPage.actionLink(1).click()
     await accreditationPage.prnsDetailedViewLink().click()
 
@@ -192,25 +196,22 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     await expect(prnsPage.detailedView()).toBeVisible()
 
-    await prnsPage.crumbLink('Accreditation details').click()
-    await accreditationPage.reportsDetailedViewLink().click()
+    await page.goto(`${registrationUrl}/reports`)
 
-    await expect(reportsPage.detailedView()).toBeVisible()
+    expect(await reportsPage.headingText()).toContain('Reports')
 
     // The last completed period is the one the seed submitted, so it is the
-    // first row - and the link it keeps names that period, which says the
-    // list rendered the operator's own submission.
+    // only row the Submitted section holds - and the link it keeps names that
+    // period, which says the calendar rendered the operator's own submission.
     const { year } = seeded.reportPeriod
-    const reports = await reportsPage.reports()
-    expect(reports[0].get('Status')).toBe('Submitted')
-    await expect(reportsPage.actionLink(1)).toContainText('View')
+    await reportsPage.expectSubmittedActionLink(1, 'View')
 
     // Every remaining period still needs a report, so each row's action is a
     // write one. The rows are there and none of them is a link.
-    expect(reports.length).toBeGreaterThan(1)
-    await expect(reportsPage.actionLinks()).toHaveCount(1)
+    expect(await reportsPage.getActiveNumberOfRows()).toBeGreaterThan(0)
+    expect(await reportsPage.getActiveNumberOfActionLinks()).toBe(0)
 
-    await reportsPage.actionLink(1).click()
+    await reportsPage.selectSubmittedActionLink(1)
 
     // The submitted report's own heading names the period it covers, so it
     // says both that the report rendered and that it is the seeded one.
