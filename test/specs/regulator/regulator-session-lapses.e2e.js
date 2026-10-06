@@ -5,7 +5,6 @@ import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoggedOutPage } from 'page-objects/regulator/logged-out.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { ServiceNavigation } from 'page-objects/service-navigation.page'
-import config from '~/test/config/config.js'
 
 const REGULATOR_SERVICE =
   'Record reprocessed or exported packaging waste: regulators'
@@ -33,11 +32,10 @@ const expectRegulatorSignedOutPage = async (page) => {
   expect(await serviceNavigation.serviceName()).toBe(REGULATOR_SERVICE)
 
   // The operator's way back in is Defra ID, which a regulator cannot use, so
-  // the link has to land on the regulators' own sign-in.
+  // the link has to land on the regulators' own sign-in. The identity provider
+  // still remembers the regulator, so it signs them straight back in.
   await loggedOutPage.signInAgainLink().click()
-  if (!config.usesRealEntra) {
-    await expect(new RegulatorLoginPage(page).usernameInput()).toBeVisible()
-  }
+  await expect(page.locator('main h1')).toHaveText('All organisations')
 }
 
 test.describe('A regulator whose session lapses @regulator', () => {
