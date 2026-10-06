@@ -1,0 +1,22 @@
+- banner:
+  - link "GOV.UK":
+    - /url: https://www.gov.uk/
+    - img "GOV.UK"
+  - region "Service information":
+    - 'link "Record reprocessed or exported packaging waste: regulators"':
+      - /url: /regulators/home
+    - navigation "Menu":
+      - list:
+        - listitem:
+          - link "Home":
+            - /url: /regulators/home
+            - strong: Home
+        - listitem:
+          - link "Sign out":
+            - /url: /logout
+  - paragraph:
+    - strong: Beta
+    - text: This is a new service. Help us improve it and
+    - link "give your feedback by email":
+      - /url: mailto:eprcustomerservice@defra.gov.uk
+    - text: .
