@@ -121,8 +121,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
     // the design offers a regulator none of them from this page.
     //
     // What it does offer is the accreditation and a year per registered-only
-    // period. The years are not id-normalised, so they arrive literally, and
-    // the set is sorted.
+    // period, compared by the words each link carries and sorted.
     expect(await detailsPage.offeredLinks()).toEqual(
       [
         `View ${seeded.accreditationNumber}`,

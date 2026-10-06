@@ -270,10 +270,10 @@ test.describe('Issuing Packing Recycling Notes', () => {
     // either side of it.
     expect(await regulatorPrnViewPage.formCount()).toBe(0)
 
-    // The PRN dashboard is the other route to the same note, filed beneath
-    // the accreditation rather than reached from the ledger. It is where an
-    // operator manages their PRNs, and a regulator is given the same list
-    // with nothing on it to manage.
+    // The PRN list is the other route to the same note, reached here by the
+    // crumb on the note the ledger opened. It is where an operator manages
+    // their PRNs, and a regulator is given the same list with nothing on it
+    // to manage.
     await regulatorPrnViewPage.crumbLink('PRNs').click()
 
     await regulatorPrnDashboardPage.issuedTab().click()

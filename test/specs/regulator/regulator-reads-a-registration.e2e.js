@@ -138,9 +138,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     // The caption sits inside the h1, so the heading is matched rather than
     // anchored. The period it names is what a regulator opened the page for,
     // and it sits on its own line beneath the title.
-    expect(await accreditationPage.headingText()).toMatch(
-      /Accreditation\s+\d{1,2} [A-Z][a-z]+( \d{4})? to (Current|\d{1,2} [A-Z][a-z]+ \d{4})/
-    )
+    expect(await accreditationPage.headingText()).toMatch(ACCREDITATION_HEADING)
 
     const accreditationCaption = await accreditationPage.captionText()
     expect(accreditationCaption).toContain(seeded.companyName)
