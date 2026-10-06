@@ -9,7 +9,10 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { ingestSummaryLogFixture } from '../support/seeding/summary-logs.js'
+import {
+  ingestSummaryLogFixture,
+  registrationStartYear
+} from '../support/seeding/summary-logs.js'
 import {
   waitForSummaryLogStatus,
   waitForWasteBalance
@@ -28,6 +31,7 @@ test.describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput
   let orgId
   let registrationId
   let accreditationId
+  let year
   let authHeader
 
   test.beforeAll(async () => {
@@ -49,6 +53,7 @@ test.describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput
     orgId = org.refNo
     registrationId = migrated.registrationIds[0]
     accreditationId = migrated.accreditationIds[0]
+    year = registrationStartYear('2026-01-01')
   })
 
   test('fails in-sheet revalidation @summaryLogReprocessorOutputInvalid', async () => {
@@ -59,7 +64,8 @@ test.describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput
       {
         s3Key: 'reprocessor-output-invalid-key',
         filename: 'reprocessor-output-invalid.xlsx'
-      }
+      },
+      year
     )
     const responseData = await waitForSummaryLogStatus(
       baseAPI,
@@ -135,7 +141,8 @@ test.describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput
       {
         s3Key: 'reprocessor-output-valid-key',
         filename: 'reprocessor-output-valid.xlsx'
-      }
+      },
+      year
     )
     const firstData = await waitForSummaryLogStatus(
       first.baseAPI,
@@ -197,7 +204,8 @@ test.describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput
       {
         s3Key: 'reprocessor-output-adjustments-key',
         filename: 'reprocessor-output-adjustments.xlsx'
-      }
+      },
+      year
     )
     const secondData = await waitForSummaryLogStatus(
       second.baseAPI,

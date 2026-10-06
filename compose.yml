@@ -58,7 +58,7 @@ services:
       - '4566:4566'
 
   floci-init:
-    image: amazon/aws-cli:2.37.4@sha256:fdd8d1fcbea9c371678dee5a40df8b178c7a781b4586605756ee28114c97ead6
+    image: amazon/aws-cli:2.37.9@sha256:92de75724b6a746951f0e8b915d86bbccd7cb55aff96cd0cb4f7017272160780
     entrypoint: /bin/sh
     command: /setup/init.sh
     networks:
@@ -177,7 +177,7 @@ services:
   # Simulates Entra ID (Microsoft) sign-in: used for epr-backend's
   # service-to-service auth and for epr-re-ex-admin-frontend's browser login.
   entra-stub:
-    image: defradigital/epr-re-ex-entra-stub:0.125.0@sha256:62a9eadc2b9ad0cb79632c6280ca37ba26489011c15c2bddd5b9bab1637bbf5a
+    image: defradigital/epr-re-ex-entra-stub:0.131.0@sha256:5a1421ee28441277f0cb0d1e55fcca3f6cd3bb9514e0d3cc39c68b43851b69c9
     networks:
       - cdp-tenant
     ports:
@@ -257,6 +257,7 @@ services:
       FEATURE_FLAG_DEV_ENDPOINTS: true
       FEATURE_FLAG_PRN_ADMIN_CANCELLATION: true
       FEATURE_FLAG_REPORT_DATA_VALIDATION: true
+      FEATURE_FLAG_RESUBMISSION_FIGURE_GATE: true
       GOVUK_NOTIFY_API_KEY: fake-key-for-testing
       LOG_FORMAT: ecs
       MONGO_URI: mongodb://mongodb:27017/

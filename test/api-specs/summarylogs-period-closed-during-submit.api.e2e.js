@@ -10,7 +10,10 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { uploadAndValidateSummaryLog } from '../support/seeding/summary-logs.js'
+import {
+  registrationStartYear,
+  uploadAndValidateSummaryLog
+} from '../support/seeding/summary-logs.js'
 import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
 const YEAR = 2026
@@ -56,6 +59,7 @@ test.describe('Summary log submit blocked by period-closed-during-submit guard @
       registrationId,
       authHeader,
       FIXTURE_PATH,
+      registrationStartYear(),
       baseAPI
     )
 

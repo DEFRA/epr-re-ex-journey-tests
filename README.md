@@ -18,6 +18,7 @@ separate journey-test repos, one per app.
   - [Feature flags in journey tests](#feature-flags-in-journey-tests)
   - [Generating test organisation data](#generating-test-organisation-data)
   - [Generating summary-log spreadsheets](#generating-summary-log-spreadsheets)
+  - [Seeding organisations with an uploaded summary log](#seeding-organisations-with-an-uploaded-summary-log)
   - [Simulating a year of operator activity](#simulating-a-year-of-operator-activity)
   - [Debugging local tests](#debugging-local-tests)
 - [Production](#production)
@@ -315,6 +316,36 @@ FILENAME=./data/filename.xlsx ROW_OFFSET=10 ROWS=10 MATERIAL=AL REG_NUMBER=R25SR
 Generated files are written to `data/` (gitignored - transient output only;
 `resources/templates/` holds the committed source templates, not `data/`).
 
+### Seeding organisations with an uploaded summary log
+
+This only applies to local builds. Most of the suite submits summary logs
+through the backend's dev route, which takes the content as JSON and so leaves
+no workbook for the service to offer as a download. To explore a local stack
+by hand with summary logs that were uploaded as real workbooks through
+cdp-uploader, run:
+
+```bash
+GREP='@summaryLogScenarios' npm run test:localonly:grep
+```
+
+This seeds one approved organisation, with a linked Defra ID user and a
+submitted summary log, for each of: Registered Only Exporter, Registered Only
+Reprocessor, Accredited Exporter, Accredited Reprocessor on Input and
+Accredited Reprocessor on Output. Each scenario logs the email to sign in to
+`epr-frontend` with, alongside the organisation, registration and summary log
+ids and the path of the workbook it uploaded (under `data/`). Nothing is torn
+down afterwards, and running it again adds five more organisations.
+
+The sign-in email opens with the scenario's prefix - `regOnlyExp`,
+`regOnlyRep`, `accExp`, `accRepIn` or `accRepOut` - so the Defra ID stub's
+user list says which is which. The rows are drawn from fixed seeds, so each
+accredited scenario comes out with the same waste balance on every run (also
+logged); only the dates of the loads move, following today's date.
+
+A single scenario has a tag of its own, such as
+`@summaryLogScenarioReprocessorInput` - see
+`test/localonly/summary-log-scenarios.localonly.api.e2e.js`.
+
 ### Simulating a year of operator activity
 
 The two generators above make a handful of records to poke at. For a whole
@@ -357,11 +388,11 @@ afterwards:
 
 An environment stubs some identity providers and deploys others for real, and the combination differs between environments. `test/config/config.js` holds the default for each environment. Set a provider's mode variable to follow an environment that is wired differently, or that is rewired after the default was written:
 
-| Provider   | Mode variable     | Real by default in | Credentials it then needs                                                                                                                                        |
-| ---------- | ----------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Entra      | `ENTRA_MODE`      | `test`, `ext-test` | `AUTH_CLIENT_SECRET`, `AUTH_USERNAME`, `AUTH_PASSWORD`, `REGULATOR_USERNAME`, `REGULATOR_PASSWORD`, `UNRECOGNISED_ENTRA_USERNAME`, `UNRECOGNISED_ENTRA_PASSWORD` |
-| Basic auth | `BASIC_AUTH_MODE` | `test`             | `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD`                                                                                                                     |
-| Cognito    | `COGNITO_MODE`    | `test`             | `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`                                                                                                                     |
+| Provider   | Mode variable     | Real by default in | Credentials it then needs                                                                                                                                                       |
+| ---------- | ----------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entra      | `ENTRA_MODE`      | `test`, `ext-test` | `ENTRA_CLIENT_SECRET`, `ENTRA_USERNAME`, `ENTRA_PASSWORD`, `REGULATOR_ENTRA_USERNAME`, `REGULATOR_ENTRA_PASSWORD`, `UNRECOGNISED_ENTRA_USERNAME`, `UNRECOGNISED_ENTRA_PASSWORD` |
+| Basic auth | `BASIC_AUTH_MODE` | `test`             | `BASIC_AUTH_USERNAME`, `BASIC_AUTH_PASSWORD`                                                                                                                                    |
+| Cognito    | `COGNITO_MODE`    | `test`             | `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`                                                                                                                                    |
 
 Defra ID isn't in the table above - every spec except the ext-test-only operator smoketest signs in through the Defra ID stub regardless of environment (see the note in `test/config/config.js`). That one spec needs `DEFRA_ID_USERNAME`/`DEFRA_ID_PASSWORD` - a GOV.UK One Login account already linked to an organisation in ext-test.
 

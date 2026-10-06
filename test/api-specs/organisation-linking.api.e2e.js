@@ -4,6 +4,7 @@ import { AuthClient } from '../support/auth.js'
 import { BaseAPI } from '../apis/base-api.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import Users from '../support/users.js'
+import { registrationStartYear } from '../support/seeding/summary-logs.js'
 import {
   createAndRegisterDefraIdUser,
   linkDefraIdUser
@@ -155,7 +156,7 @@ test.describe('Organisation linking/unlinking negative paths @organisationLinkin
 
     const otherOrgId = '6507f1f77bcf86cd79943999'
     const response = await baseAPI.post(
-      `/v1/organisations/${otherOrgId}/registrations/${migrated.registrationIds[0]}/summary-logs`,
+      `/v1/organisations/${otherOrgId}/registrations/${migrated.registrationIds[0]}/summary-logs/${registrationStartYear()}`,
       JSON.stringify({ redirectUrl: 'test-redirect' }),
       defraIdStub.authHeader(user.userId)
     )
@@ -174,7 +175,7 @@ test.describe('Organisation linking/unlinking negative paths @organisationLinkin
       'anothertest123456@testuserz.com'
     )
     const response = await baseAPI.post(
-      `/v1/organisations/${org.refNo}/registrations/${migrated.registrationIds[0]}/summary-logs`,
+      `/v1/organisations/${org.refNo}/registrations/${migrated.registrationIds[0]}/summary-logs/${registrationStartYear()}`,
       JSON.stringify({ redirectUrl: 'test-redirect' }),
       defraIdStub.authHeader(unlinkedUser.userId)
     )

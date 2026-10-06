@@ -15,15 +15,15 @@ export class AuthClient {
       payload.append('client_id', config.auth.clientId)
       payload.append(
         'client_secret',
-        requireValue(config.auth.clientSecret, 'AUTH_CLIENT_SECRET')
+        requireValue(config.auth.clientSecret, 'ENTRA_CLIENT_SECRET')
       )
       payload.append(
         'username',
-        requireValue(config.auth.username, 'AUTH_USERNAME')
+        requireValue(config.auth.username, 'ENTRA_USERNAME')
       )
       payload.append(
         'password',
-        requireValue(config.auth.password, 'AUTH_PASSWORD')
+        requireValue(config.auth.password, 'ENTRA_PASSWORD')
       )
       payload.append('scope', config.auth.scope)
       payload.append('grant_type', config.auth.grantType)

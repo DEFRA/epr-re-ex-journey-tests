@@ -10,7 +10,10 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { uploadAndValidateSummaryLog } from '../support/seeding/summary-logs.js'
+import {
+  registrationStartYear,
+  uploadAndValidateSummaryLog
+} from '../support/seeding/summary-logs.js'
 import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
 
@@ -33,12 +36,14 @@ test.describe('Summary log staleness detection @summaryLogStaleness', () => {
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
     const authHeader = defraIdStub.authHeader(user.userId)
     const registrationId = migrated.registrationIds[0]
+    const year = registrationStartYear()
 
     const first = await uploadAndValidateSummaryLog(
       org.refNo,
       registrationId,
       authHeader,
       FIXTURE_PATH,
+      year,
       baseAPI
     )
     const second = await uploadAndValidateSummaryLog(
@@ -46,6 +51,7 @@ test.describe('Summary log staleness detection @summaryLogStaleness', () => {
       registrationId,
       authHeader,
       FIXTURE_PATH,
+      year,
       baseAPI
     )
 

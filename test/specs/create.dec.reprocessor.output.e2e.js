@@ -10,7 +10,10 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
+import {
+  registrationStartYear,
+  submitSummaryLogContent
+} from '../support/seeding/summary-logs.js'
 import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { externalAPICancelPrn } from '../support/seeding/prns.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
@@ -81,7 +84,8 @@ test.describe('Marking a PRN as December Waste (Reprocessor Output)', () => {
       organisationDetails.refNo,
       migrationResponse.registrationIds[0],
       defraIdStub.authHeader(user.userId),
-      summaryLogContent
+      summaryLogContent,
+      registrationStartYear()
     )
 
     await dashboardPage.selectTableLink(1, 1)
