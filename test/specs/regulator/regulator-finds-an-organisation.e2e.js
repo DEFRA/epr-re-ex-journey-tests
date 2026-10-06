@@ -290,8 +290,14 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     expect(undated).toStrictEqual([])
 
-    // The summary log offers its own file rather than a note.
+    // The summary log offers its own file rather than a note, and the file is
+    // what the regulator came for. The seed stores no workbook, so the records
+    // the service holds for the submission are the download that can be taken.
     expect(ledgerEvents[4].get('Actions')).toContain('Download')
+    const records = await ledgerPage.download(ledgerPage.csvDownloadLink())
+    expect(records.failure).toBeNull()
+    expect(records.byteLength).toBeGreaterThan(0)
+    expect(records.filename).toMatch(/\.csv$/)
 
     // Reading a movement and then reading the note behind it is the journey
     // this page exists for. The rejection is the newest movement, so its row

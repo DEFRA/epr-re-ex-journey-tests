@@ -74,6 +74,10 @@ class ReportsPage extends Page {
     return this.heading().innerText()
   }
 
+  captionText() {
+    return this.heading().locator('.govuk-caption-l').innerText()
+  }
+
   async selectActiveActionLink(rowIndex) {
     await selectActionLink(this.page, rowIndex, this.#activeTableXPath)
   }

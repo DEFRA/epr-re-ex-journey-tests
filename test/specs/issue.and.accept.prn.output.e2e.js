@@ -258,6 +258,13 @@ test.describe('Issuing Packing Recycling Notes', () => {
     await expect(ledgerPage.viewNoteLinks(prnDetails.prnNumber)).toHaveCount(3)
     expect(ledgerEvents[3].get('Actions')).toContain('Download')
 
+    // The seed stores no workbook, so the records the service holds for the
+    // submission are the download that can be taken.
+    const records = await ledgerPage.download(ledgerPage.csvDownloadLink())
+    expect(records.failure).toBeNull()
+    expect(records.byteLength).toBeGreaterThan(0)
+    expect(records.filename).toMatch(/\.csv$/)
+
     // Reading a movement and then reading the note behind it is what the
     // ledger is for. The acceptance is the newest movement, so its row is the
     // first.

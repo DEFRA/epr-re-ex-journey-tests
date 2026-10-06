@@ -11,8 +11,12 @@ class RegulatorLoginPage extends Page {
     return super.open('/regulators/login')
   }
 
+  usernameInput() {
+    return this.page.locator('#username')
+  }
+
   async enterCredentials(username, password) {
-    await this.page.locator('#username').fill(username)
+    await this.usernameInput().fill(username)
     await this.page.locator('#password').fill(password)
   }
 
@@ -55,12 +59,6 @@ class RegulatorLoginPage extends Page {
       await this.enterCredentials(username, password)
       await this.submitCredentials()
     }
-  }
-
-  // Used after sign-out to confirm we're actually looking at the sign-in
-  // form again, rather than just having navigated somewhere unauthenticated.
-  isDisplayed() {
-    return this.page.locator('#username').isVisible()
   }
 }
 

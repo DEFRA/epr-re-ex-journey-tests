@@ -132,7 +132,11 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
       true
     )
     await uploadSummaryLogPage.goToReportsButton().click()
-    expect(await new ReportsPage(page).headingText()).toContain('Reports')
+    // The caption names the material of the one registration this operator
+    // holds, so it is that registration's reports and not just a reports page.
+    const reportsPage = new ReportsPage(page)
+    expect(await reportsPage.headingText()).toContain('Reports')
+    expect(await reportsPage.captionText()).toBe('Paper and board')
 
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
