@@ -201,6 +201,10 @@ export async function createLinkedOrganisation(dataRows) {
 // write it down.
 export const SEEDED_VALID_FROM = `${currentYear()}-01-01`
 
+// The day before SEEDED_VALID_FROM, when a seeded registration and
+// accreditation were applied for.
+export const SEEDED_CREATED_ON = `${currentYear() - 1}-12-31`
+
 // Migration lands a moment after the migrate call returns, so the first read
 // of a freshly migrated organisation can miss it.
 async function readOrganisationOnceMigrated(baseAPI, authHeader, orgId) {
@@ -388,7 +392,7 @@ export async function updateMigratedOrganisation(
       if (entry.status === 'created') {
         return {
           ...entry,
-          updatedAt: '2025-12-31'
+          updatedAt: SEEDED_CREATED_ON
         }
       }
       return entry
@@ -439,7 +443,7 @@ export async function updateMigratedOrganisation(
         if (entry.status === 'created') {
           return {
             ...entry,
-            updatedAt: '2025-12-31'
+            updatedAt: SEEDED_CREATED_ON
           }
         }
         return entry

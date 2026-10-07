@@ -57,5 +57,12 @@ describe('the current year', () => {
         `${year}-01-01`
       )
     })
+
+    it(`should apply seeded organisations on 31 december ${Number(year) - 1} at ${instant}`, () => {
+      assert.equal(
+        exportedAt(instant, 'seeding/organisation.js', 'SEEDED_CREATED_ON'),
+        `${Number(year) - 1}-12-31`
+      )
+    })
   }
 })

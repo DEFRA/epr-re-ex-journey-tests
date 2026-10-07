@@ -13,7 +13,10 @@ import {
 } from '../response-assertions.js'
 import { generateRegNumber, generateAccNumber } from '../reg-acc-number.js'
 import { currentYear } from '../date.js'
-import { SEEDED_VALID_FROM } from '../seeding/organisation.js'
+import {
+  SEEDED_CREATED_ON,
+  SEEDED_VALID_FROM
+} from '../seeding/organisation.js'
 import { fakerEN_GB } from '@faker-js/faker'
 
 setGlobalDispatcher(config.undiciAgent)
@@ -312,7 +315,7 @@ export async function updateOrganisationData(
       if (entry.status === 'created') {
         return {
           ...entry,
-          updatedAt: '2025-12-31'
+          updatedAt: SEEDED_CREATED_ON
         }
       }
       return entry
@@ -344,7 +347,7 @@ export async function updateOrganisationData(
         if (entry.status === 'created') {
           return {
             ...entry,
-            updatedAt: '2025-12-31'
+            updatedAt: SEEDED_CREATED_ON
           }
         }
         return entry
