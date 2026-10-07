@@ -21,18 +21,20 @@ import {
 } from '../support/checks.js'
 import {
   createLinkedOrganisation,
-  lastCompletedPeriod,
   reportsLandingHasNoClosedPeriod,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { seedSubmittedReport } from '../support/seeding/reports.js'
 import { summaryLogDatedAt } from '../support/seeding/summary-logs.js'
+import { currentYear } from '../support/date.js'
 import {
   registerAndLinkDefraIdUser,
   loginViaHomePage
 } from '../support/login-helper.js'
 
-const CLOSED_QUARTER = lastCompletedPeriod('quarterly')
+// Quarter 1, so the restated period heads Action required: any later closed
+// quarter has no report and sits below it as Overdue.
+const YEAR = currentYear()
 
 test.describe('Reports - requires resubmission @requiresResubmission', () => {
   test.skip(
@@ -90,14 +92,14 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
 
     const regId = migrationResponse.registrationIds[0]
 
-    // Precondition: a submitted report for the last closed quarter.
+    // Precondition: a submitted report for Quarter 1.
     await seedSubmittedReport(
       organisationDetails.refNo,
       regId,
       user.userId,
-      CLOSED_QUARTER.year,
+      YEAR,
       'quarterly',
-      CLOSED_QUARTER.period,
+      1,
       1,
       { tonnageRecycled: 100, tonnageNotRecycled: 0 }
     )
@@ -107,20 +109,13 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
 
-    // Upload a summary log that restates the closed quarter, and confirm it. On
+    // Upload a summary log that restates Quarter 1, and confirm it. On
     // submit the backend flags that period's report for resubmission. Dated the
     // 1st, because the month-received column accepts nothing else.
     await uploadSummaryLogPage.uploadFile(
       await summaryLogDatedAt(
         'resources/reprocessor-output-regonly-cma.xlsx',
-        new Date(
-          Date.UTC(
-            CLOSED_QUARTER.year,
-            (CLOSED_QUARTER.period - 1) * 3 + 1,
-            1,
-            12
-          )
-        )
+        new Date(Date.UTC(YEAR, 1, 1, 12))
       )
     )
     await uploadSummaryLogPage.continue()
@@ -247,11 +242,11 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     // The period is gone from Action required: the purple "Requires
     // resubmission" status no longer appears anywhere on the landing page, and
     // the erstwhile "Ready to submit" draft does not linger in the Action
-    // required table (the restated quarter must not reappear there).
+    // required table (the restated Quarter 1 period must not reappear there).
     await checkBodyTextDoesNotInclude(page, 'Requires resubmission', 10)
     const activeTableText = await reportsPage.activeTableText()
     expect(activeTableText).not.toContain('Ready to submit')
-    expect(activeTableText).not.toContain(`Quarter ${CLOSED_QUARTER.period}`)
+    expect(activeTableText).not.toContain('Quarter 1')
 
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
