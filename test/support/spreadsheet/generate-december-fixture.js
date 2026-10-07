@@ -83,8 +83,8 @@ function capSentOnTonnage(workbook, firstRow, decemberRows, nonDecemberRows) {
 
 // generateExportedRow randomises these Yes/No; classifyForWasteBalance
 // (received-loads-for-export.js) excludes the row from the waste balance
-// whenever any one of them lands on 'Yes', so the December-dated rows must
-// pin all three to 'No' or they can silently accrue zero.
+// whenever any one of them lands on 'Yes', so every row pins them to 'No' or
+// either pool can silently accrue zero.
 const NO_EXCLUSION_COLUMNS = {
   exporter: {
     J: 'No', // WERE_PRN_OR_PERN_ISSUED_ON_THIS_WASTE
@@ -137,13 +137,14 @@ export async function generateDecemberFixture(options, accreditationYear) {
   const noExclusionColumns = NO_EXCLUSION_COLUMNS[options.wasteProcessingType]
 
   for (let i = 0; i < DECEMBER_ROWS; i++) {
-    const row = FIRST_ROW + i
-    const cell = sheet.getCell(`${column}${row}`)
+    const cell = sheet.getCell(`${column}${FIRST_ROW + i}`)
     cell.value = new Date(accreditationYear, 11, 15, 12, 0, 0)
     cell.numFmt = 'dd/mm/yyyy'
+  }
 
+  for (let i = 0; i < DECEMBER_ROWS + NON_DECEMBER_ROWS; i++) {
     for (const [exclusionColumn, value] of Object.entries(noExclusionColumns)) {
-      sheet.getCell(`${exclusionColumn}${row}`).value = value
+      sheet.getCell(`${exclusionColumn}${FIRST_ROW + i}`).value = value
     }
   }
 
