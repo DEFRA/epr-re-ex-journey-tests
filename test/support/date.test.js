@@ -1,43 +1,24 @@
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { after, describe, it } from 'node:test'
+import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
-const here = dirname(fileURLToPath(import.meta.url))
-const preload = join(here, 'simulator', 'clock', 'fake-clock.cjs')
-const scratch = mkdtempSync(join(tmpdir(), 'date-'))
-const clockFile = join(scratch, 'clock.txt')
+import { evaluateUnderClock } from './simulator/clock/under-clock.js'
 
-after(() => rmSync(scratch, { recursive: true, force: true }))
+const here = dirname(fileURLToPath(import.meta.url))
 
 /**
  * @param {string} instant
  * @param {string} module
  * @param {string} name
  */
-const exportedAt = (instant, module, name) => {
-  writeFileSync(clockFile, instant)
-  return execFileSync(
-    process.execPath,
-    [
-      '--require',
-      preload,
-      '--input-type=module',
-      '-e',
-      `const m = await import('${join(here, module)}')
-       const value = m['${name}']
-       console.log(typeof value === 'function' ? value() : value)`
-    ],
-    {
-      env: { ...process.env, FAKE_CLOCK_FILE: clockFile },
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe']
-    }
-  ).trim()
-}
+const exportedAt = (instant, module, name) =>
+  evaluateUnderClock(
+    instant,
+    `const m = await import('${join(here, module)}')
+     const value = m['${name}']
+     console.log(typeof value === 'function' ? value() : value)`
+  )
 
 const instants = [
   { instant: '2026-06-15T12:00:00Z', year: '2026' },
