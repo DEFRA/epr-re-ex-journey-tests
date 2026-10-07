@@ -19,7 +19,7 @@ const validFromAt = (instant, cadence) =>
   )
 
 describe('a valid-from date with a closed reporting period', () => {
-  for (const { instant, cadence, expected } of [
+  for (const { instant, cadence, expected } of /** @type {const} */ ([
     {
       instant: '2027-01-15T10:00:00Z',
       cadence: 'monthly',
@@ -45,7 +45,7 @@ describe('a valid-from date with a closed reporting period', () => {
       cadence: 'quarterly',
       expected: '2027-01-01'
     }
-  ]) {
+  ])) {
     it(`should be ${expected} for ${cadence} reporting at ${instant}`, () => {
       assert.equal(validFromAt(instant, cadence), expected)
     })

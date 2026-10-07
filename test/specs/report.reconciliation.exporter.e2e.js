@@ -7,7 +7,8 @@ import {
   seedOverseasSites,
   createLinkedOrganisation,
   lastCompletedPeriod,
-  updateMigratedOrganisation
+  updateMigratedOrganisation,
+  validFromWithClosedPeriod
 } from '../support/seeding/organisation.js'
 import {
   registrationStartYear,
@@ -39,10 +40,9 @@ import { createLinkAndLogin } from '../support/login-helper.js'
 const EXPECTED_RECONCILED_TONNAGE = 8.03
 const CADENCE = 'monthly'
 
-// The loads are re-dated into the last completed month, which in January
-// belongs to last year, so the accreditation starts in that month's year.
+// The loads are re-dated into the last completed month.
 const { year: YEAR, period: PERIOD } = lastCompletedPeriod(CADENCE)
-const VALID_FROM = `${YEAR}-01-01`
+const VALID_FROM = validFromWithClosedPeriod(CADENCE)
 
 test.describe('Report tonnage reconciles with the waste balance — exporter @reconciliation', () => {
   const regNumber = 'R26EX5000000002PA'
