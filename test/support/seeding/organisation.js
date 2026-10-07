@@ -32,6 +32,16 @@ export function lastCompletedPeriod(cadence) {
     : { year, period: currentQuarter - 1 }
 }
 
+/**
+ * A validFrom for specs that report on a closed period. SEEDED_VALID_FROM
+ * starts this calendar year, which has no closed month in January and no
+ * closed quarter until April, so those specs start the year before then.
+ *
+ * @param {'monthly' | 'quarterly'} cadence
+ */
+export const validFromWithClosedPeriod = (cadence) =>
+  `${lastCompletedPeriod(cadence).year}-01-01`
+
 // Filler regNumber/accNumber for specs that need updateMigratedOrganisation
 // to approve a registration but never assert the number's actual value.
 export const FAKE_REGISTRATION_NUMBER = 'FAKE/REG123/TEST'
