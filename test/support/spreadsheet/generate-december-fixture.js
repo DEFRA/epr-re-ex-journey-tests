@@ -1,9 +1,5 @@
 import ExcelJS from 'exceljs'
-import { fileURLToPath } from 'url'
-import pino from 'pino'
 import { generateSpreadsheetData } from './summarylogs-spreadsheet-data-generator.js'
-
-const logger = pino({})
 
 // The December-accruing column per processing type, matching epr-backend's
 // contributionFor (credited-tonnage.js): the exporter's EXPORTER_RECEIVED_FIELDS
@@ -109,8 +105,7 @@ const FIRST_ROW = 4
  * accreditation year, and on the rest to a fixed January date of it. A random
  * recent date would land in December whenever the run does.
  *
- * @param {object} options - forwarded to generateSpreadsheetData
- * @param {'exporter' | 'reprocessorInput'} options.wasteProcessingType
+ * @param {Parameters<typeof generateSpreadsheetData>[0] & { wasteProcessingType: 'exporter' | 'reprocessorInput' }} options - forwarded to generateSpreadsheetData
  * @param {number} accreditationYear - the year whose December the fixture's
  *   December-dated rows must fall in (the accreditation's validFrom year)
  * @returns {Promise<string>} the generated file path
@@ -156,58 +151,4 @@ export async function generateDecemberFixture(options, accreditationYear) {
   await workbook.xlsx.writeFile(filename)
 
   return filename
-}
-
-// The three static resources/sanity/*DEC*.xlsx / *ST*.xlsx fixtures below
-// were produced by this CLI once and committed - the specs read them by
-// fixed filename rather than regenerating on every run. Re-run this when
-// SEEDED_VALID_FROM (support/seeding/organisation.js) moves to a new year,
-// passing that year so the December-dated rows keep landing in-window, then
-// move the output files from data/ into resources/sanity/.
-/** @type {Array<{ wasteProcessingType: 'exporter' | 'reprocessorInput', materialSuffix: string, accNumber: string, regNumber: string }>} */
-const DECEMBER_FIXTURES = [
-  {
-    wasteProcessingType: 'exporter',
-    materialSuffix: 'WO',
-    accNumber: 'A26EX5000000002DEC',
-    regNumber: 'R26EX5000000002DEC'
-  },
-  {
-    wasteProcessingType: 'reprocessorInput',
-    materialSuffix: 'PA',
-    accNumber: 'A26ER5000000000DEC',
-    regNumber: 'R26ER5000000000DEC'
-  }
-]
-
-// The output reprocessor never accrues a December portion (PAE-1920 -
-// PROCESSED rows are absent from DECEMBER_ACCRUING_RECORD_TYPES), so this one
-// needs no December date/exclusion patching - a plain generated fixture, row
-// dates relative to whenever it's (re)generated.
-/** @type {{ wasteProcessingType: 'reprocessorOutput', materialSuffix: string, accNumber: string, regNumber: string }} */
-const OUTPUT_FIXTURE = {
-  wasteProcessingType: 'reprocessorOutput',
-  materialSuffix: 'ST',
-  accNumber: 'A26ER5000000001ST',
-  regNumber: 'R26ER5000000001ST'
-}
-
-async function generateFixturesCli() {
-  const yearArg = process.argv.slice(2).find((arg) => arg.startsWith('--year='))
-  const accreditationYear = yearArg
-    ? Number(yearArg.split('=')[1])
-    : new Date().getFullYear()
-
-  for (const options of DECEMBER_FIXTURES) {
-    // eslint-disable-next-line no-await-in-loop
-    const filename = await generateDecemberFixture(options, accreditationYear)
-    logger.info(`${options.wasteProcessingType} fixture:`, filename)
-  }
-
-  const outputFilename = await generateSpreadsheetData(OUTPUT_FIXTURE)
-  logger.info(`${OUTPUT_FIXTURE.wasteProcessingType} fixture:`, outputFilename)
-}
-
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  generateFixturesCli().catch(() => process.exit(1))
 }

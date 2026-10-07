@@ -10,7 +10,7 @@ const ACCREDITATION_YEAR = 2027
 const LOAD_ROWS = [4, 5, 6, 7, 8, 9, 10, 11]
 const NON_DECEMBER_ROWS = [8, 9, 10, 11]
 
-const cases = [
+const cases = /** @type {const} */ ([
   {
     wasteProcessingType: 'exporter',
     materialSuffix: 'WO',
@@ -25,7 +25,7 @@ const cases = [
     dateColumn: 'G',
     exclusionColumns: ['J']
   }
-]
+])
 
 describe('the december fixture', () => {
   for (const {
