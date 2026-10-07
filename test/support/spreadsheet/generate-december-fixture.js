@@ -106,8 +106,8 @@ const FIRST_ROW = 4
  * the pool it selects. Generates the usual randomised rows via
  * generateSpreadsheetData, then overwrites the December-critical date column
  * on the first DECEMBER_ROWS rows to a fixed December date of the
- * accreditation year - the remaining rows stay on their random (non-December)
- * date, giving the non-December pool a distinct, non-trivial balance.
+ * accreditation year, and on the rest to a fixed January date of it. A random
+ * recent date would land in December whenever the run does.
  *
  * @param {object} options - forwarded to generateSpreadsheetData
  * @param {'exporter' | 'reprocessorInput'} options.wasteProcessingType
@@ -136,9 +136,10 @@ export async function generateDecemberFixture(options, accreditationYear) {
 
   const noExclusionColumns = NO_EXCLUSION_COLUMNS[options.wasteProcessingType]
 
-  for (let i = 0; i < DECEMBER_ROWS; i++) {
+  for (let i = 0; i < DECEMBER_ROWS + NON_DECEMBER_ROWS; i++) {
+    const month = i < DECEMBER_ROWS ? 11 : 0
     const cell = sheet.getCell(`${column}${FIRST_ROW + i}`)
-    cell.value = new Date(accreditationYear, 11, 15, 12, 0, 0)
+    cell.value = new Date(accreditationYear, month, 15, 12, 0, 0)
     cell.numFmt = 'dd/mm/yyyy'
   }
 
