@@ -456,7 +456,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await unsubmitReport(
         setupResponse.organisationDetails.refNo,
         setupResponse.migrationResponse.registrationIds[0],
-        2026,
+        registrationStartYear(),
         'monthly',
         1,
         1
@@ -507,14 +507,14 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
 
       // Try to access prn-summary directly — should get 404
       await page.goto(
-        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/2026/monthly/1/submissions/1/prn-summary`
+        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/${registrationStartYear()}/monthly/1/submissions/1/prn-summary`
       )
       await checkBodyText(page, '404', 10)
       await checkBodyText(page, 'Page not found', 10)
 
       // Try to access free-prns directly — should get 404
       await page.goto(
-        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/2026/monthly/1/submissions/1/free-prns`
+        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/${registrationStartYear()}/monthly/1/submissions/1/free-prns`
       )
       await checkBodyText(page, '404', 10)
       await checkBodyText(page, 'Page not found', 10)
