@@ -1,3 +1,5 @@
+import { currentYear } from './date.js'
+
 // Registration/accreditation number format:
 // [1]     R=registration, A=accreditation
 // [2-3]   relevant year
@@ -12,9 +14,7 @@ const DEFAULT_ORG_ID = '500000'
 const DEFAULT_SERIAL = '0001'
 const DEFAULT_NATION = 'E'
 
-function currentYear() {
-  return new Date().getFullYear().toString().slice(-2)
-}
+const twoDigitYear = () => String(currentYear()).slice(-2)
 
 const PROCESSING_TYPE_LETTERS = {
   exporter: 'X',
@@ -43,7 +43,7 @@ function buildNumber(
     nation = DEFAULT_NATION,
     orgId = DEFAULT_ORG_ID,
     serial = DEFAULT_SERIAL,
-    year = currentYear()
+    year = twoDigitYear()
   }
 ) {
   return `${typeChar}${year}${nation}${processingTypeChar(wasteProcessingType)}${orgId}${serial}${materialSuffix}`
