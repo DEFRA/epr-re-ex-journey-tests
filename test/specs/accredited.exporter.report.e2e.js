@@ -10,8 +10,9 @@ import { ReportSupportingInformationPage } from 'page-objects/reports/report.sup
 import { ReportCheckAnswersPage } from 'page-objects/reports/report.check.answers.page.js'
 import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.page.js'
 import {
-  seedOverseasSites,
   createLinkedOrganisation,
+  reportsLandingHasNoClosedPeriod,
+  seedOverseasSites,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { unsubmitReport } from '../support/seeding/reports.js'
@@ -40,6 +41,11 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
   // test by default, so this uses the documented "share a single page
   // across a serial group" pattern instead of the per-test `page` fixture.
   test.describe.serial('accredited exporter with upload', () => {
+    test.skip(
+      reportsLandingHasNoClosedPeriod('monthly'),
+      'the reports landing has no closed month yet this year'
+    )
+
     let page
     let organisationDetails
     let migrationResponse

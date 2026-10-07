@@ -11,6 +11,7 @@ import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.p
 import { MonthlyReportDraftDeclarationPage } from 'page-objects/reports/monthly.report.draft.declaration.page.js'
 import {
   createLinkedOrganisation,
+  reportsLandingHasNoClosedPeriod,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { unsubmitReport } from '../support/seeding/reports.js'
@@ -109,6 +110,11 @@ async function setupRegisteredOnlyReprocessor(page) {
 }
 
 test.describe('Registered-only reprocessor report flow @registeredOnlyReprocessor', () => {
+  test.skip(
+    reportsLandingHasNoClosedPeriod('quarterly'),
+    'the reports landing has no closed quarter yet this year'
+  )
+
   // These 3 tests share one continuous login session/report, the same
   // pattern used in accredited.reprocessor.report.e2e.js - serial mode + a
   // manually-created page shares setup instead of re-paying org creation,

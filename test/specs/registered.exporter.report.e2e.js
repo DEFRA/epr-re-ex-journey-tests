@@ -11,8 +11,9 @@ import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.page.js'
 import { TonnesNotExportedPage } from '../page-objects/reports/tonnes.not.exported.page.js'
 import {
-  seedOverseasSites,
   createLinkedOrganisation,
+  reportsLandingHasNoClosedPeriod,
+  seedOverseasSites,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { unsubmitReport } from '../support/seeding/reports.js'
@@ -87,6 +88,11 @@ async function setupRegisteredOnlyExporter(page) {
 }
 
 test.describe('Registered-only exporter report flow @registeredOnlyExporter', () => {
+  test.skip(
+    reportsLandingHasNoClosedPeriod('quarterly'),
+    'the reports landing has no closed quarter yet this year'
+  )
+
   // These 3 tests share one continuous login session/report, the same
   // pattern used in accredited.reprocessor.report.e2e.js - serial mode + a
   // manually-created page shares setup instead of re-paying org creation,

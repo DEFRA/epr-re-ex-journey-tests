@@ -11,6 +11,7 @@ import { ReportCheckAnswersPage } from 'page-objects/reports/report.check.answer
 import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.page.js'
 import {
   createLinkedOrganisation,
+  reportsLandingHasNoClosedPeriod,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { unsubmitReport } from '../support/seeding/reports.js'
@@ -94,6 +95,11 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
   // mode + a manually-created page (rather than the per-test `page` fixture)
   // is Playwright's equivalent of that shared-session pattern.
   test.describe.serial('accredited reprocessor with upload', () => {
+    test.skip(
+      reportsLandingHasNoClosedPeriod('monthly'),
+      'the reports landing has no closed month yet this year'
+    )
+
     /** @type {import('@playwright/test').Page} */
     let page
     let setupResponse
