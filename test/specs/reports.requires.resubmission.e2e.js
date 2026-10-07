@@ -108,7 +108,8 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     await wasteRecordsPage.submitSummaryLogLink().click()
 
     // Upload a summary log that restates the closed quarter, and confirm it. On
-    // submit the backend flags that period's report for resubmission.
+    // submit the backend flags that period's report for resubmission. Dated the
+    // 1st, because the month-received column accepts nothing else.
     await uploadSummaryLogPage.uploadFile(
       await summaryLogDatedAt(
         'resources/reprocessor-output-regonly-cma.xlsx',
@@ -116,7 +117,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
           Date.UTC(
             CLOSED_QUARTER.year,
             (CLOSED_QUARTER.period - 1) * 3 + 1,
-            15,
+            1,
             12
           )
         )
