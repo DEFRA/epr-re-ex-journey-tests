@@ -51,3 +51,27 @@ describe('a valid-from date with a closed reporting period', () => {
     })
   }
 })
+
+/**
+ * @param {string} instant
+ * @param {'monthly' | 'quarterly'} cadence
+ */
+const landingHasNoClosedPeriodAt = (instant, cadence) =>
+  evaluateUnderClock(
+    instant,
+    `const { reportsLandingHasNoClosedPeriod } = await import('${module}')
+     console.log(reportsLandingHasNoClosedPeriod('${cadence}'))`
+  )
+
+describe('the reports landing having no closed period', () => {
+  for (const { instant, cadence, expected } of /** @type {const} */ ([
+    { instant: '2027-01-15T10:00:00Z', cadence: 'monthly', expected: 'true' },
+    { instant: '2027-02-15T10:00:00Z', cadence: 'monthly', expected: 'false' },
+    { instant: '2027-03-31T10:00:00Z', cadence: 'quarterly', expected: 'true' },
+    { instant: '2027-04-15T10:00:00Z', cadence: 'quarterly', expected: 'false' }
+  ])) {
+    it(`should be ${expected} for ${cadence} reporting at ${instant}`, () => {
+      assert.equal(landingHasNoClosedPeriodAt(instant, cadence), expected)
+    })
+  }
+})

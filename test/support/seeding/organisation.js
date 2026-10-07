@@ -42,6 +42,17 @@ export function lastCompletedPeriod(cadence) {
 export const validFromWithClosedPeriod = (cadence) =>
   `${lastCompletedPeriod(cadence).year}-01-01`
 
+/**
+ * Whether specs that report through the reports landing have nothing to report
+ * on yet. The landing lists this calendar year's periods only, until
+ * multi-year reporting (PAE-1690), so it has no closed month in January and
+ * no closed quarter until April.
+ *
+ * @param {'monthly' | 'quarterly'} cadence
+ */
+export const reportsLandingHasNoClosedPeriod = (cadence) =>
+  lastCompletedPeriod(cadence).year !== currentYear()
+
 // Filler regNumber/accNumber for specs that need updateMigratedOrganisation
 // to approve a registration but never assert the number's actual value.
 export const FAKE_REGISTRATION_NUMBER = 'FAKE/REG123/TEST'
