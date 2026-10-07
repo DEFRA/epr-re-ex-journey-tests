@@ -12,6 +12,8 @@ import {
   assertSuccessResponseWithoutBody
 } from '../response-assertions.js'
 import { generateRegNumber, generateAccNumber } from '../reg-acc-number.js'
+import { currentYear } from '../date.js'
+import { SEEDED_VALID_FROM } from '../seeding/organisation.js'
 import { fakerEN_GB } from '@faker-js/faker'
 
 setGlobalDispatcher(config.undiciAgent)
@@ -251,7 +253,7 @@ export async function updateOrganisationData(
     referenceNumber,
     registrationUpdates,
     emailPrefix,
-    validFrom = '2026-01-01'
+    validFrom = SEEDED_VALID_FROM
   }
 ) {
   const siteResponse = await context.baseAPI.post(
@@ -288,7 +290,6 @@ export async function updateOrganisationData(
   )
 
   const data = await getOrgResponse.body.json()
-  const currentYear = new Date().getFullYear()
 
   // Apply updates to registrations and accreditations
   registrationUpdates.forEach(({ index, updateData }) => {
@@ -324,7 +325,7 @@ export async function updateOrganisationData(
 
       data.accreditations[index].status = updateData.status
       data.accreditations[index].validFrom = validFrom
-      data.accreditations[index].validTo = `${currentYear + 1}-01-01`
+      data.accreditations[index].validTo = `${currentYear() + 1}-01-01`
       if (updateData.reprocessingType) {
         data.accreditations[index].reprocessingType =
           updateData.reprocessingType

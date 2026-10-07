@@ -5,6 +5,7 @@ import { expect } from 'chai'
 import { BaseAPI } from '../../apis/base-api.js'
 import { AuthClient } from '../auth.js'
 import { trackCreatedOrgId } from '../cleanup-tracker.js'
+import { currentYear } from '../date.js'
 import { MATERIALS } from '../materials.js'
 import { generateRegNumber, generateAccNumber } from '../reg-acc-number.js'
 import {
@@ -198,7 +199,7 @@ export async function createLinkedOrganisation(dataRows) {
 // because a registration has no end date, so what a page lists for it runs from
 // here to today - and a spec asserting that set has to derive it rather than
 // write it down.
-export const SEEDED_VALID_FROM = '2026-01-01'
+export const SEEDED_VALID_FROM = `${currentYear()}-01-01`
 
 // Migration lands a moment after the migrate call returns, so the first read
 // of a freshly migrated organisation can miss it.
@@ -364,7 +365,6 @@ export async function updateMigratedOrganisation(
     orgId
   )
 
-  const currentYear = new Date().getFullYear()
   let accreditationIndex = 0
 
   const accreditationIds = []
@@ -422,7 +422,7 @@ export async function updateMigratedOrganisation(
       data.registrations[i].accreditationId = data.accreditations[j].id
       data.accreditations[j].status = accStatus
       data.accreditations[j].validFrom = validFrom
-      data.accreditations[j].validTo = `${currentYear + 1}-01-01`
+      data.accreditations[j].validTo = `${currentYear() + 1}-01-01`
       data.accreditations[j].statusHistory =
         accStatus === 'created'
           ? data.accreditations[j].statusHistory || []
