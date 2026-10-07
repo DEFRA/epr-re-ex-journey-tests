@@ -14,7 +14,10 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { seedSubmittedReport } from '../support/seeding/reports.js'
-import { summaryLogWithCellChanged } from '../support/seeding/summary-logs.js'
+import {
+  summaryLogDatedAt,
+  summaryLogWithCellChanged
+} from '../support/seeding/summary-logs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 // The adjusted-loads accordion splits each balance-affecting load by the
@@ -323,11 +326,13 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
       migrationResponse.email
     )
 
+    const today = new Date()
+
     // Baseline: row 1001 is included and contributes 339.99t to the balance.
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
-      'resources/summary-log.xlsx'
+      await summaryLogDatedAt('resources/summary-log.xlsx', today)
     )
 
     // Re-upload with row 1001's PRN answer flipped to Yes, excluding it — an
@@ -335,7 +340,10 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
-      'resources/reprocessor-input-prn-issued.xlsx'
+      await summaryLogDatedAt(
+        'resources/reprocessor-input-prn-issued.xlsx',
+        today
+      )
     )
     await uploadSummaryLogPage.continue()
 
