@@ -7,16 +7,19 @@ const execAsync = promisify(exec)
 const logsLookBackInSeconds = 15
 const logLinesLimit = 200
 
+// Docker stamps its logs on real time, which a simulated clock does not move.
+const dockerNow = () => new Date(performance.timeOrigin + performance.now())
+
 export class DockerLogParser {
   constructor(containerName) {
     this.containerName = containerName
     this.processedLogs = new Map()
     this.processedAuditLogs = new Map()
-    this.testStartTime = new Date()
+    this.testStartTime = dockerNow()
   }
 
   async getLogs() {
-    const now = new Date()
+    const now = dockerNow()
     const currentTimestamp = new Date(
       now.getTime() - logsLookBackInSeconds * 1000
     )
