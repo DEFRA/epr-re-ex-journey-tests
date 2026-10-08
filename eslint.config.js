@@ -52,7 +52,8 @@ export default [
           ]
         }
       ],
-      curly: ['error', 'all']
+      curly: ['error', 'all'],
+      eqeqeq: ['error', 'always']
     }
   },
   {

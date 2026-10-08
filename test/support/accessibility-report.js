@@ -312,7 +312,7 @@ function renderPageSection(pageResult, pageIndex, totals) {
 // --- Lighthouse performance/SEO dashboard cards ---------------------------
 
 function scoreInfo(score0to1) {
-  if (score0to1 == null) {
+  if (score0to1 === null) {
     return { scoreText: '–', cls: 'score-bad' }
   }
   const score = Math.round(score0to1 * 100)
