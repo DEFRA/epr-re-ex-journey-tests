@@ -157,7 +157,9 @@ function liveOf(run, { organisationId, registrationId }) {
  */
 async function liveOperator(run, operator) {
   const existing = run.operators.get(operator.id)
-  if (existing) return existing
+  if (existing) {
+    return existing
+  }
 
   const org = await run.seeders.createLinkedOrganisation(
     operator.registrations.map(applicationRow)

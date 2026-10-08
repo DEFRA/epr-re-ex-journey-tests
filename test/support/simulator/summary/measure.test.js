@@ -78,7 +78,9 @@ function grantingSeeders() {
 
 const run = createRun({ population, rows, seeders: grantingSeeders() })
 for (const event of events) {
-  if (event.type === EVENT.REGISTRATION_APPROVED) await executeEvent(run, event)
+  if (event.type === EVENT.REGISTRATION_APPROVED) {
+    await executeEvent(run, event)
+  }
 }
 const live = [...run.operators.values()].flatMap((operator) => [
   ...operator.registrations.values()

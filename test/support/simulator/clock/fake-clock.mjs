@@ -22,7 +22,9 @@ let loading = true
 
 /** @param {string} message */
 const fail = (message) => {
-  if (loading) throw new Error(message)
+  if (loading) {
+    throw new Error(message)
+  }
   // Past load, a throw would surface from inside whichever Date.now() happened
   // to read it, and the process would carry on stamping the instant before the
   // one it cannot read. Leaving is the only way an operator sees this.
@@ -38,7 +40,9 @@ const readOffset = () => {
     // can straddle a jump and pair one instant with the other's mtime.
     fd = fs.openSync(clockFile, 'r')
   } catch (error) {
-    if (error.code !== 'ENOENT') throw error
+    if (error.code !== 'ENOENT') {
+      throw error
+    }
     offsetMs = 0
     lastMtimeMs = -1
     return
@@ -46,7 +50,9 @@ const readOffset = () => {
 
   try {
     const { mtimeMs } = fs.fstatSync(fd)
-    if (mtimeMs === lastMtimeMs) return
+    if (mtimeMs === lastMtimeMs) {
+      return
+    }
     const text = fs.readFileSync(fd, 'utf8').trim()
     if (!text) {
       lastMtimeMs = mtimeMs

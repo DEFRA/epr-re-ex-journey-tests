@@ -105,7 +105,9 @@ function monthlyTotals(registration, worksheet) {
   /** @type {Record<string, number>} */
   const totals = {}
   for (const row of registration.rows) {
-    if (row.worksheet !== worksheet) continue
+    if (row.worksheet !== worksheet) {
+      continue
+    }
     totals[row.period] = (totals[row.period] ?? 0) + Number(row.fields[cell])
   }
   return totals
@@ -215,7 +217,9 @@ describe('planSummaryLogRows', () => {
     for (const [worksheet, { monthlyTonnage: published }] of Object.entries(
       DEFAULT_CALIBRATION.activity.summaryLogSheets.exporter
     )) {
-      if (published === undefined) continue
+      if (published === undefined) {
+        continue
+      }
       const planned = monthlyTonnage(plan, 'exporter', worksheet)
       assert.ok(
         Math.abs(planned - published) < published * 0.01,
@@ -423,7 +427,9 @@ describe('a planned row that has to count', () => {
       const { accreditation } = plannedFor(
         registration.registrationId
       ).registration
-      if (!accreditation) continue
+      if (!accreditation) {
+        continue
+      }
       for (const row of registration.rows) {
         for (const [marker, value] of pinnedDates(row)) {
           const day = String(value).split('/').reverse().join('-')
@@ -500,7 +506,9 @@ describe('a planned row that has to count', () => {
 
   it('moves nothing where the service never classifies the worksheet', () => {
     for (const row of everyRow(plan)) {
-      if (row.contribution !== CONTRIBUTION.NONE) continue
+      if (row.contribution !== CONTRIBUTION.NONE) {
+        continue
+      }
       assert.equal(
         row.tonnage,
         0,
@@ -517,7 +525,9 @@ describe('a planned row that has to count', () => {
 
   it('names an overseas site whose approval covers the earliest export', () => {
     for (const registration of plan.registrations) {
-      if (registration.stream !== 'exporter') continue
+      if (registration.stream !== 'exporter') {
+        continue
+      }
       const earliest = registration.rows.map((row) => row.date).sort()[0]
       assert.ok(registration.overseasSite)
       assert.ok(registration.overseasSite.validFrom <= earliest)
@@ -541,7 +551,9 @@ describe('what the service holds of a row', () => {
 
   it('reports each tonnage as the service will hold it, not as the cell reads', () => {
     for (const row of everyRow(plan)) {
-      if (row.contribution === CONTRIBUTION.NONE) continue
+      if (row.contribution === CONTRIBUTION.NONE) {
+        continue
+      }
       const cell = Number(row.fields[TONNAGE_CELL[row.worksheet]])
       assert.equal(
         row.tonnage,
@@ -555,7 +567,9 @@ describe('what the service holds of a row', () => {
     const calibration = structuredClone(DEFAULT_CALIBRATION)
     for (const sheets of Object.values(calibration.activity.summaryLogSheets)) {
       for (const sheet of Object.values(sheets)) {
-        if (sheet.monthlyTonnage !== undefined) sheet.monthlyTonnage = 0
+        if (sheet.monthlyTonnage !== undefined) {
+          sheet.monthlyTonnage = 0
+        }
       }
     }
     const empty = planSummaryLogRows({

@@ -43,7 +43,9 @@ function formatDateTime(date) {
 }
 
 function encodeHtml(str) {
-  if (!str) return ''
+  if (!str) {
+    return ''
+  }
   return String(str)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -74,7 +76,9 @@ function axeViolationsToReportItems(violations) {
 
     let actions = ''
     const elementXPath = violation.nodes.map((node) => {
-      if (actions === '') actions = encodeHtml(node.failureSummary)
+      if (actions === '') {
+        actions = encodeHtml(node.failureSummary)
+      }
       return sanitizeSnippet(node.html)
     })
 
@@ -124,7 +128,9 @@ function lighthouseAuditsToReportItems(lhr) {
       let actions = ''
       const elementXPath = items.map((item) => {
         const node = item.node || {}
-        if (actions === '') actions = encodeHtml(node.explanation)
+        if (actions === '') {
+          actions = encodeHtml(node.explanation)
+        }
         return sanitizeSnippet(node.snippet)
       })
 
@@ -306,10 +312,16 @@ function renderPageSection(pageResult, pageIndex, totals) {
 // --- Lighthouse performance/SEO dashboard cards ---------------------------
 
 function scoreInfo(score0to1) {
-  if (score0to1 == null) return { scoreText: '–', cls: 'score-bad' }
+  if (score0to1 == null) {
+    return { scoreText: '–', cls: 'score-bad' }
+  }
   const score = Math.round(score0to1 * 100)
-  if (score >= 90) return { scoreText: String(score), cls: 'score-good' }
-  if (score >= 50) return { scoreText: String(score), cls: 'score-ok' }
+  if (score >= 90) {
+    return { scoreText: String(score), cls: 'score-good' }
+  }
+  if (score >= 50) {
+    return { scoreText: String(score), cls: 'score-ok' }
+  }
   return { scoreText: String(score), cls: 'score-bad' }
 }
 

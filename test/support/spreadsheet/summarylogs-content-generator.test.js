@@ -203,7 +203,9 @@ describe('summary log content generator', () => {
         cell.value && typeof cell.value === 'object' && 'result' in cell.value
           ? cell.value.result
           : cell.value
-      if (value instanceof Date) return value.toISOString().slice(0, 10)
+      if (value instanceof Date) {
+        return value.toISOString().slice(0, 10)
+      }
       return (typeof value === 'string' && value !== '') ||
         typeof value === 'number'
         ? value

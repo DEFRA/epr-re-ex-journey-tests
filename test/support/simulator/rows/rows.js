@@ -216,7 +216,9 @@ function reportingMonths(registration, year) {
   for (let month = 0; month < 12; month++) {
     const first = dayOf(year, month, 1)
     const last = lastDayOf(year, month)
-    if (last < opened || first > closed) continue
+    if (last < opened || first > closed) {
+      continue
+    }
     months.push({
       first: first < opened ? opened : first,
       last: last > closed ? closed : last
@@ -274,7 +276,9 @@ function reprocessorStreamShares(plans, calibration) {
     ])
   )
   for (const plan of plans) {
-    if (plan.stream in months) months[plan.stream] += plan.months.length
+    if (plan.stream in months) {
+      months[plan.stream] += plan.months.length
+    }
   }
   const estate = Object.values(months).reduce((sum, count) => sum + count, 0)
   return new Map(
@@ -319,14 +323,18 @@ function tonnagePerRow(plans, scale, calibration) {
     const share = shares.get(stream) ?? WHOLE_ESTATE
     const planned = sheetsOf(stream, calibration)
     for (const [worksheet, { monthlyTonnage }] of Object.entries(sheets)) {
-      if (monthlyTonnage === undefined) continue
+      if (monthlyTonnage === undefined) {
+        continue
+      }
       if (!planned[worksheet].load) {
         throw new Error(
           `Calibration gives ${stream} worksheet "${worksheet}" a monthlyTonnage, but no row on it carries a load`
         )
       }
       const rows = rowsBySheet.get(`${stream}/${worksheet}`)
-      if (!rows) continue
+      if (!rows) {
+        continue
+      }
       perRow.set(
         `${stream}/${worksheet}`,
         (monthlyTonnage * share * scale * 12) / rows
@@ -411,7 +419,9 @@ function planRegistration(plan, perRow, calibration, random, variation) {
     organisationId: registration.organisationId,
     stream
   }
-  if (months.length === 0) return { ...identity, overseasSite: null, rows: [] }
+  if (months.length === 0) {
+    return { ...identity, overseasSite: null, rows: [] }
+  }
 
   const window = {
     first: months[0].first,
@@ -594,7 +604,11 @@ const dayWithin = (month, random) =>
  * @returns {Date}
  */
 function clamp(date, month, window) {
-  if (date < month.first) return month.first
-  if (date > window.last) return window.last
+  if (date < month.first) {
+    return month.first
+  }
+  if (date > window.last) {
+    return window.last
+  }
   return date
 }

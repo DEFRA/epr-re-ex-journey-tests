@@ -60,9 +60,13 @@ async function main() {
     args: process.argv.slice(2),
     options: { dir: { type: 'string' } }
   })
-  if (!values.dir) throw new Error('--dir names the run directory to summarise')
+  if (!values.dir) {
+    throw new Error('--dir names the run directory to summarise')
+  }
   const settings = readSettings(values.dir)
-  if (!settings) throw new Error(`${values.dir} holds no run`)
+  if (!settings) {
+    throw new Error(`${values.dir} holds no run`)
+  }
   const calibration = loadCalibration()
   if (fingerprintOf(calibration) !== settings.calibration) {
     throw new Error(

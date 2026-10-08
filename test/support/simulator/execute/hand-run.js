@@ -103,7 +103,9 @@ function registeredOnlyFromJanuary() {
       (registration) =>
         approvedFromJanuary(registration) && registration.accreditation === null
     )
-    if (found) return withRows(found)
+    if (found) {
+      return withRows(found)
+    }
   }
   throw new Error(
     'The population holds no registered-only registration active from January'

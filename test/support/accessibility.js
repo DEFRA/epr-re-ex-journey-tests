@@ -175,7 +175,9 @@ export async function scanPageForAccessibilityViolations(
  * @param {ReturnType<typeof createAccessibilityCollector>} collector
  */
 export async function attachAccessibilityReport(collector) {
-  if (collector.pages.length === 0) return
+  if (collector.pages.length === 0) {
+    return
+  }
 
   const html = buildAccessibilityHtmlReport(collector)
 

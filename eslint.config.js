@@ -51,7 +51,8 @@ export default [
             '^page_referrer$'
           ]
         }
-      ]
+      ],
+      curly: ['error', 'all']
     }
   },
   {
