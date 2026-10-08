@@ -213,7 +213,7 @@ on against it.
 
 | Directory     | What it does                                                                                     |
 | ------------- | ------------------------------------------------------------------------------------------------ |
-| `clock/`      | The `--require` preload that replaces `Date`; `compose.clock.yml` at the root mounts it.         |
+| `clock/`      | The `--import` preload that replaces `Date`; `compose.clock.yml` at the root mounts it.          |
 | `population/` | Plans the operators, their registrations and accreditations, and each one's behaviour profile.   |
 | `rows/`       | Plans the summary log rows each registration will upload over the year.                          |
 | `calendar/`   | Plans when everything happens: a timestamped event list per operator.                            |

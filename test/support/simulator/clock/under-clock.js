@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const preload = join(dirname(fileURLToPath(import.meta.url)), 'fake-clock.cjs')
+const preload = join(dirname(fileURLToPath(import.meta.url)), 'fake-clock.mjs')
 
 /**
  * @param {string} instant
@@ -18,7 +18,7 @@ export const evaluateUnderClock = (instant, code) => {
   try {
     return execFileSync(
       process.execPath,
-      ['--require', preload, '--input-type=module', '-e', code],
+      ['--import', preload, '--input-type=module', '-e', code],
       {
         env: { ...process.env, FAKE_CLOCK_FILE: clockFile },
         encoding: 'utf8',
