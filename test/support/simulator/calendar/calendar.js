@@ -1171,8 +1171,9 @@ export function uploadRows({ registration, uploads }) {
   let submittedCutoff = null
   for (const earlierUpload of uploads) {
     const rendering = earlierUpload === upload
-    if (!rendering && earlierUpload.outcome !== UPLOAD_OUTCOME.SUBMITTED)
+    if (!rendering && earlierUpload.outcome !== UPLOAD_OUTCOME.SUBMITTED) {
       continue
+    }
 
     if (earlierUpload.amendments) {
       const { count, seed } = earlierUpload.amendments

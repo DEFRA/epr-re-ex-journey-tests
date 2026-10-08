@@ -56,10 +56,10 @@
     "generate:spreadsheet:output": "node test/support/spreadsheet/summarylogs-spreadsheet-data-generator.js --wasteProcessingType=reprocessorOutput",
     "generate:spreadsheet:regOnlyExporter": "node test/support/spreadsheet/summarylogs-spreadsheet-data-generator.js --wasteProcessingType=regOnlyExporter",
     "generate:spreadsheet:regOnlyReprocessor": "node test/support/spreadsheet/summarylogs-spreadsheet-data-generator.js --wasteProcessingType=regOnlyReprocessor",
-    "format": "prettier --write 'test/**/*.js' '**/*.{js,cjs,md,json,config.js}'",
-    "format:check": "prettier --check 'test/**/*.js' '**/*.{js,cjs,md,json,config.js}'",
-    "lint": "eslint . --ext .js,.cjs",
-    "lint:fix": "eslint . --ext .js,.cjs --fix",
+    "format": "prettier --write 'test/**/*.js' '**/*.{js,mjs,md,json,config.js}'",
+    "format:check": "prettier --check 'test/**/*.js' '**/*.{js,mjs,md,json,config.js}'",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "lint:types": "tsc -p jsconfig.typecheck.json",
     "postinstall": "npm run setup:husky",
     "setup:husky": "node -e \"try { (await import('husky')).default() } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e }\" --input-type module",
@@ -85,13 +85,13 @@
     "undici": "8.10.2"
   },
   "devDependencies": {
+    "@eslint/js": "9.39.5",
     "@types/express": "5.0.6",
-    "eslint": "8.57.1",
-    "eslint-config-prettier": "10.1.8",
-    "eslint-config-standard": "17.1.0",
-    "eslint-plugin-prettier": "5.5.6",
+    "eslint": "9.39.5",
+    "eslint-plugin-import-x": "4.17.1",
     "husky": "9.1.7",
     "lint-staged": "17.0.8",
+    "neostandard": "0.13.0",
     "prettier": "3.9.5",
     "typescript": "7.0.2"
   }
