@@ -104,9 +104,10 @@ async function generate({ source, out, dataSheet, tonnageKey, blankSheets }) {
   for (let r = FIRST_DATA_ROW; r <= ws.rowCount; r++) {
     const row = ws.getRow(r)
     const tonnage = at(row, tonCol)
+    // blank / non-load row
     if (typeof tonnage !== 'number') {
       continue
-    } // blank / non-load row
+    }
     const clean =
       isNo(at(row, interimCol)) &&
       isNo(at(row, refusedCol)) &&
