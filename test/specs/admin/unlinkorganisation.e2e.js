@@ -89,7 +89,9 @@ test.describe('Unlink organisation from Defra ID', () => {
     while (!card) {
       await systemLogsPage.searchFor(refNo)
       card = (await systemLogsPage.unlinkLogCard()) ?? false
-      if (card) break
+      if (card) {
+        break
+      }
       if (Date.now() > deadline) {
         throw new Error(`unlink system log did not appear for ${refNo}`)
       }

@@ -451,7 +451,9 @@ const isBranch = (value) =>
  * @returns {T}
  */
 function deepFreeze(value) {
-  if (!isBranch(value)) return value
+  if (!isBranch(value)) {
+    return value
+  }
 
   Object.values(value).forEach(deepFreeze)
   return Object.freeze(value)
@@ -554,7 +556,9 @@ function merge(base, overlay, path) {
  */
 export function loadCalibration(env = process.env) {
   const path = env[CALIBRATION_PATH_VARIABLE]
-  if (!path) return DEFAULT_CALIBRATION
+  if (!path) {
+    return DEFAULT_CALIBRATION
+  }
 
   let overlay
   try {

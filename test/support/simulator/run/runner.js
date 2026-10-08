@@ -124,8 +124,11 @@ function groupInOrder(items, by) {
   for (const item of items) {
     const key = by(item)
     const group = groups.get(key)
-    if (group) group.push(item)
-    else groups.set(key, [item])
+    if (group) {
+      group.push(item)
+    } else {
+      groups.set(key, [item])
+    }
   }
   return [...groups.values()]
 }
@@ -146,12 +149,16 @@ async function drain(queues, concurrency, work, stop) {
   const workers = Array.from({ length: concurrency }, async () => {
     while (pending.length > 0 && !stop.requested()) {
       const queue = pending.shift()
-      if (queue !== undefined) await work(queue)
+      if (queue !== undefined) {
+        await work(queue)
+      }
     }
   })
   const outcomes = await Promise.allSettled(workers)
   const failed = outcomes.find((outcome) => outcome.status === 'rejected')
-  if (failed?.status === 'rejected') throw failed.reason
+  if (failed?.status === 'rejected') {
+    throw failed.reason
+  }
 }
 
 /**
@@ -190,7 +197,9 @@ export async function replay({
   const days = groupInOrder(remaining, dayOf)
 
   for (const day of days) {
-    if (stop.requested()) return
+    if (stop.requested()) {
+      return
+    }
     await clock.moveTo(lastInstantOfDay.get(dayOf(day[0])) ?? day[0].at)
     const operators = groupInOrder(day, (event) => event.organisationId)
     await drain(
@@ -198,7 +207,9 @@ export async function replay({
       concurrency,
       async (queue) => {
         for (const event of queue) {
-          if (stop.requested()) return
+          if (stop.requested()) {
+            return
+          }
           try {
             await execute(run, event)
           } catch (error) {

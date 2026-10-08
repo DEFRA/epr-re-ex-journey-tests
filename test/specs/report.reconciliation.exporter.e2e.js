@@ -32,7 +32,7 @@ import { createLinkAndLogin } from '../support/login-helper.js'
 // report total equals the whole-submission waste balance.
 //
 // The round-each-then-sum total the fixture produces, printed by
-// generate-reconciliation-fixtures.mjs (which also refuses to emit a fixture
+// generate-reconciliation-fixtures.js (which also refuses to emit a fixture
 // where round-each-then-sum and sum-then-round agree).
 const EXPECTED_RECONCILED_TONNAGE = 8.03
 const YEAR = 2026
@@ -69,7 +69,7 @@ test.describe('Report tonnage reconciles with the waste balance — exporter @re
 
     // Submitted via epr-backend's dev endpoint rather than a real multipart
     // upload: the fixture's four rows (and the drift they're built to
-    // expose - see resources/generate-reconciliation-fixtures.mjs) are read
+    // expose - see resources/generate-reconciliation-fixtures.js) are read
     // straight off the checked-in xlsx, so EXPECTED_RECONCILED_TONNAGE stays
     // sourced from the same file either way.
     const summaryLogContent = await summaryLogContentFromFixture(

@@ -1,41 +1,33 @@
 /*
- * Generates the PAE-1743 "adjusted reduced-load reason" fixture by deriving it
- * from an existing (already-valid) summary log.
+ * Generates the "adjusted reduced-load reason" fixture by deriving it from an
+ * existing (already-valid) summary log.
  *
- * PAE-1743: on the enhanced check page, an adjusted load excluded from the waste
+ * On the enhanced check page, an adjusted load excluded from the waste
  * balance for a reason OTHER than missing data (here, a PRN having been issued)
  * must show that reason under the "This load has reduced your waste balance"
- * heading — not be filed under a "missing required summary log data" heading with
+ * heading -- not be filed under a "missing required summary log data" heading with
  * the reason hidden.
  *
  * The fixture is the SECOND upload in an open-period adjustment: a baseline log
  * is uploaded first, then this re-upload changes exactly one cell on one row so
  * that a previously-included load becomes excluded. The load keeps all its
  * required data, so the backend zeroes its contribution and its adjusted leg is
- * negative — landing it in the balance-affecting "reduced" sub-group.
+ * negative -- landing it in the balance-affecting "reduced" sub-group.
  *
  * Why derive rather than hand-author: the tonnage columns are cross-field
  * validated against a formula, so a row's numbers must stay internally
  * consistent. Deriving from a real fixture and touching a single non-tonnage
  * cell keeps every other row byte-for-byte valid and makes the change reviewable.
  *
- * Run: node resources/generate-pae1743-adjusted-reason-fixture.mjs
- * ExcelJS is resolved from the epr-backend workspace (not a dep of this repo).
+ * Run: node resources/generate-adjusted-reason-fixture.js
  *
- * Consumed by: summarylogs.enhanced.check.cma.e2e.js (@adjustedReducedReason).
+ * Consumed by: summarylogs.check.cma.adjusted-loads.e2e.js.
  */
-import { createRequire } from 'node:module'
-import { fileURLToPath } from 'node:url'
+import ExcelJS from 'exceljs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const require = createRequire(import.meta.url)
 const here = path.dirname(fileURLToPath(import.meta.url))
-const ExcelJS = require(
-  path.join(
-    here,
-    '../../epr-backend/node_modules/exceljs/lib/exceljs.nodejs.js'
-  )
-)
 
 const HEADER_ROW = 1
 const FIRST_DATA_ROW = 4 // row 3 is the "Example" row
@@ -62,8 +54,8 @@ const headerMap = (ws) => {
 }
 
 /**
- * Copies `source` to `out`, changing exactly one cell — `field` on the row whose
- * ROW_ID is TARGET_ROW_ID — from `expectedBefore` to `after`. Throws unless
+ * Copies `source` to `out`, changing exactly one cell -- `field` on the row whose
+ * ROW_ID is TARGET_ROW_ID -- from `expectedBefore` to `after`. Throws unless
  * exactly one row is changed and it held the expected value, so a fixture can
  * never silently drift from the one-cell-diff invariant the tests rely on.
  */
