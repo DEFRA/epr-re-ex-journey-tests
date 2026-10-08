@@ -7,9 +7,6 @@ import { fileURLToPath } from 'node:url'
 const preload = join(dirname(fileURLToPath(import.meta.url)), 'fake-clock.cjs')
 
 /**
- * Runs an ES module snippet in a child process whose clock reads `instant`,
- * on a scratch clock file so the stack's own clock is left alone.
- *
  * @param {string} instant
  * @param {string} code
  * @returns {string} what the snippet printed, trimmed

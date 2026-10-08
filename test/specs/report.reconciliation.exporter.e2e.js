@@ -40,7 +40,6 @@ import { createLinkAndLogin } from '../support/login-helper.js'
 const EXPECTED_RECONCILED_TONNAGE = 8.03
 const CADENCE = 'monthly'
 
-// The loads are re-dated into the last completed month.
 const { year: YEAR, period: PERIOD } = lastCompletedPeriod(CADENCE)
 const VALID_FROM = validFromWithClosedPeriod(CADENCE)
 

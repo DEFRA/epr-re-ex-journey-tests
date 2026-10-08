@@ -32,24 +32,11 @@ export function lastCompletedPeriod(cadence) {
     : { year, period: currentQuarter - 1 }
 }
 
-/**
- * A validFrom for specs that report on a closed period. SEEDED_VALID_FROM
- * starts this calendar year, which has no closed month in January and no
- * closed quarter until April, so those specs start the year before then.
- *
- * @param {'monthly' | 'quarterly'} cadence
- */
+/** @param {'monthly' | 'quarterly'} cadence */
 export const validFromWithClosedPeriod = (cadence) =>
   `${lastCompletedPeriod(cadence).year}-01-01`
 
-/**
- * Whether specs that report through the reports landing have nothing to report
- * on yet. The landing lists this calendar year's periods only, until
- * multi-year reporting (PAE-1690), so it has no closed month in January and
- * no closed quarter until April.
- *
- * @param {'monthly' | 'quarterly'} cadence
- */
+/** @param {'monthly' | 'quarterly'} cadence */
 export const reportsLandingHasNoClosedPeriod = (cadence) =>
   lastCompletedPeriod(cadence).year !== currentYear()
 
@@ -222,8 +209,6 @@ export async function createLinkedOrganisation(dataRows) {
 // write it down.
 export const SEEDED_VALID_FROM = `${currentYear()}-01-01`
 
-// The day before SEEDED_VALID_FROM, when a seeded registration and
-// accreditation were applied for.
 export const SEEDED_CREATED_ON = `${currentYear() - 1}-12-31`
 
 // Migration lands a moment after the migrate call returns, so the first read

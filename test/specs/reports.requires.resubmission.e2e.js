@@ -32,8 +32,6 @@ import {
   loginViaHomePage
 } from '../support/login-helper.js'
 
-// Quarter 1, so the restated period heads Action required: any later closed
-// quarter has no report and sits below it as Overdue.
 const YEAR = currentYear()
 
 test.describe('Reports - requires resubmission @requiresResubmission', () => {
@@ -110,8 +108,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     await wasteRecordsPage.submitSummaryLogLink().click()
 
     // Upload a summary log that restates Quarter 1, and confirm it. On
-    // submit the backend flags that period's report for resubmission. Dated the
-    // 1st, because the month-received column accepts nothing else.
+    // submit the backend flags that period's report for resubmission.
     await uploadSummaryLogPage.uploadFile(
       await summaryLogDatedAt(
         'resources/reprocessor-output-regonly-cma.xlsx',

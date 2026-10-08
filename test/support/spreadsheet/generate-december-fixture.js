@@ -102,8 +102,7 @@ const FIRST_ROW = 4
  * the pool it selects. Generates the usual randomised rows via
  * generateSpreadsheetData, then overwrites the December-critical date column
  * on the first DECEMBER_ROWS rows to a fixed December date of the
- * accreditation year, and on the rest to a fixed January date of it. A random
- * recent date would land in December whenever the run does.
+ * accreditation year, and on the rest to a fixed January date of it.
  *
  * @param {Parameters<typeof generateSpreadsheetData>[0] & { wasteProcessingType: 'exporter' | 'reprocessorInput' }} options - forwarded to generateSpreadsheetData
  * @param {number} accreditationYear - the year whose December the fixture's
