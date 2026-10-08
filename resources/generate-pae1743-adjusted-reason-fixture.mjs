@@ -31,7 +31,10 @@ import path from 'node:path'
 const require = createRequire(import.meta.url)
 const here = path.dirname(fileURLToPath(import.meta.url))
 const ExcelJS = require(
-  path.join(here, '../../epr-backend/node_modules/exceljs/lib/exceljs.nodejs.js')
+  path.join(
+    here,
+    '../../epr-backend/node_modules/exceljs/lib/exceljs.nodejs.js'
+  )
 )
 
 const HEADER_ROW = 1
@@ -41,7 +44,9 @@ const TARGET_ROW_ID = 1001 // the row each fixture excludes on re-upload
 /** Read the cell value, unwrapping ExcelJS formula results. */
 const cellValue = (cell) => {
   const v = cell.value
-  if (v && typeof v === 'object' && 'result' in v) {return v.result}
+  if (v && typeof v === 'object' && 'result' in v) {
+    return v.result
+  }
   return v
 }
 
@@ -49,7 +54,9 @@ const cellValue = (cell) => {
 const headerMap = (ws) => {
   const map = {}
   ws.getRow(HEADER_ROW).eachCell((cell, col) => {
-    if (typeof cell.value === 'string') {map[cell.value] = col}
+    if (typeof cell.value === 'string') {
+      map[cell.value] = col
+    }
   })
   return map
 }
@@ -60,11 +67,20 @@ const headerMap = (ws) => {
  * exactly one row is changed and it held the expected value, so a fixture can
  * never silently drift from the one-cell-diff invariant the tests rely on.
  */
-async function deriveOneCell({ source, out, dataSheet, field, expectedBefore, after }) {
+async function deriveOneCell({
+  source,
+  out,
+  dataSheet,
+  field,
+  expectedBefore,
+  after
+}) {
   const wb = new ExcelJS.Workbook()
   await wb.xlsx.readFile(path.join(here, source))
   const ws = wb.getWorksheet(dataSheet)
-  if (!ws) {throw new Error(`${source}: sheet "${dataSheet}" not found`)}
+  if (!ws) {
+    throw new Error(`${source}: sheet "${dataSheet}" not found`)
+  }
 
   const cols = headerMap(ws)
   if (!cols.ROW_ID || !cols[field]) {
@@ -74,7 +90,9 @@ async function deriveOneCell({ source, out, dataSheet, field, expectedBefore, af
   let changed = 0
   for (let r = FIRST_DATA_ROW; r <= ws.rowCount; r++) {
     const row = ws.getRow(r)
-    if (cellValue(row.getCell(cols.ROW_ID)) !== TARGET_ROW_ID) {continue}
+    if (cellValue(row.getCell(cols.ROW_ID)) !== TARGET_ROW_ID) {
+      continue
+    }
     const cell = row.getCell(cols[field])
     const before = cellValue(cell)
     if (before !== expectedBefore) {
@@ -87,11 +105,15 @@ async function deriveOneCell({ source, out, dataSheet, field, expectedBefore, af
   }
 
   if (changed !== 1) {
-    throw new Error(`${source}: expected to change exactly 1 row, changed ${changed}`)
+    throw new Error(
+      `${source}: expected to change exactly 1 row, changed ${changed}`
+    )
   }
 
   await wb.xlsx.writeFile(path.join(here, out))
-  console.log(`${out}: row ${TARGET_ROW_ID} ${field} ${JSON.stringify(expectedBefore)} -> ${JSON.stringify(after)}`)
+  console.log(
+    `${out}: row ${TARGET_ROW_ID} ${field} ${JSON.stringify(expectedBefore)} -> ${JSON.stringify(after)}`
+  )
 }
 
 // PRN (reprocessor input): a PRN was issued on re-upload, rendering the exact

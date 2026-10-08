@@ -58,7 +58,9 @@ const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100
 /** Read the cell value, unwrapping ExcelJS formula results. */
 const cellValue = (cell) => {
   const v = cell.value
-  if (v && typeof v === 'object' && 'result' in v) {return v.result}
+  if (v && typeof v === 'object' && 'result' in v) {
+    return v.result
+  }
   return v
 }
 
@@ -66,7 +68,9 @@ const cellValue = (cell) => {
 const headerMap = (ws) => {
   const map = {}
   ws.getRow(HEADER_ROW).eachCell((cell, col) => {
-    if (typeof cell.value === 'string') {map[cell.value] = col}
+    if (typeof cell.value === 'string') {
+      map[cell.value] = col
+    }
   })
   return map
 }
@@ -100,7 +104,9 @@ async function generate({ source, out, dataSheet, tonnageKey, blankSheets }) {
   for (let r = FIRST_DATA_ROW; r <= ws.rowCount; r++) {
     const row = ws.getRow(r)
     const tonnage = at(row, tonCol)
-    if (typeof tonnage !== 'number') {continue} // blank / non-load row
+    if (typeof tonnage !== 'number') {
+      continue
+    } // blank / non-load row
     const clean =
       isNo(at(row, interimCol)) &&
       isNo(at(row, refusedCol)) &&
@@ -108,7 +114,9 @@ async function generate({ source, out, dataSheet, tonnageKey, blankSheets }) {
       isNo(at(row, prnCol)) &&
       // one approved overseas site (100) so ORS approval is uniform, if present
       (!osrCol || String(at(row, osrCol)) === '100')
-    if (clean) {candidates.push({ r, tonnage })}
+    if (clean) {
+      candidates.push({ r, tonnage })
+    }
   }
 
   // Pick KEEP rows whose round-each-then-sum differs from sum-then-round, so the
@@ -128,9 +136,13 @@ async function generate({ source, out, dataSheet, tonnageKey, blankSheets }) {
   const keepRows = new Set(chosen.map((c) => c.r))
 
   for (let r = FIRST_DATA_ROW; r <= ws.rowCount; r++) {
-    if (keepRows.has(r)) {continue}
+    if (keepRows.has(r)) {
+      continue
+    }
     const row = ws.getRow(r)
-    if (typeof at(row, tonCol) !== 'number') {continue}
+    if (typeof at(row, tonCol) !== 'number') {
+      continue
+    }
     row.eachCell({ includeEmpty: false }, (cell) => {
       cell.value = null
     })
@@ -139,7 +151,9 @@ async function generate({ source, out, dataSheet, tonnageKey, blankSheets }) {
   // Blank other data sheets (sent-on, reprocessed) so they add nothing.
   for (const name of blankSheets) {
     const sheet = wb.getWorksheet(name)
-    if (!sheet) {continue}
+    if (!sheet) {
+      continue
+    }
     for (let r = FIRST_DATA_ROW; r <= sheet.rowCount; r++) {
       sheet.getRow(r).eachCell({ includeEmpty: false }, (cell) => {
         cell.value = null

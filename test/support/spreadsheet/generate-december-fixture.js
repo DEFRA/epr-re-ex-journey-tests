@@ -197,7 +197,6 @@ async function generateFixturesCli() {
     : new Date().getFullYear()
 
   for (const options of DECEMBER_FIXTURES) {
-    // eslint-disable-next-line no-await-in-loop
     const filename = await generateDecemberFixture(options, accreditationYear)
     logger.info(`${options.wasteProcessingType} fixture:`, filename)
   }
