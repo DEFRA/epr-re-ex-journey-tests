@@ -3,7 +3,7 @@ import neostandard from 'neostandard'
 export default [
   ...neostandard({
     env: ['node'],
-    ignores: ['allure-results', 'allure-report', 'docker'],
+    ignores: [...neostandard.resolveIgnoresFromGitignore(), 'docker'],
     noJsx: true,
     noStyle: true
   }),
