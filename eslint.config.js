@@ -55,7 +55,7 @@ export default [
     }
   },
   {
-    files: ['resources/**/*.mjs'],
+    files: ['resources/**/*.js'],
     rules: {
       'no-console': 'off'
     }

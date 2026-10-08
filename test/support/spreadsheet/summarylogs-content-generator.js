@@ -221,7 +221,7 @@ export async function summaryLogContentFromFixture(fixturePath) {
  * Every row of a worksheet's data table that carries a ROW_ID, from the
  * first data row to the sheet's last - wherever it sits, since a fixture
  * built to isolate a few loads (see
- * resources/generate-reconciliation-fixtures.mjs) blanks the rows around the
+ * resources/generate-reconciliation-fixtures.js) blanks the rows around the
  * kept ones rather than only the rows after them. ROW_ID is the template's
  * own signal for "this row carries data" (its formula is COUNTA over the
  * row's fields), which every worksheet fills via `rowData.B` - it survives

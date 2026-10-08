@@ -1,10 +1,10 @@
 /*
- * Generates the PAE-1668 reconciliation fixtures by deriving them from the
+ * Generates the reconciliation fixtures by deriving them from the
  * existing (already-valid) sanity summary logs.
  *
  * Why derive rather than hand-author: the exported / received tonnages are
  * cross-field validated against a formula (net weight x recyclable proportion,
- * etc. — see epr-backend validateTonnageExport), so a row's numbers must be
+ * etc. -- see epr-backend validateTonnageExport), so a row's numbers must be
  * internally consistent. Real sanity rows already satisfy that and naturally
  * carry >2dp tonnages, which is exactly what exposes the sum-then-round drift.
  *
@@ -13,40 +13,16 @@
  * and blank every other load, so the period total is the sum of a handful of
  * known >2dp rows. Blanked rows have no data columns, so the parser skips them.
  *
- * Run: node resources/generate-reconciliation-fixtures.mjs
- * ExcelJS is resolved from the epr-backend workspace (not a dep of this repo).
+ * Run from the repo root: node resources/generate-reconciliation-fixtures.js
  *
- * Consumers & regeneration
- * ------------------------
- * This script writes both fixtures into THIS repo's resources/
- * (exporter-reconciliation.xlsx, reprocessor-reconciliation.xlsx) and prints
- * each one's round-each-then-sum total — the value the tests assert. It refuses
- * to emit a fixture where round-each-then-sum and sum-then-round agree (that
- * would guard nothing).
- *
- * The SAME two .xlsx are also consumed by the backend API-tier tests in
- * epr-backend-journey-tests (reports-reconciliation-{exporter,reprocessor}.feature).
- * Those fixtures cannot be shared across the two submodules (each is checked out
- * standalone in CI), so identical copies must live in both repos. To regenerate:
- *   1. Run this script.
- *   2. Copy both .xlsx into epr-backend-journey-tests/resources/.
- *   3. If the printed totals changed, update the hardcoded expected values in
- *      report.reconciliation.exporter.e2e.js and the two backend .feature files.
+ * Writes exporter-reconciliation.xlsx and reprocessor-reconciliation.xlsx into
+ * resources/ and prints each one's round-each-then-sum total - the value the
+ * tests assert. It refuses to emit a fixture where round-each-then-sum and
+ * sum-then-round agree (that would guard nothing). If the printed totals
+ * change, update the expected values in report.reconciliation.exporter.e2e.js
+ * and summarylogs-content-generator.test.js.
  */
-import { createRequire } from 'node:module'
-import { fileURLToPath } from 'node:url'
-import path from 'node:path'
-
-// ExcelJS is not a dependency of this repo; resolve it from the sibling
-// epr-backend submodule (both live under epr-re-ex-service/lib).
-const require = createRequire(import.meta.url)
-const here = path.dirname(fileURLToPath(import.meta.url))
-const ExcelJS = require(
-  path.join(
-    here,
-    '../../epr-backend/node_modules/exceljs/lib/exceljs.nodejs.js'
-  )
-)
+import ExcelJS from 'exceljs'
 
 const KEEP = 4 // number of clean loads to retain
 const HEADER_ROW = 1 // machine-key header row
@@ -166,7 +142,7 @@ async function generate({ source, out, dataSheet, tonnageKey, blankSheets }) {
   const reconciled = round2(tonnages.reduce((s, t) => s + round2(t), 0))
   const buggy = round2(tonnages.reduce((s, t) => s + t, 0))
 
-  // Refuse to write a fixture that doesn't expose the sum-then-round drift — it
+  // Refuse to write a fixture that doesn't expose the sum-then-round drift -- it
   // would guard nothing, since round-each-then-sum and sum-then-round must
   // diverge for the reconciliation tests to distinguish the bug from the fix.
   if (reconciled === buggy) {
@@ -188,7 +164,7 @@ async function generate({ source, out, dataSheet, tonnageKey, blankSheets }) {
 }
 
 await generate({
-  source: 'resources/sanity/exporter_E-ACC12245PA_E25SR500020912PA.xlsx',
+  source: 'resources/sanity/exporter_A26EX5000000002PA_R26EX5000000002PA.xlsx',
   out: 'resources/exporter-reconciliation.xlsx',
   dataSheet: 'Exported (sections 1, 2 and 3)',
   tonnageKey: 'TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED',
@@ -197,7 +173,7 @@ await generate({
 
 await generate({
   source:
-    'resources/sanity/reprocessorInput_R-ACC12045PA_R25SR500000912PA.xlsx',
+    'resources/sanity/reprocessorInput_A26ER5000000000PA_R26ER5000000000PA.xlsx',
   out: 'resources/reprocessor-reconciliation.xlsx',
   dataSheet: 'Received (sections 1, 2 and 3)',
   tonnageKey: 'TONNAGE_RECEIVED_FOR_RECYCLING',

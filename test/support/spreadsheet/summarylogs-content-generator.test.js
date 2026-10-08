@@ -279,7 +279,7 @@ describe('summary log content generator', () => {
   describe('summaryLogContentFromFixture', () => {
     it('reads a fixture built to isolate a few loads down to just those loads', async () => {
       // resources/exporter-reconciliation.xlsx (see
-      // resources/generate-reconciliation-fixtures.mjs) keeps 4 real loads
+      // resources/generate-reconciliation-fixtures.js) keeps 4 real loads
       // scattered across an otherwise-blanked sheet, most of whose
       // "unfilled" rows still carry a formula cell ROW_ID never recalculated
       // to a cached result - the case a naive "any field is non-empty" read
