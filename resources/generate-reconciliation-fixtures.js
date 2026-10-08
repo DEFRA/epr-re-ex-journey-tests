@@ -1,8 +1,8 @@
 /*
- * Generates the reconciliation fixtures by deriving them from the
- * existing (already-valid) sanity summary logs.
+ * Generates the exporter reconciliation fixture by deriving it from the
+ * existing (already-valid) sanity summary log.
  *
- * Why derive rather than hand-author: the exported / received tonnages are
+ * Why derive rather than hand-author: the exported tonnages are
  * cross-field validated against a formula (net weight x recyclable proportion,
  * etc. -- see epr-backend validateTonnageExport), so a row's numbers must be
  * internally consistent. Real sanity rows already satisfy that and naturally
@@ -15,9 +15,8 @@
  *
  * Run from the repo root: node resources/generate-reconciliation-fixtures.js
  *
- * Writes exporter-reconciliation.xlsx and reprocessor-reconciliation.xlsx into
- * resources/ and prints each one's round-each-then-sum total - the value the
- * tests assert. It refuses to emit a fixture where round-each-then-sum and
+ * Writes resources/exporter-reconciliation.xlsx and prints its
+ * round-each-then-sum total - the value the tests assert. It refuses to emit a fixture where round-each-then-sum and
  * sum-then-round agree (that would guard nothing). If the printed totals
  * change, update the expected values in report.reconciliation.exporter.e2e.js
  * and summarylogs-content-generator.test.js.
@@ -169,13 +168,4 @@ await generate({
   dataSheet: 'Exported (sections 1, 2 and 3)',
   tonnageKey: 'TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED',
   blankSheets: ['Sent on (sections 4 and 5)']
-})
-
-await generate({
-  source:
-    'resources/sanity/reprocessorInput_A26ER5000000000PA_R26ER5000000000PA.xlsx',
-  out: 'resources/reprocessor-reconciliation.xlsx',
-  dataSheet: 'Received (sections 1, 2 and 3)',
-  tonnageKey: 'TONNAGE_RECEIVED_FOR_RECYCLING',
-  blankSheets: ['Reprocessed (section 4)', 'Sent on (sections 5, 6 and 7)']
 })
