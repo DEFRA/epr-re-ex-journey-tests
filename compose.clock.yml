@@ -17,7 +17,7 @@ x-fake-clock: &fake-clock
   volumes:
     - ./test/support/simulator/clock:/fake-clock:ro
   environment: &fake-clock-env
-    NODE_OPTIONS: --require /fake-clock/fake-clock.cjs
+    NODE_OPTIONS: --import /fake-clock/fake-clock.mjs
     FAKE_CLOCK_FILE: /fake-clock/clock.txt
 
 services:
