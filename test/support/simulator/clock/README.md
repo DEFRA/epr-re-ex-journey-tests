@@ -2,7 +2,7 @@
 
 The operator activity simulator replays a year of activity day by day, and the
 API stamps server time, so the whole local stack has to believe it is the date
-the simulator says. `fake-clock.cjs` is a `--require` preload that replaces the
+the simulator says. `fake-clock.mjs` is an `--import` preload that replaces the
 global `Date` in a Node process. Every process sharing `clock.txt` derives its
 offset from that file's mtime, so processes that started at different moments
 agree on the instant.
@@ -30,7 +30,7 @@ rather than carrying on against it.
 A process of your own joins the clock through the same preload:
 
 ```bash
-NODE_OPTIONS="--require $PWD/test/support/simulator/clock/fake-clock.cjs" \
+NODE_OPTIONS="--import $PWD/test/support/simulator/clock/fake-clock.mjs" \
 FAKE_CLOCK_FILE="$PWD/test/support/simulator/clock/clock.txt" \
 node your-script.js
 ```
