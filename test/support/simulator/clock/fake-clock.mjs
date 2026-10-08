@@ -1,12 +1,11 @@
-// Preload with `node --require fake-clock.cjs` (or NODE_OPTIONS). Replaces the
+// Preload with `node --import fake-clock.mjs` (or NODE_OPTIONS). Replaces the
 // global Date so the process believes the instant written in FAKE_CLOCK_FILE
 // was "now" at the moment that file was written. Time keeps flowing at the real
 // rate from there, and every process sharing the file computes the same offset
 // whenever it started, so a container that came up an hour ago and one that
 // came up a second ago agree. Rewriting the file jumps the clock without a
 // restart. An empty or missing file means real time.
-'use strict'
-const fs = require('node:fs')
+import fs from 'node:fs'
 
 const clockFile = process.env.FAKE_CLOCK_FILE
 if (!clockFile) {
