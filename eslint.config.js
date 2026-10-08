@@ -1,4 +1,5 @@
 import js from '@eslint/js'
+import importX from 'eslint-plugin-import-x'
 import neostandard from 'neostandard'
 
 const ECMA_VERSION = 2025
@@ -24,6 +25,20 @@ export default [
     noJsx: true,
     noStyle: true
   }).map(withEcmaVersion),
+  {
+    plugins: { 'import-x': importX },
+    rules: {
+      'import-x/export': 'error',
+      'import-x/first': 'error',
+      'import-x/no-absolute-path': [
+        'error',
+        { esmodule: true, commonjs: true, amd: false }
+      ],
+      'import-x/no-duplicates': 'error',
+      'import-x/no-named-default': 'error',
+      'import-x/no-webpack-loader-syntax': 'error'
+    }
+  },
   {
     rules: {
       'no-console': 'error',
