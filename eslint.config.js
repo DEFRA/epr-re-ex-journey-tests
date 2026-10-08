@@ -1,6 +1,21 @@
 import js from '@eslint/js'
 import neostandard from 'neostandard'
 
+const ECMA_VERSION = 2025
+
+// neostandard pins ecmaVersion 2022, which rejects v-flag regexes and import
+// attributes: https://github.com/neostandard/neostandard/issues/307
+const withEcmaVersion = (config) =>
+  config.languageOptions?.ecmaVersion < ECMA_VERSION
+    ? {
+        ...config,
+        languageOptions: {
+          ...config.languageOptions,
+          ecmaVersion: ECMA_VERSION
+        }
+      }
+    : config
+
 export default [
   js.configs.recommended,
   ...neostandard({
@@ -8,7 +23,7 @@ export default [
     ignores: [...neostandard.resolveIgnoresFromGitignore(), 'docker'],
     noJsx: true,
     noStyle: true
-  }),
+  }).map(withEcmaVersion),
   {
     rules: {
       'no-console': 'error',
