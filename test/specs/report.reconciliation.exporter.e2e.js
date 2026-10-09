@@ -6,18 +6,21 @@ import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
-  updateMigratedOrganisation
+  lastCompletedPeriod,
+  updateMigratedOrganisation,
+  validFromWithClosedPeriod
 } from '../support/seeding/organisation.js'
 import {
   registrationStartYear,
-  submitSummaryLogContent
+  submitSummaryLogContent,
+  summaryLogDatedAt
 } from '../support/seeding/summary-logs.js'
 import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { parseTonnage } from '../support/tonnage.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
-// PAE-1668 UI regression guard. The fixture keeps four clean February 2026
+// PAE-1668 UI regression guard. The fixture keeps four clean
 // exporter loads whose exported tonnages carry more than two decimal places, so
 // round-each-then-sum (waste balance and correct report) differs from
 // sum-then-round (the bug). This spec confirms the two figures a user sees — the
@@ -35,9 +38,10 @@ import { createLinkAndLogin } from '../support/login-helper.js'
 // generate-reconciliation-fixtures.js (which also refuses to emit a fixture
 // where round-each-then-sum and sum-then-round agree).
 const EXPECTED_RECONCILED_TONNAGE = 8.03
-const YEAR = 2026
 const CADENCE = 'monthly'
-const PERIOD = 2 // fixture loads are dated February 2026
+
+const { year: YEAR, period: PERIOD } = lastCompletedPeriod(CADENCE)
+const VALID_FROM = validFromWithClosedPeriod(CADENCE)
 
 test.describe('Report tonnage reconciles with the waste balance — exporter @reconciliation', () => {
   const regNumber = 'R26EX5000000002PA'
@@ -56,7 +60,9 @@ test.describe('Report tonnage reconciles with the waste balance — exporter @re
 
     migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
-      [{ regNumber, accNumber, status: 'approved' }]
+      [{ regNumber, accNumber, status: 'approved' }],
+      undefined,
+      VALID_FROM
     )
 
     await seedOverseasSites(organisationDetails.refNo)
@@ -73,14 +79,17 @@ test.describe('Report tonnage reconciles with the waste balance — exporter @re
     // straight off the checked-in xlsx, so EXPECTED_RECONCILED_TONNAGE stays
     // sourced from the same file either way.
     const summaryLogContent = await summaryLogContentFromFixture(
-      'resources/exporter-reconciliation.xlsx'
+      await summaryLogDatedAt(
+        'resources/exporter-reconciliation.xlsx',
+        new Date(Date.UTC(YEAR, PERIOD - 1, 15, 12))
+      )
     )
     await submitSummaryLogContent(
       organisationDetails.refNo,
       migrationResponse.registrationIds[0],
       defraIdStub.authHeader(user.userId),
       summaryLogContent,
-      registrationStartYear()
+      registrationStartYear(VALID_FROM)
     )
   })
 
@@ -100,7 +109,7 @@ test.describe('Report tonnage reconciles with the waste balance — exporter @re
     await dashboardPage.selectTableLink(1, 1)
     const balanceText = await wasteRecordsPage.wasteBalanceAmount()
 
-    // Go straight to the February period the fixture loads belong to, rather
+    // Go straight to the period the fixture loads were re-dated into, rather
     // than the first actionable report (whose period is not guaranteed).
     await reportDetailPage.open(
       organisationDetails.refNo,

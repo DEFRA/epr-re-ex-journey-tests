@@ -10,6 +10,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
+import { summaryLogDatedAt } from '../support/seeding/summary-logs.js'
 test.describe('Summary Logs Reprocessor Input', () => {
   test('Should be able to link a user to an organisation and submit a spreadsheet @reproInput', async ({
     page
@@ -90,7 +91,9 @@ test.describe('Summary Logs Reprocessor Input', () => {
 
     await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
-    await uploadSummaryLogPage.uploadFile('resources/summary-log.xlsx')
+    await uploadSummaryLogPage.uploadFile(
+      await summaryLogDatedAt('resources/summary-log.xlsx', new Date())
+    )
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)

@@ -21,15 +21,25 @@ import {
 } from '../support/checks.js'
 import {
   createLinkedOrganisation,
+  reportsLandingHasNoClosedPeriod,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { seedSubmittedReport } from '../support/seeding/reports.js'
+import { summaryLogDatedAt } from '../support/seeding/summary-logs.js'
+import { currentYear } from '../support/date.js'
 import {
   registerAndLinkDefraIdUser,
   loginViaHomePage
 } from '../support/login-helper.js'
 
+const YEAR = currentYear()
+
 test.describe('Reports - requires resubmission @requiresResubmission', () => {
+  test.skip(
+    reportsLandingHasNoClosedPeriod('quarterly'),
+    'the reports landing has no closed quarter yet this year'
+  )
+
   test('creates, reviews and submits a resubmission draft from a restated closed period, ending as Resubmitted on the reports landing @requiresResubmissionStatus @reviewAndSubmit @cma', async ({
     page
   }) => {
@@ -80,12 +90,12 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
 
     const regId = migrationResponse.registrationIds[0]
 
-    // Precondition: a submitted (closed) report for Q1 2026.
+    // Precondition: a submitted report for Quarter 1.
     await seedSubmittedReport(
       organisationDetails.refNo,
       regId,
       user.userId,
-      2026,
+      YEAR,
       'quarterly',
       1,
       1,
@@ -97,10 +107,13 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
 
-    // Upload a summary log that restates the closed Q1 2026 period, and confirm
-    // it. On submit the backend flags that period's report for resubmission.
+    // Upload a summary log that restates Quarter 1, and confirm it. On
+    // submit the backend flags that period's report for resubmission.
     await uploadSummaryLogPage.uploadFile(
-      'resources/reprocessor-output-regonly-cma.xlsx'
+      await summaryLogDatedAt(
+        'resources/reprocessor-output-regonly-cma.xlsx',
+        new Date(Date.UTC(YEAR, 1, 1, 12))
+      )
     )
     await uploadSummaryLogPage.continue()
     await checkBodyText(page, 'Your summary log is being checked', 30)

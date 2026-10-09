@@ -11,8 +11,9 @@ import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.page.js'
 import { TonnesNotExportedPage } from '../page-objects/reports/tonnes.not.exported.page.js'
 import {
-  seedOverseasSites,
   createLinkedOrganisation,
+  reportsLandingHasNoClosedPeriod,
+  seedOverseasSites,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { unsubmitReport } from '../support/seeding/reports.js'
@@ -87,6 +88,11 @@ async function setupRegisteredOnlyExporter(page) {
 }
 
 test.describe('Registered-only exporter report flow @registeredOnlyExporter', () => {
+  test.skip(
+    reportsLandingHasNoClosedPeriod('quarterly'),
+    'the reports landing has no closed quarter yet this year'
+  )
+
   // These 3 tests share one continuous login session/report, the same
   // pattern used in accredited.reprocessor.report.e2e.js - serial mode + a
   // manually-created page shares setup instead of re-paying org creation,
@@ -131,14 +137,14 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
 
       // Try to access prn-summary directly — should get 404
       await page.goto(
-        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/2026/quarterly/1/submissions/1/prn-summary`
+        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/${registrationStartYear()}/quarterly/1/submissions/1/prn-summary`
       )
       await checkBodyText(page, '404', 10)
       await checkBodyText(page, 'Page not found', 10)
 
       // Try to access free-perns directly — should get 404
       await page.goto(
-        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/2026/quarterly/1/submissions/1/free-perns`
+        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/${registrationStartYear()}/quarterly/1/submissions/1/free-perns`
       )
       await checkBodyText(page, '404', 10)
       await checkBodyText(page, 'Page not found', 10)
@@ -298,7 +304,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       await unsubmitReport(
         setupResponse.organisationDetails.refNo,
         setupResponse.migrationResponse.registrationIds[0],
-        2026,
+        registrationStartYear(),
         'quarterly',
         1,
         1

@@ -38,9 +38,18 @@ node your-script.js
 `simulated-clock.js` exports `setSimulatedNow` and `clearSimulatedClock` for a
 process that moves the clock itself.
 
-Playwright and the browser it drives are not on the clock. A journey spec run
-against a simulated stack still reaches services that believe the simulated
-date, but any date the spec works out for itself is today's.
+## Running journey specs on the clock
+
+`npm run test:clock` runs Playwright with the preload, so any date a spec works
+out for itself agrees with the stack. It takes the usual Playwright arguments:
+
+```bash
+npm run clock -- 2027-01-15
+npm run test:clock -- --config=playwright.config.js --grep @decWaste
+```
+
+The browser Playwright drives is not on the clock, so client-side script still
+sees today's date.
 
 ## What the override does besides mounting the preload
 

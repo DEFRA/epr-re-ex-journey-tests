@@ -14,6 +14,7 @@ import {
   registrationStartYear,
   submitSummaryLogContent
 } from '../support/seeding/summary-logs.js'
+import { generateSpreadsheetData } from '../support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
 import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { externalAPICancelPrn } from '../support/seeding/prns.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
@@ -48,12 +49,6 @@ test.describe('Marking a PRN as December Waste (Reprocessor Output)', () => {
       { material: 'Steel (R4)', wasteProcessingType: 'Reprocessor' }
     ])
 
-    // TODO(PAE-1958): validFrom defaults to SEEDED_VALID_FROM (2026-01-01),
-    // pinning the accreditation's relevant year to 2026. The December Waste
-    // window closes 31 January 2027, so this spec starts failing after that
-    // date even though the feature works. Regenerate the fixture via
-    // generate-december-fixture.js's CLI (--year=<new year>) and re-seed this
-    // spec's validFrom to match when that happens.
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
@@ -78,7 +73,13 @@ test.describe('Marking a PRN as December Waste (Reprocessor Output)', () => {
     // not the upload itself, which the dedicated summary-log specs already
     // cover.
     const summaryLogContent = await summaryLogContentFromFixture(
-      `resources/sanity/reprocessorOutput_${accNumber}_${regNumber}.xlsx`
+      await generateSpreadsheetData({
+        wasteProcessingType: 'reprocessorOutput',
+        materialSuffix: 'ST',
+        accNumber,
+        regNumber,
+        silentLogging: true
+      })
     )
     await submitSummaryLogContent(
       organisationDetails.refNo,
