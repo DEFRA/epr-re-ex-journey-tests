@@ -15,6 +15,21 @@ const banner = (page) =>
 /**
  * @param {Page} page
  */
+const startHeading = (page) =>
+  page.getByRole('heading', {
+    level: 1,
+    name: 'Record reprocessed or exported packaging waste'
+  })
+
+/**
+ * @param {Page} page
+ */
+const cookiesHeading = (page) =>
+  page.getByRole('heading', { level: 1, name: 'Cookies', exact: true })
+
+/**
+ * @param {Page} page
+ */
 const openStartPageWithBanner = async (page) => {
   await page.goto('/start')
 
@@ -29,20 +44,24 @@ const openStartPageWithBanner = async (page) => {
 
 /**
  * @param {Page} page
+ * @param {string} message
  */
-const expectBannerRemainsHidden = async (page) => {
-  await expect(banner(page)).toBeHidden()
+const expectConfirmedOnce = async (page, message) => {
+  await expect(banner(page).getByRole('alert')).toContainText(
+    `${message} You can change your cookie settings at any time.`
+  )
+  await expect(startHeading(page)).toBeVisible()
 
   await page.goto('/start')
 
   await expect(banner(page)).toBeHidden()
 }
 
-// What server.inject cannot reach: that the button submits without javascript,
-// that a real browser accepts the cookie with the attributes the service sets,
-// and that it sends it back on the next navigation.
+// What server.inject cannot reach: that the buttons submit without
+// javascript, that a real browser keeps the cookies the service sets and sends
+// them back on the next navigation, and that it says which page it came from.
 test.describe('Cookie consent @cookieConsent', () => {
-  test('Should stop asking once the visitor accepts analytics cookies', async ({
+  test('Should confirm once that the visitor accepted analytics cookies', async ({
     page
   }) => {
     await openStartPageWithBanner(page)
@@ -51,10 +70,10 @@ test.describe('Cookie consent @cookieConsent', () => {
       .getByRole('button', { name: 'Accept analytics cookies' })
       .click()
 
-    await expectBannerRemainsHidden(page)
+    await expectConfirmedOnce(page, "You've accepted analytics cookies.")
   })
 
-  test('Should stop asking once the visitor rejects analytics cookies', async ({
+  test('Should confirm once that the visitor rejected analytics cookies', async ({
     page
   }) => {
     await openStartPageWithBanner(page)
@@ -63,7 +82,36 @@ test.describe('Cookie consent @cookieConsent', () => {
       .getByRole('button', { name: 'Reject analytics cookies' })
       .click()
 
-    await expectBannerRemainsHidden(page)
+    await expectConfirmedOnce(page, "You've rejected analytics cookies.")
+  })
+
+  test('Should hide the confirmation when asked', async ({ page }) => {
+    await openStartPageWithBanner(page)
+    await banner(page)
+      .getByRole('button', { name: 'Accept analytics cookies' })
+      .click()
+
+    await banner(page)
+      .getByRole('button', { name: 'Hide cookie message' })
+      .click()
+
+    await expect(banner(page)).toBeHidden()
+    await expect(startHeading(page)).toBeVisible()
+  })
+
+  test('Should let the visitor change their mind from the confirmation', async ({
+    page
+  }) => {
+    await openStartPageWithBanner(page)
+    await banner(page)
+      .getByRole('button', { name: 'Reject analytics cookies' })
+      .click()
+
+    await banner(page)
+      .getByRole('link', { name: 'change your cookie settings' })
+      .click()
+
+    await expect(cookiesHeading(page)).toBeVisible()
   })
 
   test('Should take the visitor to the cookies page from the banner', async ({
@@ -73,8 +121,31 @@ test.describe('Cookie consent @cookieConsent', () => {
 
     await banner(page).getByRole('link', { name: 'View cookies' }).click()
 
-    await expect(
-      page.getByRole('heading', { level: 1, name: 'Cookies', exact: true })
-    ).toBeVisible()
+    await expect(cookiesHeading(page)).toBeVisible()
+  })
+
+  test('Should return the visitor to their page once they save their settings', async ({
+    page
+  }) => {
+    await openStartPageWithBanner(page)
+    await banner(page).getByRole('link', { name: 'View cookies' }).click()
+
+    await page
+      .getByRole('radio', {
+        name: 'Use cookies that measure my service use',
+        exact: true
+      })
+      .check()
+    await page.getByRole('button', { name: 'Save cookie settings' }).click()
+
+    await expect(page.getByRole('alert')).toContainText(
+      "You've set your cookie preferences."
+    )
+
+    await page
+      .getByRole('link', { name: 'Go back to the page you were looking at' })
+      .click()
+
+    await expect(startHeading(page)).toBeVisible()
   })
 })
