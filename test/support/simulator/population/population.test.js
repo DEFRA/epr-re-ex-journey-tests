@@ -229,7 +229,9 @@ describe('the planned register at full scale', () => {
   it('runs every accreditation window from its registration to the end of that year', () => {
     for (const registration of registrations) {
       const accreditation = registration.accreditation
-      if (!accreditation) continue
+      if (!accreditation) {
+        continue
+      }
 
       assert.equal(accreditation.validFrom, registration.activeFrom)
       assert.equal(accreditation.validTo, '2026-12-31')

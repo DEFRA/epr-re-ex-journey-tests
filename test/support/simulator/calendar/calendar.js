@@ -173,13 +173,19 @@ const refOf = ({ worksheet, rowId }) => ({ worksheet, rowId })
  * @returns {string}
  */
 function onWorkingDay(day, notBefore, notAfter) {
-  if (!isWeekend(day)) return day
+  if (!isWeekend(day)) {
+    return day
+  }
   const preferred = addDays(day, parse(day).getUTCDay() === 6 ? -1 : 1)
   const other = addDays(day, parse(day).getUTCDay() === 6 ? 2 : -2)
   /** @param {string} candidate */
   const within = (candidate) => candidate >= notBefore && candidate <= notAfter
-  if (within(preferred)) return preferred
-  if (within(other)) return other
+  if (within(preferred)) {
+    return preferred
+  }
+  if (within(other)) {
+    return other
+  }
   return day
 }
 
@@ -200,7 +206,9 @@ function dayBetween(notBefore, notAfter, random, worksWeekends) {
     notBefore,
     random.int(0, daysBetween(notBefore, notAfter))
   )
-  if (worksWeekends) return drawn
+  if (worksWeekends) {
+    return drawn
+  }
   const working = onWorkingDay(drawn, notBefore, notAfter)
   return isWeekend(working) ? null : working
 }
@@ -308,7 +316,9 @@ function statusChange(registration, first, last, random) {
       : status === 'cancelled'
         ? EVENT.ACCREDITATION_CANCELLED
         : null
-  if (!type) return null
+  if (!type) {
+    return null
+  }
 
   const earliest = earlier(addDays(first, EARLIEST_STATUS_CHANGE_DAYS), last)
   const day = dayBetween(earliest, last, random, false)
@@ -327,7 +337,9 @@ function statusChange(registration, first, last, random) {
  */
 function reportDay(period, profile, random) {
   const { reporting } = profile
-  if (random.float() < reporting.missedReturnRate) return null
+  if (random.float() < reporting.missedReturnRate) {
+    return null
+  }
 
   const { onTime, lateWithin7, lateWithin30, lateBeyond30 } = reporting
   const bucket = random.weighted({
@@ -617,7 +629,9 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
     const owed = period.end <= activityEnd
     const filed = owed ? reportDay(period, profile, random) : null
     const report = filed && filed <= filingEnd ? filed : null
-    if (report) reports.push({ day: report, period })
+    if (report) {
+      reports.push({ day: report, period })
+    }
 
     const count = uploadCount(profile.uploads.perReportingPeriod, random)
     const closingBy = report ?? earlier(period.due, filingEnd)
@@ -628,7 +642,9 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
     ]
     for (const [notBefore, notAfter] of ranges) {
       const day = dayBetween(notBefore, notAfter, random, profile.worksWeekends)
-      if (day) uploads.push({ day, period })
+      if (day) {
+        uploads.push({ day, period })
+      }
     }
   }
   uploads.sort((a, b) => a.day.localeCompare(b.day))
@@ -640,7 +656,9 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
   let amendmentsOwed = 0
   for (const upload of uploads) {
     const carried = allRows.filter((row) => row.date <= upload.day)
-    if (carried.length === 0) continue
+    if (carried.length === 0) {
+      continue
+    }
     const before = submittedCutoff ?? ''
     const submitted = allRows.filter((row) => row.date <= before)
     const added = carried.filter((row) => row.date > before)
@@ -694,12 +712,16 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
     }
     draft(context, report.day, { ...submission, submissionNumber: 1 })
 
-    if (random.float() >= profile.reporting.restatementRate) continue
+    if (random.float() >= profile.reporting.restatementRate) {
+      continue
+    }
     const restating = landed.find((upload) => upload.day > report.day)
     const restatable = allRows.filter(
       (row) => period.months.includes(row.period) && row.date <= period.last
     )
-    if (!restating || restatable.length === 0) continue
+    if (!restating || restatable.length === 0) {
+      continue
+    }
 
     restating.event.restated.push(
       refOf(restatable[random.int(0, restatable.length - 1)])
@@ -710,7 +732,9 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
       random,
       profile.worksWeekends
     )
-    if (!resubmitted || resubmitted > filingEnd) continue
+    if (!resubmitted || resubmitted > filingEnd) {
+      continue
+    }
     draft(context, resubmitted, { ...submission, submissionNumber: 2 })
   }
 
@@ -746,9 +770,13 @@ function draftReporting(context, periods, activityEnd, filingEnd) {
  * @param {string} issuingEnd - the last day the accreditation can issue
  */
 function draftPrns(context, landed, issuingEnd) {
-  if (landed.length === 0) return
+  if (landed.length === 0) {
+    return
+  }
   const first = addDays(landed[0].day, 1)
-  if (first > issuingEnd) return
+  if (first > issuingEnd) {
+    return
+  }
   const { random, operator, registration, calibration, rows } = context
   const { profile } = operator
   const { prn } = profile
@@ -868,7 +896,9 @@ function draftPrns(context, landed, issuingEnd) {
       let day = from
       for (const [type, within] of steps) {
         day = day && step(day, within)
-        if (!day) return null
+        if (!day) {
+          return null
+        }
         note.steps.push({ type, day })
       }
       return day
@@ -879,7 +909,9 @@ function draftPrns(context, landed, issuingEnd) {
       return note
     }
     const raised = step(drafted, 0)
-    if (!raised) return note
+    if (!raised) {
+      return note
+    }
     note.steps.push({ type: EVENT.PRN_RAISED, day: raised })
     note.raised = true
 
@@ -888,7 +920,9 @@ function draftPrns(context, landed, issuingEnd) {
       return note
     }
     const issued = step(raised, PRN_STEP_DAYS)
-    if (!issued) return note
+    if (!issued) {
+      return note
+    }
     note.steps.push({ type: EVENT.PRN_ISSUED, day: issued })
 
     if (random.float() < prn.cancelRate) {
@@ -898,7 +932,9 @@ function draftPrns(context, landed, issuingEnd) {
       ])
       return note
     }
-    if (random.float() >= prn.producerAcceptRate) return note
+    if (random.float() >= prn.producerAcceptRate) {
+      return note
+    }
 
     const [issuedYear, issuedMonth] = issued.split('-').map(Number)
     const issuedMonthEnd = lastDayOfMonth(issuedYear, issuedMonth)
@@ -950,7 +986,9 @@ function draftPrns(context, landed, issuingEnd) {
         random,
         profile.worksWeekends
       )
-      if (drafted) notes.push(drawChain(drafted))
+      if (drafted) {
+        notes.push(drawChain(drafted))
+      }
     }
 
     // The weights come off their own seed, so the count, days and chains
@@ -983,15 +1021,21 @@ function draftPrns(context, landed, issuingEnd) {
           weights[index]) /
           remaining
       )
-      if (tonnage < 1) return
+      if (tonnage < 1) {
+        return
+      }
       tonnages.set(note, tonnage)
       planned += tonnage
-      if (note.raised) holds.push({ tonnage, released: note.released })
+      if (note.raised) {
+        holds.push({ tonnage, released: note.released })
+      }
     })
 
     for (const note of notes) {
       const tonnage = tonnages.get(note)
-      if (tonnage === undefined) continue
+      if (tonnage === undefined) {
+        continue
+      }
       const prnId = `${registration.id}-PRN${String(++serial).padStart(3, '0')}`
       for (const { type, day } of note.steps) {
         draft(context, day, {
@@ -1019,7 +1063,9 @@ function planRegistration(context, from) {
   const { registration, random, to, calibration } = context
   const first = later(registration.activeFrom, from)
   const last = earlier(to, registration.accreditation?.validTo ?? to)
-  if (first > last) return []
+  if (first > last) {
+    return []
+  }
 
   draft(context, first, {
     type: EVENT.REGISTRATION_APPROVED,
@@ -1163,7 +1209,9 @@ export function planCalendar({
  */
 export function uploadRows({ registration, uploads }) {
   const upload = uploads[uploads.length - 1]
-  if (!upload) throw new Error('No upload to render the rows of')
+  if (!upload) {
+    throw new Error('No upload to render the rows of')
+  }
 
   /** @type {Map<string, number>} */
   const seeds = new Map()
@@ -1199,7 +1247,9 @@ export function uploadRows({ registration, uploads }) {
       }
       seeds.set(rowKey(row), reseed(row, earlierUpload.cutoff))
     }
-    if (rendering) break
+    if (rendering) {
+      break
+    }
     submittedCutoff = earlierUpload.cutoff
   }
 
@@ -1219,14 +1269,18 @@ export function uploadRows({ registration, uploads }) {
  * @returns {PlannedLogRow[]}
  */
 function withIssues(rows, stream, issues) {
-  if (!issues || issues.kind === ISSUE_KIND.UNREADABLE) return rows
+  if (!issues || issues.kind === ISSUE_KIND.UNREADABLE) {
+    return rows
+  }
   const planted = new Set(issues.rows.map(rowKey))
 
   if (issues.kind === ISSUE_KIND.REMOVED_ROW) {
     return rows.filter((row) => !planted.has(rowKey(row)))
   }
   return rows.map((row) => {
-    if (!planted.has(rowKey(row))) return row
+    if (!planted.has(rowKey(row))) {
+      return row
+    }
     const sheet = SHEETS[stream][row.worksheet]
     const marker =
       Object.keys(sheet.dateFields ?? {})[0] ?? sheet.monthFields?.[0]

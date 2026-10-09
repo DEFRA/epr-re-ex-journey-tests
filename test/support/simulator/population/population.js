@@ -201,7 +201,9 @@ function assignProcessingTypes(type, registrationCount, random) {
 const timesEach = (suffixes) => {
   /** @type {Record<string, number>} */
   const counts = {}
-  for (const suffix of suffixes) counts[suffix] = (counts[suffix] ?? 0) + 1
+  for (const suffix of suffixes) {
+    counts[suffix] = (counts[suffix] ?? 0) + 1
+  }
   return counts
 }
 
@@ -260,7 +262,9 @@ function takeMaterials(
       )
     )
   )
-  if (onOffer.size < materialCount) return undefined
+  if (onOffer.size < materialCount) {
+    return undefined
+  }
 
   for (let attempt = 0; attempt < MATERIAL_DRAW_ATTEMPTS; attempt++) {
     const remaining = Object.fromEntries(
@@ -341,10 +345,14 @@ function assignMaterials(
         siteCounts[index],
         random
       )
-      if (taken) materials[index] = taken
+      if (taken) {
+        materials[index] = taken
+      }
       return !taken
     })
-    if (short === undefined) return materials
+    if (short === undefined) {
+      return materials
+    }
     refused = short
   }
 
@@ -371,7 +379,9 @@ function assignSites(processingTypes, materials, sites) {
   /** @type {Map<string, number[]>} */
   const rowsByMaterial = new Map()
   processingTypes.forEach((processingType, row) => {
-    if (processingType !== 'reprocessor') return
+    if (processingType !== 'reprocessor') {
+      return
+    }
     const { suffix } = materials[row]
     rowsByMaterial.set(suffix, [...(rowsByMaterial.get(suffix) ?? []), row])
   })
@@ -379,7 +389,9 @@ function assignSites(processingTypes, materials, sites) {
   const siteIds = Array(processingTypes.length).fill(null)
   let next = 0
   for (const rows of rowsByMaterial.values()) {
-    for (const row of rows) siteIds[row] = sites[next++ % sites.length].id
+    for (const row of rows) {
+      siteIds[row] = sites[next++ % sites.length].id
+    }
   }
   return siteIds
 }
@@ -396,7 +408,9 @@ function withEveryStatus(statuses, distribution, random) {
   const missing = Object.keys(distribution).filter(
     (key) => distribution[key] > 0 && !present.has(key)
   )
-  if (missing.length === 0) return statuses
+  if (missing.length === 0) {
+    return statuses
+  }
 
   const commonest = Object.keys(distribution).sort(
     (a, b) => distribution[b] - distribution[a]
@@ -433,7 +447,9 @@ function assignActiveFrom(register, registrationCount, random) {
     registrationCount,
     random
   ).map((when) => {
-    if (when === 'goLive') return goLive
+    if (when === 'goLive') {
+      return goLive
+    }
     const firstOfMonth = `${when}-01`
     const days = dayCount(firstOfMonth, addMonth(firstOfMonth))
     // The go-live day is a bucket of its own, so a scattered registration in

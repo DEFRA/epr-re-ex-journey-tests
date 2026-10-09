@@ -54,7 +54,9 @@ export function createRandom(seed) {
     let remaining = float() * total
     for (const [key, weight] of entries) {
       remaining -= weight
-      if (remaining < 0) return key
+      if (remaining < 0) {
+        return key
+      }
     }
     return entries[entries.length - 1][0]
   }

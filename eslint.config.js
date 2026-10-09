@@ -51,11 +51,13 @@ export default [
             '^page_referrer$'
           ]
         }
-      ]
+      ],
+      curly: ['error', 'all'],
+      eqeqeq: ['error', 'always']
     }
   },
   {
-    files: ['resources/**/*.mjs'],
+    files: ['resources/**/*.js'],
     rules: {
       'no-console': 'off'
     }

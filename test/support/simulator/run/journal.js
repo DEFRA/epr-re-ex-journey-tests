@@ -97,7 +97,9 @@ export function writeSettings(directory, settings) {
  */
 export function readJournal(directory) {
   const path = join(directory, JOURNAL)
-  if (!existsSync(path)) return []
+  if (!existsSync(path)) {
+    return []
+  }
   const text = readFileSync(path, 'utf8')
   const lines = text.split('\n').filter(Boolean)
   const entries = lines.flatMap((line, index) => {
@@ -206,8 +208,12 @@ export function restore(run, entries, events) {
       )
     }
     done.add(entry.key)
-    if (entry.operator) restoreOperator(run, entry.operator)
-    if (entry.registration) restoreRegistration(run, entry.registration)
+    if (entry.operator) {
+      restoreOperator(run, entry.operator)
+    }
+    if (entry.registration) {
+      restoreRegistration(run, entry.registration)
+    }
     if (entry.note) {
       const { registration, prnId, ...note } = entry.note
       liveRegistrationOf(run, registration).notes.set(prnId, note)
@@ -229,11 +235,15 @@ export function restore(run, entries, events) {
  * @param {OperatorRecord} record
  */
 function restoreOperator(run, { id, refNo, orgId, userId, email }) {
-  if (run.operators.has(id)) return
+  if (run.operators.has(id)) {
+    return
+  }
   const planned = [...run.planned.values()].find(
     ({ operator }) => operator.id === id
   )?.operator
-  if (!planned) throw new Error(`${id} is not a planned operator`)
+  if (!planned) {
+    throw new Error(`${id} is not a planned operator`)
+  }
   run.operators.set(id, {
     planned,
     refNo,
@@ -252,7 +262,9 @@ function restoreOperator(run, { id, refNo, orgId, userId, email }) {
  */
 function restoreRegistration(run, record) {
   const planned = run.planned.get(record.id)
-  if (!planned) throw new Error(`${record.id} is not a planned registration`)
+  if (!planned) {
+    throw new Error(`${record.id} is not a planned registration`)
+  }
   const operator = run.operators.get(planned.operator.id)
   if (!operator) {
     throw new Error(`${record.id} was journalled before its operator`)

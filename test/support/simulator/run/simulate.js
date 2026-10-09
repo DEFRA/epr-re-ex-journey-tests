@@ -62,7 +62,9 @@ export function parseSettings(argv) {
    * @param {{whole?: boolean}} [options]
    */
   const number = (name, text, { whole = false } = {}) => {
-    if (text === undefined) return undefined
+    if (text === undefined) {
+      return undefined
+    }
     const value = Number(text)
     const wellFormed = whole ? Number.isInteger(value) : Number.isFinite(value)
     if (!wellFormed || value <= 0) {
@@ -77,7 +79,9 @@ export function parseSettings(argv) {
    * @param {string | undefined} text
    */
   const date = (name, text) => {
-    if (text === undefined) return undefined
+    if (text === undefined) {
+      return undefined
+    }
     const wellFormed =
       /^\d{4}-\d{2}-\d{2}$/.test(text) &&
       !Number.isNaN(Date.parse(text)) &&
@@ -173,7 +177,9 @@ async function main() {
   const { population, rows, events } = plan
   const run = createRun({ population, rows })
   const done = restore(run, readJournal(directory), events)
-  if (!saved) writeSettings(directory, settings)
+  if (!saved) {
+    writeSettings(directory, settings)
+  }
   logger.info(
     `${saved ? 'Resuming' : 'Starting'} ${settings.seed} at scale ${settings.scale}, ${settings.from} to ${settings.to}: ` +
       `${population.organisations.length} operators, ${events.length} events, ${done.size} done, in ${directory}`

@@ -89,7 +89,9 @@ function recordingExecutor() {
         await new Promise((resolve) => setImmediate(resolve))
         const releases = [...held.values()]
         held.clear()
-        for (const release of releases) release()
+        for (const release of releases) {
+          release()
+        }
       }
     }
   }
@@ -202,7 +204,9 @@ describe('replay', () => {
     await recorder.releaseUntilSettled(replaying)
     await replaying
     assert.equal(recorder.executed.length, events.length - 5)
-    for (const key of done) assert.ok(!recorder.executed.includes(key))
+    for (const key of done) {
+      assert.ok(!recorder.executed.includes(key))
+    }
   })
 
   it('moves a resumed day to its last planned instant, not its last event still to do', async () => {
@@ -235,7 +239,9 @@ describe('replay', () => {
       done: new Set(),
       concurrency: 4,
       onExecuted: (executed) => {
-        if (eventKey(executed) === failing) throw new Error('disk full')
+        if (eventKey(executed) === failing) {
+          throw new Error('disk full')
+        }
       },
       stop,
       ...recorder
