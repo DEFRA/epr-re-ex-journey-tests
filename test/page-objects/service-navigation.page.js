@@ -10,8 +10,6 @@ class ServiceNavigation {
     this.page = page
   }
 
-  // GOV.UK renders this button hidden and only reveals it, through script, when
-  // the viewport is narrow enough to collapse the navigation.
   menuButton() {
     return this.page.getByRole('button', { name: 'Menu' })
   }
