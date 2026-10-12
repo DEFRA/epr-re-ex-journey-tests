@@ -13,10 +13,6 @@ class HomePage extends Page {
     return this.page.getByRole('button', { name: 'Start now', exact: true })
   }
 
-  async getStartNowHref() {
-    return this.startNowButton().getAttribute('href')
-  }
-
   async linkRegistration() {
     // GOV.UK radios visually hide the native input under a styled circle, so
     // clicking the input directly fails Playwright's actionability check —
@@ -38,14 +34,13 @@ class HomePage extends Page {
   }
 
   /**
-   * Get the href of a navigation link by its text
+   * Get a navigation link by its text
    * @param {string} text - The link text
    */
-  async getNavigationLinkHref(text) {
+  navigationLink(text) {
     return this.page
       .locator('ul#navigation')
       .getByRole('link', { name: text, exact: true })
-      .getAttribute('href')
   }
 
   // Phase Banner selector

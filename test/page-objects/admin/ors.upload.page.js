@@ -29,20 +29,6 @@ class OrsUploadPage extends AdminPage {
     return super.open('/overseas-sites/imports')
   }
 
-  async capturePageState() {
-    const url = this.page.url()
-    const heading = await this.page
-      .locator('main h1')
-      .innerText()
-      .catch(() => '(no h1 found)')
-    const body = await this.page
-      .locator('[data-testid="app-page-body"]')
-      .innerText()
-      .catch(() => '(no page body found)')
-
-    return `URL: ${url}\nHeading: ${heading}\nBody: ${body}`
-  }
-
   async uploadWorkbook(localFilePath) {
     await this.page.locator('#ors-upload').setInputFiles(localFilePath)
   }
@@ -52,7 +38,7 @@ class OrsUploadPage extends AdminPage {
   }
 
   async waitForStatusPage() {
-    await this.page.waitForURL(/\/overseas-sites\/imports\/[^/]+$/, {
+    await expect(this.page.locator('main h1')).toHaveText(/^Import /, {
       timeout: 15000
     })
   }
@@ -182,10 +168,14 @@ class OrsUploadPage extends AdminPage {
     await expect(this.paginationNav).toBeVisible()
   }
 
+  paginationStatus() {
+    return this.page.locator(
+      '//p[contains(normalize-space(.), "Showing page")]'
+    )
+  }
+
   async getPaginationStatusText() {
-    return this.page
-      .locator('//p[contains(normalize-space(.), "Showing page")]')
-      .innerText()
+    return this.paginationStatus().innerText()
   }
 
   nextPageLink() {
@@ -193,13 +183,8 @@ class OrsUploadPage extends AdminPage {
   }
 
   async clickPageNumber(pageNumber) {
-    // On the last page, the numbered page link and the "Next page" link can
-    // share the same href (both point at the same next page), so this can
-    // resolve to more than one element - take the first, matching what
-    // WDIO's $() silently did.
-    await this.page
-      .locator(`nav.govuk-pagination a[href*="page=${pageNumber}&"]`)
-      .first()
+    await this.paginationNav
+      .getByRole('link', { name: `Page ${pageNumber}`, exact: true })
       .click()
   }
 

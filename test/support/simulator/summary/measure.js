@@ -166,7 +166,9 @@ export function monthsBetween(from, to) {
     const next = new Date(Date.UTC(year, month - 1 + index, 1))
       .toISOString()
       .slice(0, 7)
-    if (next > monthOf(to)) return months
+    if (next > monthOf(to)) {
+      return months
+    }
     months.push(next)
   }
 }
@@ -198,7 +200,9 @@ function tally(members, read) {
   const counts = {}
   for (const member of members) {
     const key = read(member)
-    if (key !== null) counts[key] = (counts[key] ?? 0) + 1
+    if (key !== null) {
+      counts[key] = (counts[key] ?? 0) + 1
+    }
   }
   return counts
 }
@@ -653,7 +657,9 @@ function reportSections({
       planned: planned.get(numbers.get(report.registrationNumber) ?? '')
     }))
     .filter(({ reportType, periodEnd, planned }) => {
-      if (!planned) return false
+      if (!planned) {
+        return false
+      }
       const { registration } = planned
       const cancelled = cancelledOn.get(registration.id)?.slice(0, 10)
       return (
@@ -683,9 +689,15 @@ function reportSections({
   const lateness = (report) => daysBetween(report.due, report.submittedDate)
   const buckets = tally(first, (report) => {
     const late = lateness(report)
-    if (late <= 0) return 'on time'
-    if (late <= 7) return 'late within 7 days'
-    if (late <= 30) return 'late within 30 days'
+    if (late <= 0) {
+      return 'on time'
+    }
+    if (late <= 7) {
+      return 'late within 7 days'
+    }
+    if (late <= 30) {
+      return 'late within 30 days'
+    }
     return 'late beyond 30 days'
   })
   /** @param {keyof BehaviourProfile['reporting']} rate */
@@ -1075,7 +1087,9 @@ export function format(sections) {
     Number.isInteger(value) ? String(value) : value.toFixed(2)
   /** @param {Measure} measure */
   const ratio = ({ generated, target }) => {
-    if (target === 0) return generated === 0 ? '' : '∞'
+    if (target === 0) {
+      return generated === 0 ? '' : '∞'
+    }
     return (generated / target).toFixed(2)
   }
   return sections

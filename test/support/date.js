@@ -3,3 +3,5 @@ export const todayddMMMMyyyy = new Date().toLocaleDateString('en-GB', {
   month: 'long',
   year: 'numeric'
 })
+
+export const currentYear = () => new Date().getUTCFullYear()

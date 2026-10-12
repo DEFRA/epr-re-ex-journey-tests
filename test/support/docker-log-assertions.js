@@ -31,7 +31,9 @@ export async function assertLogMessage({ level, eventAction, message }) {
   const logs = await dockerLogParser.waitForLog(message)
   if (logs.length > 1) {
     const actualLogs = logs
-      .filter((log) => log['log.level'] === level && log.message != null)
+      .filter(
+        (log) => log['log.level'] === level && typeof log.message === 'string'
+      )
       .map((log) => log.message)
       .join('\n')
     expect.fail(

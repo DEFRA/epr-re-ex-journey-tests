@@ -53,7 +53,7 @@ test.describe('Organisation/accreditation cross-linking integrity @organisationA
       {
         reprocessingType: 'input',
         regNumber: 'R25SR500040912PA',
-        accNumber: 'ACC123456',
+        accNumber: 'ACC123457',
         status: 'approved'
       }
     ])
@@ -95,7 +95,7 @@ test.describe('Organisation/accreditation cross-linking integrity @organisationA
       {
         reprocessingType: 'input',
         regNumber: 'R25SR500040912PA',
-        accNumber: 'ACC123456',
+        accNumber: 'ACC123457',
         status: 'approved'
       }
     ])
@@ -135,7 +135,7 @@ test.describe('Organisation/accreditation cross-linking integrity @organisationA
       {
         reprocessingType: 'input',
         regNumber: 'R25SR500040912PA',
-        accNumber: 'ACC123456',
+        accNumber: 'ACC123457',
         status: 'approved'
       }
     ])
@@ -175,7 +175,7 @@ test.describe('Organisation/accreditation cross-linking integrity @organisationA
       {
         reprocessingType: 'input',
         regNumber: 'R25SR500040912PA',
-        accNumber: 'ACC123456',
+        accNumber: 'ACC123457',
         status: 'approved'
       }
     ])
@@ -191,7 +191,7 @@ test.describe('Organisation/accreditation cross-linking integrity @organisationA
     expect(response.statusCode).to.equal(422)
     const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.contain(
-      'Registrations are linked to accreditations that do not match their type, material, or site:'
+      'Registrations are linked to accreditations that do not match their type, material, site, or regulator:'
     )
   })
 
@@ -209,7 +209,7 @@ test.describe('Organisation/accreditation cross-linking integrity @organisationA
       },
       {
         regNumber: 'E25SR500040912PA',
-        accNumber: 'ACC123456',
+        accNumber: 'ACC123457',
         status: 'approved'
       }
     ])
@@ -225,7 +225,7 @@ test.describe('Organisation/accreditation cross-linking integrity @organisationA
     expect(response.statusCode).to.equal(422)
     const body = /** @type {any} */ (await response.body.json())
     expect(body.message).to.contain(
-      'Registrations are linked to accreditations that do not match their type, material, or site:'
+      'Registrations are linked to accreditations that do not match their type, material, site, or regulator:'
     )
   })
 })

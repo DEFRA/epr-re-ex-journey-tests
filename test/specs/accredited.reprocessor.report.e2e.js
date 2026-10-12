@@ -11,6 +11,7 @@ import { ReportCheckAnswersPage } from 'page-objects/reports/report.check.answer
 import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.page.js'
 import {
   createLinkedOrganisation,
+  reportsLandingHasNoClosedPeriod,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { unsubmitReport } from '../support/seeding/reports.js'
@@ -94,6 +95,11 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
   // mode + a manually-created page (rather than the per-test `page` fixture)
   // is Playwright's equivalent of that shared-session pattern.
   test.describe.serial('accredited reprocessor with upload', () => {
+    test.skip(
+      reportsLandingHasNoClosedPeriod('monthly'),
+      'the reports landing has no closed month yet this year'
+    )
+
     /** @type {import('@playwright/test').Page} */
     let page
     let setupResponse
@@ -456,7 +462,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await unsubmitReport(
         setupResponse.organisationDetails.refNo,
         setupResponse.migrationResponse.registrationIds[0],
-        2026,
+        registrationStartYear(),
         'monthly',
         1,
         1
@@ -507,14 +513,14 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
 
       // Try to access prn-summary directly — should get 404
       await page.goto(
-        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/2026/monthly/1/submissions/1/prn-summary`
+        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/${registrationStartYear()}/monthly/1/submissions/1/prn-summary`
       )
       await checkBodyText(page, '404', 10)
       await checkBodyText(page, 'Page not found', 10)
 
       // Try to access free-prns directly — should get 404
       await page.goto(
-        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/2026/monthly/1/submissions/1/free-prns`
+        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/${registrationStartYear()}/monthly/1/submissions/1/free-prns`
       )
       await checkBodyText(page, '404', 10)
       await checkBodyText(page, 'Page not found', 10)

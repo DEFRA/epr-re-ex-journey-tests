@@ -14,7 +14,7 @@ import { after, describe, it } from 'node:test'
 import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 
-const preload = join(dirname(fileURLToPath(import.meta.url)), 'fake-clock.cjs')
+const preload = join(dirname(fileURLToPath(import.meta.url)), 'fake-clock.mjs')
 const scratch = mkdtempSync(join(tmpdir(), 'fake-clock-'))
 const clockFile = join(scratch, 'clock.txt')
 
@@ -28,7 +28,7 @@ after(() => rmSync(scratch, { recursive: true, force: true }))
 
 /** @param {string} script */
 const startUnderClock = (script) =>
-  spawn(process.execPath, ['--require', preload, '-e', script], {
+  spawn(process.execPath, ['--import', preload, '-e', script], {
     env: { ...process.env, FAKE_CLOCK_FILE: clockFile },
     // Captured rather than inherited, so the failures these tests provoke on
     // purpose do not print stack traces over a passing run.
@@ -37,7 +37,7 @@ const startUnderClock = (script) =>
 
 /** @param {string} script */
 const runUnderClock = (script) =>
-  execFileSync(process.execPath, ['--require', preload, '-e', script], {
+  execFileSync(process.execPath, ['--import', preload, '-e', script], {
     env: { ...process.env, FAKE_CLOCK_FILE: clockFile },
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe']

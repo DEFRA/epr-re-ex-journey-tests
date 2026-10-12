@@ -29,12 +29,13 @@ const expectRegulatorSignedOutPage = async (page) => {
   expect(await loggedOutPage.getBodyText()).toBe(
     `You have signed out of the '${REGULATOR_SERVICE}' service.`
   )
-  // The operator's way back in is Defra ID, which a regulator cannot use.
-  await expect(loggedOutPage.signInAgainLink()).toHaveAttribute(
-    'href',
-    '/regulators/login'
-  )
   expect(await serviceNavigation.serviceName()).toBe(REGULATOR_SERVICE)
+
+  // The operator's way back in is Defra ID, which a regulator cannot use, so
+  // the link has to land on the regulators' own sign-in. The identity provider
+  // still remembers the regulator, so it signs them straight back in.
+  await loggedOutPage.signInAgainLink().click()
+  await expect(page.locator('main h1')).toHaveText('All organisations')
 }
 
 test.describe('A regulator whose session lapses @regulator', () => {

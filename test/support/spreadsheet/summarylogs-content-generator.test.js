@@ -203,7 +203,9 @@ describe('summary log content generator', () => {
         cell.value && typeof cell.value === 'object' && 'result' in cell.value
           ? cell.value.result
           : cell.value
-      if (value instanceof Date) return value.toISOString().slice(0, 10)
+      if (value instanceof Date) {
+        return value.toISOString().slice(0, 10)
+      }
       return (typeof value === 'string' && value !== '') ||
         typeof value === 'number'
         ? value
@@ -279,7 +281,7 @@ describe('summary log content generator', () => {
   describe('summaryLogContentFromFixture', () => {
     it('reads a fixture built to isolate a few loads down to just those loads', async () => {
       // resources/exporter-reconciliation.xlsx (see
-      // resources/generate-reconciliation-fixtures.mjs) keeps 4 real loads
+      // resources/generate-reconciliation-fixtures.js) keeps 4 real loads
       // scattered across an otherwise-blanked sheet, most of whose
       // "unfilled" rows still carry a formula cell ROW_ID never recalculated
       // to a cached result - the case a naive "any field is non-empty" read

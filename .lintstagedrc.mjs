@@ -1,5 +1,5 @@
 export default {
-  '*.{js,cjs,json,md}': 'prettier --write',
-  '**/*.{js,cjs}': ['npm run lint:fix'],
+  '*.{js,mjs,json,md}': 'prettier --write',
+  '**/*.{js,mjs}': ['npm run lint:fix'],
   '*': () => 'gitleaks protect --staged --no-banner --verbose'
 }

@@ -106,8 +106,7 @@ async function generate(options = {}) {
     const email = await updateOrganisationData(context, {
       referenceNumber,
       registrationUpdates,
-      emailPrefix,
-      validFrom: '2026-01-01'
+      emailPrefix
     })
 
     if (withUserLinking) {

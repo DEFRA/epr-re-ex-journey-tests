@@ -1,8 +1,16 @@
 import assert from 'node:assert/strict'
+import { dirname, join } from 'node:path'
 import { describe, it } from 'node:test'
+import { fileURLToPath } from 'node:url'
 
 import { generateAccNumber, generateRegNumber } from './reg-acc-number.js'
+import { evaluateUnderClock } from './simulator/clock/under-clock.js'
 import { PROCESSING_TYPE_CONFIG } from './spreadsheet/spreadsheet-config.js'
+
+const module = join(
+  dirname(fileURLToPath(import.meta.url)),
+  'reg-acc-number.js'
+)
 
 const options = { materialSuffix: 'PA', year: '26' }
 
@@ -57,4 +65,19 @@ describe('registration and accreditation numbers', () => {
   it('refuse a processing type the register does not letter', () => {
     assert.throws(() => processingLetter('Exporter'), /"Exporter"/)
   })
+
+  for (const { instant, year } of [
+    { instant: '2027-12-31T23:59:00Z', year: '27' },
+    { instant: '2028-01-01T00:00:30Z', year: '28' }
+  ]) {
+    it(`carry ${year} as the relevant year at ${instant} unless told otherwise`, () => {
+      const number = evaluateUnderClock(
+        instant,
+        `const { generateRegNumber } = await import('${module}')
+         console.log(generateRegNumber({ materialSuffix: 'PA', wasteProcessingType: 'reprocessor' }))`
+      )
+
+      assert.equal(number, `R${year}ER5000000001PA`)
+    })
+  }
 })

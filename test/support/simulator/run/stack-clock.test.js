@@ -7,7 +7,7 @@ import { after, describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const preload = join(here, '../clock/fake-clock.cjs')
+const preload = join(here, '../clock/fake-clock.mjs')
 const runner = join(here, 'runner.js')
 const clock = join(here, '../clock/simulated-clock.js')
 const scratch = mkdtempSync(join(tmpdir(), 'stack-clock-'))
@@ -29,7 +29,7 @@ after(() => rmSync(scratch, { recursive: true, force: true }))
 const runOnTheClock = (script) =>
   execFileSync(
     process.execPath,
-    ['--require', preload, '--input-type=module', '-e', script],
+    ['--import', preload, '--input-type=module', '-e', script],
     {
       env: { ...process.env, FAKE_CLOCK_FILE: clockFile },
       encoding: 'utf8',

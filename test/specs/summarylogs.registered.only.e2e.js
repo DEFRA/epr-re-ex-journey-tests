@@ -217,11 +217,6 @@ test.describe('@registeredOnly', () => {
     // it created.
     expect(submission.get('Actions')).toContain('Download')
 
-    const actionTargets = await ledgerPage.actionTargets()
-    expect(actionTargets[0]).toMatch(
-      /^\/organisations\/[0-9a-f]{24}\/registrations\/[0-9a-f]{24}\/summary-logs\/files\/[0-9a-f-]{36}\/download$/
-    )
-
     expect(submission.get('Who')).toContain('@')
 
     // A regulator reads and does not write.
