@@ -123,18 +123,15 @@ class RegistrationDetailsPage extends Page {
   }
 
   /**
+   * What the page offers a reader to follow, by the words each link carries.
    * @returns {Promise<string[]>}
    */
-  async offeredRoutes() {
+  async offeredLinks() {
     await this.page.locator('h1').waitFor({ state: 'visible' })
 
-    const hrefs = await this.page
-      .locator('#main-content a[href]')
-      .evaluateAll((links) =>
-        links.map((link) => link.getAttribute('href') ?? '')
-      )
+    const texts = await this.page.locator('#main-content a').allTextContents()
 
-    return hrefs.map((href) => href.replace(/[0-9a-f]{24}/g, '{id}')).sort()
+    return texts.map((text) => text.replace(/\s+/g, ' ').trim()).sort()
   }
 
   /**

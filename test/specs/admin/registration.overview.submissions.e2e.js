@@ -104,16 +104,8 @@ test.describe('Registration overview - multiple submissions per period', () => {
     // by submissionNumber ascending (build-all-submission-periods.js), which
     // the frontend renders as-is.
     expect(quarterOneRows.map((row) => row.submission)).toEqual(['1', '2'])
-    for (const [index, row] of quarterOneRows.entries()) {
+    for (const row of quarterOneRows) {
       expect(row.status).toEqual('Submitted')
-      const viewLink = findOrThrow(
-        row.links,
-        (link) => link.text === 'View',
-        `View link on Quarter 1 row ${index + 1}`
-      )
-      expect(viewLink.href).toContain(
-        `/reports/2026/quarterly/1/submissions/${index + 1}`
-      )
     }
 
     // Submission 1 is now superseded by the later submitted submission 2, so
@@ -137,11 +129,15 @@ test.describe('Registration overview - multiple submissions per period', () => {
       'Unsubmit'
     ])
 
-    // Opening a prior submission resolves that submission: the report view
+    // Opening each submission resolves that submission: the report view
     // heading names it.
     const firstSubmissionRowNumber =
       reportsData.findIndex(
         (row) => isQuarterOne2026(row) && row.submission === '1'
+      ) + 1
+    const secondSubmissionRowNumber =
+      reportsData.findIndex(
+        (row) => isQuarterOne2026(row) && row.submission === '2'
       ) + 1
     await registrationOverviewPage.clickOnViewReportLink(
       firstSubmissionRowNumber
@@ -151,12 +147,16 @@ test.describe('Registration overview - multiple submissions per period', () => {
     )
     await page.goBack()
 
+    await registrationOverviewPage.clickOnViewReportLink(
+      secondSubmissionRowNumber
+    )
+    expect(await reportViewPage.getHeaderText()).toEqual(
+      'Report – 2026 quarterly period 1 submission 2'
+    )
+    await page.goBack()
+
     // Unsubmit the second submission: the confirm and result pages both name
     // the affected submission.
-    const secondSubmissionRowNumber =
-      reportsData.findIndex(
-        (row) => isQuarterOne2026(row) && row.submission === '2'
-      ) + 1
     await registrationOverviewPage.clickOnUnsubmitReportLink(
       secondSubmissionRowNumber
     )

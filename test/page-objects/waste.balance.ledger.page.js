@@ -43,7 +43,10 @@ class WasteBalanceLedgerPage extends Page {
    * @returns {import('@playwright/test').Locator}
    */
   downloadLink() {
-    return this.page.locator(`${LEDGER_TABLE} a[href$="/download"]`).first()
+    return this.page
+      .locator(LEDGER_TABLE)
+      .getByRole('link', { name: 'Download XLSX' })
+      .first()
   }
 
   /**
@@ -68,23 +71,6 @@ class WasteBalanceLedgerPage extends Page {
    */
   viewNoteLinks(prnNumber) {
     return this.page.getByRole('link', { name: `View ${prnNumber}` })
-  }
-
-  /**
-   * Where each row's action leads, in row order, and null for a row that
-   * offers none. It reads the target rather than the link text, so it says
-   * which row leads to which note instead of only that a link is there.
-   *
-   * @returns {Promise<(string | null)[]>}
-   */
-  async actionTargets() {
-    return this.page
-      .locator(`${LEDGER_TABLE} > tbody > tr > td:last-child`)
-      .evaluateAll((cells) =>
-        cells.map(
-          (cell) => cell.querySelector('a')?.getAttribute('href') ?? null
-        )
-      )
   }
 }
 

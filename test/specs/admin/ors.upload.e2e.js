@@ -88,10 +88,7 @@ test.describe('ORS upload flow @orsUpload', () => {
     expect(fileResults[0].fileName).toContain(`ors-test-${orgId}`)
     expect(fileResults[0].result).toEqual('success')
 
-    const viewRecordsLink = page.locator('a[href="/overseas-sites"]').first()
-    await expect(viewRecordsLink).toBeVisible()
-
-    await orsUploadPage.openList()
+    await page.getByRole('link', { name: 'View ORS records' }).click()
     await expect(page).toHaveTitle(/Overseas reprocessing sites/)
     await orsUploadPage.expectDownloadCsvVisible()
 
@@ -164,10 +161,9 @@ test.describe('ORS upload flow @orsUpload', () => {
     expect(pageOneStatus).toContain('Showing page 1 of')
 
     await orsUploadPage.nextPageLink().click()
-    await expect(page).toHaveURL(/page=2&pageSize=2/)
-
-    const pageTwoStatus = await orsUploadPage.getPaginationStatusText()
-    expect(pageTwoStatus).toContain('Showing page 2 of')
+    await expect(orsUploadPage.paginationStatus()).toContainText(
+      'Showing page 2 of'
+    )
 
     const pageTwoRows = await orsUploadPage.getListTableRows()
     expect(pageTwoRows.length).toBeGreaterThan(0)
@@ -269,11 +265,9 @@ test.describe('ORS upload flow @orsUpload', () => {
 
       await orsUploadPage.openList()
       await orsUploadPage.filterByRegistrationNumber(alphaRegistrationNumber)
-      await expect(page).toHaveURL(
-        new RegExp(
-          `registrationNumber=${encodeURIComponent(alphaRegistrationNumber)}`
-        )
-      )
+      await expect(
+        orsUploadPage.clearRegistrationNumberFilterLink()
+      ).toBeVisible()
       expect(await orsUploadPage.getRegistrationNumberFilterValue()).toBe(
         alphaRegistrationNumber
       )
@@ -291,11 +285,10 @@ test.describe('ORS upload flow @orsUpload', () => {
       await orsUploadPage.openList()
       await orsUploadPage.filterByRegistrationNumber(alphaRegistrationNumber)
       await orsUploadPage.clearRegistrationNumberFilterLink().click()
-      await expect(page).not.toHaveURL(
-        new RegExp(
-          `registrationNumber=${encodeURIComponent(alphaRegistrationNumber)}`
-        )
-      )
+      await expect(orsUploadPage.registrationNumberInput).toHaveValue('')
+      await expect(
+        orsUploadPage.clearRegistrationNumberFilterLink()
+      ).toBeHidden()
     })
 
     test('Should preserve filter through pagination', async ({ page }) => {
@@ -320,18 +313,12 @@ test.describe('ORS upload flow @orsUpload', () => {
       ).toBe(true)
 
       await orsUploadPage.clickPageNumber(2)
-      await expect(page).toHaveURL(
-        new RegExp(
-          new URLSearchParams({
-            page: '2',
-            pageSize: '2',
-            registrationNumber: alphaRegistrationNumber
-          }).toString()
-        )
+      await expect(orsUploadPage.paginationStatus()).toContainText(
+        'Showing page 2 of 2'
       )
-
-      const pageTwoStatus = await orsUploadPage.getPaginationStatusText()
-      expect(pageTwoStatus).toContain('Showing page 2 of 2')
+      await expect(orsUploadPage.registrationNumberInput).toHaveValue(
+        alphaRegistrationNumber
+      )
 
       const pageTwoRows = await orsUploadPage.getListTableRows()
       expect(pageTwoRows).toHaveLength(1)

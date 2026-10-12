@@ -361,7 +361,9 @@ describe('registrations and their accreditations', () => {
   })
 
   it('dates a status change on a working day', () => {
-    for (const event of changed) assert.ok(!isWeekend(event), event.at)
+    for (const event of changed) {
+      assert.ok(!isWeekend(event), event.at)
+    }
   })
 
   it('leaves a status change unplanned rather than put it on a weekend', () => {
@@ -452,7 +454,9 @@ describe('summary log uploads', () => {
       const [first, second] = uploadsOf(planned.registrationId).filter(
         (upload) => upload.outcome === UPLOAD_OUTCOME.SUBMITTED
       )
-      if (!second) continue
+      if (!second) {
+        continue
+      }
       assert.equal(first.amendments, null)
       const registration = registrationOf(planned)
       const { profile } = operatorOf(planned)
@@ -596,7 +600,9 @@ describe('summary log uploads', () => {
   })
 
   it('leaves the landing upload of every attempt clean', () => {
-    for (const upload of landed) assert.equal(upload.issues, null)
+    for (const upload of landed) {
+      assert.equal(upload.issues, null)
+    }
   })
 
   it('plants a removed row only where the row was submitted before', () => {
@@ -740,7 +746,9 @@ describe('the rows an upload carries', () => {
             `${planned.registrationId} ${upload.at} plans ${upload.amendments.count} amendments over ${pool.length} rows`
           )
         }
-        if (upload.outcome === UPLOAD_OUTCOME.SUBMITTED) cutoff = upload.cutoff
+        if (upload.outcome === UPLOAD_OUTCOME.SUBMITTED) {
+          cutoff = upload.cutoff
+        }
       }
     }
   })
@@ -766,12 +774,16 @@ describe('the rows an upload carries', () => {
     for (const planned of sampled) {
       let previous = new Map()
       for (const upload of uploadsOf(planned.registrationId)) {
-        if (upload.outcome !== UPLOAD_OUTCOME.SUBMITTED) continue
+        if (upload.outcome !== UPLOAD_OUTCOME.SUBMITTED) {
+          continue
+        }
         const view = byKey(viewOf(planned, upload))
         const restated = new Set(upload.restated.map(rowKey))
         for (const [key, row] of view) {
           const kept = previous.get(key)
-          if (!kept || kept.seed === row.seed || restated.has(key)) continue
+          if (!kept || kept.seed === row.seed || restated.has(key)) {
+            continue
+          }
           assert.ok(
             !upload.closedPeriods.includes(row.period),
             `${planned.registrationId} amended ${key} in closed period ${row.period}`
@@ -808,7 +820,9 @@ describe('the rows an upload carries', () => {
     const planned = rowsOf(upload.registrationId)
     const view = byKey(viewOf(planned, upload))
     const removed = must(upload.issues).rows
-    for (const ref of removed) assert.ok(!view.has(rowKey(ref)))
+    for (const ref of removed) {
+      assert.ok(!view.has(rowKey(ref)))
+    }
     assert.equal(
       view.size,
       planned.rows.filter((row) => row.date <= upload.cutoff).length -
@@ -856,9 +870,15 @@ describe('reports', () => {
   it('reproduces the calibrated punctuality of the estate', () => {
     const buckets = tally(measured, (report) => {
       const late = lateness(report)
-      if (late <= 0) return 'onTime'
-      if (late <= 7) return 'lateWithin7'
-      if (late <= 30) return 'lateWithin30'
+      if (late <= 0) {
+        return 'onTime'
+      }
+      if (late <= 7) {
+        return 'lateWithin7'
+      }
+      if (late <= 30) {
+        return 'lateWithin30'
+      }
       return 'lateBeyond30'
     })
     const total =
@@ -1475,7 +1495,9 @@ describe('PRNs', () => {
    */
   it('accepts a note issued on its operator’s last working day of the month at its operator’s rates', () => {
     const lastWorkingDay = ofType(EVENT.PRN_ISSUED).filter((issued) => {
-      if (month(issued).endsWith('-12')) return false
+      if (month(issued).endsWith('-12')) {
+        return false
+      }
       const daysLeft = daysBetween(day(issued), monthEndOf(issued))
       for (let ahead = 1; ahead <= daysLeft; ahead++) {
         if (
@@ -1599,7 +1621,9 @@ describe('PRNs', () => {
             0
           )
       }
-      if (!isPrnEvent(event)) continue
+      if (!isPrnEvent(event)) {
+        continue
+      }
       if (event.type === EVENT.PRN_RAISED) {
         holding.set(event.prnId, event.tonnage)
         const held = [...holding.values()].reduce((sum, t) => sum + t, 0)
@@ -1655,7 +1679,9 @@ describe('PRNs', () => {
         const own = drafted.filter(
           (event) => event.registrationId === registration.id
         )
-        if (own.length === 0) continue
+        if (own.length === 0) {
+          continue
+        }
         planned += issued
           .filter((event) => event.registrationId === registration.id)
           .reduce((sum, event) => sum + event.tonnage, 0)
@@ -1693,7 +1719,9 @@ describe('PRNs', () => {
       )
       for (const key of new Set(own.map(month))) {
         const inMonth = own.filter((event) => month(event) === key)
-        if (inMonth.length < 3) continue
+        if (inMonth.length < 3) {
+          continue
+        }
         firstIsLargest.push(
           inMonth.every((event) => event.tonnage <= inMonth[0].tonnage)
         )
@@ -1737,7 +1765,9 @@ describe('weekends', () => {
       (event) => !operatorOf(event).profile.worksWeekends
     )
     assert.ok(weekdayOnly.length > 0)
-    for (const event of weekdayOnly) assert.ok(!isWeekend(event), event.at)
+    for (const event of weekdayOnly) {
+      assert.ok(!isWeekend(event), event.at)
+    }
   })
 
   it('has weekend workers work weekends', () => {
@@ -1786,7 +1816,9 @@ describe('the period planned', () => {
     for (const event of planned.operators.flatMap(
       (operator) => operator.events
     )) {
-      if (event.type !== EVENT.REPORT_SUBMITTED) continue
+      if (event.type !== EVENT.REPORT_SUBMITTED) {
+        continue
+      }
       assert.ok(periodBounds(event).end <= '2026-02-28')
     }
   })
@@ -1806,7 +1838,9 @@ describe('the period planned', () => {
     assert.ok(december.length > expired.length * 0.9, `${december.length}`)
     for (const event of later) {
       const { accreditation } = registrationOf(event)
-      if (!accreditation || !event.type.startsWith('prn.')) continue
+      if (!accreditation || !event.type.startsWith('prn.')) {
+        continue
+      }
       assert.ok(day(event) <= accreditation.validTo, event.at)
     }
   })

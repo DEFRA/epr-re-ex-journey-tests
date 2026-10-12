@@ -10,8 +10,9 @@ import { ReportSupportingInformationPage } from 'page-objects/reports/report.sup
 import { ReportCheckAnswersPage } from 'page-objects/reports/report.check.answers.page.js'
 import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.page.js'
 import {
-  seedOverseasSites,
   createLinkedOrganisation,
+  reportsLandingHasNoClosedPeriod,
+  seedOverseasSites,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { unsubmitReport } from '../support/seeding/reports.js'
@@ -40,6 +41,11 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
   // test by default, so this uses the documented "share a single page
   // across a serial group" pattern instead of the per-test `page` fixture.
   test.describe.serial('accredited exporter with upload', () => {
+    test.skip(
+      reportsLandingHasNoClosedPeriod('monthly'),
+      'the reports landing has no closed month yet this year'
+    )
+
     let page
     let organisationDetails
     let migrationResponse
@@ -371,7 +377,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       await unsubmitReport(
         organisationDetails.refNo,
         migrationResponse.registrationIds[0],
-        2026,
+        registrationStartYear(),
         'monthly',
         1,
         1
@@ -431,14 +437,14 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
     test('should return 404 when non-accredited exporter tries to access PRN pages @accreditedExporterRouteGuard @registeredOnlyExporterRegression', async () => {
       // Try to access prn-summary directly — should get 404
       await page.goto(
-        `/organisations/${orgRefNo}/registrations/${registrationId}/reports/2026/monthly/1/submissions/1/prn-summary`
+        `/organisations/${orgRefNo}/registrations/${registrationId}/reports/${registrationStartYear()}/monthly/1/submissions/1/prn-summary`
       )
       await checkBodyText(page, '404', 10)
       await checkBodyText(page, 'Page not found', 10)
 
       // Try to access free-perns directly — should get 404
       await page.goto(
-        `/organisations/${orgRefNo}/registrations/${registrationId}/reports/2026/monthly/1/submissions/1/free-perns`
+        `/organisations/${orgRefNo}/registrations/${registrationId}/reports/${registrationStartYear()}/monthly/1/submissions/1/free-perns`
       )
       await checkBodyText(page, '404', 10)
       await checkBodyText(page, 'Page not found', 10)

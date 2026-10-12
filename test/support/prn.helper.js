@@ -15,6 +15,7 @@ export class PrnHelper {
    * @param {boolean} isPern
    */
   constructor(page, isPern = false) {
+    this.page = page
     this.prnWording = isPern ? 'PERN' : 'PRN'
     this.isPern = isPern
     this.checkBeforeCreatingPrnPage = new CheckBeforeCreatingPRNPage(page)
@@ -208,13 +209,16 @@ export class PrnHelper {
   }
 
   async checkIssuedPageLinks() {
-    const managePRNsHref = await this.prnIssuedPage
-      .managePRNs()
-      .getAttribute('href')
-    const issueAnotherPRNHref = await this.prnIssuedPage
-      .issueAnotherPRN()
-      .getAttribute('href')
-    expect(managePRNsHref).toEqual(issueAnotherPRNHref)
+    for (const link of [
+      this.prnIssuedPage.managePRNs(),
+      this.prnIssuedPage.issueAnotherPRN()
+    ]) {
+      await link.click()
+      expect(await this.prnDashboardPage.headingText()).toBe(
+        `${this.prnWording}s`
+      )
+      await this.page.goBack()
+    }
   }
 
   async cancelPRNAndReturnToPRNsDashboard(

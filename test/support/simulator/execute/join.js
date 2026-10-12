@@ -63,7 +63,9 @@ export const seededProcessingType = (registration) =>
  * @returns {'input' | 'output' | undefined}
  */
 export function reprocessingTypeOf(stream) {
-  if (stream === 'reprocessorOutput') return 'output'
+  if (stream === 'reprocessorOutput') {
+    return 'output'
+  }
   if (stream === 'reprocessorInput' || stream === 'regOnlyReprocessor') {
     return 'input'
   }
