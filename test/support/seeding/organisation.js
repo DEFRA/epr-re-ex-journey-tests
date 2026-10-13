@@ -614,7 +614,8 @@ export async function updateRegistrationStatus(orgId, newStatus) {
   // A status change records today and ignores a supplied history, so the
   // approval and the change land on one day and the registration reads as
   // never approved. Without a status change the history is honoured, so a
-  // second write dates the approval at validFrom and the change a day later.
+  // second write dates creation before validFrom, the approval at validFrom
+  // and the change a day later.
   await changeOrganisation(orgId, (data) => {
     const registration = data.registrations[0]
     const approvedOn = registration.validFrom.split('T')[0]
@@ -622,6 +623,9 @@ export async function updateRegistrationStatus(orgId, newStatus) {
     changedOn.setUTCDate(changedOn.getUTCDate() + 1)
 
     registration.statusHistory = registration.statusHistory.map((entry) => {
+      if (entry.status === 'created') {
+        return { ...entry, updatedAt: SEEDED_CREATED_ON }
+      }
       if (entry.status === 'approved') {
         return { ...entry, updatedAt: approvedOn }
       }
