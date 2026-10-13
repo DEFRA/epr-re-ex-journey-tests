@@ -54,7 +54,7 @@ test.describe('Summary Logs (Glass Material) @smoketest', () => {
         },
         {
           reprocessingType: null,
-          regNumber: 'E25SR500030913GO',
+          regNumber: 'R25SR500030913GO',
           accNumber: '234567GO',
           status: 'approved'
         }
@@ -80,7 +80,7 @@ test.describe('Summary Logs (Glass Material) @smoketest', () => {
 
     // Single-registration orgs skip the selection list, so the reg/acc
     // numbers render as plain text on the task page, not as links.
-    await checkBodyText(page, 'E25SR500030913GO', 10)
+    await checkBodyText(page, 'R25SR500030913GO', 10)
     await checkBodyText(page, '234567GO', 10)
 
     let dashboardHeaderText = await wasteRecordsPage.dashboardHeaderText()

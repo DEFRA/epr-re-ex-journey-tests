@@ -162,8 +162,9 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
     await checkBodyText(page, 'Summary log uploaded', 30)
 
     await uploadSummaryLogPage.returnToHomePageLink().click()
+    // The dashboard shows the latest year, and this accreditation is 2025's
     const availableWasteBalance = await dashboardPage.availableWasteBalance(1)
-    expect(availableWasteBalance).toBe('0.00')
+    expect(availableWasteBalance).toBe('Not applicable')
 
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)

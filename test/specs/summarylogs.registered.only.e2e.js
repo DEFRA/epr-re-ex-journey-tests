@@ -80,7 +80,7 @@ test.describe('@registeredOnly', () => {
         },
         {
           reprocessingType: 'input',
-          regNumber: 'RI25SR51110509124PL',
+          regNumber: 'R25SR51110509124PL',
           accNumber: 'ACCI1234567',
           status: 'approved'
         }

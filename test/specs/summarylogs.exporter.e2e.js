@@ -138,8 +138,9 @@ test.describe('Summary Logs Exporter', () => {
 
     await dashboardPage.exportingTabLink().click()
 
+    // The dashboard shows the latest year, and this accreditation is 2025's
     let availableWasteBalance = await dashboardPage.availableWasteBalance(1)
-    expect(availableWasteBalance).toBe('30.00')
+    expect(availableWasteBalance).toBe('Not applicable')
 
     await dashboardPage.selectLink(1)
     const wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
@@ -223,7 +224,7 @@ test.describe('Summary Logs Exporter', () => {
     await dashboardPage.exportingTabLink().click()
 
     availableWasteBalance = await dashboardPage.availableWasteBalance(1)
-    expect(availableWasteBalance).toBe('139.00')
+    expect(availableWasteBalance).toBe('Not applicable')
 
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)

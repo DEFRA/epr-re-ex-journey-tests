@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { RegulatorOrganisationPage } from 'page-objects/regulator/organisation.page'
+import { currentYear } from '../../support/date.js'
 import { seedMultiSiteMultiTypeOrganisation } from '../../support/seeding/regulator-read.js'
 
 test.describe('A regulator viewing registrations grouped by site and by type @regulator', () => {
@@ -51,7 +52,7 @@ test.describe('A regulator viewing registrations grouped by site and by type @re
         ['Registration status', 'Approved'],
         ['Material', 'Paper and board'],
         ['Regulator', 'EA'],
-        ['Accreditation', 'Approved'],
+        ['Accreditation', `${currentYear()}: Approved`],
         ['Actions', `View ${seeded.inputRegistrationNumber}`]
       ])
     ])
@@ -95,7 +96,7 @@ test.describe('A regulator viewing registrations grouped by site and by type @re
         ['Registration status', 'Approved'],
         ['Material', 'Plastic'],
         ['Regulator', 'EA'],
-        ['Accreditation', 'Approved'],
+        ['Accreditation', `${currentYear()}: Approved`],
         ['Actions', `View ${seeded.exporterRegistrationNumber}`]
       ])
     ])

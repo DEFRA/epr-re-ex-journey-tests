@@ -23,7 +23,7 @@ async function setUpExporterWithReport() {
   ])
   const migrated = await updateMigratedOrganisation(org.refNo, [
     {
-      regNumber: 'E25SR500030913PA',
+      regNumber: 'R25SR500030913PA',
       accNumber: 'ACC234567',
       status: 'approved'
     }

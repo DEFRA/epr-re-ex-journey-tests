@@ -208,7 +208,7 @@ test.describe('Organisation/accreditation cross-linking integrity @organisationA
         status: 'approved'
       },
       {
-        regNumber: 'E25SR500040912PA',
+        regNumber: 'R25SR500040912PA',
         accNumber: 'ACC123457',
         status: 'approved'
       }

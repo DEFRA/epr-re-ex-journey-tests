@@ -42,7 +42,7 @@ export const reportsLandingHasNoClosedPeriod = (cadence) =>
 
 // Filler regNumber/accNumber for specs that need updateMigratedOrganisation
 // to approve a registration but never assert the number's actual value.
-export const FAKE_REGISTRATION_NUMBER = 'FAKE/REG123/TEST'
+export const FAKE_REGISTRATION_NUMBER = 'R26ER5999999999PA'
 export const FAKE_ACCREDITATION_NUMBER = 'FAKE/ACC123/TEST'
 
 export async function createOrgWithAllWasteProcessingTypeAllMaterials() {
