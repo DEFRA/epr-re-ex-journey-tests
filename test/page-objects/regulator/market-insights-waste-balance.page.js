@@ -22,9 +22,16 @@ const TABLE = 'Waste balance'
 const ACCREDITATION_TYPE_CELL = 2
 const FIRST_FIGURE_CELL = 3
 
+// The figures end at the row's total. Where a total includes a month marked
+// confidential, the page follows it with the total the workbook publishes
+// without that month, a column that comes and goes with whichever operators
+// other journeys have seeded, so it is left out of what is read.
+const TOTAL = 'Total'
+
 // The row beneath the figures counts the monthly reports submitted against
 // those due. Its header spans the two columns that name every other row.
 const REPORTS_ROW_HEADER = 'Monthly reports submitted'
+const NAMING_COLUMNS = 2
 
 class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
   /**
@@ -43,7 +50,8 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
     await this.table().waitFor({ state: 'visible' })
 
     const texts = await this.table().getByRole('columnheader').allInnerTexts()
-    return texts.map((text) => text.trim())
+    const headings = texts.map((text) => text.trim())
+    return headings.slice(0, headings.indexOf(TOTAL) + 1)
   }
 
   /**
@@ -88,10 +96,12 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
    * @returns {Promise<string[]>}
    */
   async figures() {
-    await this.table().waitFor({ state: 'visible' })
+    const totalCell = (await this.columnHeadings()).length
 
     const texts = await this.figureRows()
-      .locator(`td:nth-child(n + ${FIRST_FIGURE_CELL})`)
+      .locator(
+        `td:nth-child(n + ${FIRST_FIGURE_CELL}):nth-child(-n + ${totalCell})`
+      )
       .allInnerTexts()
     return texts.map((text) => figureOf(text))
   }
@@ -102,14 +112,14 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
    * @returns {Promise<string[]>}
    */
   async reportCounts() {
-    await this.table().waitFor({ state: 'visible' })
+    const figureColumns = (await this.columnHeadings()).length - NAMING_COLUMNS
 
     const texts = await this.table()
       .locator('tbody tr')
       .filter({ has: this.reportsRowHeader() })
       .getByRole('cell')
       .allInnerTexts()
-    return texts.map((text) => text.trim())
+    return texts.slice(0, figureColumns).map((text) => text.trim())
   }
 }
 
