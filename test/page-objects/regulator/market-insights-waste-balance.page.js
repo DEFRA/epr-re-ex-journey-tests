@@ -22,9 +22,19 @@ const TABLE = 'Waste balance'
 const ACCREDITATION_TYPE_CELL = 2
 const FIRST_FIGURE_CELL = 3
 
+// The published total only appears while a row's total includes a month marked
+// [c], which depends on what other journeys have seeded.
+const HEADINGS = Object.freeze({
+  material: 'Material',
+  accreditationType: 'Accreditation type',
+  total: 'Total',
+  publishedTotal: 'Published total, without the months marked [c]'
+})
+
 // The row beneath the figures counts the monthly reports submitted against
 // those due. Its header spans the two columns that name every other row.
 const REPORTS_ROW_HEADER = 'Monthly reports submitted'
+const NAMING_COLUMNS = 2
 
 class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
   /**
@@ -35,8 +45,6 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
   }
 
   /**
-   * The headings of the figures table, in column order: the two that name the
-   * row, then one per reporting month, then the total.
    * @returns {Promise<string[]>}
    */
   async columnHeadings() {
@@ -44,6 +52,14 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
 
     const texts = await this.table().getByRole('columnheader').allInnerTexts()
     return texts.map((text) => text.trim())
+  }
+
+  /**
+   * @param {string} heading
+   * @returns {Promise<number>}
+   */
+  async nthChildOf(heading) {
+    return (await this.columnHeadings()).indexOf(heading) + 1
   }
 
   /**
@@ -88,12 +104,30 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
    * @returns {Promise<string[]>}
    */
   async figures() {
-    await this.table().waitFor({ state: 'visible' })
+    const totalCell = await this.nthChildOf(HEADINGS.total)
 
     const texts = await this.figureRows()
-      .locator(`td:nth-child(n + ${FIRST_FIGURE_CELL})`)
+      .locator(
+        `td:nth-child(n + ${FIRST_FIGURE_CELL}):nth-child(-n + ${totalCell})`
+      )
       .allInnerTexts()
     return texts.map((text) => figureOf(text))
+  }
+
+  /**
+   * @returns {Promise<string[]>}
+   */
+  async publishedTotals() {
+    const publishedTotalCell = await this.nthChildOf(HEADINGS.publishedTotal)
+
+    if (publishedTotalCell === 0) {
+      return []
+    }
+
+    const texts = await this.figureRows()
+      .locator(`td:nth-child(${publishedTotalCell})`)
+      .allInnerTexts()
+    return texts.map((text) => text.trim())
   }
 
   /**
@@ -102,15 +136,15 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
    * @returns {Promise<string[]>}
    */
   async reportCounts() {
-    await this.table().waitFor({ state: 'visible' })
+    const counts = (await this.nthChildOf(HEADINGS.total)) - NAMING_COLUMNS
 
     const texts = await this.table()
       .locator('tbody tr')
       .filter({ has: this.reportsRowHeader() })
       .getByRole('cell')
       .allInnerTexts()
-    return texts.map((text) => text.trim())
+    return texts.slice(0, counts).map((text) => text.trim())
   }
 }
 
-export { MarketInsightsWasteBalancePage }
+export { HEADINGS as WASTE_BALANCE_HEADINGS, MarketInsightsWasteBalancePage }
