@@ -3,7 +3,10 @@ import { test, expect } from '@playwright/test'
 import { MarketInsightsPage } from 'page-objects/regulator/market-insights.page'
 import { MarketInsightsOutstandingReturnsPage } from 'page-objects/regulator/market-insights-outstanding-returns.page'
 import { MarketInsightsReprocessorExporterPage } from 'page-objects/regulator/market-insights-reprocessor-exporter.page'
-import { MarketInsightsWasteBalancePage } from 'page-objects/regulator/market-insights-waste-balance.page'
+import {
+  MarketInsightsWasteBalancePage,
+  WASTE_BALANCE_HEADINGS
+} from 'page-objects/regulator/market-insights-waste-balance.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import {
@@ -167,12 +170,27 @@ test.describe('A regulator reading market insights @regulator', () => {
         .soft(await wasteBalancePage.dataTakenAtText())
         .toMatch(DATA_TAKEN_AT)
 
+      // The months sit between the two headings that name the row and the
+      // total. The published total follows the total only while some row's
+      // total includes a month marked confidential, which depends on the
+      // operators other journeys have seeded, so it may or may not be there.
+      const { material, accreditationType, total, publishedTotal } =
+        WASTE_BALANCE_HEADINGS
       const headings = await wasteBalancePage.columnHeadings()
-      const months = headings.slice(2, -1)
+      const months = headings.slice(
+        headings.indexOf(accreditationType) + 1,
+        headings.indexOf(total)
+      )
 
       expect
-        .soft([headings[0], headings[1], headings.at(-1)])
-        .toEqual(['Material', 'Accreditation type', 'Total'])
+        .soft(headings)
+        .toEqual([
+          material,
+          accreditationType,
+          ...months,
+          total,
+          ...(headings.includes(publishedTotal) ? [publishedTotal] : [])
+        ])
 
       // The columns run from January to the last complete month, so they are
       // the opening stretch of the calendar with nothing skipped. Every other
@@ -200,6 +218,16 @@ test.describe('A regulator reading market insights @regulator', () => {
       // year, so the page is showing real tonnage rather than a table of
       // zeroes.
       expect.soft(figures.some((figure) => asNumber(figure) > 0)).toBe(true)
+
+      // A published total states a tonnage the way every other figure does,
+      // and is blank for a row whose total leaves nothing out.
+      expect
+        .soft(
+          (await wasteBalancePage.publishedTotals()).filter(
+            (figure) => figure !== '' && !TONNAGE.test(figure)
+          )
+        )
+        .toEqual([])
 
       // Beneath the figures, each month says how many of the monthly reports
       // it expected the figures include, and the period says the same under

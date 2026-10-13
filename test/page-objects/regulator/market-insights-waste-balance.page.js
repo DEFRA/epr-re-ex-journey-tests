@@ -22,11 +22,17 @@ const TABLE = 'Waste balance'
 const ACCREDITATION_TYPE_CELL = 2
 const FIRST_FIGURE_CELL = 3
 
-// The figures end at the row's total. Where a total includes a month marked
-// confidential, the page follows it with the total the workbook publishes
-// without that month, a column that comes and goes with whichever operators
-// other journeys have seeded, so it is left out of what is read.
-const TOTAL = 'Total'
+// The headings the table names its columns by, around one per reporting month.
+// Where a row's total includes a month marked confidential, the total the
+// workbook publishes without that month follows the total. That column comes
+// and goes with whichever operators other journeys have seeded, so every
+// column is found by its heading rather than by its place.
+const HEADINGS = Object.freeze({
+  material: 'Material',
+  accreditationType: 'Accreditation type',
+  total: 'Total',
+  publishedTotal: 'Published total, without the months marked [c]'
+})
 
 // The row beneath the figures counts the monthly reports submitted against
 // those due. Its header spans the two columns that name every other row.
@@ -42,16 +48,24 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
   }
 
   /**
-   * The headings of the figures table, in column order: the two that name the
-   * row, then one per reporting month, then the total.
+   * The headings of the figures table, in column order.
    * @returns {Promise<string[]>}
    */
   async columnHeadings() {
     await this.table().waitFor({ state: 'visible' })
 
     const texts = await this.table().getByRole('columnheader').allInnerTexts()
-    const headings = texts.map((text) => text.trim())
-    return headings.slice(0, headings.indexOf(TOTAL) + 1)
+    return texts.map((text) => text.trim())
+  }
+
+  /**
+   * The position of the column under a heading, counted from one as
+   * `nth-child` counts, or zero where the table has no such column.
+   * @param {string} heading
+   * @returns {Promise<number>}
+   */
+  async columnUnder(heading) {
+    return (await this.columnHeadings()).indexOf(heading) + 1
   }
 
   /**
@@ -96,7 +110,7 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
    * @returns {Promise<string[]>}
    */
   async figures() {
-    const totalCell = (await this.columnHeadings()).length
+    const totalCell = await this.columnUnder(HEADINGS.total)
 
     const texts = await this.figureRows()
       .locator(
@@ -107,20 +121,39 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
   }
 
   /**
+   * The published total of every figure row, which is blank for a row whose
+   * total leaves nothing out, and none at all when the table has no such
+   * column.
+   * @returns {Promise<string[]>}
+   */
+  async publishedTotals() {
+    const publishedTotalCell = await this.columnUnder(HEADINGS.publishedTotal)
+
+    if (publishedTotalCell === 0) {
+      return []
+    }
+
+    const texts = await this.figureRows()
+      .locator(`td:nth-child(${publishedTotalCell})`)
+      .allInnerTexts()
+    return texts.map((text) => text.trim())
+  }
+
+  /**
    * How many of the monthly reports each month expected the figures include,
-   * one count per reporting month, then the period's.
+   * one count per reporting month, then the period's under the total.
    * @returns {Promise<string[]>}
    */
   async reportCounts() {
-    const figureColumns = (await this.columnHeadings()).length - NAMING_COLUMNS
+    const counts = (await this.columnUnder(HEADINGS.total)) - NAMING_COLUMNS
 
     const texts = await this.table()
       .locator('tbody tr')
       .filter({ has: this.reportsRowHeader() })
       .getByRole('cell')
       .allInnerTexts()
-    return texts.slice(0, figureColumns).map((text) => text.trim())
+    return texts.slice(0, counts).map((text) => text.trim())
   }
 }
 
-export { MarketInsightsWasteBalancePage }
+export { HEADINGS as WASTE_BALANCE_HEADINGS, MarketInsightsWasteBalancePage }
