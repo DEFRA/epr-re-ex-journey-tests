@@ -17,7 +17,7 @@ class HomePage extends Page {
     // GOV.UK radios visually hide the native input under a styled circle, so
     // clicking the input directly fails Playwright's actionability check —
     // click the label instead.
-    await this.page.locator('label[for="organisation-id"]').click()
+    await this.page.locator('.govuk-radios__label').first().click()
     await this.clickButton('Confirm')
   }
 
