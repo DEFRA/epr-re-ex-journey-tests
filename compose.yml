@@ -58,7 +58,7 @@ services:
       - '4566:4566'
 
   floci-init:
-    image: amazon/aws-cli:2.37.11@sha256:d55d5b391f1cc0d428a05eb07408bb1a730d7df9f656008f1117ed5e13b0c083
+    image: amazon/aws-cli:2.37.12@sha256:ce44b800602264c12298bbf3399055a4cefdb9ed4a098abe564afe26e7071bce
     entrypoint: /bin/sh
     command: /setup/init.sh
     networks:
@@ -148,7 +148,7 @@ services:
 
   # Simulates Defra ID sign-in for waste-operator users (epr-frontend journeys).
   defra-id-stub:
-    image: defradigital/epr-re-ex-defra-id-stub:0.6.0@sha256:a98160ed5fe0c594fc5acfddb46594348624fb768b4e8cf06aa9b3c750981464
+    image: defradigital/epr-re-ex-defra-id-stub:0.7.0@sha256:f9a4187929353c8b82840a6ac937a07ee538e1ca8506d8b83b425fa33bce48fe
     networks:
       - cdp-tenant
     ports:
@@ -177,7 +177,7 @@ services:
   # Simulates Entra ID (Microsoft) sign-in: used for epr-backend's
   # service-to-service auth and for epr-re-ex-admin-frontend's browser login.
   entra-stub:
-    image: defradigital/epr-re-ex-entra-stub:0.140.0@sha256:aca95c0a225b6ad36b23e637c7664e5b5dd1216d2978264d952fe38323a57857
+    image: defradigital/epr-re-ex-entra-stub:0.141.0@sha256:dd4fc203efe8cb61cf7bbbfb7c9962370f1fb58a1bf2034b868b91015de00c5d
     networks:
       - cdp-tenant
     ports:
