@@ -22,11 +22,8 @@ const TABLE = 'Waste balance'
 const ACCREDITATION_TYPE_CELL = 2
 const FIRST_FIGURE_CELL = 3
 
-// The headings the table names its columns by, around one per reporting month.
-// Where a row's total includes a month marked confidential, the total the
-// workbook publishes without that month follows the total. That column comes
-// and goes with whichever operators other journeys have seeded, so every
-// column is found by its heading rather than by its place.
+// The published total only appears while a row's total includes a month marked
+// [c], which depends on what other journeys have seeded.
 const HEADINGS = Object.freeze({
   material: 'Material',
   accreditationType: 'Accreditation type',
@@ -48,7 +45,6 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
   }
 
   /**
-   * The headings of the figures table, in column order.
    * @returns {Promise<string[]>}
    */
   async columnHeadings() {
@@ -59,12 +55,10 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
   }
 
   /**
-   * The position of the column under a heading, counted from one as
-   * `nth-child` counts, or zero where the table has no such column.
    * @param {string} heading
    * @returns {Promise<number>}
    */
-  async columnUnder(heading) {
+  async nthChildOf(heading) {
     return (await this.columnHeadings()).indexOf(heading) + 1
   }
 
@@ -110,7 +104,7 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
    * @returns {Promise<string[]>}
    */
   async figures() {
-    const totalCell = await this.columnUnder(HEADINGS.total)
+    const totalCell = await this.nthChildOf(HEADINGS.total)
 
     const texts = await this.figureRows()
       .locator(
@@ -121,13 +115,10 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
   }
 
   /**
-   * The published total of every figure row, which is blank for a row whose
-   * total leaves nothing out, and none at all when the table has no such
-   * column.
    * @returns {Promise<string[]>}
    */
   async publishedTotals() {
-    const publishedTotalCell = await this.columnUnder(HEADINGS.publishedTotal)
+    const publishedTotalCell = await this.nthChildOf(HEADINGS.publishedTotal)
 
     if (publishedTotalCell === 0) {
       return []
@@ -141,11 +132,11 @@ class MarketInsightsWasteBalancePage extends MarketInsightsFiguresPage {
 
   /**
    * How many of the monthly reports each month expected the figures include,
-   * one count per reporting month, then the period's under the total.
+   * one count per reporting month, then the period's.
    * @returns {Promise<string[]>}
    */
   async reportCounts() {
-    const counts = (await this.columnUnder(HEADINGS.total)) - NAMING_COLUMNS
+    const counts = (await this.nthChildOf(HEADINGS.total)) - NAMING_COLUMNS
 
     const texts = await this.table()
       .locator('tbody tr')

@@ -170,10 +170,6 @@ test.describe('A regulator reading market insights @regulator', () => {
         .soft(await wasteBalancePage.dataTakenAtText())
         .toMatch(DATA_TAKEN_AT)
 
-      // The months sit between the two headings that name the row and the
-      // total. The published total follows the total only while some row's
-      // total includes a month marked confidential, which depends on the
-      // operators other journeys have seeded, so it may or may not be there.
       const { material, accreditationType, total, publishedTotal } =
         WASTE_BALANCE_HEADINGS
       const headings = await wasteBalancePage.columnHeadings()
@@ -219,8 +215,6 @@ test.describe('A regulator reading market insights @regulator', () => {
       // zeroes.
       expect.soft(figures.some((figure) => asNumber(figure) > 0)).toBe(true)
 
-      // A published total states a tonnage the way every other figure does,
-      // and is blank for a row whose total leaves nothing out.
       expect
         .soft(
           (await wasteBalancePage.publishedTotals()).filter(
