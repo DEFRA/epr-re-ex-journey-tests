@@ -10,6 +10,14 @@ class ServiceNavigation {
     this.page = page
   }
 
+  menuButton() {
+    return this.page.getByRole('button', { name: 'Menu' })
+  }
+
+  menu() {
+    return this.page.locator('#navigation')
+  }
+
   async serviceName() {
     return this.page
       .locator('.govuk-service-navigation__service-name')
