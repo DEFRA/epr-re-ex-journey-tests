@@ -217,6 +217,38 @@ export async function summaryLogContentFromFixture(fixturePath) {
   return { meta, data }
 }
 
+/** @type {Map<string, Promise<SummaryLogContent>>} by fixture file */
+const fixtureContents = new Map()
+
+/**
+ * The content of a summary log fixture under the given registration and
+ * accreditation numbers in place of its own. Each fixture is read once for the
+ * process, since reading one costs seconds.
+ *
+ * @param {string} fixturePath
+ * @param {{regNumber: string, accNumber?: string}} numbers - leave accNumber out for a registered-only fixture
+ * @returns {Promise<SummaryLogContent>}
+ */
+export async function summaryLogContentNumbered(
+  fixturePath,
+  { regNumber, accNumber }
+) {
+  let content = fixtureContents.get(fixturePath)
+  if (!content) {
+    content = summaryLogContentFromFixture(fixturePath)
+    fixtureContents.set(fixturePath, content)
+  }
+  const { meta, data } = await content
+  return {
+    meta: {
+      MATERIAL: meta.MATERIAL,
+      REGISTRATION_NUMBER: regNumber,
+      ...(accNumber ? { ACCREDITATION_NUMBER: accNumber } : {})
+    },
+    data
+  }
+}
+
 /**
  * Every row of a worksheet's data table that carries a ROW_ID, from the
  * first data row to the sheet's last - wherever it sits, since a fixture

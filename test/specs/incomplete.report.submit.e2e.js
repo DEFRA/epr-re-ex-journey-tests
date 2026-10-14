@@ -9,11 +9,10 @@ import {
 } from '../support/seeding/organisation.js'
 import {
   registrationStartYear,
-  submitSummaryLogContent,
-  summaryLogNumbered
+  submitSummaryLogContent
 } from '../support/seeding/summary-logs.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
-import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
+import { summaryLogContentNumbered } from '../support/spreadsheet/summarylogs-content-generator.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude
@@ -67,11 +66,9 @@ test.describe('Incomplete report submit @incompleteReportBlock', () => {
     // Submitted via epr-backend's dev endpoint rather than driving the
     // upload UI: this journey is about the incomplete-report guard, not the
     // upload itself, which the dedicated summary-log specs already cover.
-    const summaryLogContent = await summaryLogContentFromFixture(
-      await summaryLogNumbered(
-        'resources/sanity/reprocessorOutput_A26ER5000000001PA_R26ER5000000001PA.xlsx',
-        numbers
-      )
+    const summaryLogContent = await summaryLogContentNumbered(
+      'resources/sanity/reprocessorOutput_A26ER5000000001PA_R26ER5000000001PA.xlsx',
+      numbers
     )
     await submitSummaryLogContent(
       organisationDetails.refNo,

@@ -41,7 +41,7 @@ import {
   generateNumbers,
   generateRegNumber
 } from '../support/reg-acc-number.js'
-import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
+import { summaryLogContentNumbered } from '../support/spreadsheet/summarylogs-content-generator.js'
 import {
   assertNoSeriousOrCriticalViolations,
   attachAccessibilityReport,
@@ -396,11 +396,9 @@ test.describe('WCAG Accessibility @smoketest', () => {
           // upload UI: this page tour is about the report/PRN flow, not the
           // upload itself - the earlier test in this file already scans the
           // upload/check/confirmation pages for violations.
-          const summaryLogContent = await summaryLogContentFromFixture(
-            await summaryLogNumbered(
-              'resources/sanity/reprocessorOutput_A26ER5000000001PA_R26ER5000000001PA.xlsx',
-              { regNumber, accNumber }
-            )
+          const summaryLogContent = await summaryLogContentNumbered(
+            'resources/sanity/reprocessorOutput_A26ER5000000001PA_R26ER5000000001PA.xlsx',
+            { regNumber, accNumber }
           )
           await submitSummaryLogContent(
             organisationDetails.refNo,

@@ -18,14 +18,13 @@ import {
 import { unsubmitReport } from '../support/seeding/reports.js'
 import {
   registrationStartYear,
-  submitSummaryLogContent,
-  summaryLogNumbered
+  submitSummaryLogContent
 } from '../support/seeding/summary-logs.js'
 import {
   generateNumbers,
   generateRegNumber
 } from '../support/reg-acc-number.js'
-import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
+import { summaryLogContentNumbered } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -93,11 +92,10 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       // real multipart upload: this journey is about the reports wizard,
       // not the upload itself, which the dedicated summary-log specs
       // already cover.
-      const filePath = await summaryLogNumbered(
+      const summaryLogContent = await summaryLogContentNumbered(
         'resources/sanity/exporter_A26EX5000000002PA_R26EX5000000002PA.xlsx',
         { regNumber, accNumber }
       )
-      const summaryLogContent = await summaryLogContentFromFixture(filePath)
       await submitSummaryLogContent(
         organisationDetails.refNo,
         migrationResponse.registrationIds[0],

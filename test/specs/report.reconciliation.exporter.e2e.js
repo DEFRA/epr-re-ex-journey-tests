@@ -13,11 +13,10 @@ import {
 import {
   registrationStartYear,
   submitSummaryLogContent,
-  summaryLogDatedAt,
-  summaryLogNumbered
+  summaryLogDatedAt
 } from '../support/seeding/summary-logs.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
-import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
+import { summaryLogContentNumbered } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { parseTonnage } from '../support/tonnage.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -82,14 +81,12 @@ test.describe('Report tonnage reconciles with the waste balance — exporter @re
     // expose - see resources/generate-reconciliation-fixtures.js) are read
     // straight off the checked-in xlsx, so EXPECTED_RECONCILED_TONNAGE stays
     // sourced from the same file either way.
-    const summaryLogContent = await summaryLogContentFromFixture(
-      await summaryLogNumbered(
-        await summaryLogDatedAt(
-          'resources/exporter-reconciliation.xlsx',
-          new Date(Date.UTC(YEAR, PERIOD - 1, 15, 12))
-        ),
-        { regNumber, accNumber }
-      )
+    const summaryLogContent = await summaryLogContentNumbered(
+      await summaryLogDatedAt(
+        'resources/exporter-reconciliation.xlsx',
+        new Date(Date.UTC(YEAR, PERIOD - 1, 15, 12))
+      ),
+      { regNumber, accNumber }
     )
     await submitSummaryLogContent(
       organisationDetails.refNo,

@@ -17,14 +17,13 @@ import {
 } from '../support/seeding/organisation.js'
 import {
   registrationStartYear,
-  submitSummaryLogContent,
-  summaryLogNumbered
+  submitSummaryLogContent
 } from '../support/seeding/summary-logs.js'
 import {
   generateNumbers,
   generateRegNumber
 } from '../support/reg-acc-number.js'
-import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
+import { summaryLogContentNumbered } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { expectActionRequiredStatus } from '../support/report-status.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -112,9 +111,10 @@ async function setupAndCreateReport(
   const { orgDetails, migrationResponse, user } =
     await setupAccreditedReprocessor(page, material, regNumber, accNumber)
 
-  const summaryLogContent = await summaryLogContentFromFixture(
-    await summaryLogNumbered(filePath, { regNumber, accNumber })
-  )
+  const summaryLogContent = await summaryLogContentNumbered(filePath, {
+    regNumber,
+    accNumber
+  })
   await submitSummaryLogContent(
     orgDetails.refNo,
     migrationResponse.registrationIds[0],
@@ -244,9 +244,9 @@ test.describe('Stale report @staleReport', () => {
     const year = registrationStartYear()
     const authHeader = defraIdStub.authHeader(user.userId)
 
-    const summaryLogContent = await summaryLogContentFromFixture(
-      await summaryLogNumbered(REG_ONLY_FILE, { regNumber })
-    )
+    const summaryLogContent = await summaryLogContentNumbered(REG_ONLY_FILE, {
+      regNumber
+    })
     await submitSummaryLogContent(
       organisationDetails.refNo,
       regId,

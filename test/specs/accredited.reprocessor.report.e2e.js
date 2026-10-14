@@ -17,14 +17,13 @@ import {
 import { unsubmitReport } from '../support/seeding/reports.js'
 import {
   registrationStartYear,
-  submitSummaryLogContent,
-  summaryLogNumbered
+  submitSummaryLogContent
 } from '../support/seeding/summary-logs.js'
 import {
   generateNumbers,
   generateRegNumber
 } from '../support/reg-acc-number.js'
-import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
+import { summaryLogContentNumbered } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
@@ -84,11 +83,9 @@ async function uploadAndNavigateToReports(
   user,
   numbers
 ) {
-  const summaryLogContent = await summaryLogContentFromFixture(
-    await summaryLogNumbered(
-      'resources/sanity/reprocessorOutput_A26ER5000000001PA_R26ER5000000001PA.xlsx',
-      numbers
-    )
+  const summaryLogContent = await summaryLogContentNumbered(
+    'resources/sanity/reprocessorOutput_A26ER5000000001PA_R26ER5000000001PA.xlsx',
+    numbers
   )
   await submitSummaryLogContent(
     organisationDetails.refNo,

@@ -17,10 +17,9 @@ import {
 } from '../support/seeding/organisation.js'
 import {
   registrationStartYear,
-  submitSummaryLogContent,
-  summaryLogNumbered
+  submitSummaryLogContent
 } from '../support/seeding/summary-logs.js'
-import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
+import { summaryLogContentNumbered } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -87,10 +86,9 @@ test.describe('Declaration name validation @declarationValidation', () => {
     // Submitted via epr-backend's dev endpoint rather than a real multipart
     // upload: this journey is about declaration name validation, not the
     // upload itself, which the dedicated summary-log specs already cover.
-    const summaryLogContent = await summaryLogContentFromFixture(
-      await summaryLogNumbered('resources/reprocessor-output-regonly.xlsx', {
-        regNumber
-      })
+    const summaryLogContent = await summaryLogContentNumbered(
+      'resources/reprocessor-output-regonly.xlsx',
+      { regNumber }
     )
     await submitSummaryLogContent(
       organisationDetails.refNo,
