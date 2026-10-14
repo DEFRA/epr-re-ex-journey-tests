@@ -7,6 +7,7 @@ import {
   updateMigratedOrganisation,
   seedOverseasSites
 } from '../support/seeding/organisation.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 async function getOrganisation(baseAPI, authClient, refNo) {
   const response = await baseAPI.get(
     `/v1/organisations/${refNo}`,
@@ -21,19 +22,16 @@ async function getOrganisation(baseAPI, authClient, refNo) {
 // EXPORTER, then: ..., otherwise: Joi.forbidden() })`) - matching the
 // already-working accredited.exporter.report.e2e.js/report.stale.e2e.js UI
 // specs' own setup, not a Reprocessor one.
-async function approvedExporterWithAccreditation(
-  baseAPI,
-  authClient,
-  regNumber = 'R25SR500030912PA',
-  accNumber = 'E-ACC123456'
-) {
+async function approvedExporterWithAccreditation(baseAPI, authClient) {
   const org = await createLinkedOrganisation([
     { wasteProcessingType: 'Exporter', material: 'Paper or board (R3)' }
   ])
   const migrated = await updateMigratedOrganisation(org.refNo, [
     {
-      regNumber,
-      accNumber,
+      ...generateNumbers({
+        wasteProcessingType: 'exporter',
+        materialSuffix: 'PA'
+      }),
       status: 'approved'
     }
   ])
@@ -85,12 +83,7 @@ test.describe('Overseas sites accreditation list @overseasSitesAccreditationList
 
   test('returns an empty object when the registration has no overseas sites @overseasSitesEmpty', async () => {
     const { refNo, registrationId, accreditationId } =
-      await approvedExporterWithAccreditation(
-        baseAPI,
-        authClient,
-        'R25SR500030913PA',
-        'E-ACC123457'
-      )
+      await approvedExporterWithAccreditation(baseAPI, authClient)
 
     const response = await baseAPI.get(
       overseasSitesPath(refNo, registrationId, accreditationId),
@@ -104,12 +97,7 @@ test.describe('Overseas sites accreditation list @overseasSitesAccreditationList
 
   test('resolves an overseasSiteId with no matching site record to null detail @overseasSitesMissingSiteRecord', async () => {
     const { refNo, registrationId, accreditationId } =
-      await approvedExporterWithAccreditation(
-        baseAPI,
-        authClient,
-        'R25SR500030914PA',
-        'E-ACC123458'
-      )
+      await approvedExporterWithAccreditation(baseAPI, authClient)
 
     // put-by-id.js's validateOverseasSiteReferences rejects a PUT that links
     // to a non-existent site outright (422 "Overseas site(s) not found"), so
@@ -151,13 +139,17 @@ test.describe('Overseas sites accreditation list @overseasSitesAccreditationList
     ])
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
-        regNumber: 'R25SR500030915PA',
-        accNumber: 'E-ACC123459',
+        ...generateNumbers({
+          wasteProcessingType: 'exporter',
+          materialSuffix: 'PA'
+        }),
         status: 'approved'
       },
       {
-        regNumber: 'R25SR500040915ST',
-        accNumber: 'E-ACC654321',
+        ...generateNumbers({
+          wasteProcessingType: 'exporter',
+          materialSuffix: 'ST'
+        }),
         status: 'approved'
       }
     ])
@@ -186,13 +178,17 @@ test.describe('Overseas sites accreditation list @overseasSitesAccreditationList
     ])
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
-        regNumber: 'R25SR500030916PA',
-        accNumber: 'E-ACC123460',
+        ...generateNumbers({
+          wasteProcessingType: 'exporter',
+          materialSuffix: 'PA'
+        }),
         status: 'approved'
       },
       {
-        regNumber: 'R25SR500040916ST',
-        accNumber: 'E-ACC654322',
+        ...generateNumbers({
+          wasteProcessingType: 'exporter',
+          materialSuffix: 'ST'
+        }),
         status: 'approved'
       }
     ])

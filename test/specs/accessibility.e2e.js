@@ -34,8 +34,13 @@ import {
 import { externalAPICancelPrn } from '../support/seeding/prns.js'
 import {
   registrationStartYear,
-  submitSummaryLogContent
+  submitSummaryLogContent,
+  summaryLogNumbered
 } from '../support/seeding/summary-logs.js'
+import {
+  generateNumbers,
+  generateRegNumber
+} from '../support/reg-acc-number.js'
 import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import {
   assertNoSeriousOrCriticalViolations,
@@ -118,7 +123,10 @@ test.describe('WCAG Accessibility @smoketest', () => {
     test.setTimeout(LIGHTHOUSE_TEST_TIMEOUT)
     const violations = []
     const collector = createAccessibilityCollector()
-    const REG_NUMBER = 'R26EX5000000003PA'
+    const regNumber = generateRegNumber({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'PA'
+    })
 
     await tagAccessibilityTest('Exporter dashboard, upload and report flow')
 
@@ -137,7 +145,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
             organisationDetails.refNo,
             [
               {
-                regNumber: REG_NUMBER,
+                regNumber,
                 status: 'approved',
                 withoutAccreditation: true
               }
@@ -194,7 +202,9 @@ test.describe('WCAG Accessibility @smoketest', () => {
           )
 
           await uploadSummaryLogPage.uploadFile(
-            'resources/exporter-regonly.xlsx'
+            await summaryLogNumbered('resources/exporter-regonly.xlsx', {
+              regNumber
+            })
           )
           await uploadSummaryLogPage.continue()
           await checkBodyText(page, 'Your summary log is being checked', 30)
@@ -328,8 +338,10 @@ test.describe('WCAG Accessibility @smoketest', () => {
     test.setTimeout(LIGHTHOUSE_TEST_TIMEOUT)
     const violations = []
     const collector = createAccessibilityCollector()
-    const REG_NUMBER = 'R26ER5000000001PA'
-    const ACC_NUMBER = 'A26ER5000000001PA'
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
 
     await tagAccessibilityTest('Accredited reprocessor report and PRN flow')
 
@@ -348,8 +360,8 @@ test.describe('WCAG Accessibility @smoketest', () => {
             [
               {
                 reprocessingType: 'output',
-                regNumber: REG_NUMBER,
-                accNumber: ACC_NUMBER,
+                regNumber,
+                accNumber,
                 status: 'approved'
               }
             ]
@@ -385,7 +397,10 @@ test.describe('WCAG Accessibility @smoketest', () => {
           // upload itself - the earlier test in this file already scans the
           // upload/check/confirmation pages for violations.
           const summaryLogContent = await summaryLogContentFromFixture(
-            `resources/sanity/reprocessorOutput_${ACC_NUMBER}_${REG_NUMBER}.xlsx`
+            await summaryLogNumbered(
+              'resources/sanity/reprocessorOutput_A26ER5000000001PA_R26ER5000000001PA.xlsx',
+              { regNumber, accNumber }
+            )
           )
           await submitSummaryLogContent(
             organisationDetails.refNo,

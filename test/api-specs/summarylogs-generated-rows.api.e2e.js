@@ -22,6 +22,7 @@ import {
 } from '../support/summary-log-assertions.js'
 import { generateSpreadsheetData } from '../support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
 import { WORKSHEET_CONFIG } from '../support/spreadsheet/spreadsheet-config.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 
 /** @typedef {import('../support/spreadsheet/summarylogs-spreadsheet-data-generator.js').PlannedRow} PlannedRow */
 
@@ -34,39 +35,40 @@ import { WORKSHEET_CONFIG } from '../support/spreadsheet/spreadsheet-config.js'
 const MATERIAL_SUFFIX = 'PA'
 const VALID_FROM = '2025-02-02'
 
-/** @type {Record<string, { wasteProcessingType: string, reprocessingType?: string, regNumber: string, accNumber?: string }>} */
+/** @type {Record<string, { wasteProcessingType: string, reprocessingType?: string, withoutAccreditation?: boolean }>} */
 const STREAMS = {
   exporter: {
-    wasteProcessingType: 'Exporter',
-    regNumber: 'R26EX5000000009PA',
-    accNumber: 'A26EX5000000009PA'
+    wasteProcessingType: 'Exporter'
   },
   reprocessorInput: {
     wasteProcessingType: 'Reprocessor',
-    reprocessingType: 'input',
-    regNumber: 'R26ER5000000009PA',
-    accNumber: 'A26ER5000000009PA'
+    reprocessingType: 'input'
   },
   reprocessorOutput: {
     wasteProcessingType: 'Reprocessor',
-    reprocessingType: 'output',
-    regNumber: 'R26ER5000000008PA',
-    accNumber: 'A26ER5000000008PA'
+    reprocessingType: 'output'
   },
   regOnlyExporter: {
     wasteProcessingType: 'Exporter',
-    regNumber: 'R26EX5000000007PA'
+    withoutAccreditation: true
   },
   regOnlyReprocessor: {
     wasteProcessingType: 'Reprocessor',
     reprocessingType: 'output',
-    regNumber: 'R26ER5000000007PA'
+    withoutAccreditation: true
   }
 }
 
 /** Seeds an organisation holding one registration of the given stream. */
 async function seedRegistration(stream) {
-  const withoutAccreditation = stream.accNumber === undefined
+  const withoutAccreditation = stream.withoutAccreditation === true
+  const { regNumber, accNumber } = generateNumbers({
+    wasteProcessingType: stream.wasteProcessingType.toLowerCase(),
+    materialSuffix: MATERIAL_SUFFIX
+  })
+  const numbers = withoutAccreditation
+    ? { regNumber }
+    : { regNumber, accNumber }
   const org = await createLinkedOrganisation([
     { wasteProcessingType: stream.wasteProcessingType, withoutAccreditation }
   ])
@@ -75,8 +77,7 @@ async function seedRegistration(stream) {
       ...(stream.reprocessingType
         ? { reprocessingType: stream.reprocessingType }
         : {}),
-      regNumber: stream.regNumber,
-      ...(stream.accNumber ? { accNumber: stream.accNumber } : {}),
+      ...numbers,
       status: 'approved',
       validFrom: VALID_FROM,
       withoutAccreditation
@@ -90,7 +91,8 @@ async function seedRegistration(stream) {
     refNo: org.refNo,
     registrationId,
     year: registrationStartYear(VALID_FROM),
-    authHeader: defraIdStub.authHeader(user.userId)
+    authHeader: defraIdStub.authHeader(user.userId),
+    numbers
   }
 }
 
@@ -189,12 +191,12 @@ function planStableRows(count, date, prnIssued, omitRowId) {
   )
 }
 
-function renderWorkbook(wasteProcessingType, stream, rows, extra = {}) {
+function renderWorkbook(wasteProcessingType, numbers, rows, extra = {}) {
   return generateSpreadsheetData({
     wasteProcessingType,
     materialSuffix: MATERIAL_SUFFIX,
-    regNumber: stream.regNumber,
-    accNumber: stream.accNumber,
+    regNumber: numbers.regNumber,
+    accNumber: numbers.accNumber,
     rows,
     silentLogging: true,
     ...extra
@@ -206,10 +208,10 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     test(`validates clean for ${wasteProcessingType} @summaryLogGeneratedRowsValid`, async () => {
       test.setTimeout(120000)
 
-      const { refNo, registrationId, year, authHeader } =
+      const { refNo, registrationId, year, authHeader, numbers } =
         await seedRegistration(stream)
       const { rows, rowIds } = planRows(wasteProcessingType, 3)
-      const workbook = await renderWorkbook(wasteProcessingType, stream, rows)
+      const workbook = await renderWorkbook(wasteProcessingType, numbers, rows)
 
       const { summaryLogPath, baseAPI } = await uploadAndValidateSummaryLog(
         refNo,
@@ -237,13 +239,13 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     test.setTimeout(120000)
 
     const stream = STREAMS.reprocessorInput
-    const { refNo, registrationId, year, authHeader } =
+    const { refNo, registrationId, year, authHeader, numbers } =
       await seedRegistration(stream)
     const { rows: planned, rowIds } = planRows('reprocessorInput', 3)
     const rows = pinFields(planned, RECEIVED_SHEET, 1001, { EWC_CODE: '' })
     const stillValid = rowIds.split(',').filter((rowId) => rowId !== '1001')
 
-    const workbook = await renderWorkbook('reprocessorInput', stream, rows)
+    const workbook = await renderWorkbook('reprocessorInput', numbers, rows)
     const { summaryLogPath, baseAPI } = await uploadAndValidateSummaryLog(
       refNo,
       registrationId,
@@ -285,7 +287,7 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     test.setTimeout(120000)
 
     const stream = STREAMS.reprocessorInput
-    const { refNo, registrationId, year, authHeader } =
+    const { refNo, registrationId, year, authHeader, numbers } =
       await seedRegistration(stream)
     const rows = pinFields(
       planRows('reprocessorInput', 3).rows,
@@ -294,7 +296,7 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
       { DATE_RECEIVED_FOR_REPROCESSING: 'TBC' }
     )
 
-    const workbook = await renderWorkbook('reprocessorInput', stream, rows)
+    const workbook = await renderWorkbook('reprocessorInput', numbers, rows)
     const { summaryLogPath, baseAPI } = await uploadSummaryLog(
       refNo,
       registrationId,
@@ -326,7 +328,7 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     test.setTimeout(180000)
 
     const stream = STREAMS.reprocessorInput
-    const { refNo, registrationId, year, authHeader } =
+    const { refNo, registrationId, year, authHeader, numbers } =
       await seedRegistration(stream)
 
     const date = new Date().toLocaleDateString('en-GB')
@@ -334,7 +336,7 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     const first = planStableRows(3, date, 'No')
     const firstWorkbook = await renderWorkbook(
       'reprocessorInput',
-      stream,
+      numbers,
       first
     )
     const firstUpload = await uploadAndValidateSummaryLog(
@@ -362,7 +364,7 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     const amended = planStableRows(3, date, 'Yes')
     const amendedWorkbook = await renderWorkbook(
       'reprocessorInput',
-      stream,
+      numbers,
       amended
     )
     const amendedUpload = await uploadAndValidateSummaryLog(
@@ -400,7 +402,7 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     const shortened = planStableRows(3, date, 'Yes', 1001)
     const shortenedWorkbook = await renderWorkbook(
       'reprocessorInput',
-      stream,
+      numbers,
       shortened
     )
     const shortenedUpload = await uploadSummaryLog(
@@ -430,11 +432,11 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     test.setTimeout(120000)
 
     const stream = STREAMS.reprocessorInput
-    const { refNo, registrationId, year, authHeader } =
+    const { refNo, registrationId, year, authHeader, numbers } =
       await seedRegistration(stream)
     const { rows } = planRows('reprocessorInput', 3)
 
-    const workbook = await renderWorkbook('reprocessorInput', stream, rows, {
+    const workbook = await renderWorkbook('reprocessorInput', numbers, rows, {
       unreadable: true
     })
     const { summaryLogPath, baseAPI } = await uploadSummaryLog(

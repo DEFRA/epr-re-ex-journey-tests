@@ -1,6 +1,7 @@
 import { test } from '@playwright/test'
 import { expect } from 'chai'
 import { BaseAPI } from '../apis/base-api.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import {
   createAndRegisterDefraIdUser,
@@ -12,6 +13,7 @@ import {
 } from '../support/seeding/organisation.js'
 import {
   registrationStartYear,
+  summaryLogNumbered,
   uploadAndValidateSummaryLog
 } from '../support/seeding/summary-logs.js'
 import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
@@ -40,11 +42,14 @@ test.describe('Summary log submit blocked by period-closed-during-submit guard @
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor' }
     ])
+    const numbers = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'input',
-        regNumber: 'R26ER5000000003PA',
-        accNumber: 'A26ER5000000002PA',
+        ...numbers,
         status: 'approved'
       }
     ])
@@ -58,7 +63,7 @@ test.describe('Summary log submit blocked by period-closed-during-submit guard @
       org.refNo,
       registrationId,
       authHeader,
-      FIXTURE_PATH,
+      await summaryLogNumbered(FIXTURE_PATH, numbers),
       registrationStartYear(),
       baseAPI
     )

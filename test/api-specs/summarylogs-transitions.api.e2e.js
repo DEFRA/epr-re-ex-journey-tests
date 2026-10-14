@@ -3,6 +3,7 @@ import { expect } from 'chai'
 import { randomUUID } from 'crypto'
 import { BaseAPI } from '../apis/base-api.js'
 import { SummaryLog } from '../support/generator.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import { registrationStartYear } from '../support/seeding/summary-logs.js'
 import {
   createLinkedOrganisation,
@@ -47,8 +48,10 @@ test.describe('Summary log upload-completed state transitions @summaryLogTransit
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'input',
-        regNumber: 'R26ER5000000003PA',
-        accNumber: 'A26ER5000000002PA',
+        ...generateNumbers({
+          wasteProcessingType: 'reprocessor',
+          materialSuffix: 'PA'
+        }),
         status: 'approved'
       }
     ])

@@ -11,6 +11,8 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { seedSubmittedReport } from '../support/seeding/reports.js'
+import { summaryLogNumbered } from '../support/seeding/summary-logs.js'
+import { generateRegNumber } from '../support/reg-acc-number.js'
 import {
   registerAndLinkDefraIdUser,
   loginViaHomePage
@@ -53,13 +55,17 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
         withoutAccreditation: true
       }
     ])
+    const regNumber = generateRegNumber({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R26ER5000000004PA',
+          regNumber,
           status: 'approved',
           withoutAccreditation: true
         }
@@ -91,7 +97,10 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
     await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile(
-      'resources/reprocessor-output-regonly-cma.xlsx'
+      await summaryLogNumbered(
+        'resources/reprocessor-output-regonly-cma.xlsx',
+        { regNumber }
+      )
     )
     await uploadSummaryLogPage.continue()
 

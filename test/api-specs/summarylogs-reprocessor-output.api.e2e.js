@@ -5,13 +5,15 @@ import {
   createAndRegisterDefraIdUser,
   linkDefraIdUser
 } from '../support/defra-id-linking.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import {
-  ingestSummaryLogFixture,
-  registrationStartYear
+  registrationStartYear,
+  summaryLogNumbered,
+  uploadSummaryLog
 } from '../support/seeding/summary-logs.js'
 import {
   waitForSummaryLogStatus,
@@ -24,25 +26,31 @@ import {
   assertValidationFailures
 } from '../support/summary-log-assertions.js'
 
+const FLOCI_SUMMARY_LOGS = 'docker/scripts/floci/summarylogs'
+
 // Ported from epr-backend-journey-tests' summarylogs-reprocessor-output.feature.
-// See summarylogs-validation.api.e2e.js for the shared floci-fixture-shortcut
-// rationale and the loadsByWasteRecordType/DB-assertion gaps this repeats.
+// See summarylogs-validation.api.e2e.js for the floci fixtures and the
+// loadsByWasteRecordType/DB-assertion gaps this repeats.
 test.describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput', () => {
   let orgId
   let registrationId
   let accreditationId
   let year
   let authHeader
+  let numbers
 
   test.beforeAll(async () => {
+    numbers = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor', material: 'Steel (R4)' }
     ])
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'output',
-        regNumber: 'R26ER5000000005PA',
-        accNumber: 'A26ER5000000003PA',
+        ...numbers,
         status: 'approved',
         validFrom: '2026-01-01'
       }
@@ -57,14 +65,14 @@ test.describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput
   })
 
   test('fails in-sheet revalidation @summaryLogReprocessorOutputInvalid', async () => {
-    const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
+    const { summaryLogPath, baseAPI } = await uploadSummaryLog(
       orgId,
       registrationId,
       authHeader,
-      {
-        s3Key: 'reprocessor-output-invalid-key',
-        filename: 'reprocessor-output-invalid.xlsx'
-      },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/reprocessor-output-invalid.xlsx`,
+        numbers
+      ),
       year
     )
     const responseData = await waitForSummaryLogStatus(
@@ -134,14 +142,14 @@ test.describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput
   test('succeeds, with waste balance calculated over an initial upload and an adjustments upload @summaryLogReprocessorOutputValidatedFlow', async () => {
     test.setTimeout(120000)
 
-    const first = await ingestSummaryLogFixture(
+    const first = await uploadSummaryLog(
       orgId,
       registrationId,
       authHeader,
-      {
-        s3Key: 'reprocessor-output-valid-key',
-        filename: 'reprocessor-output-valid.xlsx'
-      },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/reprocessor-output-valid.xlsx`,
+        numbers
+      ),
       year
     )
     const firstData = await waitForSummaryLogStatus(
@@ -197,14 +205,14 @@ test.describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput
     // range); 1003/5002 are from non-contributing tables; 3003/3004 are
     // excluded from the waste balance as they are missing mandatory fields;
     // 3000 is also adjusted.
-    const second = await ingestSummaryLogFixture(
+    const second = await uploadSummaryLog(
       orgId,
       registrationId,
       authHeader,
-      {
-        s3Key: 'reprocessor-output-adjustments-key',
-        filename: 'reprocessor-output-adjustments.xlsx'
-      },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/reprocessor-output-adjustments.xlsx`,
+        numbers
+      ),
       year
     )
     const secondData = await waitForSummaryLogStatus(

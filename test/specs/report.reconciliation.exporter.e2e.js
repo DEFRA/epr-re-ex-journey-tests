@@ -13,8 +13,10 @@ import {
 import {
   registrationStartYear,
   submitSummaryLogContent,
-  summaryLogDatedAt
+  summaryLogDatedAt,
+  summaryLogNumbered
 } from '../support/seeding/summary-logs.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { parseTonnage } from '../support/tonnage.js'
@@ -44,13 +46,15 @@ const { year: YEAR, period: PERIOD } = lastCompletedPeriod(CADENCE)
 const VALID_FROM = validFromWithClosedPeriod(CADENCE)
 
 test.describe('Report tonnage reconciles with the waste balance — exporter @reconciliation', () => {
-  const regNumber = 'R26EX5000000002PA'
-  const accNumber = 'A26EX5000000002PA'
-
   let organisationDetails
   let migrationResponse
 
   test.beforeEach(async ({ page }) => {
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'PA'
+    })
+
     organisationDetails = await createLinkedOrganisation([
       {
         material: 'Paper or board (R3)',
@@ -79,9 +83,12 @@ test.describe('Report tonnage reconciles with the waste balance — exporter @re
     // straight off the checked-in xlsx, so EXPECTED_RECONCILED_TONNAGE stays
     // sourced from the same file either way.
     const summaryLogContent = await summaryLogContentFromFixture(
-      await summaryLogDatedAt(
-        'resources/exporter-reconciliation.xlsx',
-        new Date(Date.UTC(YEAR, PERIOD - 1, 15, 12))
+      await summaryLogNumbered(
+        await summaryLogDatedAt(
+          'resources/exporter-reconciliation.xlsx',
+          new Date(Date.UTC(YEAR, PERIOD - 1, 15, 12))
+        ),
+        { regNumber, accNumber }
       )
     )
     await submitSummaryLogContent(

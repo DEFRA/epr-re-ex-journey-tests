@@ -17,8 +17,13 @@ import {
 import { unsubmitReport } from '../support/seeding/reports.js'
 import {
   registrationStartYear,
-  submitSummaryLogContent
+  submitSummaryLogContent,
+  summaryLogNumbered
 } from '../support/seeding/summary-logs.js'
+import {
+  generateNumbers,
+  generateRegNumber
+} from '../support/reg-acc-number.js'
 import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -33,10 +38,12 @@ import { expectActionRequiredStatus } from '../support/report-status.js'
 import { MonthlyReportDraftDeclarationPage } from 'page-objects/reports/monthly.report.draft.declaration.page.js'
 import { ReportSubmittedPage } from 'page-objects/reports/report.submitted.page.js'
 
-const REG_NUMBER = 'R26ER5000000001PA'
-const ACC_NUMBER = 'A26ER5000000001PA'
-
 async function setupAccreditedReprocessor(page) {
+  const numbers = generateNumbers({
+    wasteProcessingType: 'reprocessor',
+    materialSuffix: 'PA'
+  })
+
   const organisationDetails = await createLinkedOrganisation([
     {
       material: 'Paper or board (R3)',
@@ -49,8 +56,7 @@ async function setupAccreditedReprocessor(page) {
     [
       {
         reprocessingType: 'output',
-        regNumber: REG_NUMBER,
-        accNumber: ACC_NUMBER,
+        ...numbers,
         status: 'approved'
       }
     ]
@@ -62,7 +68,7 @@ async function setupAccreditedReprocessor(page) {
     migrationResponse.email
   )
 
-  return { organisationDetails, migrationResponse, user }
+  return { organisationDetails, migrationResponse, user, numbers }
 }
 
 // Submitted via epr-backend's dev endpoint rather than driving the upload
@@ -74,10 +80,14 @@ async function uploadAndNavigateToReports(
   page,
   organisationDetails,
   migrationResponse,
-  user
+  user,
+  numbers
 ) {
   const summaryLogContent = await summaryLogContentFromFixture(
-    `resources/sanity/reprocessorOutput_${ACC_NUMBER}_${REG_NUMBER}.xlsx`
+    await summaryLogNumbered(
+      'resources/sanity/reprocessorOutput_A26ER5000000001PA_R26ER5000000001PA.xlsx',
+      numbers
+    )
   )
   await submitSummaryLogContent(
     organisationDetails.refNo,
@@ -111,7 +121,8 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
         page,
         setupResponse.organisationDetails,
         setupResponse.migrationResponse,
-        setupResponse.user
+        setupResponse.user,
+        setupResponse.numbers
       )
     })
 
@@ -498,7 +509,10 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
         [
           {
             reprocessingType: 'output',
-            regNumber: 'R26ER5000000006PA',
+            regNumber: generateRegNumber({
+              wasteProcessingType: 'reprocessor',
+              materialSuffix: 'PA'
+            }),
             status: 'approved',
             withoutAccreditation: true
           }

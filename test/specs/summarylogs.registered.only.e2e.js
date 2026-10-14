@@ -7,6 +7,11 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
+import { summaryLogNumbered } from '../support/seeding/summary-logs.js'
+import {
+  generateNumbers,
+  generateRegNumber
+} from '../support/reg-acc-number.js'
 import {
   createAndRegisterDefraIdUser,
   linkDefraIdUser
@@ -57,31 +62,42 @@ test.describe('@registeredOnly', () => {
         wasteProcessingType: 'Reprocessor'
       }
     ])
+    const reprocessorRegNumber = generateRegNumber({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R26ER5000000002PA',
+          regNumber: reprocessorRegNumber,
           status: 'approved',
           withoutAccreditation: true
         },
         {
-          regNumber: 'R26EX5000000003PA',
+          regNumber: generateRegNumber({
+            wasteProcessingType: 'exporter',
+            materialSuffix: 'PA'
+          }),
           status: 'approved',
           withoutAccreditation: true
         },
         {
           reprocessingType: 'output',
-          regNumber: 'R26ER5000000002FB',
-          accNumber: 'A26ER5000000002FB',
+          ...generateNumbers({
+            wasteProcessingType: 'reprocessor',
+            materialSuffix: 'FB'
+          }),
           status: 'approved'
         },
         {
           reprocessingType: 'input',
-          regNumber: 'R25SR51110509124PL',
-          accNumber: 'ACCI1234567',
+          ...generateNumbers({
+            wasteProcessingType: 'reprocessor',
+            materialSuffix: 'PL'
+          }),
           status: 'approved'
         }
       ]
@@ -104,7 +120,7 @@ test.describe('@registeredOnly', () => {
 
     await dashboardPage.selectTableLink(1, 1)
 
-    await checkBodyText(page, 'R26ER5000000002PA', 10)
+    await checkBodyText(page, reprocessorRegNumber, 10)
     await checkBodyText(page, 'Upload your summary log', 10)
     await checkBodyTextDoesNotInclude(page, 'Available waste balance', 5)
     await checkBodyTextDoesNotInclude(page, 'Accreditation number', 5)
@@ -113,7 +129,9 @@ test.describe('@registeredOnly', () => {
     await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
     await uploadSummaryLogPage.uploadFile(
-      'resources/reprocessor-output-regonly.xlsx'
+      await summaryLogNumbered('resources/reprocessor-output-regonly.xlsx', {
+        regNumber: reprocessorRegNumber
+      })
     )
     await uploadSummaryLogPage.continue()
 
@@ -164,7 +182,9 @@ test.describe('@registeredOnly', () => {
     // Reprocessor tab groups them into one table per site rather than a
     // single list - the registration is found by its own number rather than
     // by a row position that a site table wouldn't keep stable.
-    await page.getByRole('link', { name: 'View R26ER5000000002PA' }).click()
+    await page
+      .getByRole('link', { name: `View ${reprocessorRegNumber}` })
+      .click()
 
     expect(await registrationDetailsPage.headingText()).toContain(
       'Registration details'
@@ -239,12 +259,16 @@ test.describe('@registeredOnly', () => {
         withoutAccreditation: true
       }
     ])
+    const exporterRegNumber = generateRegNumber({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'PA'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
-          regNumber: 'R26EX5000000003PA',
+          regNumber: exporterRegNumber,
           status: 'approved',
           withoutAccreditation: true
         }
@@ -267,12 +291,16 @@ test.describe('@registeredOnly', () => {
     await loginViaHomePage(page, migrationResponse.email)
 
     await dashboardPage.selectTableLink(1, 1)
-    await checkBodyText(page, 'R26EX5000000003PA', 10)
+    await checkBodyText(page, exporterRegNumber, 10)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
 
-    await uploadSummaryLogPage.uploadFile('resources/exporter-regonly.xlsx')
+    await uploadSummaryLogPage.uploadFile(
+      await summaryLogNumbered('resources/exporter-regonly.xlsx', {
+        regNumber: exporterRegNumber
+      })
+    )
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)

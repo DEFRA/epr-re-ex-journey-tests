@@ -30,6 +30,7 @@ import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { checkWasteBalanceForWindow } from '../support/waste-balance-mode.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 
 test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
   test('Should be able to create, issue and reject PRNs for Wood (Exporter) @issuePRNExp @smoketest', async ({
@@ -46,8 +47,10 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     let dashboardPage = new DashboardPage(currentPage)
     let wasteRecordsPage = new WasteRecordsPage(currentPage)
 
-    const regNumber = 'R26EX5000000002WO'
-    const accNumber = 'A26EX5000000002WO'
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'WO'
+    })
 
     const materialDesc = 'Wood'
 

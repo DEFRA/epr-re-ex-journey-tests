@@ -7,6 +7,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
+import { generateNumbers } from '../../support/reg-acc-number.js'
 import { createSubmittedReport } from '../../support/seeding/reports.js'
 import { parseCsvRows } from '../../support/csv.js'
 
@@ -28,8 +29,7 @@ const MONTH_ABBR = [
 ]
 
 test.describe('Public Register page', () => {
-  const regNumber = 'R25SR500030912PA'
-  const accNumber = 'ACC123456'
+  let numbers
   let orgId
   let orgName
   let report
@@ -40,12 +40,15 @@ test.describe('Public Register page', () => {
     ])
     orgId = linkedOrganisation.orgId
     orgName = linkedOrganisation.organisation.companyName
+    numbers = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
 
     await updateMigratedOrganisation(linkedOrganisation.refNo, [
       {
         reprocessingType: 'input',
-        regNumber,
-        accNumber,
+        ...numbers,
         status: 'approved'
       }
     ])
@@ -88,10 +91,10 @@ test.describe('Public Register page', () => {
     }
 
     expect(orgRow.Type).toEqual('Reprocessor')
-    expect(orgRow['Registration number']).toEqual(regNumber)
+    expect(orgRow['Registration number']).toEqual(numbers.regNumber)
     expect(orgRow['Packaging Waste Category']).toEqual('Paper and board')
     expect(orgRow['Annex II Process']).toEqual('R3')
-    expect(orgRow['Accreditation No']).toEqual(accNumber)
+    expect(orgRow['Accreditation No']).toEqual(numbers.accNumber)
     expect(orgRow['Accreditation status']).toEqual('Approved')
 
     const reportColumn =

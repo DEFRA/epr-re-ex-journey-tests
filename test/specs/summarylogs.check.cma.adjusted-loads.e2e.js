@@ -12,13 +12,19 @@ import {
 import {
   seedOverseasSites,
   createLinkedOrganisation,
+  fillerNumbers,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { seedSubmittedReport } from '../support/seeding/reports.js'
 import {
   summaryLogDatedAt,
+  summaryLogNumbered,
   summaryLogWithCellChanged
 } from '../support/seeding/summary-logs.js'
+import {
+  generateNumbers,
+  generateRegNumber
+} from '../support/reg-acc-number.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 // The adjusted-loads accordion splits each balance-affecting load by the
@@ -52,19 +58,21 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
     ])
+    const exporterNumbers = generateNumbers({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'PA'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R26ER5000000002PA',
-          accNumber: 'A26ER5000000002PA',
+          ...fillerNumbers(),
           status: 'approved'
         },
         {
-          regNumber: 'R26EX5000000003PA',
-          accNumber: 'A26EX5000000000PA',
+          ...exporterNumbers,
           status: 'approved',
           validFrom: '2025-02-02'
         }
@@ -87,7 +95,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
 
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
-      'resources/exporter.xlsx'
+      await summaryLogNumbered('resources/exporter.xlsx', exporterNumbers)
     )
 
     const exporterRegId = migrationResponse.registrationIds[1]
@@ -116,7 +124,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
       await summaryLogWithCellChanged(
-        'resources/exporter.xlsx',
+        await summaryLogNumbered('resources/exporter.xlsx', exporterNumbers),
         vehicleRegistrationEdit
       )
     )
@@ -146,7 +154,10 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
       await summaryLogWithCellChanged(
-        'resources/exporter-adjustments.xlsx',
+        await summaryLogNumbered(
+          'resources/exporter-adjustments.xlsx',
+          exporterNumbers
+        ),
         vehicleRegistrationEdit
       )
     )
@@ -255,13 +266,17 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
         withoutAccreditation: true
       }
     ])
+    const regNumber = generateRegNumber({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R26ER5000000002PA',
+          regNumber,
           status: 'approved',
           withoutAccreditation: true
         }
@@ -278,13 +293,18 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
 
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
-      'resources/reprocessor-output-regonly.xlsx'
+      await summaryLogNumbered('resources/reprocessor-output-regonly.xlsx', {
+        regNumber
+      })
     )
 
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
-      'resources/reprocessor-output-regonly-adjustments.xlsx'
+      await summaryLogNumbered(
+        'resources/reprocessor-output-regonly-adjustments.xlsx',
+        { regNumber }
+      )
     )
     await uploadSummaryLogPage.continue()
 
@@ -320,14 +340,17 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
+    const numbers = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
           reprocessingType: 'input',
-          regNumber: 'R26ER5000000003PA',
-          accNumber: 'A26ER5000000002PA',
+          ...numbers,
           status: 'approved'
         }
       ]
@@ -345,7 +368,10 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
-      await summaryLogDatedAt('resources/summary-log.xlsx', today)
+      await summaryLogNumbered(
+        await summaryLogDatedAt('resources/summary-log.xlsx', today),
+        numbers
+      )
     )
 
     // Re-upload with row 1001's PRN answer flipped to Yes, excluding it — an
@@ -353,9 +379,12 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
-      await summaryLogDatedAt(
-        'resources/reprocessor-input-prn-issued.xlsx',
-        today
+      await summaryLogNumbered(
+        await summaryLogDatedAt(
+          'resources/reprocessor-input-prn-issued.xlsx',
+          today
+        ),
+        numbers
       )
     )
     await uploadSummaryLogPage.continue()

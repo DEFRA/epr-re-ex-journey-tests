@@ -4,13 +4,15 @@ import {
   createAndRegisterDefraIdUser,
   linkDefraIdUser
 } from '../support/defra-id-linking.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import {
-  ingestSummaryLogFixture,
-  registrationStartYear
+  registrationStartYear,
+  summaryLogNumbered,
+  uploadSummaryLog
 } from '../support/seeding/summary-logs.js'
 import {
   waitForSummaryLogStatus,
@@ -29,25 +31,31 @@ import {
   assertLogMessage
 } from '../support/docker-log-assertions.js'
 
+const FLOCI_SUMMARY_LOGS = 'docker/scripts/floci/summarylogs'
+
 // Ported from epr-backend-journey-tests' summarylogs-reprocessor-input.feature.
-// See summarylogs-validation.api.e2e.js for the shared floci-fixture-shortcut
-// rationale and the loadsByWasteRecordType/DB-assertion gaps this repeats.
+// See summarylogs-validation.api.e2e.js for the floci fixtures and the
+// loadsByWasteRecordType/DB-assertion gaps this repeats.
 test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput', () => {
   let orgId
   let registrationId
   let accreditationId
   let year
   let authHeader
+  let numbers
 
   test.beforeAll(async () => {
+    numbers = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor' }
     ])
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'input',
-        regNumber: 'R26ER5000000003PA',
-        accNumber: 'A26ER5000000002PA',
+        ...numbers,
         status: 'approved',
         validFrom: '2025-02-02'
       }
@@ -64,14 +72,14 @@ test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput',
   test('creates a Waste Record, then a second upload rejects a removed row, then adjustments update the balance @summaryLogReprocessorInputValidatedFlow', async () => {
     test.setTimeout(120000)
 
-    const first = await ingestSummaryLogFixture(
+    const first = await uploadSummaryLog(
       orgId,
       registrationId,
       authHeader,
-      {
-        s3Key: 'reprocessor-input-valid-key',
-        filename: 'reprocessor-input-valid.xlsx'
-      },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/reprocessor-input-valid.xlsx`,
+        numbers
+      ),
       year
     )
     const firstData = await waitForSummaryLogStatus(
@@ -159,14 +167,14 @@ test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput',
 
     // Second upload: fails validation for a removed row. Depends on the
     // first upload's rows already being submitted.
-    const second = await ingestSummaryLogFixture(
+    const second = await uploadSummaryLog(
       orgId,
       registrationId,
       authHeader,
-      {
-        s3Key: 'valid-summary-log-input-2-key',
-        filename: 'valid-summary-log-input-2.xlsx'
-      },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/valid-summary-log-input-2.xlsx`,
+        numbers
+      ),
       year
     )
     const secondData = await waitForSummaryLogStatus(
@@ -219,14 +227,14 @@ test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput',
     // contribute to waste balance; 1001 is also adjusted; 1004 is excluded
     // from the waste balance as it has PRNs issued against it; 1005 is
     // excluded from the waste balance as it is missing Pallet Weight.
-    const third = await ingestSummaryLogFixture(
+    const third = await uploadSummaryLog(
       orgId,
       registrationId,
       authHeader,
-      {
-        s3Key: 'reprocessor-input-adjustments-key',
-        filename: 'reprocessor-input-adjustments.xlsx'
-      },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/reprocessor-input-adjustments.xlsx`,
+        numbers
+      ),
       year
     )
     const thirdData = await waitForSummaryLogStatus(
@@ -327,14 +335,14 @@ test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput',
   })
 
   test('fails in-sheet revalidation @summaryLogReprocessorInputInvalid', async () => {
-    const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
+    const { summaryLogPath, baseAPI } = await uploadSummaryLog(
       orgId,
       registrationId,
       authHeader,
-      {
-        s3Key: 'reprocessor-input-invalid-key',
-        filename: 'reprocessor-input-invalid.xlsx'
-      },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/reprocessor-input-invalid.xlsx`,
+        numbers
+      ),
       year
     )
     const responseData = await waitForSummaryLogStatus(
@@ -466,14 +474,14 @@ test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput',
   })
 
   test('fails in-sheet revalidation on the Sent On sheet @summaryLogReprocessorInputSentOnInvalid', async () => {
-    const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
+    const { summaryLogPath, baseAPI } = await uploadSummaryLog(
       orgId,
       registrationId,
       authHeader,
-      {
-        s3Key: 'reprocessor-input-senton-invalid-key',
-        filename: 'reprocessor-input-senton-invalid.xlsx'
-      },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/reprocessor-input-senton-invalid.xlsx`,
+        numbers
+      ),
       year
     )
     const responseData = await waitForSummaryLogStatus(

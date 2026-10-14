@@ -17,14 +17,14 @@ import {
 } from '../support/seeding/organisation.js'
 import {
   registrationStartYear,
-  submitSummaryLogContent
+  submitSummaryLogContent,
+  summaryLogNumbered
 } from '../support/seeding/summary-logs.js'
 import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
-
-const REG_NUMBER = 'R26ER5000000002PA'
+import { generateRegNumber } from '../support/reg-acc-number.js'
 
 test.describe('Declaration name validation @declarationValidation', () => {
   // All `test`s below build on one continuous, already-logged-in session (the
@@ -53,6 +53,11 @@ test.describe('Declaration name validation @declarationValidation', () => {
     const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
     const confirmationPage = new ConfirmationPage(page)
 
+    const regNumber = generateRegNumber({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
+
     const organisationDetails = await createLinkedOrganisation([
       {
         material: 'Paper or board (R3)',
@@ -66,7 +71,7 @@ test.describe('Declaration name validation @declarationValidation', () => {
       [
         {
           reprocessingType: 'output',
-          regNumber: REG_NUMBER,
+          regNumber,
           status: 'approved',
           withoutAccreditation: true
         }
@@ -83,7 +88,9 @@ test.describe('Declaration name validation @declarationValidation', () => {
     // upload: this journey is about declaration name validation, not the
     // upload itself, which the dedicated summary-log specs already cover.
     const summaryLogContent = await summaryLogContentFromFixture(
-      'resources/reprocessor-output-regonly.xlsx'
+      await summaryLogNumbered('resources/reprocessor-output-regonly.xlsx', {
+        regNumber
+      })
     )
     await submitSummaryLogContent(
       organisationDetails.refNo,

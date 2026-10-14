@@ -7,6 +7,7 @@ import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { test, expect } from '@playwright/test'
 import { checkBodyText } from '~/test/support/checks.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
+import { generateNumbers } from '~/test/support/reg-acc-number.js'
 
 test.describe('Cancelled accreditation @cancelledAccreditation', () => {
   test('Should not be able to access PERNs when an accreditation is cancelled @cancelledPRN', async ({
@@ -14,8 +15,10 @@ test.describe('Cancelled accreditation @cancelledAccreditation', () => {
   }) => {
     const dashboardPage = new DashboardPage(page)
 
-    const regNumber = 'R25SR500030913PA'
-    const accNumber = 'ACC234567'
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'AL'
+    })
 
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Aluminium (R4)', wasteProcessingType: 'Exporter' }

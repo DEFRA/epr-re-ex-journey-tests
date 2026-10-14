@@ -19,17 +19,21 @@ import {
 } from '../support/seeding/organisation.js'
 import {
   registrationStartYear,
-  submitSummaryLogContent
+  submitSummaryLogContent,
+  summaryLogNumbered
 } from '../support/seeding/summary-logs.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { expectActionRequiredStatus } from '../support/report-status.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
-const REG_NUMBER = 'R26ER5000000001PL'
-const ACC_NUMBER = 'A26ER5000000001PL'
-
 async function setupReprocessor(page) {
+  const { regNumber, accNumber } = generateNumbers({
+    wasteProcessingType: 'reprocessor',
+    materialSuffix: 'PL'
+  })
+
   const organisationDetails = await createLinkedOrganisation([
     {
       material: 'Plastic (R3)',
@@ -42,8 +46,8 @@ async function setupReprocessor(page) {
     [
       {
         reprocessingType: 'output',
-        regNumber: REG_NUMBER,
-        accNumber: ACC_NUMBER,
+        regNumber,
+        accNumber,
         status: 'approved'
       }
     ]
@@ -58,7 +62,10 @@ async function setupReprocessor(page) {
   // Seed the summary log via epr-backend's dev endpoint rather than a real
   // multipart upload: this journey is about deleting reports, not the
   // upload itself, which the dedicated summary-log specs already cover.
-  const filePath = `resources/sanity/reprocessorOutput_${ACC_NUMBER}_${REG_NUMBER}.xlsx`
+  const filePath = await summaryLogNumbered(
+    'resources/sanity/reprocessorOutput_A26ER5000000001PL_R26ER5000000001PL.xlsx',
+    { regNumber, accNumber }
+  )
   const summaryLogContent = await summaryLogContentFromFixture(filePath)
   await submitSummaryLogContent(
     organisationDetails.refNo,

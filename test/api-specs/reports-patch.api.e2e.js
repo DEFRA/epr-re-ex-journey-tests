@@ -10,6 +10,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 const YEAR = 2026
 const CADENCE = 'monthly'
 const PERIOD = 1
@@ -23,8 +24,10 @@ async function setUpExporterWithReport() {
   ])
   const migrated = await updateMigratedOrganisation(org.refNo, [
     {
-      regNumber: 'R25SR500030913PA',
-      accNumber: 'ACC234567',
+      ...generateNumbers({
+        wasteProcessingType: 'exporter',
+        materialSuffix: 'PA'
+      }),
       status: 'approved'
     }
   ])

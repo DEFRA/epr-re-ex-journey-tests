@@ -11,8 +11,11 @@ import {
 import {
   seedOverseasSites,
   createLinkedOrganisation,
+  fillerNumbers,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
+import { summaryLogNumbered } from '../support/seeding/summary-logs.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 // PAE-1648 closed-period adjustment messaging copy (en.json
@@ -45,6 +48,10 @@ test.describe('Summary Logs Exporter', () => {
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
     ])
+    const exporterNumbers = generateNumbers({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'PA'
+    })
 
     // We adjust validFrom date to test filtering of rows from the Summary Log upload
     const migrationResponse = await updateMigratedOrganisation(
@@ -52,13 +59,11 @@ test.describe('Summary Logs Exporter', () => {
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R26ER5000000002PA',
-          accNumber: 'A26ER5000000002PA',
+          ...fillerNumbers(),
           status: 'approved'
         },
         {
-          regNumber: 'R26EX5000000003PA',
-          accNumber: 'A26EX5000000000PA',
+          ...exporterNumbers,
           status: 'approved',
           validFrom: '2025-02-02'
         }
@@ -81,12 +86,14 @@ test.describe('Summary Logs Exporter', () => {
 
     // Single-registration orgs skip the selection list, so the reg/acc
     // numbers render as plain text on the task page, not as links.
-    await checkBodyText(page, 'R26EX5000000003PA', 10)
-    await checkBodyText(page, 'A26EX5000000000PA', 10)
+    await checkBodyText(page, exporterNumbers.regNumber, 10)
+    await checkBodyText(page, exporterNumbers.accNumber, 10)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
 
-    await uploadSummaryLogPage.uploadFile('resources/exporter.xlsx')
+    await uploadSummaryLogPage.uploadFile(
+      await summaryLogNumbered('resources/exporter.xlsx', exporterNumbers)
+    )
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
@@ -149,7 +156,12 @@ test.describe('Summary Logs Exporter', () => {
 
     await wasteRecordsPage.submitSummaryLogLink().click()
 
-    await uploadSummaryLogPage.uploadFile('resources/exporter-adjustments.xlsx')
+    await uploadSummaryLogPage.uploadFile(
+      await summaryLogNumbered(
+        'resources/exporter-adjustments.xlsx',
+        exporterNumbers
+      )
+    )
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)

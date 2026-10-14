@@ -18,13 +18,16 @@ import { createLinkAndLogin } from '../support/login-helper.js'
 import { createPrnDetails } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'
 import { WASTE_BALANCE_POOL } from '../support/waste-balance-pool.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 
 test.describe('Choosing a waste balance pool for a PRN (Reprocessor Input)', () => {
   test('Should show both balance options and move only the chosen pool @decWaste @createDecPRNInput', async ({
     page
   }) => {
-    const regNumber = 'R26ER5000000000DEC'
-    const accNumber = 'A26ER5000000000DEC'
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
 
     const createPRNPage = new CreatePRNPage(page)
     const prnCreatedPage = new PRNCreatedPage(page)

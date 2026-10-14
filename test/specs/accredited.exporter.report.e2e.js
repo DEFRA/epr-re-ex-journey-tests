@@ -18,8 +18,13 @@ import {
 import { unsubmitReport } from '../support/seeding/reports.js'
 import {
   registrationStartYear,
-  submitSummaryLogContent
+  submitSummaryLogContent,
+  summaryLogNumbered
 } from '../support/seeding/summary-logs.js'
+import {
+  generateNumbers,
+  generateRegNumber
+} from '../support/reg-acc-number.js'
 import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
@@ -53,8 +58,10 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
     test.beforeAll(async ({ browser }) => {
       page = await browser.newPage()
 
-      const regNumber = 'R26EX5000000002PA'
-      const accNumber = 'A26EX5000000002PA'
+      const { regNumber, accNumber } = generateNumbers({
+        wasteProcessingType: 'exporter',
+        materialSuffix: 'PA'
+      })
 
       organisationDetails = await createLinkedOrganisation([
         {
@@ -86,7 +93,10 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       // real multipart upload: this journey is about the reports wizard,
       // not the upload itself, which the dedicated summary-log specs
       // already cover.
-      const filePath = `resources/sanity/exporter_${accNumber}_${regNumber}.xlsx`
+      const filePath = await summaryLogNumbered(
+        'resources/sanity/exporter_A26EX5000000002PA_R26EX5000000002PA.xlsx',
+        { regNumber, accNumber }
+      )
       const summaryLogContent = await summaryLogContentFromFixture(filePath)
       await submitSummaryLogContent(
         organisationDetails.refNo,
@@ -414,7 +424,10 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
         organisationDetails.refNo,
         [
           {
-            regNumber: 'R26EX5000000005PA',
+            regNumber: generateRegNumber({
+              wasteProcessingType: 'exporter',
+              materialSuffix: 'PA'
+            }),
             status: 'approved',
             withoutAccreditation: true
           }

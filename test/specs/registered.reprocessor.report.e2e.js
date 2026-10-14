@@ -17,8 +17,10 @@ import {
 import { unsubmitReport } from '../support/seeding/reports.js'
 import {
   registrationStartYear,
-  submitSummaryLogContent
+  submitSummaryLogContent,
+  summaryLogNumbered
 } from '../support/seeding/summary-logs.js'
+import { generateRegNumber } from '../support/reg-acc-number.js'
 import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
@@ -33,8 +35,6 @@ import {
   switchToNewTab
 } from '../support/windowtabs.js'
 import { ReportSubmittedPage } from 'page-objects/reports/report.submitted.page.js'
-
-const REG_NUMBER = 'R26ER5000000002PA'
 
 async function startAndSubmitReport(page) {
   const reportsPage = new ReportsPage(page)
@@ -64,10 +64,13 @@ async function uploadAndNavigateToReports(
   page,
   organisationDetails,
   migrationResponse,
-  user
+  user,
+  regNumber
 ) {
   const summaryLogContent = await summaryLogContentFromFixture(
-    'resources/reprocessor-output-regonly.xlsx'
+    await summaryLogNumbered('resources/reprocessor-output-regonly.xlsx', {
+      regNumber
+    })
   )
   await submitSummaryLogContent(
     organisationDetails.refNo,
@@ -80,6 +83,11 @@ async function uploadAndNavigateToReports(
 }
 
 async function setupRegisteredOnlyReprocessor(page) {
+  const regNumber = generateRegNumber({
+    wasteProcessingType: 'reprocessor',
+    materialSuffix: 'PA'
+  })
+
   const organisationDetails = await createLinkedOrganisation([
     {
       material: 'Paper or board (R3)',
@@ -93,7 +101,7 @@ async function setupRegisteredOnlyReprocessor(page) {
     [
       {
         reprocessingType: 'output',
-        regNumber: REG_NUMBER,
+        regNumber,
         status: 'approved',
         withoutAccreditation: true
       }
@@ -106,7 +114,7 @@ async function setupRegisteredOnlyReprocessor(page) {
     migrationResponse.email
   )
 
-  return { organisationDetails, migrationResponse, user }
+  return { organisationDetails, migrationResponse, user, regNumber }
 }
 
 test.describe('Registered-only reprocessor report flow @registeredOnlyReprocessor', () => {
@@ -138,7 +146,8 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
         page,
         setupResponse.organisationDetails,
         setupResponse.migrationResponse,
-        setupResponse.user
+        setupResponse.user,
+        setupResponse.regNumber
       )
     })
 
@@ -240,7 +249,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       await reportDetailPage.verifyDetailPageButtons()
 
       await reportsPage.selectActiveActionLink(1)
-      await checkBodyText(page, REG_NUMBER, 10)
+      await checkBodyText(page, setupResponse.regNumber, 10)
       await reportDetailPage.useThisData()
 
       // --- Tonnes recycled page ---
@@ -372,13 +381,14 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
     const homePage = new HomePage(page)
     const reportsPage = new ReportsPage(page)
 
-    const { organisationDetails, migrationResponse, user } =
+    const { organisationDetails, migrationResponse, user, regNumber } =
       await setupRegisteredOnlyReprocessor(page)
     await uploadAndNavigateToReports(
       page,
       organisationDetails,
       migrationResponse,
-      user
+      user,
+      regNumber
     )
     await startAndSubmitReport(page)
 

@@ -9,6 +9,8 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
+import { summaryLogNumbered } from '../support/seeding/summary-logs.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 test.describe('Summary Logs Reprocessor Output', () => {
@@ -24,14 +26,17 @@ test.describe('Summary Logs Reprocessor Output', () => {
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Steel (R4)', wasteProcessingType: 'Reprocessor' }
     ])
+    const numbers = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R26ER5000000005PA',
-          accNumber: 'A26ER5000000003PA',
+          ...numbers,
           status: 'approved',
           validFrom: '2026-01-01'
         }
@@ -54,12 +59,14 @@ test.describe('Summary Logs Reprocessor Output', () => {
 
     // Single-registration orgs skip the selection list, so the reg/acc
     // numbers render as plain text on the task page, not as links.
-    await checkBodyText(page, 'R26ER5000000005PA', 10)
-    await checkBodyText(page, 'A26ER5000000003PA', 10)
+    await checkBodyText(page, numbers.regNumber, 10)
+    await checkBodyText(page, numbers.accNumber, 10)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
-    await uploadSummaryLogPage.uploadFile('resources/reprocessor-output.xlsx')
+    await uploadSummaryLogPage.uploadFile(
+      await summaryLogNumbered('resources/reprocessor-output.xlsx', numbers)
+    )
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
@@ -92,7 +99,10 @@ test.describe('Summary Logs Reprocessor Output', () => {
     await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
     await uploadSummaryLogPage.uploadFile(
-      'resources/reprocessor-output-adjustments.xlsx'
+      await summaryLogNumbered(
+        'resources/reprocessor-output-adjustments.xlsx',
+        numbers
+      )
     )
     await uploadSummaryLogPage.continue()
 

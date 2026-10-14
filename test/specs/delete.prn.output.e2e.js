@@ -1,6 +1,7 @@
 import { test } from '@playwright/test'
 import { runDeleteCreatedPrn } from '../support/delete-created-prn.js'
 import { generateSummaryLogContent } from '../support/spreadsheet/summarylogs-content-generator.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 
 const reprocessedRowFields = (rowId) => ({
   rowId,
@@ -16,8 +17,10 @@ test.describe('Deleting Packing Recycling Notes (Reprocessor Output)', () => {
   test('Should be able to create and delete PRN for Plastic (Reprocessor Output) @delPRNOutput', async ({
     page
   }) => {
-    const regNumber = 'R26ER5000000001PL'
-    const accNumber = 'A26ER5000000001PL'
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PL'
+    })
 
     const summaryLogContent = await generateSummaryLogContent({
       wasteProcessingType: 'reprocessorOutput',
