@@ -47,9 +47,6 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
   test('should display closed period adjusted loads when a reported load is amended, asking for resubmission only once the reported figures change @cmaAdjusted @closedPeriodMessaging @cma', async ({
     page
   }) => {
-    // Renumbering its workbooks adds several seconds to an already long journey.
-    test.slow()
-
     const homePage = new HomePage(page)
     const uploadSummaryLogPage = new UploadSummaryLogPage(page)
     const checkSummaryLogPage = new CheckSummaryLogPage(page)

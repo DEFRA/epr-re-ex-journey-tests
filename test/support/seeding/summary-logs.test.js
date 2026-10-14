@@ -110,6 +110,22 @@ describe('numbering a summary log fixture', () => {
     }
   })
 
+  it('writes an accreditation number into a fixture that has none', async () => {
+    const copy = await summaryLogNumbered('resources/exporter-regonly.xlsx', {
+      regNumber: 'R26EX1234567890PA',
+      accNumber: 'A26EX1234567890PA'
+    })
+
+    try {
+      assert.deepEqual(await coverNumbers(copy), [
+        'R26EX1234567890PA',
+        'A26EX1234567890PA'
+      ])
+    } finally {
+      await rm(copy)
+    }
+  })
+
   it('clears the accreditation number of a fixture given none', async () => {
     const copy = await summaryLogNumbered('resources/exporter.xlsx', {
       regNumber: 'R26EX1234567890PA'
