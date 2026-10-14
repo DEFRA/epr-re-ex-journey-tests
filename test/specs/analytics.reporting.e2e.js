@@ -22,11 +22,11 @@ const reportedBy = (page) =>
     const queue = /** @type {IArguments[]} */ (
       Reflect.get(window, 'dataLayer') ?? []
     )
-    const config = queue.find((entry) => entry[0] === 'config')
+    const set = queue.find((entry) => entry[0] === 'set')
 
     return {
       cameFromInTheBrowser: document.referrer,
-      parameters: config ? config[2] : null
+      parameters: set ? set[1] : null
     }
   })
 
