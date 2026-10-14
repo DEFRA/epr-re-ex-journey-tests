@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
 import ExcelJS from 'exceljs'
-import { mkdir, readFile } from 'node:fs/promises'
+import JSZip from 'jszip'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, dirname } from 'node:path'
 import { BaseAPI } from '../../apis/base-api.js'
 import config from '../../config/config.js'
@@ -67,12 +68,167 @@ export async function summaryLogDatedAt(fixturePath, date) {
     })
   })
 
+  return writeCopy(workbook, fixturePath)
+}
+
+/**
+ * Writes a copy of a summary log fixture carrying the given registration and
+ * accreditation numbers on its cover sheet, and returns the path to the copy.
+ * The backend accepts a summary log only when its numbers are the
+ * registration's own, and no two organisations hold the same number, so a
+ * fixture's own numbers can serve one organisation only.
+ *
+ * @param {string} fixturePath
+ * @param {{regNumber: string, accNumber?: string}} numbers - leave accNumber out for a registered-only fixture
+ * @returns {Promise<string>}
+ */
+export async function summaryLogNumbered(
+  fixturePath,
+  { regNumber, accNumber }
+) {
+  // Edits the cover sheet's XML in place: a round trip through ExcelJS takes
+  // seconds on a fixture this size, and most journeys renumber one.
+  const zip = await JSZip.loadAsync(await readFile(fixturePath))
+  const coverPath = await coverSheetPath(zip, fixturePath)
+  const sharedStrings = await readSharedStrings(zip)
+
+  let cover = await zipText(zip, coverPath)
+  cover = renumber(cover, 'E10', regNumber, sharedStrings, fixturePath)
+  cover = renumber(cover, 'E13', accNumber, sharedStrings, fixturePath)
+  zip.file(coverPath, cover)
+
+  return writeCopyBytes(
+    await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' }),
+    fixturePath
+  )
+}
+
+/**
+ * @param {JSZip} zip
+ * @param {string} path
+ * @returns {Promise<string>}
+ */
+async function zipText(zip, path) {
+  const entry = zip.file(path)
+  if (!entry) {
+    throw new Error(`workbook has no ${path}`)
+  }
+  return entry.async('string')
+}
+
+/**
+ * @param {JSZip} zip
+ * @param {string} fixturePath
+ * @returns {Promise<string>} the cover sheet's path inside the workbook
+ */
+async function coverSheetPath(zip, fixturePath) {
+  const workbook = await zipText(zip, 'xl/workbook.xml')
+  const relationId = workbook
+    .match(/<sheet [^>]*name="Cover"[^>]*>/)?.[0]
+    .match(/r:id="([^"]+)"/)?.[1]
+  const relations = await zipText(zip, 'xl/_rels/workbook.xml.rels')
+  const target = relations
+    .match(new RegExp(`<Relationship [^>]*Id="${relationId}"[^>]*>`))?.[0]
+    .match(/Target="([^"]+)"/)?.[1]
+  if (!relationId || !target) {
+    throw new Error(`${fixturePath} carries no Cover sheet`)
+  }
+  return target.startsWith('/') ? target.slice(1) : `xl/${target}`
+}
+
+/**
+ * @param {JSZip} zip
+ * @returns {Promise<string[]>} each shared string's text, in index order
+ */
+async function readSharedStrings(zip) {
+  const entry = zip.file('xl/sharedStrings.xml')
+  if (!entry) {
+    return []
+  }
+  const xml = await entry.async('string')
+  return [...xml.matchAll(/<si>([\s\S]*?)<\/si>|<si\/>/g)].map(([, item]) =>
+    [...(item ?? '').matchAll(/<t(?: [^>]*)?>([\s\S]*?)<\/t>/g)]
+      .map(([, text]) => unescapeXml(text))
+      .join('')
+  )
+}
+
+/**
+ * Puts a number in place of a cover cell's own, keeping any whitespace a
+ * fixture carries around it, or empties the cell when there is no number.
+ *
+ * @param {string} sheet - the cover sheet's XML
+ * @param {string} ref - the cell, e.g. E10
+ * @param {string | undefined} number
+ * @param {string[]} sharedStrings
+ * @param {string} fixturePath
+ * @returns {string} the sheet's XML with the cell replaced
+ */
+function renumber(sheet, ref, number, sharedStrings, fixturePath) {
+  const cellPattern = new RegExp(
+    `<c r="${ref}"([^>]*?)(?:/>|>([\\s\\S]*?)</c>)`
+  )
+  const cell = sheet.match(cellPattern)
+  if (!cell) {
+    throw new Error(`${fixturePath} has no cover cell ${ref}`)
+  }
+  const [, attributes, content = ''] = cell
+  const style = attributes.match(/ s="\d+"/)?.[0] ?? ''
+  if (!number) {
+    return sheet.replace(cellPattern, `<c r="${ref}"${style}/>`)
+  }
+
+  // The fixtures hold their cover numbers as shared strings. The copy holds
+  // its own inline, since another cell may share the fixture's string.
+  const current = attributes.includes(' t="s"')
+    ? (sharedStrings[Number(content.match(/<v>(\d+)<\/v>/)?.[1])] ?? '')
+    : ''
+  const value = current.trim()
+    ? current.replace(current.trim(), number)
+    : number
+  return sheet.replace(
+    cellPattern,
+    `<c r="${ref}"${style} t="inlineStr"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>`
+  )
+}
+
+/** @param {string} text */
+const escapeXml = (text) =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+/** @param {string} text */
+const unescapeXml = (text) =>
+  text
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&')
+
+/**
+ * @param {ExcelJS.Workbook} workbook
+ * @param {string} fixturePath
+ * @returns {Promise<string>}
+ */
+async function writeCopy(workbook, fixturePath) {
+  return writeCopyBytes(
+    new Uint8Array(await workbook.xlsx.writeBuffer()),
+    fixturePath
+  )
+}
+
+/**
+ * @param {Uint8Array} bytes
+ * @param {string} fixturePath
+ * @returns {Promise<string>}
+ */
+async function writeCopyBytes(bytes, fixturePath) {
   // data/ is gitignored, so it is absent in a fresh clone or worktree. The name
-  // carries a fresh id because journeys re-dating a fixture run alongside each
+  // carries a fresh id because journeys copying a fixture run alongside each
   // other and would otherwise write over one another's copy.
   const copyPath = `data/${basename(fixturePath, '.xlsx')}-${randomUUID()}.xlsx`
   await mkdir(dirname(copyPath), { recursive: true })
-  await workbook.xlsx.writeFile(copyPath)
+  await writeFile(copyPath, bytes)
 
   return copyPath
 }
@@ -122,11 +278,7 @@ export async function summaryLogWithCellChanged(
     throw new Error(`${sheet} has no load with row ID ${rowId}`)
   }
 
-  const copyPath = `data/${basename(fixturePath, '.xlsx')}-${randomUUID()}.xlsx`
-  await mkdir(dirname(copyPath), { recursive: true })
-  await workbook.xlsx.writeFile(copyPath)
-
-  return copyPath
+  return writeCopy(workbook, fixturePath)
 }
 
 // Initiates a summary log against a real registration, then feeds the

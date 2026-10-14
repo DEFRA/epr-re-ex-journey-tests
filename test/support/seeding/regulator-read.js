@@ -12,15 +12,13 @@ import { seedReportSubmission } from './reports.js'
 import {
   registrationStartYear,
   uploadAndSubmitSummaryLog,
-  submitSummaryLogContent
+  submitSummaryLogContent,
+  summaryLogNumbered
 } from './summary-logs.js'
 import { generateSummaryLogContent } from '../spreadsheet/summarylogs-content-generator.js'
 import { waitForWasteBalance } from './waiters.js'
 import { defraIdStub } from '../defra-id-stub.js'
-import { generateRegNumber, generateAccNumber } from '../reg-acc-number.js'
-
-export const REGISTRATION_NUMBER = 'R26ER5000000003PA'
-const ACCREDITATION_NUMBER = 'A26ER5000000002PA'
+import { generateNumbers, generateRegNumber } from '../reg-acc-number.js'
 
 // The tonnage each seeded note is worth, and the figures the seeded report
 // carries. A journey asserts these back off the page, so they are the values
@@ -76,11 +74,15 @@ export async function seedAwaitingPrnAndSubmittedReport() {
     { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
   ])
 
+  const { regNumber, accNumber } = generateNumbers({
+    wasteProcessingType: 'reprocessor',
+    materialSuffix: 'PA'
+  })
   const migrated = await updateMigratedOrganisation(organisation.refNo, [
     {
       reprocessingType: 'input',
-      regNumber: REGISTRATION_NUMBER,
-      accNumber: ACCREDITATION_NUMBER,
+      regNumber,
+      accNumber,
       status: 'approved'
     }
   ])
@@ -112,8 +114,8 @@ export async function seedAwaitingPrnAndSubmittedReport() {
   const content = await generateSummaryLogContent({
     wasteProcessingType: 'reprocessorInput',
     materialSuffix: 'PA',
-    regNumber: REGISTRATION_NUMBER,
-    accNumber: ACCREDITATION_NUMBER,
+    regNumber,
+    accNumber,
     rows: {
       'Received (sections 1, 2 and 3)': [
         {
@@ -189,9 +191,9 @@ export async function seedAwaitingPrnAndSubmittedReport() {
     refNo: organisation.refNo,
     orgId: organisation.orgId,
     registrationId,
-    registrationNumber: REGISTRATION_NUMBER,
+    registrationNumber: regNumber,
     accreditationId,
-    accreditationNumber: ACCREDITATION_NUMBER,
+    accreditationNumber: accNumber,
     prnId,
     prnTonnage: PRN_TONNAGE,
     cancellationPrnId: cancellation.prnId,
@@ -251,31 +253,25 @@ export async function seedMultiSiteMultiTypeOrganisation() {
     { material: 'Plastic (R3)', wasteProcessingType: 'Exporter' }
   ])
 
-  const inputRegistrationNumber = generateRegNumber({
+  const input = generateNumbers({
     wasteProcessingType: 'reprocessor',
-    materialSuffix: 'PA',
-    serial: '0201'
+    materialSuffix: 'PA'
   })
   const outputRegistrationNumber = generateRegNumber({
     wasteProcessingType: 'reprocessor',
-    materialSuffix: 'ST',
-    serial: '0202'
+    materialSuffix: 'ST'
   })
-  const exporterRegistrationNumber = generateRegNumber({
+  const exporter = generateNumbers({
     wasteProcessingType: 'exporter',
-    materialSuffix: 'PL',
-    serial: '0203'
+    materialSuffix: 'PL'
   })
+  const inputRegistrationNumber = input.regNumber
+  const exporterRegistrationNumber = exporter.regNumber
 
   const migrated = await updateMigratedOrganisation(organisation.refNo, [
     {
       reprocessingType: 'input',
-      regNumber: inputRegistrationNumber,
-      accNumber: generateAccNumber({
-        wasteProcessingType: 'reprocessor',
-        materialSuffix: 'PA',
-        serial: '0201'
-      }),
+      ...input,
       status: 'approved'
     },
     {
@@ -290,12 +286,7 @@ export async function seedMultiSiteMultiTypeOrganisation() {
       withoutAccreditation: true
     },
     {
-      regNumber: exporterRegistrationNumber,
-      accNumber: generateAccNumber({
-        wasteProcessingType: 'exporter',
-        materialSuffix: 'PL',
-        serial: '0203'
-      }),
+      ...exporter,
       status: 'approved'
     }
   ])
@@ -320,10 +311,6 @@ const REGISTERED_ONLY_MATERIAL = 'Paper or board (R3)'
 const REGISTERED_ONLY_WASTE_PROCESSING_TYPE = 'Reprocessor'
 const REGISTERED_ONLY_REPROCESSING_TYPE = 'output'
 const REGISTERED_ONLY_FIXTURE_PATH = 'resources/reprocessor-output-regonly.xlsx'
-
-// The workbook names this number in its header and the backend fails a
-// mismatch, so it is the fixture's to choose. Change the workbook, change this.
-const REGISTERED_ONLY_REGISTRATION_NUMBER = 'R26ER5000000002PA'
 
 /**
  * One organisation with a single approved, accreditation-free registration,
@@ -354,10 +341,14 @@ export async function seedRegisteredOnlySubmittedSummaryLog() {
     }
   ])
 
+  const registrationNumber = generateRegNumber({
+    wasteProcessingType: 'reprocessor',
+    materialSuffix: 'PA'
+  })
   const migrated = await updateMigratedOrganisation(organisation.refNo, [
     {
       reprocessingType: REGISTERED_ONLY_REPROCESSING_TYPE,
-      regNumber: REGISTERED_ONLY_REGISTRATION_NUMBER,
+      regNumber: registrationNumber,
       status: 'approved',
       withoutAccreditation: true
     }
@@ -372,7 +363,9 @@ export async function seedRegisteredOnlySubmittedSummaryLog() {
     organisation.refNo,
     registrationId,
     defraAuthHeader,
-    REGISTERED_ONLY_FIXTURE_PATH,
+    await summaryLogNumbered(REGISTERED_ONLY_FIXTURE_PATH, {
+      regNumber: registrationNumber
+    }),
     registrationStartYear()
   )
 
@@ -381,7 +374,7 @@ export async function seedRegisteredOnlySubmittedSummaryLog() {
     refNo: organisation.refNo,
     orgId: organisation.orgId,
     registrationId,
-    registrationNumber: REGISTERED_ONLY_REGISTRATION_NUMBER,
+    registrationNumber,
     submissionYear: new Date().getUTCFullYear()
   }
 }

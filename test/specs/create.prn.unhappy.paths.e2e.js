@@ -2,13 +2,16 @@ import { test } from '@playwright/test'
 import { thirdTradingName as tradingName } from '../support/fixtures.js'
 import { runCreatePrnUnhappyPaths } from '../support/create-prn-unhappy-paths.js'
 import { generateSummaryLogContent } from '../support/spreadsheet/summarylogs-content-generator.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 
 test.describe('Creating Packing Recycling Notes', () => {
   test('Should test various (Unhappy) paths for Create PRN Reprocessor @createPRN', async ({
     page
   }) => {
-    const regNumber = 'R26ER5000000000ST'
-    const accNumber = 'A26ER5000000000ST'
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'ST'
+    })
 
     const summaryLogContent = await generateSummaryLogContent({
       wasteProcessingType: 'reprocessorInput',

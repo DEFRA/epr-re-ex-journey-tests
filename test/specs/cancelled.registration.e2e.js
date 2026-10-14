@@ -7,6 +7,7 @@ import {
 import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { test, expect } from '@playwright/test'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
+import { generateNumbers } from '~/test/support/reg-acc-number.js'
 
 test.describe('Cancelled registration @cancelledRegistration', () => {
   test('Cancelling a registration also cancels the linked accreditation @cancelledRegistrationCascade', async ({
@@ -14,8 +15,10 @@ test.describe('Cancelled registration @cancelledRegistration', () => {
   }) => {
     const dashboardPage = new DashboardPage(page)
 
-    const regNumber = 'R25SR500030914PA'
-    const accNumber = 'ACC234568'
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'AL'
+    })
 
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Aluminium (R4)', wasteProcessingType: 'Exporter' }

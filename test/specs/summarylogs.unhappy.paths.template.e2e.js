@@ -6,8 +6,11 @@ import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { checkBodyText, checkUploadErrorText } from '../support/checks.js'
 import {
   createLinkedOrganisation,
+  fillerNumbers,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
+import { summaryLogNumbered } from '../support/seeding/summary-logs.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 // Split from summarylogs.unhappy.paths.e2e.js (PAE-1405 CI runtime work) so
@@ -27,14 +30,17 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
+    const numbers = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R26ER5000000002PA',
-          accNumber: 'A26ER5000000004PA',
+          ...numbers,
           status: 'approved'
         }
       ]
@@ -72,8 +78,8 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     await uploadSummaryLogPage.returnToSubmissionPage()
     // Single-registration orgs skip the selection list, so the reg/acc
     // numbers render as plain text on the task page, not as links.
-    await checkBodyText(page, 'R26ER5000000002PA', 10)
-    await checkBodyText(page, 'A26ER5000000004PA', 10)
+    await checkBodyText(page, numbers.regNumber, 10)
+    await checkBodyText(page, numbers.accNumber, 10)
 
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
@@ -96,8 +102,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R26ER5000000002PA',
-          accNumber: 'A26ER5000000002PA',
+          ...fillerNumbers(),
           status: 'approved'
         }
       ]
@@ -149,13 +154,16 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
     ])
+    const numbers = generateNumbers({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'PA'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
-          regNumber: 'R26EX5000000002PA',
-          accNumber: 'A26EX5000000002PA',
+          ...numbers,
           status: 'approved'
         }
       ]
@@ -172,7 +180,9 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
 
     await expect(page).toHaveTitle(/Summary log: upload/)
 
-    await uploadSummaryLogPage.uploadFile('resources/exporter-invalid.xlsx')
+    await uploadSummaryLogPage.uploadFile(
+      await summaryLogNumbered('resources/exporter-invalid.xlsx', numbers)
+    )
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)

@@ -1,3 +1,5 @@
+import { randomInt } from 'node:crypto'
+
 import { currentYear } from './date.js'
 
 // Registration/accreditation number format:
@@ -9,12 +11,18 @@ import { currentYear } from './date.js'
 // [12-15] serial
 // [16-17] material
 // e.g. A26ER5000270063WO
+//
+// No two organisations may hold the same number, and a database that is not
+// torn down keeps the numbers of every earlier run. So the org id and serial
+// are drawn at random unless the caller gives them.
 
-const DEFAULT_ORG_ID = '500000'
-const DEFAULT_SERIAL = '0001'
 const DEFAULT_NATION = 'E'
 
 const twoDigitYear = () => String(currentYear()).slice(-2)
+
+/** @param {number} length */
+const randomDigits = (length) =>
+  String(randomInt(10 ** length)).padStart(length, '0')
 
 const PROCESSING_TYPE_LETTERS = {
   exporter: 'X',
@@ -24,6 +32,8 @@ const PROCESSING_TYPE_LETTERS = {
   reprocessorOutput: 'R',
   regOnlyReprocessor: 'R'
 }
+
+/** @typedef {keyof typeof PROCESSING_TYPE_LETTERS} ProcessingType */
 
 function processingTypeChar(wasteProcessingType) {
   const letter = PROCESSING_TYPE_LETTERS[wasteProcessingType]
@@ -41,8 +51,8 @@ function buildNumber(
     wasteProcessingType,
     materialSuffix,
     nation = DEFAULT_NATION,
-    orgId = DEFAULT_ORG_ID,
-    serial = DEFAULT_SERIAL,
+    orgId = randomDigits(6),
+    serial = randomDigits(4),
     year = twoDigitYear()
   }
 ) {
@@ -55,4 +65,21 @@ export function generateRegNumber(options) {
 
 export function generateAccNumber(options) {
   return buildNumber('A', options)
+}
+
+/** @typedef {{regNumber: string, accNumber: string}} SeededNumbers */
+
+/**
+ * A registration number and its accreditation number, sharing one org id and
+ * serial.
+ *
+ * @param {{wasteProcessingType: ProcessingType, materialSuffix: string, nation?: string, year?: string}} options
+ * @returns {SeededNumbers}
+ */
+export function generateNumbers(options) {
+  const shared = { orgId: randomDigits(6), serial: randomDigits(4), ...options }
+  return {
+    regNumber: generateRegNumber(shared),
+    accNumber: generateAccNumber(shared)
+  }
 }

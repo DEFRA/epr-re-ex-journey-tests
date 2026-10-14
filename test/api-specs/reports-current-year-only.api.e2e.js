@@ -11,6 +11,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 
 test.describe('Reports list @reportsList', () => {
   test('lists only this calendar year, which the early-year report skips rely on @reportsListCurrentYearOnly', async () => {
@@ -21,8 +22,10 @@ test.describe('Reports list @reportsList', () => {
       org.refNo,
       [
         {
-          regNumber: 'R26EX5000000007PA',
-          accNumber: 'A26EX5000000007PA',
+          ...generateNumbers({
+            wasteProcessingType: 'exporter',
+            materialSuffix: 'PA'
+          }),
           status: 'approved'
         }
       ],

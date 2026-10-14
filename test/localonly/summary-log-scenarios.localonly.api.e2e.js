@@ -17,10 +17,7 @@ import { waitForWasteBalance } from '../support/seeding/waiters.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { generateSpreadsheetData } from '../support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
 import { WORKSHEET_CONFIG } from '../support/spreadsheet/spreadsheet-config.js'
-import {
-  generateRegNumber,
-  generateAccNumber
-} from '../support/reg-acc-number.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import logger from '../support/logger.js'
 
 // Seeds a local stack with one organisation per kind of operator, each with a
@@ -62,7 +59,7 @@ const EXPORTED_TONNAGE_STEP = 5
  * @typedef {object} Scenario
  * @property {string} tag
  * @property {string} emailPrefix
- * @property {string} spreadsheetType - the generator's processing type
+ * @property {import('../support/reg-acc-number.js').ProcessingType} spreadsheetType - the generator's processing type
  * @property {'Exporter' | 'Reprocessor'} wasteProcessingType
  * @property {'input' | 'output'} [reprocessingType]
  * @property {boolean} accredited
@@ -171,18 +168,13 @@ test.describe('Local scenarios - Summary Logs uploaded as a workbook @summaryLog
       test.setTimeout(5 * 60 * 1000)
 
       const withoutAccreditation = !scenario.accredited
-      // A serial of its own per run, so that running this again adds to what
-      // is already seeded rather than writing over the last run's workbook.
-      const numberOptions = {
-        wasteProcessingType: scenario.spreadsheetType,
-        materialSuffix: MATERIAL_SUFFIX,
-        serial: faker.string.numeric(4)
-      }
       const email = `${scenario.emailPrefix}.${faker.internet.email()}`
-      const regNumber = generateRegNumber(numberOptions)
-      const accNumber = scenario.accredited
-        ? generateAccNumber(numberOptions)
-        : undefined
+      const numbers = generateNumbers({
+        wasteProcessingType: scenario.spreadsheetType,
+        materialSuffix: MATERIAL_SUFFIX
+      })
+      const regNumber = numbers.regNumber
+      const accNumber = scenario.accredited ? numbers.accNumber : undefined
 
       const org = await createLinkedOrganisation([
         {

@@ -3,7 +3,8 @@ import assert from 'node:assert/strict'
 import ExcelJS from 'exceljs'
 import {
   generateSummaryLogContent,
-  summaryLogContentFromFixture
+  summaryLogContentFromFixture,
+  summaryLogContentNumbered
 } from './summarylogs-content-generator.js'
 import { PROCESSING_TYPE_CONFIG } from './spreadsheet-config.js'
 import { generateSpreadsheetData } from './summarylogs-spreadsheet-data-generator.js'
@@ -343,6 +344,49 @@ describe('summary log content generator', () => {
       )
 
       assert.ok(!('SENT_ON_LOADS' in content.data))
+    })
+  })
+
+  describe('summaryLogContentNumbered', () => {
+    const FIXTURE = 'resources/exporter-reconciliation.xlsx'
+
+    it("reads a fixture's loads under the given numbers", async () => {
+      const fixture = await summaryLogContentFromFixture(FIXTURE)
+
+      const content = await summaryLogContentNumbered(FIXTURE, {
+        regNumber: 'R26EX1234567890PA',
+        accNumber: 'A26EX1234567890PA'
+      })
+
+      assert.deepEqual(content, {
+        meta: {
+          MATERIAL: 'Paper_and_board',
+          REGISTRATION_NUMBER: 'R26EX1234567890PA',
+          ACCREDITATION_NUMBER: 'A26EX1234567890PA'
+        },
+        data: fixture.data
+      })
+    })
+
+    it('leaves out the accreditation number when given none', async () => {
+      const content = await summaryLogContentNumbered(FIXTURE, {
+        regNumber: 'R26EX1234567890PA'
+      })
+
+      assert.deepEqual(content.meta, {
+        MATERIAL: 'Paper_and_board',
+        REGISTRATION_NUMBER: 'R26EX1234567890PA'
+      })
+    })
+
+    it('keeps each caller to its own numbers', async () => {
+      const [first, second] = await Promise.all([
+        summaryLogContentNumbered(FIXTURE, { regNumber: 'R26EX1111111111PA' }),
+        summaryLogContentNumbered(FIXTURE, { regNumber: 'R26EX2222222222PA' })
+      ])
+
+      assert.equal(first.meta.REGISTRATION_NUMBER, 'R26EX1111111111PA')
+      assert.equal(second.meta.REGISTRATION_NUMBER, 'R26EX2222222222PA')
     })
   })
 })

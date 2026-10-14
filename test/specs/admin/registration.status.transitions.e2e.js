@@ -7,6 +7,7 @@ import { RegistrationOverviewPage } from 'page-objects/admin/registration.overvi
 import { RegistrationTransitionPage } from 'page-objects/admin/registration.transition.page'
 import {
   createLinkedOrganisation,
+  fillerNumbers,
   getOrganisation,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
@@ -144,8 +145,7 @@ test.describe('Admin registration status transitions', () => {
     const orgId = organisationDetails.refNo
     await updateMigratedOrganisation(orgId, [
       {
-        regNumber: 'R25SR500030918PA',
-        accNumber: 'ACC234572',
+        ...fillerNumbers(),
         status: 'approved'
       }
     ])

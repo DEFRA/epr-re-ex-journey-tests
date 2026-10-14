@@ -9,11 +9,9 @@ import {
 } from '../support/seeding/organisation.js'
 import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 
 test.describe('Report only shows from accreditation validFrom date — exporter @validFromReport', () => {
-  const regNumber = 'R25SR500020912PA'
-  const accNumber = 'E-ACC12245PA'
-
   test('displays active report as of this month only @validFromReport', async ({
     page
   }) => {
@@ -22,6 +20,10 @@ test.describe('Report only shows from accreditation validFrom date — exporter 
     const wasteRecordsPage = new WasteRecordsPage(page)
     const reportsPage = new ReportsPage(page)
 
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'PA'
+    })
     const organisationDetails = await createLinkedOrganisation([
       {
         material: 'Paper or board (R3)',

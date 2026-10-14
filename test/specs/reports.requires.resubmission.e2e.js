@@ -25,7 +25,11 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { seedSubmittedReport } from '../support/seeding/reports.js'
-import { summaryLogDatedAt } from '../support/seeding/summary-logs.js'
+import {
+  summaryLogDatedAt,
+  summaryLogNumbered
+} from '../support/seeding/summary-logs.js'
+import { generateRegNumber } from '../support/reg-acc-number.js'
 import { currentYear } from '../support/date.js'
 import {
   registerAndLinkDefraIdUser,
@@ -63,6 +67,10 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
       new MonthlyReportDraftDeclarationPage(page)
     const reportSubmittedPage = new ReportSubmittedPage(page)
 
+    const regNumber = generateRegNumber({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
     const organisationDetails = await createLinkedOrganisation([
       {
         material: 'Paper or board (R3)',
@@ -76,7 +84,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R26ER5000000004PA',
+          regNumber,
           status: 'approved',
           withoutAccreditation: true
         }
@@ -110,9 +118,12 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     // Upload a summary log that restates Quarter 1, and confirm it. On
     // submit the backend flags that period's report for resubmission.
     await uploadSummaryLogPage.uploadFile(
-      await summaryLogDatedAt(
-        'resources/reprocessor-output-regonly-cma.xlsx',
-        new Date(Date.UTC(YEAR, 1, 1, 12))
+      await summaryLogNumbered(
+        await summaryLogDatedAt(
+          'resources/reprocessor-output-regonly-cma.xlsx',
+          new Date(Date.UTC(YEAR, 1, 1, 12))
+        ),
+        { regNumber }
       )
     )
     await uploadSummaryLogPage.continue()

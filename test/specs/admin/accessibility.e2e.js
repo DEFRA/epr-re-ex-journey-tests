@@ -12,8 +12,7 @@ import { WasteRecordsExportPage } from 'page-objects/admin/waste.records.export.
 
 import {
   createLinkedOrganisation,
-  FAKE_ACCREDITATION_NUMBER,
-  FAKE_REGISTRATION_NUMBER,
+  fillerNumbers,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
 import { createSubmittedReport } from '../../support/seeding/reports.js'
@@ -62,8 +61,7 @@ test.describe('WCAG Accessibility @smoketest', () => {
     ])
     await updateMigratedOrganisation(linkedOrganisation.refNo, [
       {
-        regNumber: FAKE_REGISTRATION_NUMBER,
-        accNumber: FAKE_ACCREDITATION_NUMBER,
+        ...fillerNumbers(),
         status: 'approved',
         reprocessingType: 'input'
       }

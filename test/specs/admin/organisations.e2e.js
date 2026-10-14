@@ -8,8 +8,7 @@ import { RegistrationOverviewPage } from 'page-objects/admin/registration.overvi
 import { JsonEditor } from 'page-objects/admin/jsoneditor.page'
 import {
   createLinkedOrganisation,
-  FAKE_ACCREDITATION_NUMBER,
-  FAKE_REGISTRATION_NUMBER,
+  fillerNumbers,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
 import { createSubmittedReport } from '../../support/seeding/reports.js'
@@ -217,10 +216,12 @@ test.describe('Organisations page', () => {
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
 
+    const { regNumber, accNumber } = fillerNumbers()
+
     await updateMigratedOrganisation(linkedOrganisation.refNo, [
       {
-        regNumber: FAKE_REGISTRATION_NUMBER,
-        accNumber: FAKE_ACCREDITATION_NUMBER,
+        regNumber,
+        accNumber,
         status: 'approved',
         reprocessingType: 'input'
       }
@@ -241,7 +242,7 @@ test.describe('Organisations page', () => {
       {
         header: organisation.companyName,
         orgId: `${linkedOrganisation.orgId}`,
-        regAccNumbers: `${FAKE_REGISTRATION_NUMBER} - ${FAKE_ACCREDITATION_NUMBER}`,
+        regAccNumbers: `${regNumber} - ${accNumber}`,
         regulator: 'EA',
         status: 'active'
       }

@@ -4,13 +4,15 @@ import {
   createAndRegisterDefraIdUser,
   linkDefraIdUser
 } from '../support/defra-id-linking.js'
+import { generateRegNumber } from '../support/reg-acc-number.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import {
-  ingestSummaryLogFixture,
-  registrationStartYear
+  registrationStartYear,
+  summaryLogNumbered,
+  uploadSummaryLog
 } from '../support/seeding/summary-logs.js'
 import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
@@ -20,10 +22,12 @@ import {
   assertValidationFailures
 } from '../support/summary-log-assertions.js'
 
+const FLOCI_SUMMARY_LOGS = 'docker/scripts/floci/summarylogs'
+
 // Ported from epr-backend-journey-tests' summarylogs-exporter-registered-only.feature
 // and summarylogs-reprocessor-registered-only.feature. See
-// summarylogs-validation.api.e2e.js for the shared floci-fixture-shortcut
-// rationale and the loadsByWasteRecordType/DB-assertion gaps this repeats.
+// summarylogs-validation.api.e2e.js for the floci fixtures and the
+// loadsByWasteRecordType/DB-assertion gaps this repeats.
 // Registered-only registrations have no accreditation, so there is no waste
 // balance to check here (unlike the accredited exporter/reprocessor specs).
 test.describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnly', () => {
@@ -33,9 +37,13 @@ test.describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnl
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Exporter', withoutAccreditation: true }
     ])
+    const regNumber = generateRegNumber({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'PA'
+    })
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
-        regNumber: 'R26EX5000000000PA',
+        regNumber,
         status: 'approved',
         validFrom: '2025-02-02',
         withoutAccreditation: true
@@ -47,14 +55,16 @@ test.describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnl
     const registrationId = migrated.registrationIds[0]
     const year = registrationStartYear('2025-02-02')
 
-    const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
+    const { summaryLogPath, baseAPI } = await uploadSummaryLog(
       org.refNo,
       registrationId,
       authHeader,
-      {
-        s3Key: 'exporter-regonly-valid-key',
-        filename: 'exporter-regonly-valid.xlsx'
-      },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/exporter-regonly-valid.xlsx`,
+        {
+          regNumber
+        }
+      ),
       year
     )
     const responseData = await waitForSummaryLogStatus(
@@ -111,9 +121,13 @@ test.describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnl
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Exporter', withoutAccreditation: true }
     ])
+    const regNumber = generateRegNumber({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'PA'
+    })
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
-        regNumber: 'R26EX5000000000PA',
+        regNumber,
         status: 'approved',
         validFrom: '2025-02-02',
         withoutAccreditation: true
@@ -125,14 +139,16 @@ test.describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnl
     const registrationId = migrated.registrationIds[0]
     const year = registrationStartYear('2025-02-02')
 
-    const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
+    const { summaryLogPath, baseAPI } = await uploadSummaryLog(
       org.refNo,
       registrationId,
       authHeader,
-      {
-        s3Key: 'exporter-regonly-invalid-key',
-        filename: 'exporter-regonly-invalid.xlsx'
-      },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/exporter-regonly-invalid.xlsx`,
+        {
+          regNumber
+        }
+      ),
       year
     )
     const responseData = await waitForSummaryLogStatus(
@@ -207,10 +223,14 @@ test.describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessor
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor', withoutAccreditation: true }
     ])
+    const regNumber = generateRegNumber({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'input',
-        regNumber: 'R26ER5000000003PA',
+        regNumber,
         status: 'approved',
         validFrom: '2025-02-02',
         withoutAccreditation: true
@@ -222,14 +242,16 @@ test.describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessor
     const registrationId = migrated.registrationIds[0]
     const year = registrationStartYear('2025-02-02')
 
-    const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
+    const { summaryLogPath, baseAPI } = await uploadSummaryLog(
       org.refNo,
       registrationId,
       authHeader,
-      {
-        s3Key: 'reprocessor-regonly-valid-key',
-        filename: 'reprocessor-regonly-valid.xlsx'
-      },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/reprocessor-regonly-valid.xlsx`,
+        {
+          regNumber
+        }
+      ),
       year
     )
     const responseData = await waitForSummaryLogStatus(
@@ -291,10 +313,14 @@ test.describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessor
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor', withoutAccreditation: true }
     ])
+    const regNumber = generateRegNumber({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'input',
-        regNumber: 'R26ER5000000003PA',
+        regNumber,
         status: 'approved',
         validFrom: '2025-02-02',
         withoutAccreditation: true
@@ -306,14 +332,16 @@ test.describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessor
     const registrationId = migrated.registrationIds[0]
     const year = registrationStartYear('2025-02-02')
 
-    const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
+    const { summaryLogPath, baseAPI } = await uploadSummaryLog(
       org.refNo,
       registrationId,
       authHeader,
-      {
-        s3Key: 'reprocessor-regonly-invalid-key',
-        filename: 'reprocessor-regonly-invalid.xlsx'
-      },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/reprocessor-regonly-invalid.xlsx`,
+        {
+          regNumber
+        }
+      ),
       year
     )
     const responseData = await waitForSummaryLogStatus(

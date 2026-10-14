@@ -10,7 +10,11 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { summaryLogDatedAt } from '../support/seeding/summary-logs.js'
+import {
+  summaryLogDatedAt,
+  summaryLogNumbered
+} from '../support/seeding/summary-logs.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 test.describe('Summary Logs Reprocessor Input', () => {
   test('Should be able to link a user to an organisation and submit a spreadsheet @reproInput', async ({
     page
@@ -24,14 +28,17 @@ test.describe('Summary Logs Reprocessor Input', () => {
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
+    const numbers = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
           reprocessingType: 'input',
-          regNumber: 'R26ER5000000003PA',
-          accNumber: 'A26ER5000000002PA',
+          ...numbers,
           status: 'approved'
         }
       ]
@@ -86,13 +93,16 @@ test.describe('Summary Logs Reprocessor Input', () => {
 
     // Single-registration orgs skip the selection list, so the reg/acc
     // numbers render as plain text on the task page, not as links.
-    await checkBodyText(page, 'R26ER5000000003PA', 10)
-    await checkBodyText(page, 'A26ER5000000002PA', 10)
+    await checkBodyText(page, numbers.regNumber, 10)
+    await checkBodyText(page, numbers.accNumber, 10)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
     await uploadSummaryLogPage.uploadFile(
-      await summaryLogDatedAt('resources/summary-log.xlsx', new Date())
+      await summaryLogNumbered(
+        await summaryLogDatedAt('resources/summary-log.xlsx', new Date()),
+        numbers
+      )
     )
     await uploadSummaryLogPage.continue()
 

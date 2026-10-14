@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict'
+import { rm } from 'node:fs/promises'
 import { describe, it } from 'node:test'
+import ExcelJS from 'exceljs'
 
 import {
   registrationStartYear,
-  submitSummaryLogContent
+  submitSummaryLogContent,
+  summaryLogNumbered
 } from './summary-logs.js'
 
 /** @import {ContentPoster} from './summary-logs.js' */
@@ -47,6 +50,92 @@ describe('registrationStartYear', () => {
 
   it('reads the year from a given validFrom', () => {
     assert.equal(registrationStartYear('2025-02-02'), 2025)
+  })
+})
+
+/**
+ * The registration and accreditation numbers on a workbook's cover sheet.
+ *
+ * @param {string} path
+ */
+async function coverNumbers(path) {
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.readFile(path)
+  const cover = workbook.getWorksheet('Cover')
+  return [cover?.getCell('E10').value, cover?.getCell('E13').value]
+}
+
+describe('numbering a summary log fixture', () => {
+  it('writes a copy carrying the given registration and accreditation numbers', async () => {
+    const copy = await summaryLogNumbered('resources/exporter.xlsx', {
+      regNumber: 'R26EX1234567890PA',
+      accNumber: 'A26EX1234567890PA'
+    })
+
+    try {
+      assert.deepEqual(await coverNumbers(copy), [
+        'R26EX1234567890PA',
+        'A26EX1234567890PA'
+      ])
+    } finally {
+      await rm(copy)
+    }
+  })
+
+  it('leaves a registered-only fixture without an accreditation number', async () => {
+    const copy = await summaryLogNumbered('resources/exporter-regonly.xlsx', {
+      regNumber: 'R26EX1234567890PA'
+    })
+
+    try {
+      assert.deepEqual(await coverNumbers(copy), ['R26EX1234567890PA', null])
+    } finally {
+      await rm(copy)
+    }
+  })
+
+  it('keeps the whitespace around a fixture number', async () => {
+    const copy = await summaryLogNumbered('resources/exporter-invalid.xlsx', {
+      regNumber: 'R26EX1234567890PA',
+      accNumber: 'A26EX1234567890PA'
+    })
+
+    try {
+      assert.deepEqual(await coverNumbers(copy), [
+        'R26EX1234567890PA\n',
+        'A26EX1234567890PA'
+      ])
+    } finally {
+      await rm(copy)
+    }
+  })
+
+  it('writes an accreditation number into a fixture that has none', async () => {
+    const copy = await summaryLogNumbered('resources/exporter-regonly.xlsx', {
+      regNumber: 'R26EX1234567890PA',
+      accNumber: 'A26EX1234567890PA'
+    })
+
+    try {
+      assert.deepEqual(await coverNumbers(copy), [
+        'R26EX1234567890PA',
+        'A26EX1234567890PA'
+      ])
+    } finally {
+      await rm(copy)
+    }
+  })
+
+  it('clears the accreditation number of a fixture given none', async () => {
+    const copy = await summaryLogNumbered('resources/exporter.xlsx', {
+      regNumber: 'R26EX1234567890PA'
+    })
+
+    try {
+      assert.deepEqual(await coverNumbers(copy), ['R26EX1234567890PA', null])
+    } finally {
+      await rm(copy)
+    }
   })
 })
 

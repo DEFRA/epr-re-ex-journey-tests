@@ -28,6 +28,7 @@ import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { checkWasteBalanceForWindow } from '../support/waste-balance-mode.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 
 test.describe('Issuing Packing Recycling Notes', () => {
   test('Should be able to create, issue and reject PRNs for Paper (Reprocessor Input) @issuePRNRepro @smoketest', async ({
@@ -71,8 +72,10 @@ test.describe('Issuing Packing Recycling Notes', () => {
     }
     rebindPageObjects()
 
-    const regNumber = 'R26ER5000000000PA'
-    const accNumber = 'A26ER5000000000PA'
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
 
     const materialDesc = 'Paper and board'
 

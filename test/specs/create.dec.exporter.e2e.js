@@ -19,13 +19,16 @@ import { createLinkAndLogin } from '../support/login-helper.js'
 import { createPrnDetails } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'
 import { WASTE_BALANCE_POOL } from '../support/waste-balance-pool.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 
 test.describe('Choosing a waste balance pool for a PERN (Exporter)', () => {
   test('Should show both balance options and move only the chosen pool @decWaste @createDecPRNExporter', async ({
     page
   }) => {
-    const regNumber = 'R26EX5000000002DEC'
-    const accNumber = 'A26EX5000000002DEC'
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'WO'
+    })
 
     const createPRNPage = new CreatePRNPage(page)
     const prnCreatedPage = new PRNCreatedPage(page)
