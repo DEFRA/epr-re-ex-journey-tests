@@ -37,6 +37,7 @@ test.describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput
   let accreditationId
   let year
   let authHeader
+  /** @type {import('../support/reg-acc-number.js').SeededNumbers} */
   let numbers
 
   test.beforeAll(async () => {

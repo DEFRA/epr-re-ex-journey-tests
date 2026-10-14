@@ -60,6 +60,7 @@ async function startAndSubmitReport(page) {
 // Submitted via epr-backend's dev endpoint rather than driving the upload
 // UI: these journeys are about the reports wizard, not the upload itself,
 // which the dedicated summary-log specs already cover.
+/** @param {string} regNumber */
 async function uploadAndNavigateToReports(
   page,
   organisationDetails,

@@ -37,6 +37,7 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
   let registrationId
   let year
   let authHeader
+  /** @type {import('../support/reg-acc-number.js').SeededNumbers} */
   let inputNumbers
 
   test.beforeAll(async () => {

@@ -67,12 +67,14 @@ export function generateAccNumber(options) {
   return buildNumber('A', options)
 }
 
+/** @typedef {{regNumber: string, accNumber: string}} SeededNumbers */
+
 /**
  * A registration number and its accreditation number, sharing one org id and
  * serial.
  *
  * @param {{wasteProcessingType: ProcessingType, materialSuffix: string, nation?: string, year?: string}} options
- * @returns {{regNumber: string, accNumber: string}}
+ * @returns {SeededNumbers}
  */
 export function generateNumbers(options) {
   const shared = { orgId: randomDigits(6), serial: randomDigits(4), ...options }

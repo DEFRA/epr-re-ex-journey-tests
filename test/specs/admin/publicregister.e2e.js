@@ -29,6 +29,7 @@ const MONTH_ABBR = [
 ]
 
 test.describe('Public Register page', () => {
+  /** @type {import('../../support/reg-acc-number.js').SeededNumbers} */
   let numbers
   let orgId
   let orgName

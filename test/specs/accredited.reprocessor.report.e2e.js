@@ -76,6 +76,7 @@ async function setupAccreditedReprocessor(page) {
 // which the dedicated summary-log specs already cover. The fixture's real
 // row values are read straight off the checked-in xlsx, so they stay
 // exactly what a real upload of it would have carried.
+/** @param {import('../support/reg-acc-number.js').SeededNumbers} numbers */
 async function uploadAndNavigateToReports(
   page,
   organisationDetails,
