@@ -35,7 +35,9 @@ import { generateNumbers } from '../support/reg-acc-number.js'
 const MATERIAL_SUFFIX = 'PA'
 const VALID_FROM = '2025-02-02'
 
-/** @type {Record<string, { wasteProcessingType: string, reprocessingType?: string, withoutAccreditation?: boolean }>} */
+/** @typedef {{ wasteProcessingType: 'Exporter' | 'Reprocessor', reprocessingType?: string, withoutAccreditation?: boolean }} Stream */
+
+/** @type {Record<string, Stream>} */
 const STREAMS = {
   exporter: {
     wasteProcessingType: 'Exporter'
@@ -59,11 +61,15 @@ const STREAMS = {
   }
 }
 
-/** Seeds an organisation holding one registration of the given stream. */
+/**
+ * Seeds an organisation holding one registration of the given stream.
+ * @param {Stream} stream
+ */
 async function seedRegistration(stream) {
   const withoutAccreditation = stream.withoutAccreditation === true
   const { regNumber, accNumber } = generateNumbers({
-    wasteProcessingType: stream.wasteProcessingType.toLowerCase(),
+    wasteProcessingType:
+      stream.wasteProcessingType === 'Exporter' ? 'exporter' : 'reprocessor',
     materialSuffix: MATERIAL_SUFFIX
   })
   const numbers = withoutAccreditation

@@ -33,6 +33,8 @@ const PROCESSING_TYPE_LETTERS = {
   regOnlyReprocessor: 'R'
 }
 
+/** @typedef {keyof typeof PROCESSING_TYPE_LETTERS} ProcessingType */
+
 function processingTypeChar(wasteProcessingType) {
   const letter = PROCESSING_TYPE_LETTERS[wasteProcessingType]
   if (!letter) {
@@ -69,7 +71,7 @@ export function generateAccNumber(options) {
  * A registration number and its accreditation number, sharing one org id and
  * serial.
  *
- * @param {{wasteProcessingType: string, materialSuffix: string, nation?: string, year?: string}} options
+ * @param {{wasteProcessingType: ProcessingType, materialSuffix: string, nation?: string, year?: string}} options
  * @returns {{regNumber: string, accNumber: string}}
  */
 export function generateNumbers(options) {

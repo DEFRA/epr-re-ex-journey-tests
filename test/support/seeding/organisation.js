@@ -80,6 +80,7 @@ export async function createOrgWithAllWasteProcessingTypeAllMaterials() {
   const updateDataRows = []
   for (let i = 0; i < wasteProcessingTypes.length; i++) {
     for (const material of MATERIALS) {
+      /** @type {import('../reg-acc-number.js').ProcessingType} */
       let wasteProcessingType = 'exporter'
       const updateDataRow = {}
       if (wasteProcessingTypes[i].type !== '') {

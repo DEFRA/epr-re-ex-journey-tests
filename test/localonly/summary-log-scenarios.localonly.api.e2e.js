@@ -59,7 +59,7 @@ const EXPORTED_TONNAGE_STEP = 5
  * @typedef {object} Scenario
  * @property {string} tag
  * @property {string} emailPrefix
- * @property {string} spreadsheetType - the generator's processing type
+ * @property {import('../support/reg-acc-number.js').ProcessingType} spreadsheetType - the generator's processing type
  * @property {'Exporter' | 'Reprocessor'} wasteProcessingType
  * @property {'input' | 'output'} [reprocessingType]
  * @property {boolean} accredited
