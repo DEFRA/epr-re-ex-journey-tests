@@ -288,7 +288,8 @@ test.describe('Organisations page', () => {
   // serves all of them. Its numbers carry a random suffix: the backend matches
   // them whole and case-insensitively, so organisations left behind by earlier
   // runs would otherwise share a fixed number and turn a single result into
-  // several.
+  // several. The suffix is upper-case because the backend stores numbers
+  // trimmed and upper-case, and the table shows the stored form.
   test.describe('Searching by each field', () => {
     /**
      * @type {{
