@@ -6,6 +6,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { checkBodyText } from '../support/checks.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -36,26 +37,33 @@ test.describe('Summary Logs (Glass Material) @smoketest', () => {
         glassRecyclingProcess: 'Glass other'
       }
     ])
+    const exporterNumbers = generateNumbers({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'GO'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R25SR5111050912GR',
-          accNumber: '7812331GR',
+          ...generateNumbers({
+            wasteProcessingType: 'reprocessor',
+            materialSuffix: 'GR'
+          }),
           status: 'approved'
         },
         {
           reprocessingType: 'input',
-          regNumber: 'R25SR5111050912GO',
-          accNumber: '12345678GO',
+          ...generateNumbers({
+            wasteProcessingType: 'reprocessor',
+            materialSuffix: 'GO'
+          }),
           status: 'approved'
         },
         {
           reprocessingType: null,
-          regNumber: 'R25SR500030913GO',
-          accNumber: '234567GO',
+          ...exporterNumbers,
           status: 'approved'
         }
       ]
@@ -80,8 +88,8 @@ test.describe('Summary Logs (Glass Material) @smoketest', () => {
 
     // Single-registration orgs skip the selection list, so the reg/acc
     // numbers render as plain text on the task page, not as links.
-    await checkBodyText(page, 'R25SR500030913GO', 10)
-    await checkBodyText(page, '234567GO', 10)
+    await checkBodyText(page, exporterNumbers.regNumber, 10)
+    await checkBodyText(page, exporterNumbers.accNumber, 10)
 
     let dashboardHeaderText = await wasteRecordsPage.dashboardHeaderText()
     expect(dashboardHeaderText).toContain('Glass other')

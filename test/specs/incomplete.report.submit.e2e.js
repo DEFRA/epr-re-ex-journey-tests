@@ -11,7 +11,8 @@ import {
   registrationStartYear,
   submitSummaryLogContent
 } from '../support/seeding/summary-logs.js'
-import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
+import { summaryLogContentNumbered } from '../support/spreadsheet/summarylogs-content-generator.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude
@@ -20,10 +21,12 @@ import { createLinkAndLogin } from '../support/login-helper.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { navigateToReports } from '../support/report-navigation.js'
 
-const REG_NUMBER = 'R26ER5000000001PA'
-const ACC_NUMBER = 'A26ER5000000001PA'
-
 const setupAccreditedReprocessor = async (page) => {
+  const numbers = generateNumbers({
+    wasteProcessingType: 'reprocessor',
+    materialSuffix: 'PA'
+  })
+
   const organisationDetails = await createLinkedOrganisation([
     { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
   ])
@@ -33,8 +36,7 @@ const setupAccreditedReprocessor = async (page) => {
     [
       {
         reprocessingType: 'output',
-        regNumber: REG_NUMBER,
-        accNumber: ACC_NUMBER,
+        ...numbers,
         status: 'approved'
       }
     ]
@@ -46,7 +48,7 @@ const setupAccreditedReprocessor = async (page) => {
     migrationResponse.email
   )
 
-  return { organisationDetails, migrationResponse, user }
+  return { organisationDetails, migrationResponse, user, numbers }
 }
 
 test.describe('Incomplete report submit @incompleteReportBlock', () => {
@@ -58,14 +60,15 @@ test.describe('Incomplete report submit @incompleteReportBlock', () => {
     const reportDetailPage = new ReportDetailPage(page)
     const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
 
-    const { organisationDetails, migrationResponse, user } =
+    const { organisationDetails, migrationResponse, user, numbers } =
       await setupAccreditedReprocessor(page)
 
     // Submitted via epr-backend's dev endpoint rather than driving the
     // upload UI: this journey is about the incomplete-report guard, not the
     // upload itself, which the dedicated summary-log specs already cover.
-    const summaryLogContent = await summaryLogContentFromFixture(
-      `resources/sanity/reprocessorOutput_${ACC_NUMBER}_${REG_NUMBER}.xlsx`
+    const summaryLogContent = await summaryLogContentNumbered(
+      'resources/sanity/reprocessorOutput_A26ER5000000001PA_R26ER5000000001PA.xlsx',
+      numbers
     )
     await submitSummaryLogContent(
       organisationDetails.refNo,

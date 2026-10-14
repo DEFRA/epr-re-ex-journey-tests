@@ -4,21 +4,25 @@ import {
   createAndRegisterDefraIdUser,
   linkDefraIdUser
 } from '../support/defra-id-linking.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import {
-  ingestSummaryLogFixture,
-  registrationStartYear
+  registrationStartYear,
+  summaryLogNumbered,
+  uploadSummaryLog
 } from '../support/seeding/summary-logs.js'
 import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { assertValidationFailures } from '../support/summary-log-assertions.js'
 
+const FLOCI_SUMMARY_LOGS = 'docker/scripts/floci/summarylogs'
+
 // Ported from epr-backend-journey-tests' summarylogs-exporter.feature.
-// See summarylogs-validation.api.e2e.js for the shared floci-fixture-shortcut
-// rationale and the loadsByWasteRecordType/DB-assertion gaps this repeats.
+// See summarylogs-validation.api.e2e.js for the floci fixtures and the
+// loadsByWasteRecordType/DB-assertion gaps this repeats.
 //
 // NOT ported: the source's second scenario ("succeeds, with waste balance
 // calculated"), which depends on a real ORS (overseas sites) import via
@@ -31,10 +35,13 @@ test.describe('Summary Logs - Exporter @summaryLogExporter', () => {
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Exporter' }
     ])
+    const numbers = generateNumbers({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'PA'
+    })
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
-        regNumber: 'R26EX5000000003PA',
-        accNumber: 'A26EX5000000000PA',
+        ...numbers,
         status: 'approved'
       }
     ])
@@ -43,11 +50,14 @@ test.describe('Summary Logs - Exporter @summaryLogExporter', () => {
     const authHeader = defraIdStub.authHeader(user.userId)
     const registrationId = migrated.registrationIds[0]
 
-    const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
+    const { summaryLogPath, baseAPI } = await uploadSummaryLog(
       org.refNo,
       registrationId,
       authHeader,
-      { s3Key: 'exporter-invalid-key', filename: 'exporter-invalid.xlsx' },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/exporter-invalid.xlsx`,
+        numbers
+      ),
       registrationStartYear()
     )
     const responseData = await waitForSummaryLogStatus(

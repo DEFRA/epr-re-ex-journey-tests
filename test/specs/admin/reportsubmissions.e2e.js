@@ -6,6 +6,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
+import { generateNumbers } from '../../support/reg-acc-number.js'
 import { createSubmittedReport } from '../../support/seeding/reports.js'
 import { parseCsvRows } from '../../support/csv.js'
 import { AdminLoginPage } from 'page-objects/admin/login.page'
@@ -23,8 +24,10 @@ test.describe('Report Submissions page', () => {
 
     await updateMigratedOrganisation(refNo, [
       {
-        regNumber: 'R26ER5000000001PA',
-        accNumber: 'ACC-001',
+        ...generateNumbers({
+          wasteProcessingType: 'reprocessor',
+          materialSuffix: 'PA'
+        }),
         status: 'approved',
         reprocessingType: 'input'
       }

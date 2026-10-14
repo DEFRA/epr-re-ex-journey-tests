@@ -24,6 +24,7 @@ import {
 import { generateSummaryLogContent } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { waitForWasteBalance } from '../support/seeding/waiters.js'
 import { assertAuditLog } from '../support/docker-log-assertions.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 
 // Sets up one linked, approved Reprocessor Input registration with a real
 // waste-balance ledger. Both draft creation and the draft->awaiting_authorisation
@@ -38,6 +39,10 @@ import { assertAuditLog } from '../support/docker-log-assertions.js'
 // downloads the summary-log document itself, only the balance it leaves
 // behind, so the faster JSON route is a safe substitute.
 async function setUpAccreditedReprocessorWithBalance() {
+  const { regNumber, accNumber } = generateNumbers({
+    wasteProcessingType: 'reprocessor',
+    materialSuffix: 'PA'
+  })
   const baseAPI = new BaseAPI()
   const authClient = new AuthClient()
   await authClient.authenticate()
@@ -49,8 +54,8 @@ async function setUpAccreditedReprocessorWithBalance() {
     [
       {
         reprocessingType: 'input',
-        regNumber: 'R26ER5000000003PA',
-        accNumber: 'A26ER5000000002PA',
+        regNumber,
+        accNumber,
         status: 'approved'
       }
     ],
@@ -65,8 +70,8 @@ async function setUpAccreditedReprocessorWithBalance() {
   const content = await generateSummaryLogContent({
     wasteProcessingType: 'reprocessorInput',
     materialSuffix: 'PA',
-    regNumber: 'R26ER5000000003PA',
-    accNumber: 'A26ER5000000002PA',
+    regNumber,
+    accNumber,
     rows: {
       'Received (sections 1, 2 and 3)': [
         {
@@ -107,8 +112,10 @@ async function setUpAccreditedReprocessorWithBalance() {
 // OSR_ID (default 100) has to match one of those seeded sites or the row is
 // excluded from the balance rather than credited.
 async function setUpAccreditedExporterWithBalance() {
-  const regNumber = 'R26EX5000000002PA'
-  const accNumber = 'A26EX5000000002PA'
+  const { regNumber, accNumber } = generateNumbers({
+    wasteProcessingType: 'exporter',
+    materialSuffix: 'PA'
+  })
 
   const baseAPI = new BaseAPI()
   const authClient = new AuthClient()

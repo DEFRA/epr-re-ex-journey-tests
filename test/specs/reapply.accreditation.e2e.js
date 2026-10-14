@@ -1,8 +1,7 @@
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation,
-  FAKE_REGISTRATION_NUMBER,
-  FAKE_ACCREDITATION_NUMBER
+  fillerNumbers
 } from '~/test/support/seeding/organisation.js'
 import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
@@ -27,11 +26,10 @@ test.describe('Reapply for accreditation link @reapplyAccreditation', () => {
     const organisationId = organisationDetails.refNo
 
     // The registration and accreditation numbers only need to exist to approve
-    // the seed; nothing asserts them, so use the shared fake constants.
+    // the seed; nothing asserts them, so use filler numbers.
     const migrationResponse = await updateMigratedOrganisation(organisationId, [
       {
-        regNumber: FAKE_REGISTRATION_NUMBER,
-        accNumber: FAKE_ACCREDITATION_NUMBER,
+        ...fillerNumbers(),
         status: 'approved',
         validFrom: `${currentYear}-01-01`
       }

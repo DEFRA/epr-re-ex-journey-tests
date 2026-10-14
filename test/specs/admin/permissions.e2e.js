@@ -1,7 +1,6 @@
 import {
   createLinkedOrganisation,
-  FAKE_ACCREDITATION_NUMBER,
-  FAKE_REGISTRATION_NUMBER,
+  fillerNumbers,
   updateMigratedOrganisation
 } from '~/test/support/seeding/organisation.js'
 import { createSubmittedReport } from '~/test/support/seeding/reports.js'
@@ -100,8 +99,7 @@ users.forEach(({ username, scopes }) => {
 
       await updateMigratedOrganisation(linkedOrganisation.refNo, [
         {
-          regNumber: FAKE_REGISTRATION_NUMBER,
-          accNumber: FAKE_ACCREDITATION_NUMBER,
+          ...fillerNumbers(),
           status: 'approved',
           reprocessingType: 'input'
         }

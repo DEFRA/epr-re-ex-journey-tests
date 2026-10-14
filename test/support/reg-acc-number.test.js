@@ -3,7 +3,11 @@ import { dirname, join } from 'node:path'
 import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
-import { generateAccNumber, generateRegNumber } from './reg-acc-number.js'
+import {
+  generateAccNumber,
+  generateNumbers,
+  generateRegNumber
+} from './reg-acc-number.js'
 import { evaluateUnderClock } from './simulator/clock/under-clock.js'
 import { PROCESSING_TYPE_CONFIG } from './spreadsheet/spreadsheet-config.js'
 
@@ -12,7 +16,12 @@ const module = join(
   'reg-acc-number.js'
 )
 
-const options = { materialSuffix: 'PA', year: '26' }
+const options = {
+  materialSuffix: 'PA',
+  year: '26',
+  orgId: '500000',
+  serial: '0001'
+}
 
 /**
  * The letter at the fifth character: R for a reprocessor, X for an exporter.
@@ -66,6 +75,34 @@ describe('registration and accreditation numbers', () => {
     assert.throws(() => processingLetter('Exporter'), /"Exporter"/)
   })
 
+  it('draw the org id and serial at random unless told them', () => {
+    const drawn = new Set(
+      Array.from({ length: 100 }, () =>
+        generateRegNumber({
+          materialSuffix: 'PA',
+          year: '26',
+          wasteProcessingType: 'reprocessor'
+        })
+      )
+    )
+
+    assert.equal(drawn.size, 100)
+    for (const number of drawn) {
+      assert.match(number, /^R26ER\d{10}PA$/)
+    }
+  })
+
+  it('pair a registration number with an accreditation number of the same org id and serial', () => {
+    const { regNumber, accNumber } = generateNumbers({
+      materialSuffix: 'PA',
+      year: '26',
+      wasteProcessingType: 'exporter'
+    })
+
+    assert.match(regNumber, /^R26EX\d{10}PA$/)
+    assert.equal(accNumber, `A${regNumber.slice(1)}`)
+  })
+
   for (const { instant, year } of [
     { instant: '2027-12-31T23:59:00Z', year: '27' },
     { instant: '2028-01-01T00:00:30Z', year: '28' }
@@ -77,7 +114,7 @@ describe('registration and accreditation numbers', () => {
          console.log(generateRegNumber({ materialSuffix: 'PA', wasteProcessingType: 'reprocessor' }))`
       )
 
-      assert.equal(number, `R${year}ER5000000001PA`)
+      assert.match(number, new RegExp(`^R${year}ER\\d{10}PA$`))
     })
   }
 })

@@ -13,6 +13,8 @@ import {
   updateMigratedOrganisation,
   seedOverseasSites
 } from '../support/seeding/organisation.js'
+import { summaryLogNumbered } from '../support/seeding/summary-logs.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 // Split from summarylogs.unhappy.paths.e2e.js (PAE-1405 CI runtime work) so
@@ -31,13 +33,16 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
     ])
+    const numbers = generateNumbers({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'PP'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
-          regNumber: 'R26EX5000000002PP',
-          accNumber: 'A26EX5000000002PP',
+          ...numbers,
           status: 'approved'
         }
       ]
@@ -53,8 +58,8 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
 
     // Single-registration orgs skip the selection list, so the reg/acc
     // numbers render as plain text on the task page, not as links.
-    await checkBodyText(page, 'R26EX5000000002PP', 10)
-    await checkBodyText(page, 'A26EX5000000002PP', 10)
+    await checkBodyText(page, numbers.regNumber, 10)
+    await checkBodyText(page, numbers.accNumber, 10)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
 
@@ -103,13 +108,16 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
     ])
+    const numbers = generateNumbers({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'PA'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
-          regNumber: 'R26EX5000000003PA',
-          accNumber: 'A26EX5000000000PA',
+          ...numbers,
           status: 'approved',
           // Matches the happy-path exporter setup so the file's rows fall inside
           // the accreditation period and reach the ORS check (rather than being
@@ -134,7 +142,7 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
     await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile(
-      'resources/exporter-ors-not-found.xlsx'
+      await summaryLogNumbered('resources/exporter-ors-not-found.xlsx', numbers)
     )
     await uploadSummaryLogPage.continue()
 

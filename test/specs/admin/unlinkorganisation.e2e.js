@@ -7,8 +7,7 @@ import { UnlinkOrganisationConfirmationPage } from 'page-objects/admin/unlink.or
 import { SystemLogsPage } from 'page-objects/admin/system.logs.page'
 import {
   createLinkedOrganisation,
-  FAKE_ACCREDITATION_NUMBER,
-  FAKE_REGISTRATION_NUMBER,
+  fillerNumbers,
   getOrganisation,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
@@ -35,8 +34,7 @@ test.describe('Unlink organisation from Defra ID', () => {
 
     await updateMigratedOrganisation(refNo, [
       {
-        regNumber: FAKE_REGISTRATION_NUMBER,
-        accNumber: FAKE_ACCREDITATION_NUMBER,
+        ...fillerNumbers(),
         status: 'approved',
         reprocessingType: 'input'
       }
@@ -123,8 +121,7 @@ test.describe('Unlink organisation from Defra ID', () => {
 
     await updateMigratedOrganisation(refNo, [
       {
-        regNumber: FAKE_REGISTRATION_NUMBER,
-        accNumber: FAKE_ACCREDITATION_NUMBER,
+        ...fillerNumbers(),
         status: 'approved',
         reprocessingType: 'input'
       }
