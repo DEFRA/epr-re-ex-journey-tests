@@ -67,8 +67,47 @@ export async function summaryLogDatedAt(fixturePath, date) {
     })
   })
 
+  return writeCopy(workbook, fixturePath)
+}
+
+/**
+ * Writes a copy of a summary log fixture carrying the given registration and
+ * accreditation numbers on its cover sheet, and returns the path to the copy.
+ * The backend accepts a summary log only when its numbers are the
+ * registration's own, and no two organisations hold the same number, so a
+ * fixture's own numbers can serve one organisation only.
+ *
+ * @param {string} fixturePath
+ * @param {{regNumber: string, accNumber?: string}} numbers - leave accNumber out for a registered-only fixture
+ * @returns {Promise<string>}
+ */
+export async function summaryLogNumbered(
+  fixturePath,
+  { regNumber, accNumber }
+) {
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.readFile(fixturePath)
+
+  const cover = workbook.getWorksheet('Cover')
+  if (!cover) {
+    throw new Error(`${fixturePath} carries no Cover sheet`)
+  }
+  cover.getCell('E10').value = regNumber
+  if (accNumber) {
+    cover.getCell('E13').value = accNumber
+  }
+
+  return writeCopy(workbook, fixturePath)
+}
+
+/**
+ * @param {ExcelJS.Workbook} workbook
+ * @param {string} fixturePath
+ * @returns {Promise<string>}
+ */
+async function writeCopy(workbook, fixturePath) {
   // data/ is gitignored, so it is absent in a fresh clone or worktree. The name
-  // carries a fresh id because journeys re-dating a fixture run alongside each
+  // carries a fresh id because journeys copying a fixture run alongside each
   // other and would otherwise write over one another's copy.
   const copyPath = `data/${basename(fixturePath, '.xlsx')}-${randomUUID()}.xlsx`
   await mkdir(dirname(copyPath), { recursive: true })
@@ -122,11 +161,7 @@ export async function summaryLogWithCellChanged(
     throw new Error(`${sheet} has no load with row ID ${rowId}`)
   }
 
-  const copyPath = `data/${basename(fixturePath, '.xlsx')}-${randomUUID()}.xlsx`
-  await mkdir(dirname(copyPath), { recursive: true })
-  await workbook.xlsx.writeFile(copyPath)
-
-  return copyPath
+  return writeCopy(workbook, fixturePath)
 }
 
 // Initiates a summary log against a real registration, then feeds the
