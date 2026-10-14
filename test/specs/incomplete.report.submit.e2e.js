@@ -82,14 +82,8 @@ test.describe('Incomplete report submit @incompleteReportBlock', () => {
     await reportDetailPage.useThisData()
 
     // Navigate straight to check-your-answers, skipping every data-entry page.
-    const currentUrl = page.url()
-    const periodBase = currentUrl.split('/reports/')[0] + '/reports/'
-    const periodPath = currentUrl
-      .split('/reports/')[1]
-      .split('/')
-      .slice(0, 5)
-      .join('/')
-    await page.goto(`${periodBase}${periodPath}/check-your-answers`)
+    const [reportUrl] = page.url().match(/^.*\/submissions\/\d+/)
+    await page.goto(`${reportUrl}/check-your-answers`)
 
     const checkHeading = await reportCheckAnswersPage.headingText()
     expect(checkHeading).toBe(
