@@ -4,6 +4,7 @@ import { UploadSummaryLogPage } from '../page-objects/upload.summary.log.page.js
 import { CheckSummaryLogPage } from '../page-objects/check.summary.log.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
+import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import {
   checkBodyText,
   checkBodyTextDoesNotInclude
@@ -45,6 +46,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     const checkSummaryLogPage = new CheckSummaryLogPage(page)
     const wasteRecordsPage = new WasteRecordsPage(page)
     const dashboardPage = new DashboardPage(page)
+    const reportsPage = new ReportsPage(page)
 
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
@@ -133,6 +135,8 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.manageReportsLink().click()
+    // Anchors the absence check: an error page would pass it alone.
+    expect(await reportsPage.getSubmittedStatusBadge(1)).toBe('Submitted')
     await checkBodyTextDoesNotInclude(page, 'Requires resubmission', 5)
 
     // Carrying the same edit isolates the real amendments from it.
@@ -214,6 +218,15 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     expect(rows.some((r) => r.includes('Row ID'))).toBe(true)
     const detailsText = await checkSummaryLogPage.loadDetailsText()
     expect(detailsText).toContain(ADJUSTED_ADDED_HEADING)
+
+    // The figure change must flag the report seeded from this same log.
+    await checkSummaryLogPage.uploadButton().click()
+    await checkBodyText(page, 'Summary log uploaded', 30)
+    await uploadSummaryLogPage.returnToHomePageLink().click()
+    await dashboardPage.exportingTabLink().click()
+    await dashboardPage.selectLink(1)
+    await wasteRecordsPage.manageReportsLink().click()
+    await checkBodyText(page, 'Requires resubmission', 10)
 
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
