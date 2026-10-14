@@ -19,9 +19,9 @@ import {
 } from './organisation.js'
 import {
   registrationStartYear,
-  summaryLogNumbered,
-  uploadAndSubmitSummaryLog
+  submitSummaryLogContent
 } from './summary-logs.js'
+import { summaryLogContentNumbered } from '../spreadsheet/summarylogs-content-generator.js'
 
 export async function unsubmitReport(
   organisationId,
@@ -241,7 +241,7 @@ export async function createSubmittedReport(refNo, registrationIndex = 0) {
 // can seed a period matching a summary log fixture, and an explicit
 // submissionNumber. Submission numbers above 1 are resubmissions: the backend
 // only permits them once the period's latest submitted report is marked as
-// requiring resubmission (see uploadAndSubmitSummaryLog).
+// requiring resubmission, which submitting a restating summary log does.
 const RESTATED_CMA_FIXTURE = 'test/fixtures/reprocessor-output-regonly-cma.xlsx'
 // The period the CMA fixture restates. Consumers render it differently
 // ('Q1 2026' in the CSV, 'Quarter 1' in the admin table), so labels live with
@@ -254,7 +254,7 @@ export const RESTATED_PERIOD = { year: 2026, cadence: 'quarterly', period: 1 }
  *
  * That flag is the precondition for creating submission 2 at all, and there is
  * no endpoint for it: the backend sets it as a side effect of submitting the
- * summary log, which is why a real fixture is uploaded here.
+ * summary log, which is why a real fixture is submitted here.
  *
  * @param {{ tonnageRecycled?: number }} [options]
  * @returns {Promise<{ refNo: string, companyName: string, registrationId: string, defraAuthHeader: {Authorization?: string} }>}
@@ -300,13 +300,18 @@ export async function seedRestatedClosedPeriod({ tonnageRecycled = 100 } = {}) {
     { ...RESTATED_PERIOD, submissionNumber: 1 },
     { tonnageRecycled, tonnageNotRecycled: 0 }
   )
-  await uploadAndSubmitSummaryLog(
+  const { status, validation } = await submitSummaryLogContent(
     refNo,
     registrationId,
     defraAuthHeader,
-    await summaryLogNumbered(RESTATED_CMA_FIXTURE, { regNumber }),
+    await summaryLogContentNumbered(RESTATED_CMA_FIXTURE, { regNumber }),
     registrationStartYear()
   )
+  if (status !== 'submitted') {
+    throw new Error(
+      `${RESTATED_CMA_FIXTURE} did not submit\n${JSON.stringify(validation, null, 2)}`
+    )
+  }
   await waitForReportingPeriodStatus(
     refNo,
     registrationId,

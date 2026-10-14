@@ -24,10 +24,8 @@ const SUBMISSION_2 = { ...RESTATED_PERIOD, submissionNumber: 2 }
  * surface as an empty row list, failing a row-count assertion and pointing at
  * the wrong cause.
  *
- * Matches on organisation name, not registration number: every org seeded by
- * seedRestatedClosedPeriod shares the fixture's registration number, so that
- * would also match orgs left by previous runs. The faker name's random suffix
- * makes it the only unique discriminator.
+ * Matches on organisation name, whose faker suffix makes it unique to this
+ * run.
  */
 async function downloadPeriodRows(reportSubmissionsPage, companyName) {
   await reportSubmissionsPage.open()
