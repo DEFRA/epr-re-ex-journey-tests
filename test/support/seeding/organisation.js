@@ -330,6 +330,56 @@ export function approveMigratedRegistration(
 }
 
 /**
+ * Seeds an organisation whose single reprocessor registration has been
+ * approved since January two years ago, with an accreditation that only
+ * starts this year: the organisation spans three years, newest first.
+ *
+ * Approval and backdating take a PUT each. The service dates a status change
+ * today and discards the status history sent with it, so the history is only
+ * honoured in a PUT that leaves the statuses as they are.
+ *
+ * @returns {Promise<{refNo: string, email: string, years: number[]}>}
+ */
+export async function seedOrganisationAcrossYears() {
+  const thisYear = currentYear()
+  const firstYear = thisYear - 2
+  const createdOn = `${firstYear - 1}-12-31`
+  const wasteProcessingType = 'reprocessorInput'
+  const materialSuffix = 'PA'
+
+  const { refNo } = await createLinkedOrganisation([
+    { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
+  ])
+
+  const { email } = await approveMigratedRegistration(
+    refNo,
+    { registrationIndex: 0, accreditationIndex: 0 },
+    {
+      regNumber: generateRegNumber({ wasteProcessingType, materialSuffix }),
+      accNumber: generateAccNumber({ wasteProcessingType, materialSuffix }),
+      reprocessingType: 'input',
+      validFrom: `${firstYear}-01-01`,
+      validTo: `${thisYear + 1}-01-01`,
+      submittedToRegulator: 'ea'
+    }
+  )
+
+  await amendMigratedOrganisation(refNo, (data) => {
+    data.registrations[0].statusHistory = [
+      { status: 'created', updatedAt: createdOn },
+      { status: 'approved', updatedAt: `${firstYear}-01-01` }
+    ]
+    data.accreditations[0].validFrom = `${thisYear}-01-01`
+    data.accreditations[0].statusHistory = [
+      { status: 'created', updatedAt: createdOn },
+      { status: 'approved', updatedAt: `${thisYear}-01-01` }
+    ]
+  })
+
+  return { refNo, email, years: [thisYear, thisYear - 1, firstYear] }
+}
+
+/**
  * Moves a registration, its accreditation or both to a new status, as the
  * regulator would. The service dates the change today.
  *
