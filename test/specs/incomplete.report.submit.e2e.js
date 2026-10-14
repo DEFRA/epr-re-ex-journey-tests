@@ -82,7 +82,7 @@ test.describe('Incomplete report submit @incompleteReportBlock', () => {
     await reportDetailPage.useThisData()
 
     // Navigate straight to check-your-answers, skipping every data-entry page.
-    const [reportUrl] = page.url().match(/^.*\/submissions\/\d+/)
+    const reportUrl = page.url().replace(/(\/submissions\/\d+).*$/, '$1')
     await page.goto(`${reportUrl}/check-your-answers`)
 
     const checkHeading = await reportCheckAnswersPage.headingText()
