@@ -47,6 +47,9 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
   test('should display closed period adjusted loads when a reported load is amended, asking for resubmission only once the reported figures change @cmaAdjusted @closedPeriodMessaging @cma', async ({
     page
   }) => {
+    // Renumbering its workbooks adds several seconds to an already long journey.
+    test.slow()
+
     const homePage = new HomePage(page)
     const uploadSummaryLogPage = new UploadSummaryLogPage(page)
     const checkSummaryLogPage = new CheckSummaryLogPage(page)
@@ -93,9 +96,13 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
 
+    const exporterSummaryLog = await summaryLogNumbered(
+      'resources/exporter.xlsx',
+      exporterNumbers
+    )
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
-      await summaryLogNumbered('resources/exporter.xlsx', exporterNumbers)
+      exporterSummaryLog
     )
 
     const exporterRegId = migrationResponse.registrationIds[1]
@@ -124,7 +131,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
       await summaryLogWithCellChanged(
-        await summaryLogNumbered('resources/exporter.xlsx', exporterNumbers),
+        exporterSummaryLog,
         vehicleRegistrationEdit
       )
     )
