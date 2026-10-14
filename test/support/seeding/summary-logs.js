@@ -92,12 +92,26 @@ export async function summaryLogNumbered(
   if (!cover) {
     throw new Error(`${fixturePath} carries no Cover sheet`)
   }
-  cover.getCell('E10').value = regNumber
+  renumber(cover.getCell('E10'), regNumber)
   if (accNumber) {
-    cover.getCell('E13').value = accNumber
+    renumber(cover.getCell('E13'), accNumber)
+  } else {
+    cover.getCell('E13').value = null
   }
 
   return writeCopy(workbook, fixturePath)
+}
+
+/**
+ * Puts a number in place of a cover cell's own, keeping any whitespace a
+ * fixture carries around it.
+ *
+ * @param {ExcelJS.Cell} cell
+ * @param {string} number
+ */
+function renumber(cell, number) {
+  const current = typeof cell.value === 'string' ? cell.value : ''
+  cell.value = current.trim() ? current.replace(current.trim(), number) : number
 }
 
 /**

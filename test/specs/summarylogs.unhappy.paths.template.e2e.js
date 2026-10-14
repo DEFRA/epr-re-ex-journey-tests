@@ -181,10 +181,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     await expect(page).toHaveTitle(/Summary log: upload/)
 
     await uploadSummaryLogPage.uploadFile(
-      await summaryLogNumbered('resources/exporter-invalid.xlsx', {
-        regNumber: `${numbers.regNumber}\n`,
-        accNumber: numbers.accNumber
-      })
+      await summaryLogNumbered('resources/exporter-invalid.xlsx', numbers)
     )
     await uploadSummaryLogPage.continue()
 

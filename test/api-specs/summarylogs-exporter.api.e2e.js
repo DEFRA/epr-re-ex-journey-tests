@@ -54,10 +54,10 @@ test.describe('Summary Logs - Exporter @summaryLogExporter', () => {
       org.refNo,
       registrationId,
       authHeader,
-      await summaryLogNumbered(`${FLOCI_SUMMARY_LOGS}/exporter-invalid.xlsx`, {
-        regNumber: `${numbers.regNumber}\n`,
-        accNumber: numbers.accNumber
-      }),
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/exporter-invalid.xlsx`,
+        numbers
+      ),
       registrationStartYear()
     )
     const responseData = await waitForSummaryLogStatus(
