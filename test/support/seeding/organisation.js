@@ -7,7 +7,7 @@ import { AuthClient } from '../auth.js'
 import { trackCreatedOrgId } from '../cleanup-tracker.js'
 import { currentYear } from '../date.js'
 import { MATERIALS } from '../materials.js'
-import { generateRegNumber, generateAccNumber } from '../reg-acc-number.js'
+import { generateNumbers } from '../reg-acc-number.js'
 import {
   assertSuccessResponse,
   assertSuccessResponseWithoutBody
@@ -40,10 +40,12 @@ export const validFromWithClosedPeriod = (cadence) =>
 export const reportsLandingHasNoClosedPeriod = (cadence) =>
   lastCompletedPeriod(cadence).year !== currentYear()
 
-// Filler regNumber/accNumber for specs that need updateMigratedOrganisation
-// to approve a registration but never assert the number's actual value.
-export const FAKE_REGISTRATION_NUMBER = 'R26ER5999999999PA'
-export const FAKE_ACCREDITATION_NUMBER = 'FAKE/ACC123/TEST'
+/**
+ * A regNumber and accNumber for a registration that updateMigratedOrganisation
+ * has to approve, where the spec has no other use for the numbers.
+ */
+export const fillerNumbers = () =>
+  generateNumbers({ wasteProcessingType: 'reprocessor', materialSuffix: 'PA' })
 
 export async function createOrgWithAllWasteProcessingTypeAllMaterials() {
   const wasteProcessingTypes = [
@@ -84,17 +86,13 @@ export async function createOrgWithAllWasteProcessingTypeAllMaterials() {
         updateDataRow.reprocessingType = wasteProcessingTypes[i].type
         wasteProcessingType = 'reprocessor'
       }
-      const serial = String(i).padStart(4, '0')
-      updateDataRow.regNumber = generateRegNumber({
-        wasteProcessingType,
-        materialSuffix: material.suffix,
-        serial
-      })
-      updateDataRow.accNumber = generateAccNumber({
-        wasteProcessingType,
-        materialSuffix: material.suffix,
-        serial
-      })
+      Object.assign(
+        updateDataRow,
+        generateNumbers({
+          wasteProcessingType,
+          materialSuffix: material.suffix
+        })
+      )
       updateDataRow.status = 'approved'
       updateDataRows.push(updateDataRow)
     }

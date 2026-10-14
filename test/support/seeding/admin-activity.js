@@ -7,6 +7,7 @@ import {
   updateMigratedOrganisation
 } from './organisation.js'
 import { createPrn, externalAPIAcceptPrn, updatePrnStatus } from './prns.js'
+import { generateNumbers } from '../reg-acc-number.js'
 import {
   registrationStartYear,
   submitSummaryLogContent
@@ -42,8 +43,11 @@ import { defraIdStub } from '../defra-id-stub.js'
  * }>}
  */
 export async function seedAdminActivityData({ acceptPrn = true } = {}) {
-  const registrationNumber = 'R26ER5000000003PA'
-  const accreditationNumber = 'A26ER5000000002PA'
+  const { regNumber: registrationNumber, accNumber: accreditationNumber } =
+    generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
 
   const org = await createLinkedOrganisation([
     { wasteProcessingType: 'Reprocessor' }

@@ -19,6 +19,7 @@ import {
 } from './organisation.js'
 import {
   registrationStartYear,
+  summaryLogNumbered,
   uploadAndSubmitSummaryLog
 } from './summary-logs.js'
 
@@ -241,13 +242,6 @@ export async function createSubmittedReport(refNo, registrationIndex = 0) {
 // submissionNumber. Submission numbers above 1 are resubmissions: the backend
 // only permits them once the period's latest submitted report is marked as
 // requiring resubmission (see uploadAndSubmitSummaryLog).
-// Must match the REGISTRATION_NUMBER meta cell inside the fixture spreadsheet.
-const RESTATED_REGISTRATION_NUMBER = generateRegNumber({
-  wasteProcessingType: 'reprocessor',
-  materialSuffix: 'PA',
-  serial: '0004',
-  year: '26'
-})
 const RESTATED_CMA_FIXTURE = 'test/fixtures/reprocessor-output-regonly-cma.xlsx'
 // The period the CMA fixture restates. Consumers render it differently
 // ('Q1 2026' in the CSV, 'Quarter 1' in the admin table), so labels live with
@@ -276,9 +270,13 @@ export async function seedRestatedClosedPeriod({ tonnageRecycled = 100 } = {}) {
   const refNo = linkedOrganisation.refNo
   const companyName = linkedOrganisation.organisation.companyName
 
+  const regNumber = generateRegNumber({
+    wasteProcessingType: 'reprocessor',
+    materialSuffix: 'PA'
+  })
   const migrated = await updateMigratedOrganisation(refNo, [
     {
-      regNumber: RESTATED_REGISTRATION_NUMBER,
+      regNumber,
       status: 'approved',
       reprocessingType: 'output'
     }
@@ -306,7 +304,7 @@ export async function seedRestatedClosedPeriod({ tonnageRecycled = 100 } = {}) {
     refNo,
     registrationId,
     defraAuthHeader,
-    RESTATED_CMA_FIXTURE,
+    await summaryLogNumbered(RESTATED_CMA_FIXTURE, { regNumber }),
     registrationStartYear()
   )
   await waitForReportingPeriodStatus(
