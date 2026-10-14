@@ -308,7 +308,7 @@ test.describe('Organisations page', () => {
         { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
       ])
 
-      const unique = randomUUID()
+      const unique = randomUUID().toUpperCase()
       const registrationNumber = `FAKE/REG/${unique}`
       const accreditationNumber = `FAKE/ACC/${unique}`
 
@@ -432,7 +432,7 @@ test.describe('Organisations page', () => {
 
       await organisationsPage.searchBy({
         registrationNumber: seeded.registrationNumber,
-        accreditationNumber: `FAKE/ACC/${randomUUID()}`
+        accreditationNumber: `FAKE/ACC/${randomUUID().toUpperCase()}`
       })
 
       expect(await organisationsPage.searchResult()).toEqual('0 results found')
