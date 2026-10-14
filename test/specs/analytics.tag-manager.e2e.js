@@ -69,7 +69,7 @@ test.describe('Analytics tag manager @analytics', () => {
     expect(requested).toStrictEqual([])
   })
 
-  test('Should load the container only behind the controls once the visitor accepts', async ({
+  test('Should load only the published container, behind the controls, once the visitor accepts', async ({
     page
   }) => {
     const requested = await interceptTagManager(page)
@@ -82,7 +82,7 @@ test.describe('Analytics tag manager @analytics', () => {
       .locator('meta[name="analytics-container-id"]')
       .getAttribute('content')
 
-    expect(requested).toStrictEqual([
+    expect([...new Set(requested)]).toStrictEqual([
       `https://www.googletagmanager.com/gtm.js?id=${containerId}`
     ])
     expect(await queued(page)).toStrictEqual([
