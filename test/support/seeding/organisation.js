@@ -347,7 +347,7 @@ export async function seedOrganisationAcrossYears() {
   const wasteProcessingType = 'reprocessorInput'
   const materialSuffix = 'PA'
 
-  const { refNo } = await createLinkedOrganisation([
+  const { orgId, refNo } = await createLinkedOrganisation([
     { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
   ])
 
@@ -376,7 +376,35 @@ export async function seedOrganisationAcrossYears() {
     ]
   })
 
-  return { refNo, email, years: [thisYear, thisYear - 1, firstYear] }
+  const years = [thisYear, thisYear - 1, firstYear]
+  await assertOrganisationYears(orgId, years)
+
+  return { refNo, email, years }
+}
+
+/**
+ * Throws unless the backend reports exactly `expected` as the years the
+ * organisation held an approved registration in, so a seed whose backdating
+ * did not take fails here rather than passing on the current year alone.
+ *
+ * @param {number} organisationNumber
+ * @param {number[]} expected - newest first
+ */
+async function assertOrganisationYears(organisationNumber, expected) {
+  const authClient = new AuthClient()
+  const baseAPI = new BaseAPI()
+  await authClient.authenticate()
+
+  const response = await baseAPI.get(
+    `/organisations/${organisationNumber}/years`,
+    authClient.authHeader()
+  )
+  const { years } = await assertSuccessResponse(
+    response,
+    `GET /organisations/${organisationNumber}/years`
+  )
+
+  expect(years).to.deep.equal(expected)
 }
 
 /**
