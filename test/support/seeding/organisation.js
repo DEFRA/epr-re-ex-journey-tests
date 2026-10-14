@@ -201,7 +201,7 @@ export async function createLinkedOrganisation(dataRows) {
 }
 
 // Examples for updateDataRows:
-// [ { reprocessingType: 'input', regNumber: 'R26ER5000000003PA', accNumber: 'A26ER5000000002PA', status: 'approved' }]
+// [ { reprocessingType: 'input', ...generateNumbers({ wasteProcessingType: 'reprocessor', materialSuffix: 'PA' }), status: 'approved' }]
 // The date a seeded registration and accreditation both start from. Exported
 // because a registration has no end date, so what a page lists for it runs from
 // here to today - and a spec asserting that set has to derive it rather than
@@ -503,8 +503,7 @@ export async function updateMigratedOrganisation(
 
   // Statuses and numbers seed through the non-prod twin of the organisation
   // PUT: the public route rejects status changes (PAE-1645) and the
-  // transition endpoints enforce number uniqueness, which the suite's shared
-  // fixture workbooks cannot follow.
+  // transition endpoints enforce number uniqueness.
   const response = await baseAPI.put(
     `/v1/dev/organisations/${orgId}`,
     JSON.stringify(payload),
@@ -549,8 +548,7 @@ export async function updateStatus(orgId, newStatus) {
 
   // Statuses and numbers seed through the non-prod twin of the organisation
   // PUT: the public route rejects status changes (PAE-1645) and the
-  // transition endpoints enforce number uniqueness, which the suite's shared
-  // fixture workbooks cannot follow.
+  // transition endpoints enforce number uniqueness.
   response = await baseAPI.put(
     `/v1/dev/organisations/${orgId}`,
     JSON.stringify(payload),
@@ -566,8 +564,7 @@ export async function updateStatus(orgId, newStatus) {
 /**
  * Statuses and numbers seed through the non-prod twin of the organisation
  * PUT: the public route rejects status changes (PAE-1645) and the transition
- * endpoints enforce number uniqueness, which the suite's shared fixture
- * workbooks cannot follow.
+ * endpoints enforce number uniqueness.
  * @param {string} orgId
  * @param {(data: any) => void} change
  */
