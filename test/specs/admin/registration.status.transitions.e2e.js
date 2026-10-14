@@ -144,7 +144,7 @@ test.describe('Admin registration status transitions', () => {
     const orgId = organisationDetails.refNo
     await updateMigratedOrganisation(orgId, [
       {
-        regNumber: 'E25SR500030918PA',
+        regNumber: 'R25SR500030918PA',
         accNumber: 'ACC234572',
         status: 'approved'
       }

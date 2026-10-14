@@ -42,7 +42,7 @@ export const reportsLandingHasNoClosedPeriod = (cadence) =>
 
 // Filler regNumber/accNumber for specs that need updateMigratedOrganisation
 // to approve a registration but never assert the number's actual value.
-export const FAKE_REGISTRATION_NUMBER = 'FAKE/REG123/TEST'
+export const FAKE_REGISTRATION_NUMBER = 'R26ER5999999999PA'
 export const FAKE_ACCREDITATION_NUMBER = 'FAKE/ACC123/TEST'
 
 export async function createOrgWithAllWasteProcessingTypeAllMaterials() {
@@ -564,11 +564,15 @@ export async function updateStatus(orgId, newStatus) {
   )
 }
 
-// Updates the first registration's status (updateStatus above targets the
-// accreditation). Cancelling a registration force-cancels its linked
-// accreditation (PAE-1705 Scenario 5) — the backend cascades the change, so
-// callers only set the registration side.
-export async function updateRegistrationStatus(orgId, newStatus) {
+/**
+ * Statuses and numbers seed through the non-prod twin of the organisation
+ * PUT: the public route rejects status changes (PAE-1645) and the transition
+ * endpoints enforce number uniqueness, which the suite's shared fixture
+ * workbooks cannot follow.
+ * @param {string} orgId
+ * @param {(data: any) => void} change
+ */
+async function changeOrganisation(orgId, change) {
   const authClient = new AuthClient()
   const baseAPI = new BaseAPI()
 
@@ -584,29 +588,11 @@ export async function updateRegistrationStatus(orgId, newStatus) {
     `GET /v1/organisations/${orgId}`
   )
 
-  data.registrations[0].status = newStatus
-  const statusChangeDate = new Date(data.registrations[0].validFrom)
-  statusChangeDate.setDate(statusChangeDate.getDate() + 1)
-  data.registrations[0].statusHistory = [
-    ...(data.registrations[0].statusHistory || []),
-    {
-      status: newStatus,
-      updatedAt: statusChangeDate.toISOString().split('T')[0]
-    }
-  ]
+  change(data)
 
-  const payload = {
-    version: Number(data.version),
-    updateFragment: data
-  }
-
-  // Statuses and numbers seed through the non-prod twin of the organisation
-  // PUT: the public route rejects status changes (PAE-1645) and the
-  // transition endpoints enforce number uniqueness, which the suite's shared
-  // fixture workbooks cannot follow.
   response = await baseAPI.put(
     `/v1/dev/organisations/${orgId}`,
-    JSON.stringify(payload),
+    JSON.stringify({ version: Number(data.version), updateFragment: data }),
     authClient.authHeader()
   )
 
@@ -614,6 +600,41 @@ export async function updateRegistrationStatus(orgId, newStatus) {
     response,
     `PUT /v1/dev/organisations/${orgId}`
   )
+}
+
+// Updates the first registration's status (updateStatus above targets the
+// accreditation). Cancelling a registration force-cancels its linked
+// accreditation (PAE-1705 Scenario 5) — the backend cascades the change, so
+// callers only set the registration side.
+export async function updateRegistrationStatus(orgId, newStatus) {
+  await changeOrganisation(orgId, (data) => {
+    data.registrations[0].status = newStatus
+  })
+
+  // A status change records today and ignores a supplied history, so the
+  // approval and the change land on one day and the registration reads as
+  // never approved. Without a status change the history is honoured, so a
+  // second write dates creation before validFrom, the approval at validFrom
+  // and the change a day later.
+  await changeOrganisation(orgId, (data) => {
+    const registration = data.registrations[0]
+    const approvedOn = registration.validFrom.split('T')[0]
+    const changedOn = new Date(registration.validFrom)
+    changedOn.setUTCDate(changedOn.getUTCDate() + 1)
+
+    registration.statusHistory = registration.statusHistory.map((entry) => {
+      if (entry.status === 'created') {
+        return { ...entry, updatedAt: SEEDED_CREATED_ON }
+      }
+      if (entry.status === 'approved') {
+        return { ...entry, updatedAt: approvedOn }
+      }
+      if (entry.status === newStatus) {
+        return { ...entry, updatedAt: changedOn.toISOString().split('T')[0] }
+      }
+      return entry
+    })
+  })
 }
 
 /**

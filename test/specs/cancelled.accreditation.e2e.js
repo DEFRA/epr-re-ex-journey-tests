@@ -14,7 +14,7 @@ test.describe('Cancelled accreditation @cancelledAccreditation', () => {
   }) => {
     const dashboardPage = new DashboardPage(page)
 
-    const regNumber = 'E25SR500030913PA'
+    const regNumber = 'R25SR500030913PA'
     const accNumber = 'ACC234567'
 
     const organisationDetails = await createLinkedOrganisation([

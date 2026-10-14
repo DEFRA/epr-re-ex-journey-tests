@@ -14,7 +14,7 @@ test.describe('Cancelled registration @cancelledRegistration', () => {
   }) => {
     const dashboardPage = new DashboardPage(page)
 
-    const regNumber = 'E25SR500030914PA'
+    const regNumber = 'R25SR500030914PA'
     const accNumber = 'ACC234568'
 
     const organisationDetails = await createLinkedOrganisation([

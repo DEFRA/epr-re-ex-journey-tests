@@ -75,7 +75,7 @@ test.describe('Analytics reporting @analytics', () => {
     await acceptAnalyticsCookies(page)
     await setupReprocessor(page)
 
-    await page.waitForURL(/\/organisations\/[0-9a-f]{24}$/)
+    await page.waitForURL(/\/organisations\/\d+$/)
     const organisationUrl = page.url()
 
     await page.getByRole('link', { name: 'Cookies', exact: true }).click()
@@ -86,7 +86,7 @@ test.describe('Analytics reporting @analytics', () => {
     expect(cameFromInTheBrowser).toBe(organisationUrl)
     expect(parameters).toStrictEqual({
       page_location: `${origin}/cookies`,
-      page_referrer: `${origin}/organisations/:organisationId`
+      page_referrer: `${origin}/organisations/:organisationNumber`
     })
   })
 })

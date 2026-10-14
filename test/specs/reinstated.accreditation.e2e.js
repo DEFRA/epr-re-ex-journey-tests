@@ -14,7 +14,7 @@ test.describe('Reinstated accreditation @reinstatedAccreditation', () => {
   }) => {
     const dashboardPage = new DashboardPage(page)
 
-    const regNumber = 'E25SR500030915PA'
+    const regNumber = 'R25SR500030915PA'
     const accNumber = 'ACC234570'
 
     const organisationDetails = await createLinkedOrganisation([

@@ -23,7 +23,7 @@ test.describe('Report Submissions page', () => {
 
     await updateMigratedOrganisation(refNo, [
       {
-        regNumber: 'REPROCESS-001',
+        regNumber: 'R26ER5000000001PA',
         accNumber: 'ACC-001',
         status: 'approved',
         reprocessingType: 'input'

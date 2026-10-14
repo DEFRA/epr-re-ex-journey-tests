@@ -11,7 +11,7 @@ import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
 test.describe('Report only shows from accreditation validFrom date — exporter @validFromReport', () => {
-  const regNumber = 'E25SR500020912PA'
+  const regNumber = 'R25SR500020912PA'
   const accNumber = 'E-ACC12245PA'
 
   test('displays active report as of this month only @validFromReport', async ({

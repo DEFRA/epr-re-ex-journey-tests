@@ -24,7 +24,7 @@ async function getOrganisation(baseAPI, authClient, refNo) {
 async function approvedExporterWithAccreditation(
   baseAPI,
   authClient,
-  regNumber = 'E25SR500030912PA',
+  regNumber = 'R25SR500030912PA',
   accNumber = 'E-ACC123456'
 ) {
   const org = await createLinkedOrganisation([
@@ -88,7 +88,7 @@ test.describe('Overseas sites accreditation list @overseasSitesAccreditationList
       await approvedExporterWithAccreditation(
         baseAPI,
         authClient,
-        'E25SR500030913PA',
+        'R25SR500030913PA',
         'E-ACC123457'
       )
 
@@ -107,7 +107,7 @@ test.describe('Overseas sites accreditation list @overseasSitesAccreditationList
       await approvedExporterWithAccreditation(
         baseAPI,
         authClient,
-        'E25SR500030914PA',
+        'R25SR500030914PA',
         'E-ACC123458'
       )
 
@@ -151,12 +151,12 @@ test.describe('Overseas sites accreditation list @overseasSitesAccreditationList
     ])
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
-        regNumber: 'E25SR500030915PA',
+        regNumber: 'R25SR500030915PA',
         accNumber: 'E-ACC123459',
         status: 'approved'
       },
       {
-        regNumber: 'E25SR500040915ST',
+        regNumber: 'R25SR500040915ST',
         accNumber: 'E-ACC654321',
         status: 'approved'
       }
@@ -186,12 +186,12 @@ test.describe('Overseas sites accreditation list @overseasSitesAccreditationList
     ])
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
-        regNumber: 'E25SR500030916PA',
+        regNumber: 'R25SR500030916PA',
         accNumber: 'E-ACC123460',
         status: 'approved'
       },
       {
-        regNumber: 'E25SR500040916ST',
+        regNumber: 'R25SR500040916ST',
         accNumber: 'E-ACC654322',
         status: 'approved'
       }

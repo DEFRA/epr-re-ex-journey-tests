@@ -103,7 +103,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
         ['Registration status', 'Approved'],
         ['Material', 'Paper and board'],
         ['Regulator', 'EA'],
-        ['Accreditation', 'Approved'],
+        ['Accreditation', `${SEEDED_VALID_FROM.slice(0, 4)}: Approved`],
         ['Actions', `View ${seeded.registrationNumber}`]
       ])
     ])
