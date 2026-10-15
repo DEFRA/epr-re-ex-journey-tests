@@ -14,10 +14,7 @@ import {
 } from '../support/seeding/summary-logs.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { generateSpreadsheetData } from '../support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
-import {
-  generateRegNumber,
-  generateAccNumber
-} from '../support/reg-acc-number.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import { DockerLogParser } from '../support/docker.log.parser.js'
 import config from '../config/config.js'
 import logger from '../support/logger.js'
@@ -37,17 +34,6 @@ import logger from '../support/logger.js'
 // growth, which only makes sense locally (config.testLogs is false against a
 // deployed environment).
 
-const REG_NUMBER = generateRegNumber({
-  wasteProcessingType: 'reprocessor',
-  materialSuffix: 'PA',
-  serial: '0090'
-})
-const ACC_NUMBER = generateAccNumber({
-  wasteProcessingType: 'reprocessor',
-  materialSuffix: 'PA',
-  serial: '0090'
-})
-
 const ROWS_PER_UPLOAD = 2000
 const MAX_TOTAL_ROWS = 12000
 
@@ -55,14 +41,18 @@ test.describe('Automated scaling - Summary Logs Reprocessor on Input @automatedS
   test('uploads incrementally and creates Waste Records as row counts grow @automatedScalingUpload', async () => {
     test.setTimeout(20 * 60 * 1000)
 
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor' }
     ])
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'input',
-        regNumber: REG_NUMBER,
-        accNumber: ACC_NUMBER,
+        regNumber,
+        accNumber,
         status: 'approved',
         validFrom: '2025-02-02'
       }
@@ -94,8 +84,8 @@ test.describe('Automated scaling - Summary Logs Reprocessor on Input @automatedS
         wasteProcessingType: 'reprocessorInput',
         numberOfRows: ROWS_PER_UPLOAD,
         materialSuffix: 'PA',
-        accNumber: ACC_NUMBER,
-        regNumber: REG_NUMBER,
+        accNumber,
+        regNumber,
         rowOffset,
         silentLogging: true
       })

@@ -28,6 +28,7 @@ import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 
 test.describe('Issuing Packing Recycling Notes', () => {
   test('Should be able to create, issue and accept PRNs for Plastic (Reprocessor Output) @issuePRNOutput @smoketest', async ({
@@ -44,8 +45,10 @@ test.describe('Issuing Packing Recycling Notes', () => {
     const dashboardPage = new DashboardPage(currentPage)
     const wasteRecordsPage = new WasteRecordsPage(currentPage)
 
-    const regNumber = 'R26ER5000000001PL'
-    const accNumber = 'A26ER5000000001PL'
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PL'
+    })
 
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Plastic (R3)', wasteProcessingType: 'Reprocessor' }

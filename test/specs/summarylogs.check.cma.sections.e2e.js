@@ -11,9 +11,15 @@ import {
 import {
   seedOverseasSites,
   createLinkedOrganisation,
+  fillerNumbers,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { seedSubmittedReport } from '../support/seeding/reports.js'
+import { summaryLogNumbered } from '../support/seeding/summary-logs.js'
+import {
+  generateNumbers,
+  generateRegNumber
+} from '../support/reg-acc-number.js'
 import {
   createLinkAndLogin,
   registerAndLinkDefraIdUser,
@@ -44,14 +50,17 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Steel (R4)', wasteProcessingType: 'Reprocessor' }
     ])
+    const numbers = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R26ER5000000005PA',
-          accNumber: 'A26ER5000000003PA',
+          ...numbers,
           status: 'approved',
           validFrom: '2026-01-01'
         }
@@ -74,16 +83,18 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
 
     // Single-registration orgs skip the selection list, so the reg number
     // renders as plain text on the task page, not as a link.
-    await checkBodyText(page, 'R26ER5000000005PA', 10)
+    await checkBodyText(page, numbers.regNumber, 10)
 
-    await wasteRecordsPage.submitSummaryLogLink().click()
-    await uploadSummaryLogPage.performUploadAndReturnToHomepage(
-      'resources/reprocessor-output.xlsx'
+    const summaryLog = await summaryLogNumbered(
+      'resources/reprocessor-output.xlsx',
+      numbers
     )
+    await wasteRecordsPage.submitSummaryLogLink().click()
+    await uploadSummaryLogPage.performUploadAndReturnToHomepage(summaryLog)
 
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await uploadSummaryLogPage.uploadFile('resources/reprocessor-output.xlsx')
+    await uploadSummaryLogPage.uploadFile(summaryLog)
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
@@ -136,13 +147,17 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
         withoutAccreditation: true
       }
     ])
+    const regNumber = generateRegNumber({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R26ER5000000004PA',
+          regNumber,
           status: 'approved',
           withoutAccreditation: true,
           validFrom: '2025-01-01'
@@ -175,7 +190,10 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile(
-      'resources/reprocessor-output-regonly-cma-2025.xlsx'
+      await summaryLogNumbered(
+        'resources/reprocessor-output-regonly-cma-2025.xlsx',
+        { regNumber }
+      )
     )
     await uploadSummaryLogPage.continue()
 
@@ -209,19 +227,21 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
     ])
+    const exporterNumbers = generateNumbers({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'PA'
+    })
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
         {
           reprocessingType: 'output',
-          regNumber: 'R26ER5000000002PA',
-          accNumber: 'A26ER5000000002PA',
+          ...fillerNumbers(),
           status: 'approved'
         },
         {
-          regNumber: 'R26EX5000000003PA',
-          accNumber: 'A26EX5000000000PA',
+          ...exporterNumbers,
           status: 'approved',
           validFrom: '2025-01-01'
         }
@@ -244,7 +264,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
 
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
-      'resources/exporter-2025.xlsx'
+      await summaryLogNumbered('resources/exporter-2025.xlsx', exporterNumbers)
     )
 
     const exporterRegId = migrationResponse.registrationIds[1]
@@ -263,7 +283,10 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
-      'resources/exporter-adjustments-2025.xlsx'
+      await summaryLogNumbered(
+        'resources/exporter-adjustments-2025.xlsx',
+        exporterNumbers
+      )
     )
     await uploadSummaryLogPage.continue()
 

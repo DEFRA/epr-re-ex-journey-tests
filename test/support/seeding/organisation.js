@@ -7,7 +7,7 @@ import { AuthClient } from '../auth.js'
 import { trackCreatedOrgId } from '../cleanup-tracker.js'
 import { currentYear } from '../date.js'
 import { MATERIALS } from '../materials.js'
-import { generateRegNumber, generateAccNumber } from '../reg-acc-number.js'
+import { generateNumbers } from '../reg-acc-number.js'
 import {
   assertSuccessResponse,
   assertSuccessResponseWithoutBody
@@ -40,10 +40,12 @@ export const validFromWithClosedPeriod = (cadence) =>
 export const reportsLandingHasNoClosedPeriod = (cadence) =>
   lastCompletedPeriod(cadence).year !== currentYear()
 
-// Filler regNumber/accNumber for specs that need updateMigratedOrganisation
-// to approve a registration but never assert the number's actual value.
-export const FAKE_REGISTRATION_NUMBER = 'R26ER5999999999PA'
-export const FAKE_ACCREDITATION_NUMBER = 'FAKE/ACC123/TEST'
+/**
+ * A regNumber and accNumber for a registration that updateMigratedOrganisation
+ * has to approve, where the spec has no other use for the numbers.
+ */
+export const fillerNumbers = () =>
+  generateNumbers({ wasteProcessingType: 'reprocessor', materialSuffix: 'PA' })
 
 export async function createOrgWithAllWasteProcessingTypeAllMaterials() {
   const wasteProcessingTypes = [
@@ -78,23 +80,20 @@ export async function createOrgWithAllWasteProcessingTypeAllMaterials() {
   const updateDataRows = []
   for (let i = 0; i < wasteProcessingTypes.length; i++) {
     for (const material of MATERIALS) {
+      /** @type {import('../reg-acc-number.js').ProcessingType} */
       let wasteProcessingType = 'exporter'
       const updateDataRow = {}
       if (wasteProcessingTypes[i].type !== '') {
         updateDataRow.reprocessingType = wasteProcessingTypes[i].type
         wasteProcessingType = 'reprocessor'
       }
-      const serial = String(i).padStart(4, '0')
-      updateDataRow.regNumber = generateRegNumber({
-        wasteProcessingType,
-        materialSuffix: material.suffix,
-        serial
-      })
-      updateDataRow.accNumber = generateAccNumber({
-        wasteProcessingType,
-        materialSuffix: material.suffix,
-        serial
-      })
+      Object.assign(
+        updateDataRow,
+        generateNumbers({
+          wasteProcessingType,
+          materialSuffix: material.suffix
+        })
+      )
       updateDataRow.status = 'approved'
       updateDataRows.push(updateDataRow)
     }
@@ -202,7 +201,7 @@ export async function createLinkedOrganisation(dataRows) {
 }
 
 // Examples for updateDataRows:
-// [ { reprocessingType: 'input', regNumber: 'R26ER5000000003PA', accNumber: 'A26ER5000000002PA', status: 'approved' }]
+// [ { reprocessingType: 'input', ...generateNumbers({ wasteProcessingType: 'reprocessor', materialSuffix: 'PA' }), status: 'approved' }]
 // The date a seeded registration and accreditation both start from. Exported
 // because a registration has no end date, so what a page lists for it runs from
 // here to today - and a spec asserting that set has to derive it rather than
@@ -328,6 +327,81 @@ export function approveMigratedRegistration(
       email: data.submitterContactDetails.email
     }
   })
+}
+
+/**
+ * Seeds an organisation whose single reprocessor registration has been
+ * approved since January two years ago, with an accreditation that only
+ * starts this year: the organisation spans three years, newest first.
+ *
+ * Approval and backdating take a PUT each. The service dates a status change
+ * today and discards the status history sent with it, so the history is only
+ * honoured in a PUT that leaves the statuses as they are.
+ *
+ * @returns {Promise<{refNo: string, email: string, years: number[]}>}
+ */
+export async function seedOrganisationAcrossYears() {
+  const thisYear = currentYear()
+  const firstYear = thisYear - 2
+  const createdOn = `${firstYear - 1}-12-31`
+
+  const { orgId, refNo } = await createLinkedOrganisation([
+    { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
+  ])
+
+  const { email } = await approveMigratedRegistration(
+    refNo,
+    { registrationIndex: 0, accreditationIndex: 0 },
+    {
+      ...fillerNumbers(),
+      reprocessingType: 'input',
+      validFrom: `${firstYear}-01-01`,
+      validTo: `${thisYear + 1}-01-01`,
+      submittedToRegulator: 'ea'
+    }
+  )
+
+  await amendMigratedOrganisation(refNo, (data) => {
+    data.registrations[0].statusHistory = [
+      { status: 'created', updatedAt: createdOn },
+      { status: 'approved', updatedAt: `${firstYear}-01-01` }
+    ]
+    data.accreditations[0].validFrom = `${thisYear}-01-01`
+    data.accreditations[0].statusHistory = [
+      { status: 'created', updatedAt: createdOn },
+      { status: 'approved', updatedAt: `${thisYear}-01-01` }
+    ]
+  })
+
+  const years = [thisYear, thisYear - 1, firstYear]
+  await assertOrganisationYears(orgId, years)
+
+  return { refNo, email, years }
+}
+
+/**
+ * Throws unless the backend reports exactly `expected` as the years the
+ * organisation held an approved registration in, so a seed whose backdating
+ * did not take fails here rather than passing on the current year alone.
+ *
+ * @param {number} organisationNumber
+ * @param {number[]} expected - newest first
+ */
+async function assertOrganisationYears(organisationNumber, expected) {
+  const authClient = new AuthClient()
+  const baseAPI = new BaseAPI()
+  await authClient.authenticate()
+
+  const response = await baseAPI.get(
+    `/organisations/${organisationNumber}/years`,
+    authClient.authHeader()
+  )
+  const { years } = await assertSuccessResponse(
+    response,
+    `GET /organisations/${organisationNumber}/years`
+  )
+
+  expect(years).to.deep.equal(expected)
 }
 
 /**
@@ -504,8 +578,7 @@ export async function updateMigratedOrganisation(
 
   // Statuses and numbers seed through the non-prod twin of the organisation
   // PUT: the public route rejects status changes (PAE-1645) and the
-  // transition endpoints enforce number uniqueness, which the suite's shared
-  // fixture workbooks cannot follow.
+  // transition endpoints enforce number uniqueness.
   const response = await baseAPI.put(
     `/v1/dev/organisations/${orgId}`,
     JSON.stringify(payload),
@@ -550,8 +623,7 @@ export async function updateStatus(orgId, newStatus) {
 
   // Statuses and numbers seed through the non-prod twin of the organisation
   // PUT: the public route rejects status changes (PAE-1645) and the
-  // transition endpoints enforce number uniqueness, which the suite's shared
-  // fixture workbooks cannot follow.
+  // transition endpoints enforce number uniqueness.
   response = await baseAPI.put(
     `/v1/dev/organisations/${orgId}`,
     JSON.stringify(payload),
@@ -567,8 +639,7 @@ export async function updateStatus(orgId, newStatus) {
 /**
  * Statuses and numbers seed through the non-prod twin of the organisation
  * PUT: the public route rejects status changes (PAE-1645) and the transition
- * endpoints enforce number uniqueness, which the suite's shared fixture
- * workbooks cannot follow.
+ * endpoints enforce number uniqueness.
  * @param {string} orgId
  * @param {(data: any) => void} change
  */

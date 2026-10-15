@@ -13,6 +13,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 async function setUpApprovedReprocessor() {
   const org = await createLinkedOrganisation([
     { wasteProcessingType: 'Reprocessor' }
@@ -20,8 +21,10 @@ async function setUpApprovedReprocessor() {
   const migrated = await updateMigratedOrganisation(org.refNo, [
     {
       reprocessingType: 'input',
-      regNumber: 'R25SR500030912PA',
-      accNumber: 'ACC123456',
+      ...generateNumbers({
+        wasteProcessingType: 'reprocessor',
+        materialSuffix: 'PA'
+      }),
       status: 'approved'
     }
   ])
@@ -57,8 +60,10 @@ test.describe('Organisation linking/unlinking negative paths @organisationLinkin
     const migrated = await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'input',
-        regNumber: 'R25SR500030912PA',
-        accNumber: 'ACC123456',
+        ...generateNumbers({
+          wasteProcessingType: 'reprocessor',
+          materialSuffix: 'PA'
+        }),
         status: 'created'
       }
     ])

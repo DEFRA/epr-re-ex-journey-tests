@@ -8,8 +8,7 @@ import { RegistrationOverviewPage } from 'page-objects/admin/registration.overvi
 import { JsonEditor } from 'page-objects/admin/jsoneditor.page'
 import {
   createLinkedOrganisation,
-  FAKE_ACCREDITATION_NUMBER,
-  FAKE_REGISTRATION_NUMBER,
+  fillerNumbers,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
 import { createSubmittedReport } from '../../support/seeding/reports.js'
@@ -217,10 +216,12 @@ test.describe('Organisations page', () => {
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
 
+    const { regNumber, accNumber } = fillerNumbers()
+
     await updateMigratedOrganisation(linkedOrganisation.refNo, [
       {
-        regNumber: FAKE_REGISTRATION_NUMBER,
-        accNumber: FAKE_ACCREDITATION_NUMBER,
+        regNumber,
+        accNumber,
         status: 'approved',
         reprocessingType: 'input'
       }
@@ -241,7 +242,7 @@ test.describe('Organisations page', () => {
       {
         header: organisation.companyName,
         orgId: `${linkedOrganisation.orgId}`,
-        regAccNumbers: `${FAKE_REGISTRATION_NUMBER} - ${FAKE_ACCREDITATION_NUMBER}`,
+        regAccNumbers: `${regNumber} - ${accNumber}`,
         regulator: 'EA',
         status: 'active'
       }
@@ -287,7 +288,8 @@ test.describe('Organisations page', () => {
   // serves all of them. Its numbers carry a random suffix: the backend matches
   // them whole and case-insensitively, so organisations left behind by earlier
   // runs would otherwise share a fixed number and turn a single result into
-  // several.
+  // several. The suffix is upper-case because the backend stores numbers
+  // trimmed and upper-case, and the table shows the stored form.
   test.describe('Searching by each field', () => {
     /**
      * @type {{
@@ -307,7 +309,7 @@ test.describe('Organisations page', () => {
         { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
       ])
 
-      const unique = randomUUID()
+      const unique = randomUUID().toUpperCase()
       const registrationNumber = `FAKE/REG/${unique}`
       const accreditationNumber = `FAKE/ACC/${unique}`
 
@@ -431,7 +433,7 @@ test.describe('Organisations page', () => {
 
       await organisationsPage.searchBy({
         registrationNumber: seeded.registrationNumber,
-        accreditationNumber: `FAKE/ACC/${randomUUID()}`
+        accreditationNumber: `FAKE/ACC/${randomUUID().toUpperCase()}`
       })
 
       expect(await organisationsPage.searchResult()).toEqual('0 results found')

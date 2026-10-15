@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation,
-  FAKE_REGISTRATION_NUMBER
+  fillerNumbers
 } from '../support/seeding/organisation.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
@@ -52,7 +52,7 @@ const setupReprocessor = async (page) => {
     [
       {
         reprocessingType: 'output',
-        regNumber: FAKE_REGISTRATION_NUMBER,
+        regNumber: fillerNumbers().regNumber,
         status: 'approved',
         withoutAccreditation: true
       }

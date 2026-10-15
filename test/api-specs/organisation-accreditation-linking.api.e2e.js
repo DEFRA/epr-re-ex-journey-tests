@@ -6,6 +6,7 @@ import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 async function getOrganisation(baseAPI, authClient, refNo) {
   const response = await baseAPI.get(
     `/v1/organisations/${refNo}`,
@@ -46,14 +47,18 @@ test.describe('Organisation/accreditation cross-linking integrity @organisationA
     await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'input',
-        regNumber: 'R25SR500030912PA',
-        accNumber: 'ACC123456',
+        ...generateNumbers({
+          wasteProcessingType: 'reprocessor',
+          materialSuffix: 'GO'
+        }),
         status: 'approved'
       },
       {
         reprocessingType: 'input',
-        regNumber: 'R25SR500040912PA',
-        accNumber: 'ACC123457',
+        ...generateNumbers({
+          wasteProcessingType: 'reprocessor',
+          materialSuffix: 'GR'
+        }),
         status: 'approved'
       }
     ])
@@ -88,14 +93,18 @@ test.describe('Organisation/accreditation cross-linking integrity @organisationA
     await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'input',
-        regNumber: 'R25SR500030912PA',
-        accNumber: 'ACC123456',
+        ...generateNumbers({
+          wasteProcessingType: 'reprocessor',
+          materialSuffix: 'GO'
+        }),
         status: 'approved'
       },
       {
         reprocessingType: 'input',
-        regNumber: 'R25SR500040912PA',
-        accNumber: 'ACC123457',
+        ...generateNumbers({
+          wasteProcessingType: 'reprocessor',
+          materialSuffix: 'GR'
+        }),
         status: 'approved'
       }
     ])
@@ -128,14 +137,18 @@ test.describe('Organisation/accreditation cross-linking integrity @organisationA
     await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'input',
-        regNumber: 'R25SR500030912PA',
-        accNumber: 'ACC123456',
+        ...generateNumbers({
+          wasteProcessingType: 'reprocessor',
+          materialSuffix: 'GO'
+        }),
         status: 'approved'
       },
       {
         reprocessingType: 'input',
-        regNumber: 'R25SR500040912PA',
-        accNumber: 'ACC123457',
+        ...generateNumbers({
+          wasteProcessingType: 'reprocessor',
+          materialSuffix: 'GR'
+        }),
         status: 'approved'
       }
     ])
@@ -168,14 +181,18 @@ test.describe('Organisation/accreditation cross-linking integrity @organisationA
     await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'input',
-        regNumber: 'R25SR500030912PA',
-        accNumber: 'ACC123456',
+        ...generateNumbers({
+          wasteProcessingType: 'reprocessor',
+          materialSuffix: 'GO'
+        }),
         status: 'approved'
       },
       {
         reprocessingType: 'input',
-        regNumber: 'R25SR500040912PA',
-        accNumber: 'ACC123457',
+        ...generateNumbers({
+          wasteProcessingType: 'reprocessor',
+          materialSuffix: 'GR'
+        }),
         status: 'approved'
       }
     ])
@@ -203,13 +220,17 @@ test.describe('Organisation/accreditation cross-linking integrity @organisationA
     await updateMigratedOrganisation(org.refNo, [
       {
         reprocessingType: 'input',
-        regNumber: 'R25SR500030912PA',
-        accNumber: 'ACC123456',
+        ...generateNumbers({
+          wasteProcessingType: 'reprocessor',
+          materialSuffix: 'PA'
+        }),
         status: 'approved'
       },
       {
-        regNumber: 'R25SR500040912PA',
-        accNumber: 'ACC123457',
+        ...generateNumbers({
+          wasteProcessingType: 'exporter',
+          materialSuffix: 'ST'
+        }),
         status: 'approved'
       }
     ])

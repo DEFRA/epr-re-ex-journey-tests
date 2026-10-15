@@ -4,13 +4,16 @@ import {
   createAndRegisterDefraIdUser,
   linkDefraIdUser
 } from '../support/defra-id-linking.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import {
   ingestSummaryLogFixture,
-  registrationStartYear
+  registrationStartYear,
+  summaryLogNumbered,
+  uploadSummaryLog
 } from '../support/seeding/summary-logs.js'
 import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
@@ -20,19 +23,28 @@ import {
   assertValidationFailures
 } from '../support/summary-log-assertions.js'
 
+const FLOCI_SUMMARY_LOGS = 'docker/scripts/floci/summarylogs'
+
 // Ported from epr-backend-journey-tests' summarylogs-validation.feature.
-// Each scenario feeds the real, pre-seeded floci S3 fixtures from
-// docker/scripts/floci/summarylogs/ (seeded at fixed keys by
-// docker/scripts/floci/init.sh) directly to the upload-completed callback,
+// Each scenario uses the floci fixtures from docker/scripts/floci/summarylogs/,
 // so the real async validation worker produces genuine validation
-// failures/loads data - no CDP uploader multipart round-trip needed.
+// failures/loads data. A fixture whose cover numbers must be the
+// registration's own is uploaded as a renumbered copy through cdp-uploader.
+// The rest are fed from their pre-seeded S3 keys (seeded by
+// docker/scripts/floci/init.sh) directly to the upload-completed callback.
 test.describe('Summary log row-level validation @summaryLogValidation', () => {
   let orgId
   let registrationId
   let year
   let authHeader
+  /** @type {import('../support/reg-acc-number.js').SeededNumbers} */
+  let inputNumbers
 
   test.beforeAll(async () => {
+    inputNumbers = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
     const org = await createLinkedOrganisation([
       { wasteProcessingType: 'Reprocessor' },
       { wasteProcessingType: 'Exporter' },
@@ -49,19 +61,22 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
       [
         {
           reprocessingType: 'input',
-          regNumber: 'R26ER5000000003PA',
-          accNumber: 'A26ER5000000002PA',
+          ...inputNumbers,
           status: 'approved'
         },
         {
-          regNumber: 'R26EX5000000003PA',
-          accNumber: 'A26EX5000000000PA',
+          ...generateNumbers({
+            wasteProcessingType: 'exporter',
+            materialSuffix: 'PA'
+          }),
           status: 'approved'
         },
         {
           reprocessingType: 'output',
-          regNumber: 'R26ER5000000005PA',
-          accNumber: 'A26ER5000000003PA',
+          ...generateNumbers({
+            wasteProcessingType: 'reprocessor',
+            materialSuffix: 'PA'
+          }),
           status: 'approved'
         }
       ],
@@ -77,11 +92,14 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
   })
 
   test('fails validation (Fatal) for Invalid Row ID and cannot be submitted @summaryLogInvalidRowId', async () => {
-    const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
+    const { summaryLogPath, baseAPI } = await uploadSummaryLog(
       orgId,
       registrationId,
       authHeader,
-      { s3Key: 'invalid-row-id-key', filename: 'invalid-row-id.xlsx' },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/invalid-row-id.xlsx`,
+        inputNumbers
+      ),
       year
     )
     const responseData = await waitForSummaryLogStatus(
@@ -125,11 +143,14 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
   })
 
   test('fails validation (Fatal) for Invalid Table name and cannot be submitted @summaryLogInvalidTableName', async () => {
-    const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
+    const { summaryLogPath, baseAPI } = await uploadSummaryLog(
       orgId,
       registrationId,
       authHeader,
-      { s3Key: 'invalid-table-name-key', filename: 'invalid-table-name.xlsx' },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/invalid-table-name.xlsx`,
+        inputNumbers
+      ),
       year
     )
     const responseData = await waitForSummaryLogStatus(
@@ -248,11 +269,14 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
   // claiming to descend from that commit - an environment/build gap, not a
   // test bug. Revisit once the running image picks up that feature.
   test('creates Waste Records but excludes missing date row @summaryLogMissingDateRow', async () => {
-    const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
+    const { summaryLogPath, baseAPI } = await uploadSummaryLog(
       orgId,
       registrationId,
       authHeader,
-      { s3Key: 'missing-date-row-key', filename: 'missing-date-row.xlsx' },
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/missing-date-row.xlsx`,
+        inputNumbers
+      ),
       year
     )
     const responseData = await waitForSummaryLogStatus(

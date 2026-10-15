@@ -19,18 +19,20 @@ import {
   registrationStartYear,
   submitSummaryLogContent
 } from '../support/seeding/summary-logs.js'
-import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
+import {
+  generateNumbers,
+  generateRegNumber
+} from '../support/reg-acc-number.js'
+import { summaryLogContentNumbered } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { expectActionRequiredStatus } from '../support/report-status.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { navigateToReports } from '../support/report-navigation.js'
 
-const PL_REG = 'R26ER5000000001PL'
-const PL_ACC = 'A26ER5000000001PL'
-const PL_FILE = `resources/sanity/reprocessorOutput_${PL_ACC}_${PL_REG}.xlsx`
+const PL_FILE =
+  'resources/sanity/reprocessorOutput_A26ER5000000001PL_R26ER5000000001PL.xlsx'
 
 const REG_ONLY_FILE = 'resources/exporter-regonly.xlsx'
-const REG_NUMBER = 'R26EX5000000003PA'
 
 async function navigateReprocessorToSupportingInfo(page) {
   const tonnesRecycledPage = new TonnesRecycledPage(page)
@@ -109,7 +111,10 @@ async function setupAndCreateReport(
   const { orgDetails, migrationResponse, user } =
     await setupAccreditedReprocessor(page, material, regNumber, accNumber)
 
-  const summaryLogContent = await summaryLogContentFromFixture(filePath)
+  const summaryLogContent = await summaryLogContentNumbered(filePath, {
+    regNumber,
+    accNumber
+  })
   await submitSummaryLogContent(
     orgDetails.refNo,
     migrationResponse.registrationIds[0],
@@ -125,6 +130,11 @@ async function setupAndCreateReport(
 }
 
 async function setupRegisteredOnlyExporter(page) {
+  const regNumber = generateRegNumber({
+    wasteProcessingType: 'exporter',
+    materialSuffix: 'PA'
+  })
+
   const organisationDetails = await createLinkedOrganisation([
     {
       material: 'Paper or board (R3)',
@@ -137,7 +147,7 @@ async function setupRegisteredOnlyExporter(page) {
     organisationDetails.refNo,
     [
       {
-        regNumber: REG_NUMBER,
+        regNumber,
         status: 'approved',
         withoutAccreditation: true
       }
@@ -150,7 +160,7 @@ async function setupRegisteredOnlyExporter(page) {
     migrationResponse.email
   )
 
-  return { organisationDetails, migrationResponse, user }
+  return { organisationDetails, migrationResponse, user, regNumber }
 }
 
 test.describe('Stale report @staleReport', () => {
@@ -161,8 +171,18 @@ test.describe('Stale report @staleReport', () => {
     const reportsPage = new ReportsPage(page)
     const reportStaleErrorPage = new ReportStaleErrorPage(page)
 
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PL'
+    })
     const { orgDetails, migrationResponse, user, summaryLogContent } =
-      await setupAndCreateReport(page, 'Plastic (R3)', PL_REG, PL_ACC, PL_FILE)
+      await setupAndCreateReport(
+        page,
+        'Plastic (R3)',
+        regNumber,
+        accNumber,
+        PL_FILE
+      )
 
     // Re-submit the same content via the dev endpoint to bump its version
     // and make the existing report stale.
@@ -211,7 +231,7 @@ test.describe('Stale report @staleReport', () => {
     const tonnesRecycledPage = new TonnesRecycledPage(page)
     const reportStaleErrorPage = new ReportStaleErrorPage(page)
 
-    const { organisationDetails, migrationResponse, user } =
+    const { organisationDetails, migrationResponse, user, regNumber } =
       await setupRegisteredOnlyExporter(page)
 
     await seedOverseasSites(
@@ -224,7 +244,9 @@ test.describe('Stale report @staleReport', () => {
     const year = registrationStartYear()
     const authHeader = defraIdStub.authHeader(user.userId)
 
-    const summaryLogContent = await summaryLogContentFromFixture(REG_ONLY_FILE)
+    const summaryLogContent = await summaryLogContentNumbered(REG_ONLY_FILE, {
+      regNumber
+    })
     await submitSummaryLogContent(
       organisationDetails.refNo,
       regId,

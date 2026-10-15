@@ -22,14 +22,17 @@ import { createLinkAndLogin } from '../support/login-helper.js'
 import { createPrnDetails } from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 
 test.describe('Marking a PRN as December Waste (Reprocessor Output)', () => {
   test('Should show the December waste question for an output reprocessor and record Yes @decWaste @createDecPRNOutput', async ({
     page
   }) => {
     let currentPage = page
-    const regNumber = 'R26ER5000000001ST'
-    const accNumber = 'A26ER5000000001ST'
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'ST'
+    })
 
     let prnHelper, prnDashboardPage, prnIssuedPage, prnViewPage
     const createPRNPage = new CreatePRNPage(page)

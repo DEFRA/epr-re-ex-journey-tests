@@ -20,6 +20,7 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { seedSubmittedReport } from '../support/seeding/reports.js'
+import { generateRegNumber } from '../support/reg-acc-number.js'
 import { loginViaHomePage } from '../support/login-helper.js'
 
 async function seedSubmittedRegisteredReprocessor() {
@@ -36,7 +37,10 @@ async function seedSubmittedRegisteredReprocessor() {
     [
       {
         reprocessingType: 'output',
-        regNumber: 'R25SR500040912PA',
+        regNumber: generateRegNumber({
+          wasteProcessingType: 'reprocessor',
+          materialSuffix: 'PA'
+        }),
         status: 'approved',
         withoutAccreditation: true
       }

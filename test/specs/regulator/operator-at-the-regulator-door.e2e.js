@@ -4,6 +4,7 @@ import { NoPermissionPage } from 'page-objects/no-permission.page'
 import { ServiceNavigation } from 'page-objects/service-navigation.page'
 import {
   createLinkedOrganisation,
+  fillerNumbers,
   updateMigratedOrganisation
 } from '~/test/support/seeding/organisation.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
@@ -34,7 +35,7 @@ test.describe('An operator at the regulator door @regulator', () => {
       // so the seeding has to take the organisation to that state.
       const { email } = await updateMigratedOrganisation(refNo, [
         {
-          regNumber: 'R25SR500060912PA',
+          regNumber: fillerNumbers().regNumber,
           status: 'approved',
           reprocessingType: 'input',
           withoutAccreditation: true
