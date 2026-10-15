@@ -344,8 +344,6 @@ export async function seedOrganisationAcrossYears() {
   const thisYear = currentYear()
   const firstYear = thisYear - 2
   const createdOn = `${firstYear - 1}-12-31`
-  const wasteProcessingType = 'reprocessorInput'
-  const materialSuffix = 'PA'
 
   const { orgId, refNo } = await createLinkedOrganisation([
     { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
@@ -355,8 +353,7 @@ export async function seedOrganisationAcrossYears() {
     refNo,
     { registrationIndex: 0, accreditationIndex: 0 },
     {
-      regNumber: generateRegNumber({ wasteProcessingType, materialSuffix }),
-      accNumber: generateAccNumber({ wasteProcessingType, materialSuffix }),
+      ...fillerNumbers(),
       reprocessingType: 'input',
       validFrom: `${firstYear}-01-01`,
       validTo: `${thisYear + 1}-01-01`,
