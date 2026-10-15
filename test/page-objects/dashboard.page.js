@@ -37,6 +37,12 @@ class DashboardPage extends Page {
       .innerText()
   }
 
+  yearHeading() {
+    return this.page.locator('#main-content p.govuk-heading-m', {
+      hasText: /^This is \d{4} data$/
+    })
+  }
+
   // This ".govuk-tabs" block renders without data-module="govuk-tabs" (see
   // organisations/index.njk), so the GOV.UK tabs JS never enhances it and the
   // "Exporting"/"Reprocessing" items stay plain links, not role="tab".
