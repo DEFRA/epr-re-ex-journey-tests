@@ -47,6 +47,7 @@ export default [
         {
           allow: [
             '^faker[A-Z]{2}_[A-Z]{2}$',
+            '^cookie_domain$',
             '^page_location$',
             '^page_referrer$'
           ]
