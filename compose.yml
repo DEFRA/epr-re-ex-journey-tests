@@ -177,7 +177,7 @@ services:
   # Simulates Entra ID (Microsoft) sign-in: used for epr-backend's
   # service-to-service auth and for epr-re-ex-admin-frontend's browser login.
   entra-stub:
-    image: defradigital/epr-re-ex-entra-stub:0.141.0@sha256:dd4fc203efe8cb61cf7bbbfb7c9962370f1fb58a1bf2034b868b91015de00c5d
+    image: defradigital/epr-re-ex-entra-stub:0.144.0@sha256:50dc89f8ad29ca01db0fb87d5569883042200d600a8cabc575e62dce1098ac82
     networks:
       - cdp-tenant
     ports:
