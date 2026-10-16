@@ -85,6 +85,7 @@ test.describe('Analytics reporting @analytics', () => {
 
     expect(cameFromInTheBrowser).toBe(organisationUrl)
     expect(parameters).toStrictEqual({
+      cookie_domain: 'none',
       page_location: `${origin}/cookies`,
       page_referrer: `${origin}/organisations/:organisationNumber/:year`
     })
