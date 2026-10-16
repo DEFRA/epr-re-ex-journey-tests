@@ -119,10 +119,9 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
         {
           ...numbers,
           status: 'approved',
-          // Matches the happy-path exporter setup so the file's rows fall inside
-          // the accreditation period and reach the ORS check (rather than being
-          // ignored as OUTSIDE_ACCREDITATION_PERIOD).
-          validFrom: '2025-02-02'
+          // The file's 2026 rows fall inside the accreditation period and reach
+          // the ORS check (rather than being ignored as OUTSIDE_ACCREDITATION_PERIOD).
+          validFrom: '2026-01-01'
         }
       ]
     )
@@ -170,9 +169,9 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
     await checkBodyText(page, 'Summary log uploaded', 30)
 
     await uploadSummaryLogPage.returnToHomePageLink().click()
-    // The dashboard shows the latest year, and this accreditation is 2025's
+    // No load reached the balance
     const availableWasteBalance = await dashboardPage.availableWasteBalance(1)
-    expect(availableWasteBalance).toBe('Not applicable')
+    expect(availableWasteBalance).toBe('0.00')
 
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)

@@ -15,7 +15,10 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { seedSubmittedReport } from '../support/seeding/reports.js'
-import { summaryLogNumbered } from '../support/seeding/summary-logs.js'
+import {
+  summaryLogDatedAt,
+  summaryLogNumbered
+} from '../support/seeding/summary-logs.js'
 import {
   generateNumbers,
   generateRegNumber
@@ -231,6 +234,8 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       wasteProcessingType: 'exporter',
       materialSuffix: 'PA'
     })
+    // Inside January 2026, the month the seeded report closes
+    const closedMonthDay = new Date('2026-01-15')
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
@@ -243,7 +248,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
         {
           ...exporterNumbers,
           status: 'approved',
-          validFrom: '2025-01-01'
+          validFrom: '2026-01-01'
         }
       ]
     )
@@ -264,7 +269,10 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
 
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
-      await summaryLogNumbered('resources/exporter-2025.xlsx', exporterNumbers)
+      await summaryLogNumbered(
+        await summaryLogDatedAt('resources/exporter-2025.xlsx', closedMonthDay),
+        exporterNumbers
+      )
     )
 
     const exporterRegId = migrationResponse.registrationIds[1]
@@ -272,7 +280,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       organisationDetails.refNo,
       exporterRegId,
       user.userId,
-      2025,
+      2026,
       'monthly',
       1,
       1,
@@ -284,7 +292,10 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered(
-        'resources/exporter-adjustments-2025.xlsx',
+        await summaryLogDatedAt(
+          'resources/exporter-adjustments-2025.xlsx',
+          closedMonthDay
+        ),
         exporterNumbers
       )
     )
