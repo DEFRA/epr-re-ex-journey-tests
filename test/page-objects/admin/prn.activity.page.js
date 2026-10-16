@@ -15,6 +15,8 @@ class PrnActivityPage extends AdminPage {
 
   // Pages forward (oldest first) to the PRN's row, keyed by column header.
   // The PRN number is the row's <th>, so cells are read from th and td.
+  // Cost grows with the environment's PRN history; for a large one, prefer
+  // the registration overview's per-accreditation PRN activity download.
   async rowFor(prnNumber) {
     const headers = (
       await this.page.locator('table.govuk-table thead th').allInnerTexts()
