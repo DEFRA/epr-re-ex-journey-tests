@@ -38,8 +38,15 @@ class DashboardPage extends Page {
   }
 
   yearHeading() {
-    return this.page.locator('#main-content p.govuk-heading-m', {
+    return this.page.locator('#main-content span.govuk-heading-m', {
       hasText: /^This is \d{4} data$/
+    })
+  }
+
+  chooseDifferentYearLink() {
+    return this.page.getByRole('link', {
+      name: 'Choose a different year',
+      exact: true
     })
   }
 
