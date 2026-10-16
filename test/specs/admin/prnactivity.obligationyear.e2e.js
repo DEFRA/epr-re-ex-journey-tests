@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 
 import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { PrnActivityPage } from 'page-objects/admin/prn.activity.page'
-import { seedDecemberInputReprocessor } from '../../support/seeding/december-reprocessor.js'
+import { seedAccreditedOutputReprocessor } from '../../support/seeding/output-reprocessor.js'
 import {
   createPrn,
   externalAPIAcceptPrn,
@@ -18,7 +18,7 @@ test.describe('PRN activity obligation year @decWaste @prnActivityObligationYear
   let seeded
 
   test.beforeAll(async () => {
-    seeded = await seedDecemberInputReprocessor()
+    seeded = await seedAccreditedOutputReprocessor()
   })
 
   test('Should show the Y+1 obligation year RPD accepted a December PRN into @prnActivityObligationYearNext', async ({

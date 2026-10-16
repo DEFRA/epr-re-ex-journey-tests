@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { BaseAPI } from '../apis/base-api.js'
 import { AuthClient } from '../support/auth.js'
 import config from '../config/config.js'
-import { seedDecemberInputReprocessor } from '../support/seeding/december-reprocessor.js'
+import { seedAccreditedOutputReprocessor } from '../support/seeding/output-reprocessor.js'
 import {
   createPrn,
   externalAPIAcceptPrn,
@@ -119,7 +119,7 @@ test.describe('Accepting a PRN into an obligation year (RPD) @decWaste @prnOblig
   test.beforeAll(async () => {
     const authClient = new AuthClient()
     await authClient.authenticate()
-    ctx = { authClient, ...(await seedDecemberInputReprocessor()) }
+    ctx = { authClient, ...(await seedAccreditedOutputReprocessor()) }
   })
 
   test('keeps a December PRN in its accreditation year when RPD accepts it there (AC1) @prnObligationYearDecSame', async () => {
