@@ -15,6 +15,8 @@ import {
  * @param {string} accreditationId
  * @param {{Authorization?: string}} defraAuthHeader
  * @param {number} tonnage
+ * @param {{isDecemberWaste?: boolean}} [options] - true only inside the
+ *   December Waste window; omitted, the backend defaults it to false
  * @returns {Promise<{prnId: string, prnPath: string}>}
  */
 export async function createPrn(
@@ -22,7 +24,8 @@ export async function createPrn(
   registrationId,
   accreditationId,
   defraAuthHeader,
-  tonnage
+  tonnage,
+  { isDecemberWaste } = {}
 ) {
   const baseAPI = new BaseAPI()
   const path = `/v1/organisations/${refNo}/registrations/${registrationId}/accreditations/${accreditationId}/packaging-recycling-notes`
@@ -34,7 +37,8 @@ export async function createPrn(
         name: 'Test Organisation Ltd',
         tradingName: 'Trading Name'
       },
-      tonnage
+      tonnage,
+      ...(isDecemberWaste !== undefined && { isDecemberWaste })
     }),
     defraAuthHeader
   )
@@ -89,14 +93,22 @@ export async function externalAPICancelPrn(prnDetails) {
  * Accepts an issued note as the producer, through the external API.
  *
  * @param {{prnNumber: string, status?: string}} prnDetails - updated in place with the status the note is left in
+ * @param {{obligationYear?: number}} [options] - omitted, the note keeps its
+ *   accreditation year
  */
-export async function externalAPIAcceptPrn(prnDetails) {
+export async function externalAPIAcceptPrn(
+  prnDetails,
+  { obligationYear } = {}
+) {
   await config.cognitoAuth.generateToken()
 
   const baseAPI = new BaseAPI()
   const response = await baseAPI.post(
     `/v1/packaging-recycling-notes/${prnDetails.prnNumber}/accept`,
-    JSON.stringify({ acceptedAt: new Date().toISOString() }),
+    JSON.stringify({
+      acceptedAt: new Date().toISOString(),
+      ...(obligationYear !== undefined && { obligationYear })
+    }),
     config.cognitoAuth.authHeader()
   )
 
