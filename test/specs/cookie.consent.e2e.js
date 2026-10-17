@@ -57,6 +57,19 @@ const expectConfirmedOnce = async (page, message) => {
   await expect(banner(page)).toBeHidden()
 }
 
+/**
+ * Host-only, across the whole site.
+ * @param {Page} page
+ */
+const setCookiesAsTheMeasurementTagWould = (page) =>
+  page.context().addCookies(
+    ['_ga', '_ga_TESTONLY01'].map((name) => ({
+      name,
+      value: 'GA1.1.111.222',
+      url: new URL('/', page.url()).href
+    }))
+  )
+
 // What server.inject cannot reach: that the buttons submit without
 // javascript, that a real browser keeps the cookies the service sets and sends
 // them back on the next navigation, and that it says which page it came from.
@@ -122,6 +135,32 @@ test.describe('Cookie consent @cookieConsent', () => {
     await banner(page).getByRole('link', { name: 'View cookies' }).click()
 
     await expect(cookiesHeading(page)).toBeVisible()
+  })
+
+  test('Should delete the analytics cookies when the visitor withdraws consent', async ({
+    page
+  }) => {
+    await openStartPageWithBanner(page)
+    await banner(page)
+      .getByRole('button', { name: 'Accept analytics cookies' })
+      .click()
+    await setCookiesAsTheMeasurementTagWould(page)
+
+    await page.goto('/cookies')
+    await page
+      .getByRole('radio', {
+        name: 'Do not use cookies that measure my service use',
+        exact: true
+      })
+      .check()
+    await page.getByRole('button', { name: 'Save cookie settings' }).click()
+    await expect(page.getByRole('alert')).toContainText(
+      "You've set your cookie preferences."
+    )
+
+    const names = (await page.context().cookies()).map(({ name }) => name)
+
+    expect(names.filter((name) => name.startsWith('_ga'))).toStrictEqual([])
   })
 
   test('Should return the visitor to their page once they save their settings', async ({
