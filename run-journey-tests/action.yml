@@ -24,7 +24,7 @@ inputs:
     description: "which suite to run when test-scope is 'all' - 'api' (API specs only), 'a11y' (@accessibility specs only), 'e2e' (browser specs except @accessibility), or 'all' (everything); the API and generator smoke steps run with 'api' or 'all', browser install with anything but 'api'"
     default: 'all'
   shard:
-    description: "Playwright shard for the e2e suite in the form 'current/total', for example '2/3'; empty runs the whole suite"
+    description: "shard of the e2e suite in the form 'current/total', for example '2/3', dealt out round-robin by spec file; empty runs the whole suite"
     default: ''
   december-window-start:
     description: explicit override for DECEMBER_WASTE_WINDOW_START; empty lets the action derive one from december-scope (see "Resolve the December window" below)
