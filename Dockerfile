@@ -1,7 +1,7 @@
 # Playwright's bundled browser binaries need glibc, not musl - this base
 # image ships them preinstalled and matched to the @playwright/test version
 # pinned in package.json (keep both in lockstep on version bumps).
-FROM mcr.microsoft.com/playwright:v1.59.1-noble
+FROM mcr.microsoft.com/playwright:v1.64.0-noble
 
 ENV TZ="Europe/London"
 
