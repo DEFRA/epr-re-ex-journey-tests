@@ -173,6 +173,38 @@ runs:
           -t $IMAGE_TAG .
         echo "image=$EPR_RE_EX_ADMIN_FRONTEND_SHA" >> "$GITHUB_OUTPUT"
 
+    # windowStart is MM-DDTHH:mm with no year, so it recurs annually against
+    # the accreditation's own relevant year. Callers that want the window
+    # closed (december-scope: exclude) don't need to compute a value
+    # themselves: when no explicit december-window-start is given, this
+    # derives one - tomorrow's MM-DD is strictly later than today on all 365
+    # days, where a fixed 12-31 bound would open on 31 December itself. A
+    # december-scope: only caller gets an empty value here, which Start
+    # docker compose below then leaves for compose.yml's own always-open
+    # default to take over.
+    - name: Resolve the December window
+      if: inputs.december-window-start == '' && inputs.december-scope == 'exclude'
+      id: december-window
+      shell: bash
+      run: echo "start=$(date -u -d tomorrow +%m-%d)T00:00" >> "$GITHUB_OUTPUT"
+
+    # Starts in the background so the image pulls overlap the npm and browser
+    # installs below; "Wait for docker compose to finish starting" joins it.
+    # Each EPR_* value prefers the caller-supplied commit, falls back to the
+    # branch-matched build's short SHA, and falls back again (empty string)
+    # to compose.yml's own :latest default when neither applies.
+    - name: Start docker compose
+      shell: bash
+      run: |
+        (
+          EPR_FRONTEND=${{ inputs.epr-frontend || steps.docker-frontend-branch.outputs.image }} \
+          EPR_BACKEND=${{ inputs.epr-backend || steps.docker-backend-branch.outputs.image }} \
+          EPR_RE_EX_ADMIN_FRONTEND=${{ inputs.epr-re-ex-admin-frontend || steps.docker-admin-frontend-branch.outputs.image }} \
+          DECEMBER_WASTE_WINDOW_START="${{ inputs.december-window-start || steps.december-window.outputs.start }}" \
+          docker compose up --wait-timeout 300 -d --quiet-pull
+          echo $? > compose-up.status
+        ) > compose-up.log 2>&1 &
+
     - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
       with:
         node-version-file: .nvmrc
@@ -223,32 +255,12 @@ runs:
         }
       shell: bash
 
-    # windowStart is MM-DDTHH:mm with no year, so it recurs annually against
-    # the accreditation's own relevant year. Callers that want the window
-    # closed (december-scope: exclude) don't need to compute a value
-    # themselves: when no explicit december-window-start is given, this
-    # derives one - tomorrow's MM-DD is strictly later than today on all 365
-    # days, where a fixed 12-31 bound would open on 31 December itself. A
-    # december-scope: only caller gets an empty value here, which Start
-    # docker compose below then leaves for compose.yml's own always-open
-    # default to take over.
-    - name: Resolve the December window
-      if: inputs.december-window-start == '' && inputs.december-scope == 'exclude'
-      id: december-window
-      shell: bash
-      run: echo "start=$(date -u -d tomorrow +%m-%d)T00:00" >> "$GITHUB_OUTPUT"
-
-    # Each EPR_* value below prefers the caller-supplied commit, falls back to
-    # the branch-matched build's short SHA, and falls back again (empty
-    # string) to compose.yml's own :latest default when neither applies.
-    - name: Start docker compose
+    - name: Wait for docker compose to finish starting
       shell: bash
       run: |
-        EPR_FRONTEND=${{ inputs.epr-frontend || steps.docker-frontend-branch.outputs.image }} \
-        EPR_BACKEND=${{ inputs.epr-backend || steps.docker-backend-branch.outputs.image }} \
-        EPR_RE_EX_ADMIN_FRONTEND=${{ inputs.epr-re-ex-admin-frontend || steps.docker-admin-frontend-branch.outputs.image }} \
-        DECEMBER_WASTE_WINDOW_START="${{ inputs.december-window-start || steps.december-window.outputs.start }}" \
-        docker compose up --wait-timeout 300 -d --quiet-pull
+        timeout 300 bash -c 'until [ -f compose-up.status ]; do sleep 2; done'
+        cat compose-up.log
+        [ "$(cat compose-up.status)" = 0 ]
 
     - name: Wait for services to be ready
       shell: bash
