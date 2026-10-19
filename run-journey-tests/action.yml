@@ -257,6 +257,14 @@ runs:
         echo "Waiting for admin frontend to be ready..."
         timeout 180 bash -c 'until curl -f http://localhost:3002/health; do sleep 5; done'
 
+    - name: Start resource sampler
+      shell: bash
+      run: |
+        echo "cpus=$(nproc) mem_mb=$(free -m | awk '/Mem:/{print $2}')"
+        grep -m1 'model name' /proc/cpuinfo
+        nohup bash -c 'while true; do echo "--- $(date -u +%T) $(cat /proc/loadavg)"; docker stats --no-stream --format "{{.Name}} cpu={{.CPUPerc}} mem={{.MemUsage}}"; sleep 15; done' > resource-samples.log 2>&1 &
+        echo $! > sampler.pid
+
     - name: Run the tests
       shell: bash
       run: |
@@ -281,6 +289,17 @@ runs:
     # path, and the other API generators share those same primitives. A spec
     # failure only touches FAILED rather than exiting non-zero, so this still
     # runs and reports independently.
+    - name: Stop resource sampler
+      if: always()
+      shell: bash
+      run: |
+        kill "$(cat sampler.pid)" || true
+        {
+          echo "### Resource sampling (${{ inputs.artifact-suffix }})"
+          echo "cpus=$(nproc) $(grep -m1 'model name' /proc/cpuinfo)"
+          awk '/^---/ { n++; s += $3; if ($3 > m) m = $3 } END { if (n) printf "samples=%d load1 avg=%.1f max=%.1f\n", n, s / n, m }' resource-samples.log
+        } | tee -a "$GITHUB_STEP_SUMMARY"
+
     - name: Smoke the API data generators
       if: inputs.test-suite == 'api' || inputs.test-suite == 'all'
       shell: bash
@@ -305,7 +324,9 @@ runs:
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: docker-compose-logs${{ inputs.artifact-suffix }}
-        path: ./logs.txt
+        path: |
+          ./logs.txt
+          ./resource-samples.log
 
     - name: Fail this step if FAILED file exists
       if: always()
