@@ -262,7 +262,7 @@ runs:
       run: |
         echo "cpus=$(nproc) mem_mb=$(free -m | awk '/Mem:/{print $2}')"
         grep -m1 'model name' /proc/cpuinfo
-        nohup bash -c 'while true; do echo "--- $(date -u +%T) $(cat /proc/loadavg)"; docker stats --no-stream --format "{{.Name}} cpu={{.CPUPerc}} mem={{.MemUsage}}"; sleep 15; done' > resource-samples.log 2>&1 &
+        nohup "${{ github.action_path }}/sample-resources.sh" sample > resource-samples.log 2>&1 &
         echo $! > sampler.pid
 
     - name: Run the tests
@@ -296,8 +296,7 @@ runs:
         kill "$(cat sampler.pid)" || true
         {
           echo "### Resource sampling (${{ inputs.artifact-suffix }})"
-          echo "cpus=$(nproc) $(grep -m1 'model name' /proc/cpuinfo)"
-          awk '/^---/ { n++; s += $3; if ($3 > m) m = $3 } END { if (n) printf "samples=%d load1 avg=%.1f max=%.1f\n", n, s / n, m }' resource-samples.log
+          "${{ github.action_path }}/sample-resources.sh" summary resource-samples.log
         } | tee -a "$GITHUB_STEP_SUMMARY"
 
     - name: Smoke the API data generators
