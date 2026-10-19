@@ -20,6 +20,9 @@ inputs:
   december-scope:
     description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - applies when test-scope is 'all' or 'frontend'"
     default: 'all'
+  test-suite:
+    description: "which suite to run when test-scope is 'all' - 'api' (API specs only), 'a11y' (@accessibility specs only), 'e2e' (browser specs except @accessibility), or 'all' (everything); the API and generator smoke steps run with 'api' or 'all', browser install with anything but 'api'"
+    default: 'all'
   december-window-start:
     description: explicit override for DECEMBER_WASTE_WINDOW_START; empty lets the action derive one from december-scope (see "Resolve the December window" below)
     default: ''
@@ -190,6 +193,7 @@ runs:
     # before the compose bring-up. Each variant reads a different template and
     # a different worksheet config, so all five run - ~13s for the set.
     - name: Smoke the spreadsheet generators
+      if: inputs.test-suite == 'api' || inputs.test-suite == 'all'
       shell: bash
       run: |
         for variant in exporter input output regOnlyExporter regOnlyReprocessor; do
@@ -201,12 +205,14 @@ runs:
     # own already-installed check skip re-downloading the browser binary
     # itself when the cache hits.
     - name: Cache Playwright browsers
+      if: inputs.test-suite != 'api'
       uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
       with:
         path: ~/.cache/ms-playwright
         key: playwright-browsers-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
     - name: Install Playwright browsers
+      if: inputs.test-suite != 'api'
       run: |
         timeout 600 npx playwright install --with-deps chromium || {
           echo "::error::Playwright install exceeded 10 minutes - usually an apt mirror stall on the runner. Re-run the job."
@@ -251,25 +257,29 @@ runs:
         echo "Waiting for admin frontend to be ready..."
         timeout 180 bash -c 'until curl -f http://localhost:3002/health; do sleep 5; done'
 
+    - name: Start resource sampler
+      shell: bash
+      run: |
+        echo "cpus=$(nproc) mem_mb=$(free -m | awk '/Mem:/{print $2}')"
+        grep -m1 'model name' /proc/cpuinfo
+        nohup "${{ github.action_path }}/sample-resources.sh" sample > resource-samples.log 2>&1 &
+        echo $! > sampler.pid
+
     - name: Run the tests
       shell: bash
       run: |
-        case "${{ inputs.test-scope }}" in
-          admin) npm run test:github:admin ;;
-          frontend)
-            case "${{ inputs.december-scope }}" in
-              only) npm run test:github:frontend:december ;;
-              exclude) npm run test:github:frontend:non-december ;;
-              *) npm run test:github:frontend ;;
-            esac
-            ;;
-          *)
-            case "${{ inputs.december-scope }}" in
-              only) npm run test:github:december ;;
-              exclude) npm run test:github:non-december ;;
-              *) npm run test:github ;;
-            esac
-            ;;
+        case "${{ inputs.test-suite }}/${{ inputs.test-scope }}/${{ inputs.december-scope }}" in
+          api/*) npm run test:github:api ;;
+          a11y/*) npm run test:github:a11y ;;
+          */admin/*) npm run test:github:admin ;;
+          */frontend/only) npm run test:github:frontend:december ;;
+          */frontend/exclude) npm run test:github:frontend:non-december ;;
+          */frontend/*) npm run test:github:frontend ;;
+          e2e/*/exclude) npm run test:github:e2e:non-december ;;
+          e2e/*/all) npm run test:github:e2e ;;
+          */*/only) npm run test:github:december ;;
+          */*/exclude) npm run test:github:non-december ;;
+          *) npm run test:github ;;
         esac
         npm run report
 
@@ -279,7 +289,18 @@ runs:
     # path, and the other API generators share those same primitives. A spec
     # failure only touches FAILED rather than exiting non-zero, so this still
     # runs and reports independently.
+    - name: Stop resource sampler
+      if: always()
+      shell: bash
+      run: |
+        kill "$(cat sampler.pid)" || true
+        {
+          echo "### Resource sampling (${{ inputs.artifact-suffix }})"
+          "${{ github.action_path }}/sample-resources.sh" summary resource-samples.log
+        } | tee -a "$GITHUB_STEP_SUMMARY"
+
     - name: Smoke the API data generators
+      if: inputs.test-suite == 'api' || inputs.test-suite == 'all'
       shell: bash
       run: npm run generatedata:withLinking
 
@@ -302,7 +323,9 @@ runs:
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: docker-compose-logs${{ inputs.artifact-suffix }}
-        path: ./logs.txt
+        path: |
+          ./logs.txt
+          ./resource-samples.log
 
     - name: Fail this step if FAILED file exists
       if: always()
