@@ -77,7 +77,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   tests:
-    name: Run Journey Tests (${{ matrix.name }})
+    name: Run Journey Tests (${{ matrix.name }}${{ matrix.shard && format(' {0}', matrix.shard) || '' }})
     runs-on: ubuntu-latest
     needs: pr-prep
     timeout-minutes: 90
@@ -94,6 +94,13 @@ jobs:
         include:
           - name: baseline
             december-scope: exclude
+            shard: 1/3
+          - name: baseline
+            december-scope: exclude
+            shard: 2/3
+          - name: baseline
+            december-scope: exclude
+            shard: 3/3
           - name: december
             december-scope: only
     steps:
@@ -107,7 +114,8 @@ jobs:
           journey-test-pr: true
           december-scope: ${{ matrix.december-scope }}
           test-suite: e2e
-          artifact-suffix: -${{ matrix.name }}
+          shard: ${{ matrix.shard }}
+          artifact-suffix: -${{ matrix.name }}${{ matrix.shard && format('-shard{0}', substring(matrix.shard, 0, 1)) || '' }}
 
   # The API and accessibility suites are not scenarios, so they sit outside the
   # matrix. Each is its own job so it runs beside the baseline e2e leg instead

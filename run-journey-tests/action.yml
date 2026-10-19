@@ -23,6 +23,9 @@ inputs:
   test-suite:
     description: "which suite to run when test-scope is 'all' - 'api' (API specs only), 'a11y' (@accessibility specs only), 'e2e' (browser specs except @accessibility), or 'all' (everything); the API and generator smoke steps run with 'api' or 'all', browser install with anything but 'api'"
     default: 'all'
+  shard:
+    description: "Playwright shard for the e2e suite in the form 'current/total', for example '2/3'; empty runs the whole suite"
+    default: ''
   december-window-start:
     description: explicit override for DECEMBER_WASTE_WINDOW_START; empty lets the action derive one from december-scope (see "Resolve the December window" below)
     default: ''
@@ -267,6 +270,8 @@ runs:
 
     - name: Run the tests
       shell: bash
+      env:
+        PW_SHARD: ${{ inputs.shard }}
       run: |
         case "${{ inputs.test-suite }}/${{ inputs.test-scope }}/${{ inputs.december-scope }}" in
           api/*) npm run test:github:api ;;
