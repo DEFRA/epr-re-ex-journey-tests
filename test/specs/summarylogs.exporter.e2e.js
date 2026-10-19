@@ -53,7 +53,7 @@ test.describe('Summary Logs Exporter', () => {
       materialSuffix: 'PA'
     })
 
-    // We adjust validFrom date to test filtering of rows from the Summary Log upload
+    // A 2026 accreditation: the fixture's 2025 load falls before it
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
@@ -65,7 +65,7 @@ test.describe('Summary Logs Exporter', () => {
         {
           ...exporterNumbers,
           status: 'approved',
-          validFrom: '2025-02-02'
+          validFrom: '2026-01-01'
         }
       ]
     )
@@ -145,9 +145,8 @@ test.describe('Summary Logs Exporter', () => {
 
     await dashboardPage.exportingTabLink().click()
 
-    // The dashboard shows the latest year, and this accreditation is 2025's
     let availableWasteBalance = await dashboardPage.availableWasteBalance(1)
-    expect(availableWasteBalance).toBe('Not applicable')
+    expect(availableWasteBalance).toBe('30.00')
 
     await dashboardPage.selectLink(1)
     const wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
@@ -236,7 +235,7 @@ test.describe('Summary Logs Exporter', () => {
     await dashboardPage.exportingTabLink().click()
 
     availableWasteBalance = await dashboardPage.availableWasteBalance(1)
-    expect(availableWasteBalance).toBe('Not applicable')
+    expect(availableWasteBalance).toBe('139.00')
 
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
