@@ -21,7 +21,7 @@ inputs:
     description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - applies when test-scope is 'all' or 'frontend'"
     default: 'all'
   test-suite:
-    description: "which suite to run when test-scope is 'all' - 'api' (API specs only), 'e2e' (browser specs only), or 'all' (both); the API and generator smoke steps run with 'api' or 'all', browser install with 'e2e' or 'all'"
+    description: "which suite to run when test-scope is 'all' - 'api' (API specs only), 'a11y' (@accessibility specs only), 'e2e' (browser specs except @accessibility), or 'all' (everything); the API and generator smoke steps run with 'api' or 'all', browser install with anything but 'api'"
     default: 'all'
   december-window-start:
     description: explicit override for DECEMBER_WASTE_WINDOW_START; empty lets the action derive one from december-scope (see "Resolve the December window" below)
@@ -193,7 +193,7 @@ runs:
     # before the compose bring-up. Each variant reads a different template and
     # a different worksheet config, so all five run - ~13s for the set.
     - name: Smoke the spreadsheet generators
-      if: inputs.test-suite != 'e2e'
+      if: inputs.test-suite == 'api' || inputs.test-suite == 'all'
       shell: bash
       run: |
         for variant in exporter input output regOnlyExporter regOnlyReprocessor; do
@@ -262,6 +262,7 @@ runs:
       run: |
         case "${{ inputs.test-suite }}/${{ inputs.test-scope }}/${{ inputs.december-scope }}" in
           api/*) npm run test:github:api ;;
+          a11y/*) npm run test:github:a11y ;;
           */admin/*) npm run test:github:admin ;;
           */frontend/only) npm run test:github:frontend:december ;;
           */frontend/exclude) npm run test:github:frontend:non-december ;;
@@ -281,7 +282,7 @@ runs:
     # failure only touches FAILED rather than exiting non-zero, so this still
     # runs and reports independently.
     - name: Smoke the API data generators
-      if: inputs.test-suite != 'e2e'
+      if: inputs.test-suite == 'api' || inputs.test-suite == 'all'
       shell: bash
       run: npm run generatedata:withLinking
 
