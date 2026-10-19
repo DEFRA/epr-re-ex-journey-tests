@@ -3,3 +3,13 @@ Dockerfile
 .git
 .github
 .husky
+docker
+compose
+compose.yml
+compose.clock.yml
+allure-results
+allure-report
+test-artifacts
+test-results
+FAILED
+logs.txt
