@@ -94,8 +94,13 @@ jobs:
         include:
           - name: baseline
             december-scope: exclude
+            test-suite: e2e
+          - name: api
+            december-scope: exclude
+            test-suite: api
           - name: december
             december-scope: only
+            test-suite: e2e
     steps:
       - name: Checkout journey-tests repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -106,6 +111,7 @@ jobs:
           branch: ${{ github.head_ref }}
           journey-test-pr: true
           december-scope: ${{ matrix.december-scope }}
+          test-suite: ${{ matrix.test-suite }}
           artifact-suffix: -${{ matrix.name }}
 
   # Aggregate gate carrying the exact name the branch ruleset requires; matrix
