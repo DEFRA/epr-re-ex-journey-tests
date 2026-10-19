@@ -100,8 +100,12 @@ test.describe('Summary Logs (Glass Material) @smoketest', () => {
     dashboardHeaderText = await wasteRecordsPage.dashboardHeaderText()
     expect(dashboardHeaderText).toContain('Glass remelt')
 
-    // PAE-913: Verify summary logs upload doesn't allow random registration Id
-    await uploadSummaryLogPage.open(organisationDetails.refNo, 'invalidId')
+    // PAE-913: Verify summary logs upload doesn't allow a random registration
+    await uploadSummaryLogPage.open(
+      organisationDetails.orgId,
+      generateNumbers({ wasteProcessingType: 'exporter', materialSuffix: 'GO' })
+        .regNumber
+    )
     await checkBodyText(page, '404', 10)
     await checkBodyText(page, 'Page not found', 10)
     // End of PAE-913 verification
