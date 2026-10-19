@@ -73,8 +73,6 @@ jobs:
         with:
           context: .
           push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   tests:
     name: Run Journey Tests (${{ matrix.name }})
