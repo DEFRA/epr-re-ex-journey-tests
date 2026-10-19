@@ -177,7 +177,7 @@ services:
   # Simulates Entra ID (Microsoft) sign-in: used for epr-backend's
   # service-to-service auth and for epr-re-ex-admin-frontend's browser login.
   entra-stub:
-    image: defradigital/epr-re-ex-entra-stub:0.144.0@sha256:50dc89f8ad29ca01db0fb87d5569883042200d600a8cabc575e62dce1098ac82
+    image: defradigital/epr-re-ex-entra-stub:0.146.0@sha256:f1d3bd3be18e87f3855ab079f5b7422a74d9ce5b16a5f093581d3f1584a28599
     networks:
       - cdp-tenant
     ports:
@@ -257,7 +257,6 @@ services:
       FEATURE_FLAG_DEV_ENDPOINTS: true
       FEATURE_FLAG_PRN_ADMIN_CANCELLATION: true
       FEATURE_FLAG_REPORT_DATA_VALIDATION: true
-      FEATURE_FLAG_RESUBMISSION_FIGURE_GATE: true
       GOVUK_NOTIFY_API_KEY: fake-key-for-testing
       LOG_FORMAT: ecs
       MONGO_URI: mongodb://mongodb:27017/
