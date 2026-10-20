@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test'
+import { PRNViewPage } from 'page-objects/prn.view.page.js'
 import { BaseAPI } from '../apis/base-api.js'
 import { AuthClient } from '../support/auth.js'
+import { checkBodyText } from '../support/checks.js'
+import { loginViaHomePage } from '../support/login-helper.js'
 import config from '../config/config.js'
 import { seedAccreditedOutputReprocessor } from '../support/seeding/output-reprocessor.js'
 import {
@@ -136,8 +139,10 @@ test.describe('Accepting a PRN into an obligation year (RPD) @decWaste @prnOblig
     expect(stored.obligationYear).toBe(accreditationYear)
   })
 
-  test('moves a December PRN to the following obligation year when RPD accepts it into Y+1 (AC2) @prnObligationYearDecNext', async () => {
-    const { prnNumber } = await issuePrnOrSkip(true)
+  test("moves a December PRN to the following obligation year when RPD accepts it into Y+1, and the operator's PRN page says so (AC2) @prnObligationYearDecNext", async ({
+    page
+  }) => {
+    const { prnId, prnNumber } = await issuePrnOrSkip(true)
 
     await externalAPIAcceptPrn(
       { prnNumber },
@@ -148,6 +153,20 @@ test.describe('Accepting a PRN into an obligation year (RPD) @decWaste @prnOblig
     expect(stored.isDecemberWaste).toBe(true)
     expect(stored.accreditationYear).toBe(accreditationYear)
     expect(stored.obligationYear).toBe(accreditationYear + 1)
+
+    await loginViaHomePage(page, ctx.email)
+    const prnViewPage = new PRNViewPage(page)
+    await prnViewPage.open(
+      ctx.orgId,
+      ctx.registrationNumber,
+      accreditationYear,
+      prnId
+    )
+    await checkBodyText(
+      page,
+      `This PRN relates to waste accepted for reprocessing in ${accreditationYear} and can count towards ${accreditationYear + 1} obligations.`,
+      10
+    )
   })
 
   test('keeps an ordinary PRN in its accreditation year when RPD sends no year (AC3) @prnObligationYearOrdinary', async () => {
