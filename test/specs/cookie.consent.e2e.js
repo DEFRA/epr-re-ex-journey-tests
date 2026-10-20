@@ -15,12 +15,6 @@ const banner = (page) =>
 /**
  * @param {Page} page
  */
-const cookiesHeading = (page) =>
-  page.getByRole('heading', { level: 1, name: 'Cookies', exact: true })
-
-/**
- * @param {Page} page
- */
 const openStartPageWithBanner = async (page) => {
   await page.goto('/start')
 
@@ -70,17 +64,33 @@ const setTheCookieEarlierReleasesSharedAcrossTheParentDomain = async (page) => {
 }
 
 // What server.inject cannot reach: that the buttons submit without
-// javascript, and that a real browser drops the analytics cookies the service
+// javascript, that a real browser keeps the consent cookie and sends it back
+// on the next navigation, and that it drops the analytics cookies the service
 // expires, on this host and on the parent domain.
 test.describe('Cookie consent @cookieConsent', () => {
-  test('Should take the visitor to the cookies page from the banner', async ({
+  test('Should remember on the next page that the visitor accepted analytics cookies', async ({
     page
   }) => {
+    /** @type {string[]} */
+    const tagManagerRequests = []
+    await page.route(/googletagmanager\.com/, (route) => {
+      tagManagerRequests.push(route.request().url())
+      return route.fulfill({ contentType: 'text/javascript', body: '' })
+    })
+
     await openStartPageWithBanner(page)
+    await banner(page)
+      .getByRole('button', { name: 'Accept analytics cookies' })
+      .click()
+    await expect(banner(page).getByRole('alert')).toContainText(
+      "You've accepted analytics cookies."
+    )
 
-    await banner(page).getByRole('link', { name: 'View cookies' }).click()
+    tagManagerRequests.length = 0
+    await page.goto('/start')
 
-    await expect(cookiesHeading(page)).toBeVisible()
+    await expect(banner(page)).toBeHidden()
+    await expect.poll(() => tagManagerRequests.length).toBeGreaterThan(0)
   })
 
   test('Should delete the analytics cookies when the visitor withdraws consent', async ({
