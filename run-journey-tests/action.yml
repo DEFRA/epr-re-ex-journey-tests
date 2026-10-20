@@ -21,7 +21,7 @@ inputs:
     description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - applies when test-scope is 'all' or 'frontend'"
     default: 'all'
   test-suite:
-    description: "which suite to run - 'api' (API specs, which need test-scope 'all'), 'a11y' (@accessibility specs), 'e2e' (browser specs except @accessibility) or 'all' (everything)"
+    description: "which suite to run - 'api' (API specs, whatever the test-scope), 'a11y' (@accessibility specs), 'e2e' (browser specs except @accessibility) or 'all' (everything)"
     default: 'all'
   shard:
     description: "shard of the browser specs in scope in the form 'current/total', for example '2/3', dealt out round-robin by spec file; empty runs them all"
@@ -201,8 +201,8 @@ runs:
           EPR_BACKEND=${{ inputs.epr-backend || steps.docker-backend-branch.outputs.image }} \
           EPR_RE_EX_ADMIN_FRONTEND=${{ inputs.epr-re-ex-admin-frontend || steps.docker-admin-frontend-branch.outputs.image }} \
           DECEMBER_WASTE_WINDOW_START="${{ inputs.december-window-start || steps.december-window.outputs.start }}" \
-          docker compose up --wait-timeout 300 -d --quiet-pull
-          echo $? > compose-up.status
+          docker compose up --wait-timeout 300 -d --quiet-pull && status=0 || status=$?
+          echo "$status" > compose-up.status
         ) > compose-up.log 2>&1 &
 
     - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
@@ -225,8 +225,9 @@ runs:
     # that drift visible.
     #
     # The spreadsheet half needs no stack (pure ExcelJS + faker), so it runs
-    # before the compose bring-up. Each variant reads a different template and
-    # a different worksheet config, so all five run - ~13s for the set.
+    # while compose is still starting in the background. Each variant reads a
+    # different template and a different worksheet config, so all five run -
+    # ~13s for the set.
     - name: Smoke the spreadsheet generators
       if: inputs.test-suite == 'api' || inputs.test-suite == 'all'
       shell: bash
@@ -258,9 +259,9 @@ runs:
     - name: Wait for docker compose to finish starting
       shell: bash
       run: |
-        timeout 300 bash -c 'until [ -f compose-up.status ]; do sleep 2; done'
+        timeout 300 bash -c 'until [ -f compose-up.status ]; do sleep 2; done' || true
         cat compose-up.log
-        [ "$(cat compose-up.status)" = 0 ]
+        [ "$(cat compose-up.status 2>/dev/null)" = 0 ]
 
     - name: Wait for services to be ready
       shell: bash
@@ -319,7 +320,9 @@ runs:
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: docker-compose-logs${{ inputs.artifact-suffix }}
-        path: ./logs.txt
+        path: |
+          ./logs.txt
+          ./compose-up.log
 
     - name: Fail this step if FAILED file exists
       if: always()
