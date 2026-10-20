@@ -41,29 +41,43 @@ const fileFilters = (files, scope, shard) => {
   return filters
 }
 
+const suites = ['all', 'e2e', 'a11y']
+const decemberScopes = ['all', 'only', 'exclude']
+
+/**
+ * @param {string[]} tags
+ * @returns {string}
+ */
+const allOf = (tags) =>
+  tags.length === 1 ? tags[0] : tags.map((tag) => `(?=.*${tag})`).join('')
+
 /**
  * @param {string} suite
  * @param {string} december
  * @returns {string[]}
  */
 const grepFlags = (suite, december) => {
-  if (suite === 'a11y') {
-    return ['--grep', ACCESSIBILITY_TAG]
+  if (!suites.includes(suite)) {
+    throw new Error(`invalid suite for the browser specs: ${suite}`)
   }
 
-  const excluded = suite === 'e2e' ? [ACCESSIBILITY_TAG] : []
-
-  if (december === 'only') {
-    return [
-      '--grep',
-      DECEMBER_TAG,
-      ...(excluded.length ? ['--grep-invert', excluded.join('|')] : [])
-    ]
+  if (!decemberScopes.includes(december)) {
+    throw new Error(`invalid december scope: ${december}`)
   }
 
-  const invert = december === 'exclude' ? [DECEMBER_TAG, ...excluded] : excluded
+  const required = [
+    ...(december === 'only' ? [DECEMBER_TAG] : []),
+    ...(suite === 'a11y' ? [ACCESSIBILITY_TAG] : [])
+  ]
+  const excluded = [
+    ...(december === 'exclude' ? [DECEMBER_TAG] : []),
+    ...(suite === 'e2e' ? [ACCESSIBILITY_TAG] : [])
+  ]
 
-  return invert.length ? ['--grep-invert', invert.join('|')] : []
+  return [
+    ...(required.length ? ['--grep', allOf(required)] : []),
+    ...(excluded.length ? ['--grep-invert', excluded.join('|')] : [])
+  ]
 }
 
 /**

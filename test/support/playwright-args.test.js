@@ -38,14 +38,39 @@ describe('playwrightArgs', () => {
       },
       {
         suite: 'a11y',
-        december: 'exclude',
+        december: 'all',
         expected: ['--grep', '@accessibility']
+      },
+      {
+        suite: 'a11y',
+        december: 'only',
+        expected: ['--grep', '(?=.*@decWaste)(?=.*@accessibility)']
+      },
+      {
+        suite: 'a11y',
+        december: 'exclude',
+        expected: ['--grep', '@accessibility', '--grep-invert', '@decWaste']
       }
     ]
 
     cases.forEach(({ suite, december, expected }) => {
       it(`should select ${suite} with ${december} december scope`, () => {
         assert.deepEqual(playwrightArgs(files, { suite, december }), expected)
+      })
+    })
+
+    ;['a11Y', 'api', ''].forEach((suite) => {
+      it(`should reject the suite '${suite}' for the browser specs`, () => {
+        assert.throws(() => playwrightArgs(files, { suite }), /invalid suite/)
+      })
+    })
+
+    ;['exlude', ''].forEach((december) => {
+      it(`should reject the december scope '${december}'`, () => {
+        assert.throws(
+          () => playwrightArgs(files, { december }),
+          /invalid december scope/
+        )
       })
     })
   })
