@@ -43,11 +43,9 @@ runs:
         repository: DEFRA/epr-re-ex-journey-tests
         ref: ${{inputs.branch}}
 
-    # Lets the three conditional `docker build` steps below use the GitHub
-    # Actions cache backend (--cache-from/--cache-to type=gha), so layers
-    # persist across CI runs for the same sibling-repo branch instead of
-    # rebuilding from scratch every time. Cheap/fast even when none of the
-    # three services end up building from source this run.
+    # Lets the matching-branch builds in "Start docker compose" use the GitHub
+    # Actions cache backend (--cache-from/--cache-to type=gha). Cheap/fast even
+    # when none of the three services end up building from source this run.
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
@@ -82,21 +80,6 @@ runs:
         ref: ${{ steps.frontend-branch.outputs.ref }}
         path: epr-frontend
 
-    - name: Build Docker image from epr-frontend matching branch
-      if: inputs.epr-frontend == '' && steps.frontend-branch.outputs.exists == 'true'
-      id: docker-frontend-branch
-      shell: bash
-      run: |
-        cd epr-frontend
-        EPR_FRONTEND_SHA=$(git rev-parse --short HEAD)
-        IMAGE_TAG="defradigital/epr-frontend:${EPR_FRONTEND_SHA}"
-        docker buildx build \
-          --cache-from type=gha,scope=epr-frontend \
-          --cache-to type=gha,mode=max,scope=epr-frontend \
-          --load \
-          -t $IMAGE_TAG .
-        echo "image=$EPR_FRONTEND_SHA" >> "$GITHUB_OUTPUT"
-
     - name: Check for matching epr-backend branch
       if: inputs.epr-backend == ''
       id: backend-branch
@@ -119,21 +102,6 @@ runs:
         repository: DEFRA/epr-backend
         ref: ${{ steps.backend-branch.outputs.ref }}
         path: epr-backend
-
-    - name: Build Docker image from epr-backend matching branch
-      if: inputs.epr-backend == '' && steps.backend-branch.outputs.exists == 'true'
-      id: docker-backend-branch
-      shell: bash
-      run: |
-        cd epr-backend
-        EPR_BACKEND_SHA=$(git rev-parse --short HEAD)
-        IMAGE_TAG="defradigital/epr-backend:${EPR_BACKEND_SHA}"
-        docker buildx build \
-          --cache-from type=gha,scope=epr-backend \
-          --cache-to type=gha,mode=max,scope=epr-backend \
-          --load \
-          -t $IMAGE_TAG .
-        echo "image=$EPR_BACKEND_SHA" >> "$GITHUB_OUTPUT"
 
     - name: Check for matching epr-re-ex-admin-frontend branch
       if: inputs.epr-re-ex-admin-frontend == ''
@@ -158,21 +126,6 @@ runs:
         ref: ${{ steps.admin-frontend-branch.outputs.ref }}
         path: epr-re-ex-admin-frontend
 
-    - name: Build Docker image from epr-re-ex-admin-frontend matching branch
-      if: inputs.epr-re-ex-admin-frontend == '' && steps.admin-frontend-branch.outputs.exists == 'true'
-      id: docker-admin-frontend-branch
-      shell: bash
-      run: |
-        cd epr-re-ex-admin-frontend
-        EPR_RE_EX_ADMIN_FRONTEND_SHA=$(git rev-parse --short HEAD)
-        IMAGE_TAG="defradigital/epr-re-ex-admin-frontend:${EPR_RE_EX_ADMIN_FRONTEND_SHA}"
-        docker buildx build \
-          --cache-from type=gha,scope=epr-re-ex-admin-frontend \
-          --cache-to type=gha,mode=max,scope=epr-re-ex-admin-frontend \
-          --load \
-          -t $IMAGE_TAG .
-        echo "image=$EPR_RE_EX_ADMIN_FRONTEND_SHA" >> "$GITHUB_OUTPUT"
-
     # windowStart is MM-DDTHH:mm with no year, so it recurs annually against
     # the accreditation's own relevant year. Callers that want the window
     # closed (december-scope: exclude) don't need to compute a value
@@ -188,19 +141,51 @@ runs:
       shell: bash
       run: echo "start=$(date -u -d tomorrow +%m-%d)T00:00" >> "$GITHUB_OUTPUT"
 
-    # Starts in the background so the image pulls overlap the installs below.
-    # Each EPR_* value prefers the caller-supplied commit, falls back to the
-    # branch-matched build's short SHA, and falls back again (empty string)
-    # to compose.yml's own :latest default when neither applies.
+    # Starts in the background so the builds of any matching branches and the
+    # image pulls overlap the installs below. Each EPR_* value prefers the
+    # caller-supplied commit, falls back to the matching branch's short SHA,
+    # and falls back again (empty) to compose.yml's own :latest default.
     - name: Start docker compose
       shell: bash
+      env:
+        BUILD_FRONTEND: ${{ inputs.epr-frontend == '' && steps.frontend-branch.outputs.exists == 'true' }}
+        BUILD_BACKEND: ${{ inputs.epr-backend == '' && steps.backend-branch.outputs.exists == 'true' }}
+        BUILD_ADMIN_FRONTEND: ${{ inputs.epr-re-ex-admin-frontend == '' && steps.admin-frontend-branch.outputs.exists == 'true' }}
+        EPR_FRONTEND: ${{ inputs.epr-frontend }}
+        EPR_BACKEND: ${{ inputs.epr-backend }}
+        EPR_RE_EX_ADMIN_FRONTEND: ${{ inputs.epr-re-ex-admin-frontend }}
+        DECEMBER_WASTE_WINDOW_START: ${{ inputs.december-window-start || steps.december-window.outputs.start }}
       run: |
         (
-          EPR_FRONTEND=${{ inputs.epr-frontend || steps.docker-frontend-branch.outputs.image }} \
-          EPR_BACKEND=${{ inputs.epr-backend || steps.docker-backend-branch.outputs.image }} \
-          EPR_RE_EX_ADMIN_FRONTEND=${{ inputs.epr-re-ex-admin-frontend || steps.docker-admin-frontend-branch.outputs.image }} \
-          DECEMBER_WASTE_WINDOW_START="${{ inputs.december-window-start || steps.december-window.outputs.start }}" \
-          docker compose up -d --quiet-pull && status=0 || status=$?
+          export EPR_FRONTEND EPR_BACKEND EPR_RE_EX_ADMIN_FRONTEND DECEMBER_WASTE_WINDOW_START
+          build() {
+            docker buildx build \
+              --cache-from type=gha,scope="$1" \
+              --cache-to type=gha,mode=max,scope="$1" \
+              --load \
+              -t "defradigital/$1:$(git -C "$1" rev-parse --short HEAD)" \
+              "$1" 2>&1 | sed "s/^/[$1] /"
+          }
+          pids=()
+          if [ "$BUILD_FRONTEND" = true ]; then
+            build epr-frontend & pids+=($!)
+            EPR_FRONTEND=$(git -C epr-frontend rev-parse --short HEAD)
+          fi
+          if [ "$BUILD_BACKEND" = true ]; then
+            build epr-backend & pids+=($!)
+            EPR_BACKEND=$(git -C epr-backend rev-parse --short HEAD)
+          fi
+          if [ "$BUILD_ADMIN_FRONTEND" = true ]; then
+            build epr-re-ex-admin-frontend & pids+=($!)
+            EPR_RE_EX_ADMIN_FRONTEND=$(git -C epr-re-ex-admin-frontend rev-parse --short HEAD)
+          fi
+          status=0
+          for pid in "${pids[@]}"; do
+            wait "$pid" || status=$?
+          done
+          if [ "$status" = 0 ]; then
+            docker compose up -d --quiet-pull && status=0 || status=$?
+          fi
           echo "$status" > compose-up.status
         ) > compose-up.log 2>&1 &
 
