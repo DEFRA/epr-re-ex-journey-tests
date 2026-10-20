@@ -315,6 +315,16 @@ runs:
         name: allure-report${{ inputs.artifact-suffix }}
         path: ./allure-report
 
+    # The raw results alone, so a caller running several legs can combine them
+    # into one summary.
+    - name: Upload allure results
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: allure-results${{ inputs.artifact-suffix }}
+        path: ./allure-results/*-result.json
+        if-no-files-found: ignore
+
     - name: Upload docker compose logs
       if: always()
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
