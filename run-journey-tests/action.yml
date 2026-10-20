@@ -138,7 +138,9 @@ runs:
     # closed (december-scope: exclude) don't need to compute a value
     # themselves: when no explicit december-window-start is given, this
     # derives one - tomorrow's MM-DD is strictly later than today on all 365
-    # days, where a fixed 12-31 bound would open on 31 December itself. A
+    # days, where a fixed 12-31 bound would open on 31 December itself. It is
+    # tomorrow in UK time, as the services read the window: in summer time a
+    # UTC tomorrow is already today in London for the last hour of the day. A
     # december-scope: only caller gets an empty value here, which Start
     # docker compose below then leaves for compose.yml's own always-open
     # default to take over.
@@ -146,7 +148,7 @@ runs:
       if: inputs.december-window-start == '' && inputs.december-scope == 'exclude'
       id: december-window
       shell: bash
-      run: echo "start=$(date -u -d tomorrow +%m-%d)T00:00" >> "$GITHUB_OUTPUT"
+      run: echo "start=$(TZ=Europe/London date -d tomorrow +%m-%d)T00:00" >> "$GITHUB_OUTPUT"
 
     # Starts in the background so the builds of any matching branches and the
     # image pulls overlap the installs below. Each EPR_* value prefers the
