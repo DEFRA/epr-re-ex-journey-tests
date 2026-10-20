@@ -74,7 +74,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
         {
           ...exporterNumbers,
           status: 'approved',
-          validFrom: '2025-02-02'
+          validFrom: '2026-01-01'
         }
       ]
     )
