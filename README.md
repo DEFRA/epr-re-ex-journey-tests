@@ -428,6 +428,15 @@ By default, the provided workflow will run when triggered manually from GitHub o
 
 If you want to use the repository exclusively for running docker composed based test suites consider disabling the publish.yml workflow.
 
+### Running the suite in parts
+
+Each run of `run-journey-tests` brings up its own stack, so a pull request can run the suite as parallel legs. Two inputs choose what a leg runs:
+
+- `test-suite`: `all` (the default), `api` (the API specs), `a11y` (the `@accessibility` specs) or `e2e` (the browser specs without `@accessibility`). It applies when `test-scope` is `all`.
+- `shard`: `current/total`, for example `2/3`. It splits the `e2e` suite by spec file, dealt out round-robin so that the heavy `summarylogs.*` files land in different shards. Playwright's own `--shard` splits contiguously and puts them together.
+
+This repository's own pull request workflow runs `e2e` as three shards for each December scope, with `api` and `a11y` as separate jobs, and `tests-gate` still reports the single required check.
+
 ## BrowserStack
 
 A single Playwright configuration, `playwright.browserstack.config.js`, runs the tests against BrowserStack from both a GitHub workflow and the CDP Portal.

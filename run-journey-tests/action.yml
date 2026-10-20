@@ -21,7 +21,7 @@ inputs:
     description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - applies when test-scope is 'all' or 'frontend'"
     default: 'all'
   test-suite:
-    description: "which suite to run when test-scope is 'all' - 'api' (API specs only), 'a11y' (@accessibility specs only), 'e2e' (browser specs except @accessibility), or 'all' (everything); the API and generator smoke steps run with 'api' or 'all', browser install with anything but 'api'"
+    description: "which suite to run when test-scope is 'all' - 'api' (API specs), 'a11y' (@accessibility specs), 'e2e' (browser specs except @accessibility) or 'all' (everything)"
     default: 'all'
   shard:
     description: "shard of the e2e suite in the form 'current/total', for example '2/3', dealt out round-robin by spec file; empty runs the whole suite"
@@ -272,14 +272,6 @@ runs:
         echo "Waiting for admin frontend to be ready..."
         timeout 180 bash -c 'until curl -f http://localhost:3002/health; do sleep 5; done'
 
-    - name: Start resource sampler
-      shell: bash
-      run: |
-        echo "cpus=$(nproc) mem_mb=$(free -m | awk '/Mem:/{print $2}')"
-        grep -m1 'model name' /proc/cpuinfo
-        nohup "${{ github.action_path }}/sample-resources.sh" sample > resource-samples.log 2>&1 &
-        echo $! > sampler.pid
-
     - name: Run the tests
       shell: bash
       env:
@@ -306,16 +298,6 @@ runs:
     # path, and the other API generators share those same primitives. A spec
     # failure only touches FAILED rather than exiting non-zero, so this still
     # runs and reports independently.
-    - name: Stop resource sampler
-      if: always()
-      shell: bash
-      run: |
-        kill "$(cat sampler.pid)" || true
-        {
-          echo "### Resource sampling (${{ inputs.artifact-suffix }})"
-          "${{ github.action_path }}/sample-resources.sh" summary resource-samples.log
-        } | tee -a "$GITHUB_STEP_SUMMARY"
-
     - name: Smoke the API data generators
       if: inputs.test-suite == 'api' || inputs.test-suite == 'all'
       shell: bash
@@ -340,9 +322,7 @@ runs:
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: docker-compose-logs${{ inputs.artifact-suffix }}
-        path: |
-          ./logs.txt
-          ./resource-samples.log
+        path: ./logs.txt
 
     - name: Fail this step if FAILED file exists
       if: always()
