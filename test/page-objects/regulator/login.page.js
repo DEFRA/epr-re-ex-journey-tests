@@ -28,21 +28,6 @@ class RegulatorLoginPage extends Page {
     )
   }
 
-  // An Entra identity that holds no app role this service knows. Sign-in
-  // succeeds against the provider and the service still refuses it.
-  async loginAsUnrecognisedUser() {
-    await this.login(
-      requireValue(
-        config.unrecognisedEntraUser.username,
-        'UNRECOGNISED_ENTRA_USERNAME'
-      ),
-      requireValue(
-        config.unrecognisedEntraUser.password,
-        'UNRECOGNISED_ENTRA_PASSWORD'
-      )
-    )
-  }
-
   // The stub path deletes cookies first so a stale session from an earlier
   // test cannot skip the sign-in form entirely.
   async login(username, password) {

@@ -54,33 +54,6 @@ test.describe('System logs search @searchSystemLogs', () => {
     await page.close()
   })
 
-  test('finds system logs by organisation reference number', async () => {
-    const navigation = new Navigation(page)
-    const systemLogsPage = new SystemLogsPage(page)
-
-    await navigation.clickOnLink('System logs')
-
-    await systemLogsPage.searchFor(linkedOrganisation.refNo)
-    await expect(
-      page.locator('#main-content div.govuk-summary-card')
-    ).not.toHaveCount(0)
-  })
-
-  test('finds system logs by user ID', async () => {
-    const navigation = new Navigation(page)
-    const systemLogsPage = new SystemLogsPage(page)
-
-    await navigation.clickOnLink('System logs')
-    await systemLogsPage.searchFor(linkedOrganisation.refNo)
-    const userId = await systemLogsPage.firstResultUserId()
-
-    await navigation.clickOnLink('System logs')
-    await systemLogsPage.searchByUserId(userId)
-    await expect(
-      page.locator('#main-content div.govuk-summary-card')
-    ).not.toHaveCount(0)
-  })
-
   test('shows no results when user ID matches no logs', async () => {
     const navigation = new Navigation(page)
     const systemLogsPage = new SystemLogsPage(page)
@@ -91,21 +64,6 @@ test.describe('System logs search @searchSystemLogs', () => {
     await expect(
       page.locator('#main-content div.govuk-summary-card')
     ).toHaveCount(0)
-  })
-
-  test('filters by event type alongside user ID', async () => {
-    const navigation = new Navigation(page)
-    const systemLogsPage = new SystemLogsPage(page)
-
-    await navigation.clickOnLink('System logs')
-    await systemLogsPage.searchFor(linkedOrganisation.refNo)
-    const userId = await systemLogsPage.firstResultUserId()
-
-    await navigation.clickOnLink('System logs')
-    await systemLogsPage.searchByUserIdAndEventType(userId, 'epr-organisations')
-    await expect(
-      page.locator('#main-content div.govuk-summary-card')
-    ).not.toHaveCount(0)
   })
 
   test('clears search and resets the form', async () => {

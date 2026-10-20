@@ -182,19 +182,9 @@ class OrsUploadPage extends AdminPage {
     return this.page.locator('nav.govuk-pagination .govuk-pagination__next a')
   }
 
-  async clickPageNumber(pageNumber) {
-    await this.paginationNav
-      .getByRole('link', { name: `Page ${pageNumber}`, exact: true })
-      .click()
-  }
-
   async filterByRegistrationNumber(registrationNumber) {
     await this.registrationNumberInput.fill(registrationNumber)
     await this.page.locator('form.app-filters button[type="submit"]').click()
-  }
-
-  async getRegistrationNumberFilterValue() {
-    return this.registrationNumberInput.inputValue()
   }
 
   // Hand-written markup rather than the govukButton macro, so it's a plain
@@ -205,25 +195,6 @@ class OrsUploadPage extends AdminPage {
 
   async getInsetText() {
     return this.page.locator('.govuk-inset-text').innerText()
-  }
-
-  async permissionsErrorHeading() {
-    return this.page
-      .getByRole('heading', {
-        level: 1,
-        name: 'You do not have permission',
-        exact: true
-      })
-      .innerText()
-  }
-
-  async permissionsErrorText() {
-    return this.page
-      .getByText(
-        'Your account does not have permission to use this page. If you think this is wrong, contact your administrator.',
-        { exact: true }
-      )
-      .innerText()
   }
 
   async expectUploadFormVisible() {
