@@ -44,14 +44,6 @@ class WasteRecordsPage extends Page {
       })
     })
   }
-
-  // The "apply for {year} accreditation" reapply link, present only when the
-  // operator is eligible (PAE-1791).
-  reapplyAccreditationLink() {
-    return this.registrationAndAccreditationCard().getByRole('link', {
-      name: /^apply for \d{4} accreditation$/
-    })
-  }
 }
 
 export { WasteRecordsPage }

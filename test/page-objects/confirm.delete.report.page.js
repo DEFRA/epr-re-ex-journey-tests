@@ -13,10 +13,6 @@ class ConfirmDeleteReportPage extends Page {
   async confirmDeletion() {
     await this.clickButton('Confirm deletion')
   }
-
-  async confirmDeletionAndCheckDoubleClickPrevented() {
-    await this.clickButtonCheckingDoubleClickPrevented('Confirm deletion')
-  }
 }
 
 export { ConfirmDeleteReportPage }
