@@ -18,13 +18,13 @@ inputs:
     description: which specs to run - 'admin' (test/specs/admin only), 'frontend' (everything except test/specs/admin), or 'all'
     default: 'all'
   december-scope:
-    description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - applies when test-scope is 'all' or 'frontend'"
+    description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - applies to the browser specs under every test-scope; the API specs ignore it"
     default: 'all'
   test-suite:
     description: "which suite to run - 'api' (API specs, whatever the test-scope), 'a11y' (@accessibility specs), 'e2e' (browser specs except @accessibility) or 'all' (everything)"
     default: 'all'
   shard:
-    description: "shard of the browser specs in scope in the form 'current/total', for example '2/3', dealt out round-robin by spec file; empty runs them all"
+    description: "shard of the browser specs in scope in the form 'current/total', for example '2/3', dealt out round-robin by spec file; needs test-suite 'e2e' or 'a11y'; empty runs them all"
     default: ''
   december-window-start:
     description: explicit override for DECEMBER_WASTE_WINDOW_START; empty lets the action derive one from december-scope (see "Resolve the December window" below)
@@ -36,6 +36,13 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Check the inputs
+      if: inputs.shard != '' && inputs.test-suite != 'e2e' && inputs.test-suite != 'a11y'
+      shell: bash
+      run: |
+        echo "::error::shard needs test-suite 'e2e' or 'a11y'; with '${{ inputs.test-suite }}' every shard would also run the API suite"
+        exit 1
+
     - name: Checkout repository if not called by Journey Test PR
       if: inputs.journey-test-pr == 'false'
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

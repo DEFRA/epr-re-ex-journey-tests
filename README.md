@@ -435,7 +435,7 @@ Each run of `run-journey-tests` brings up its own stack, so a pull request can r
 - `test-scope`: `all` (the default), `frontend` (the specs outside `admin/`) or `admin`.
 - `test-suite`: `all` (the default), `api` (the API specs, whatever the `test-scope`), `a11y` (the `@accessibility` specs) or `e2e` (the browser specs without `@accessibility`).
 - `december-scope`: `all`, `only` (the `@decWaste` specs) or `exclude`.
-- `shard`: `current/total`, for example `2/3`. It splits the browser specs in scope by file, dealt out round-robin so that the heavy `summarylogs.*` files land in different shards. Playwright's own `--shard` splits contiguously and puts them together.
+- `shard`: `current/total`, for example `2/3`. It splits the browser specs in scope by file, dealt out round-robin so that the heavy `summarylogs.*` files land in different shards. Playwright's own `--shard` splits contiguously and puts them together. It needs `test-suite: e2e` or `a11y`, so the API specs are not repeated on every shard.
 
 `npm run test:github:browser` runs `bin/run-browser-specs.js`, which turns these into Playwright arguments (`test/support/playwright-args.js`, unit tested) and starts Playwright with them; any extra arguments, such as `--list`, are passed on. The API specs run when the suite is `api`, or `all` with `test-scope: all` and a December scope other than `only`.
 
