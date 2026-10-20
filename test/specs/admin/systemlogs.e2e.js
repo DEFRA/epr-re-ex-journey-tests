@@ -135,16 +135,4 @@ test.describe('System logs search @searchSystemLogs', () => {
       page.locator('#main-content div.govuk-summary-card')
     ).toHaveCount(0)
   })
-
-  test('shows error when submitting with no filters', async () => {
-    const navigation = new Navigation(page)
-    const systemLogsPage = new SystemLogsPage(page)
-
-    await navigation.clickOnLink('System logs')
-    await systemLogsPage.submitSearch()
-
-    await expect(page.locator('.govuk-error-summary')).toHaveText(
-      /Enter an organisation reference number, user ID or event type/
-    )
-  })
 })

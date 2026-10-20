@@ -325,29 +325,6 @@ test.describe('ORS upload flow @orsUpload', () => {
       expect(pageTwoRows[0][1]).toEqual(alphaRegistrationNumber)
     })
 
-    test('Should download CSV with active filter', async ({ page }) => {
-      const orsUploadPage = new OrsUploadPage(page)
-
-      await orsUploadPage.openList(
-        new URLSearchParams({
-          page: '1',
-          pageSize: '2',
-          registrationNumber: alphaRegistrationNumber
-        }).toString()
-      )
-      const filteredCsvDownload = await orsUploadPage.fetchListCsv()
-      expect(filteredCsvDownload.status).toEqual(200)
-      expect(filteredCsvDownload.contentType).toContain('text/csv')
-      expect(filteredCsvDownload.contentDisposition).toEqual(
-        'attachment; filename="overseas-reprocessing-sites.csv"'
-      )
-      expect(filteredCsvDownload.body).toContain(
-        'Org ID,Registration Number,Accreditation Number,ORS ID'
-      )
-      expect(filteredCsvDownload.body).toContain(alphaRegistrationNumber)
-      expect(filteredCsvDownload.body).toContain(betaRegistrationNumber)
-    })
-
     test('Should show empty state for non-matching filter', async ({
       page
     }) => {

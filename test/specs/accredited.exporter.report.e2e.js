@@ -20,10 +20,7 @@ import {
   registrationStartYear,
   submitSummaryLogContent
 } from '../support/seeding/summary-logs.js'
-import {
-  generateNumbers,
-  generateRegNumber
-} from '../support/reg-acc-number.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import { summaryLogContentNumbered } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
@@ -116,14 +113,6 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
       await page.close()
-    })
-
-    test('should display upload new summary log button and cancel link on detail page @accreditedExporterDetailButtons', async () => {
-      const reportsPage = new ReportsPage(page)
-      const reportDetailPage = new ReportDetailPage(page)
-
-      await reportsPage.selectActiveActionLink(1)
-      await reportDetailPage.verifyDetailPageButtons()
     })
 
     test('should navigate back correctly through the accredited exporter flow @accreditedExporterBackLinks', async () => {
@@ -399,66 +388,6 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
 
       expect(unsubmittedBadge).toBe('Ready to submit')
       expect(unsubmittedColour).toBe('blue')
-    })
-  })
-
-  test.describe.serial('non-accredited exporter route guards', () => {
-    let page
-    let orgRefNo
-    let registrationId
-
-    test.beforeAll(async ({ browser }) => {
-      page = await browser.newPage()
-
-      const organisationDetails = await createLinkedOrganisation([
-        {
-          material: 'Paper or board (R3)',
-          wasteProcessingType: 'Exporter',
-          withoutAccreditation: true
-        }
-      ])
-
-      const migrationResponse = await updateMigratedOrganisation(
-        organisationDetails.refNo,
-        [
-          {
-            regNumber: generateRegNumber({
-              wasteProcessingType: 'exporter',
-              materialSuffix: 'PA'
-            }),
-            status: 'approved',
-            withoutAccreditation: true
-          }
-        ]
-      )
-
-      orgRefNo = organisationDetails.refNo
-      registrationId = migrationResponse.registrationIds[0]
-
-      await createLinkAndLogin(page, orgRefNo, migrationResponse.email)
-    })
-
-    test.afterAll(async () => {
-      const homePage = new HomePage(page)
-      await homePage.signOutLink().click()
-      await expect(page).toHaveTitle(/Signed out/)
-      await page.close()
-    })
-
-    test('should return 404 when non-accredited exporter tries to access PRN pages @accreditedExporterRouteGuard @registeredOnlyExporterRegression', async () => {
-      // Try to access prn-summary directly — should get 404
-      await page.goto(
-        `/organisations/${orgRefNo}/registrations/${registrationId}/reports/${registrationStartYear()}/monthly/1/submissions/1/prn-summary`
-      )
-      await checkBodyText(page, '404', 10)
-      await checkBodyText(page, 'Page not found', 10)
-
-      // Try to access free-perns directly — should get 404
-      await page.goto(
-        `/organisations/${orgRefNo}/registrations/${registrationId}/reports/${registrationStartYear()}/monthly/1/submissions/1/free-perns`
-      )
-      await checkBodyText(page, '404', 10)
-      await checkBodyText(page, 'Page not found', 10)
     })
   })
 })

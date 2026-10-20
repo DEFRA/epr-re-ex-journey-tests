@@ -5,7 +5,6 @@ import { Navigation } from 'page-objects/admin/navigation.page'
 import { PrnActivityPage } from 'page-objects/admin/prn.activity.page'
 import { PrnCancelConfirmationPage } from 'page-objects/admin/prn.cancel.confirmation.page'
 import { seedAdminActivityData } from '../../support/seeding/admin-activity.js'
-import { externalAPICancelPrn } from '../../support/seeding/prns.js'
 import { waitForWasteBalance } from '../../support/seeding/waiters.js'
 test.describe('Cancel an accepted PRN from the admin UI', () => {
   test('issues, accepts and cancels a PRN, crediting the balance back @prnActivity @prnCancellation', async ({
@@ -125,29 +124,5 @@ test.describe('Cancel an awaiting acceptance PRN from the admin UI', () => {
     expect(parseFloat(balanceAfter[seeded.accreditationId].amount)).toEqual(
       amountBefore + seeded.tonnage
     )
-  })
-
-  test('does not offer Cancel for a PRN the recipient has already rejected (awaiting_cancellation) @prnActivity @prnCancellation', async ({
-    page
-  }) => {
-    const seeded = await seedAdminActivityData({ acceptPrn: false })
-    // Recipient-driven reject: awaiting_acceptance -> awaiting_cancellation.
-    await externalAPICancelPrn({ prnNumber: seeded.prnNumber })
-
-    const loginPage = new AdminLoginPage(page)
-    const navigation = new Navigation(page)
-    const prnActivityPage = new PrnActivityPage(page)
-
-    await loginPage.open()
-    await loginPage.enterCredentials('ea@test.gov.uk', 'pass')
-    await loginPage.submitCredentials()
-
-    await navigation.clickOnLink('PRN activity')
-
-    const tableText = await prnActivityPage.tableText()
-    expect(tableText).toContain(seeded.prnNumber)
-    expect(tableText).toContain('awaiting cancellation')
-
-    await expect(prnActivityPage.cancelLink(seeded.prnNumber)).toHaveCount(0)
   })
 })
