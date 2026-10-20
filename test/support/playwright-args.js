@@ -23,13 +23,24 @@ const fileFilters = (files, scope, shard) => {
     throw new Error(`invalid scope: ${scope}`)
   }
 
-  const scoped = files.filter(inScope)
-
-  if (shard) {
-    return shardFilePatterns(scoped, shard)
+  if (scope === 'all' && !shard) {
+    return []
   }
 
-  return scope === 'all' ? [] : scoped.toSorted().map(specFilter)
+  const scoped = files.filter(inScope)
+  const filters = shard
+    ? shardFilePatterns(scoped, shard)
+    : scoped.toSorted().map(specFilter)
+
+  // Playwright runs every spec when given no file filters, so an empty
+  // selection must stop the run rather than widen it.
+  if (filters.length === 0) {
+    throw new Error(
+      `no specs in the ${scope} scope${shard ? ` for shard ${shard}` : ''}`
+    )
+  }
+
+  return filters
 }
 
 /**

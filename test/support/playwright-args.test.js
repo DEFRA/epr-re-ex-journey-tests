@@ -104,11 +104,24 @@ describe('playwrightArgs', () => {
       )
     })
 
-    it('should reject a malformed shard', () => {
+    ;['4/3', '0/3', '1.5/3', '1/2.5', 'abc', '2', '/3'].forEach((shard) => {
+      it(`should reject the malformed shard ${shard}`, () => {
+        assert.throws(() => playwrightArgs(files, { shard }), /invalid shard/)
+      })
+    })
+
+    it('should fail a shard that selects no specs, rather than run them all', () => {
       assert.throws(
-        () => playwrightArgs(files, { shard: '4/3' }),
-        /invalid shard/
+        () => playwrightArgs(files, { scope: 'admin', shard: '3/3' }),
+        /no specs/
       )
     })
+  })
+
+  it('should fail a scope that selects no specs, rather than run them all', () => {
+    assert.throws(
+      () => playwrightArgs(['a.e2e.js'], { scope: 'admin' }),
+      /no specs/
+    )
   })
 })

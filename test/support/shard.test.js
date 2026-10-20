@@ -32,7 +32,9 @@ describe('shardFilePatterns', () => {
     assert.deepEqual(shardFilePatterns(files, ''), [])
   })
 
-  it('should reject a malformed shard', () => {
-    assert.throws(() => shardFilePatterns(files, '4/3'), /invalid shard/)
+  ;['4/3', '0/3', '1.5/3', '1/2.5', 'abc'].forEach((shard) => {
+    it(`should reject the malformed shard ${shard}`, () => {
+      assert.throws(() => shardFilePatterns(files, shard), /invalid shard/)
+    })
   })
 })

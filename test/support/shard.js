@@ -18,7 +18,8 @@ export const shardFilePatterns = (files, shard) => {
     return []
   }
 
-  const [current, total] = shard.split('/').map(Number)
+  const match = /^(\d+)\/(\d+)$/.exec(shard)
+  const [current, total] = match ? [Number(match[1]), Number(match[2])] : []
 
   if (!(current >= 1 && current <= total)) {
     throw new Error(`invalid shard: ${shard}`)
