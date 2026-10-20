@@ -3,7 +3,6 @@ Dockerfile
 .git
 .github
 .husky
-docker
 compose
 compose.yml
 compose.clock.yml
