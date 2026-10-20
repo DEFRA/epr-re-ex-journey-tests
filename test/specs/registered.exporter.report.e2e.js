@@ -98,17 +98,6 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
     'the reports landing has no closed quarter yet this year'
   )
 
-  // These 3 tests share one continuous login session/report, the same
-  // pattern used in accredited.reprocessor.report.e2e.js - serial mode + a
-  // manually-created page shares setup instead of re-paying org creation,
-  // login, and summary log upload 3 times. BackLinks cleans its report back
-  // to "Due" so FullFlow (last, since it ends in a submitted/unsubmitted
-  // state) starts fresh.
-  //
-  // CheckAnswersGuard and SubmitGuard (below, in their own smaller serial
-  // group) share a second session instead of this one: SubmitGuard ends in a
-  // genuinely submitted report with no UI path back to "Due", so it must run
-  // last in a group of its own — it can't sit before FullFlow here.
   test.describe.serial('registered-only exporter with upload', () => {
     /** @type {import('@playwright/test').Page} */
     let page
@@ -264,13 +253,4 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       expect(unsubmittedColour).toBe('blue')
     })
   })
-
-  // CheckAnswersGuard and SubmitGuard share one org/login/upload session too.
-  // CheckAnswersGuard leaves its report "Ready to submit" after the guard
-  // redirect, then explicitly deletes it via the submit page (a proven-safe
-  // path back to "Due" — see delete.report.e2e.js) so SubmitGuard starts its
-  // own fresh report via ordinary forward navigation, exactly as it would
-  // with independent setup. SubmitGuard genuinely submits its report with no
-  // way back to "Due", so it runs last and this group stays separate from
-  // the "with upload" group above.
 })

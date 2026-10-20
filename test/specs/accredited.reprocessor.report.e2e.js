@@ -95,7 +95,7 @@ async function uploadAndNavigateToReports(
 }
 
 test.describe('Accredited reprocessor report flow @accreditedReprocessor', () => {
-  // The 5 tests below share one continuous login session/report, the same
+  // The 4 tests below share one continuous login session/report, the same
   // way the original WDIO spec's single global `browser` session did - serial
   // mode + a manually-created page (rather than the per-test `page` fixture)
   // is Playwright's equivalent of that shared-session pattern.

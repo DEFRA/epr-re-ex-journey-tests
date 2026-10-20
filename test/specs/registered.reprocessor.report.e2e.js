@@ -100,17 +100,12 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
     'the reports landing has no closed quarter yet this year'
   )
 
-  // These 3 tests share one continuous login session/report, the same
+  // These 2 tests share one continuous login session/report, the same
   // pattern used in accredited.reprocessor.report.e2e.js - serial mode + a
   // manually-created page shares setup instead of re-paying org creation,
-  // login, and summary log upload 3 times. BackLinks cleans its report back
+  // login, and summary log upload twice. BackLinks cleans its report back
   // to "Due" so FullFlow (last, since it ends in a submitted/unsubmitted
   // state) starts fresh.
-  //
-  // CheckAnswersGuard (below, outside this group) leaves a Ready-to-submit
-  // report with no proven-safe way back to "Due" for this registered-only
-  // (no-accreditation) org shape, so it keeps its own independent setup
-  // rather than risk a flaky shared sequence.
   test.describe.serial('registered-only reprocessor with upload', () => {
     /** @type {import('@playwright/test').Page} */
     let page
