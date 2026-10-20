@@ -188,21 +188,15 @@ runs:
       shell: bash
       run: echo "start=$(date -u -d tomorrow +%m-%d)T00:00" >> "$GITHUB_OUTPUT"
 
-    # Starts in the background so the image pulls overlap the installs below.
-    # Each EPR_* value prefers the caller-supplied commit, falls back to the
-    # branch-matched build's short SHA, and falls back again (empty string)
-    # to compose.yml's own :latest default when neither applies.
-    - name: Start docker compose
+    # Pulls in the background so the downloads overlap the installs below; any
+    # image that fails to pull here is pulled again by docker compose up.
+    - name: Pull the compose images
       shell: bash
       run: |
-        (
-          EPR_FRONTEND=${{ inputs.epr-frontend || steps.docker-frontend-branch.outputs.image }} \
-          EPR_BACKEND=${{ inputs.epr-backend || steps.docker-backend-branch.outputs.image }} \
-          EPR_RE_EX_ADMIN_FRONTEND=${{ inputs.epr-re-ex-admin-frontend || steps.docker-admin-frontend-branch.outputs.image }} \
-          DECEMBER_WASTE_WINDOW_START="${{ inputs.december-window-start || steps.december-window.outputs.start }}" \
-          docker compose up -d --quiet-pull && status=0 || status=$?
-          echo "$status" > compose-up.status
-        ) > compose-up.log 2>&1 &
+        EPR_FRONTEND=${{ inputs.epr-frontend || steps.docker-frontend-branch.outputs.image }} \
+        EPR_BACKEND=${{ inputs.epr-backend || steps.docker-backend-branch.outputs.image }} \
+        EPR_RE_EX_ADMIN_FRONTEND=${{ inputs.epr-re-ex-admin-frontend || steps.docker-admin-frontend-branch.outputs.image }} \
+        docker compose pull --quiet --ignore-pull-failures > /dev/null 2>&1 &
 
     - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
       with:
@@ -255,12 +249,17 @@ runs:
         }
       shell: bash
 
-    - name: Wait for docker compose to finish starting
+    # Each EPR_* value prefers the caller-supplied commit, falls back to the
+    # branch-matched build's short SHA, and falls back again (empty string)
+    # to compose.yml's own :latest default when neither applies.
+    - name: Start docker compose
       shell: bash
       run: |
-        timeout 300 bash -c 'until [ -f compose-up.status ]; do sleep 2; done' || true
-        cat compose-up.log
-        [ "$(cat compose-up.status 2>/dev/null)" = 0 ]
+        EPR_FRONTEND=${{ inputs.epr-frontend || steps.docker-frontend-branch.outputs.image }} \
+        EPR_BACKEND=${{ inputs.epr-backend || steps.docker-backend-branch.outputs.image }} \
+        EPR_RE_EX_ADMIN_FRONTEND=${{ inputs.epr-re-ex-admin-frontend || steps.docker-admin-frontend-branch.outputs.image }} \
+        DECEMBER_WASTE_WINDOW_START="${{ inputs.december-window-start || steps.december-window.outputs.start }}" \
+        docker compose up -d --quiet-pull
 
     - name: Wait for services to be ready
       shell: bash
@@ -327,9 +326,7 @@ runs:
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: docker-compose-logs${{ inputs.artifact-suffix }}
-        path: |
-          ./logs.txt
-          ./compose-up.log
+        path: ./logs.txt
 
     - name: Fail this step if FAILED file exists
       if: always()
