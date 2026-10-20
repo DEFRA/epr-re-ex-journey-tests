@@ -435,7 +435,7 @@ Each run of `run-journey-tests` brings up its own stack, so a pull request can r
 - `test-suite`: `all` (the default), `api` (the API specs), `a11y` (the `@accessibility` specs) or `e2e` (the browser specs without `@accessibility`). It applies when `test-scope` is `all`.
 - `shard`: `current/total`, for example `2/3`. It splits the `e2e` suite by spec file, dealt out round-robin so that the heavy `summarylogs.*` files land in different shards. Playwright's own `--shard` splits contiguously and puts them together.
 
-This repository's own pull request workflow runs `e2e` as three shards for each December scope, with `api` and `a11y` as separate jobs, and `tests-gate` still reports the single required check.
+This repository's own pull request workflow runs the `baseline` `e2e` specs (`december-scope: exclude`) as three shards and the `december` specs as one leg, with `api` and `a11y` as separate jobs, and `tests-gate` still reports the single required check.
 
 ## BrowserStack
 
