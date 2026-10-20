@@ -437,7 +437,7 @@ Each run of `run-journey-tests` brings up its own stack, so a pull request can r
 - `december-scope`: `all`, `only` (the `@decWaste` specs) or `exclude`.
 - `shard`: `current/total`, for example `2/3`. It splits the browser specs in scope by file, dealt out round-robin so that the heavy `summarylogs.*` files land in different shards. Playwright's own `--shard` splits contiguously and puts them together.
 
-`bin/playwright-args.js` turns these into the Playwright arguments (`test/support/playwright-args.js`, unit tested), and `npm run test:github:browser` runs them. The API specs run when the suite is `api`, or `all` with `test-scope: all` and a December scope other than `only`.
+`npm run test:github:browser` runs `bin/run-browser-specs.js`, which turns these into Playwright arguments (`test/support/playwright-args.js`, unit tested) and starts Playwright with them; any extra arguments, such as `--list`, are passed on. The API specs run when the suite is `api`, or `all` with `test-scope: all` and a December scope other than `only`.
 
 This repository's own pull request workflow runs the `baseline` `e2e` specs (`december-scope: exclude`) as three shards and the `december` specs as one leg, with `api` and `a11y` as separate jobs, and `tests-gate` still reports the single required check.
 
