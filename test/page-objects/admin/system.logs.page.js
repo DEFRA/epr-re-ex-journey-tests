@@ -15,12 +15,6 @@ class SystemLogsPage extends AdminPage {
     await this.page.locator('button[type=submit]').click()
   }
 
-  async searchByUserIdAndEventType(userId, subCategory) {
-    await this.page.locator('#userId').fill(userId)
-    await this.page.locator('#subCategory').selectOption(subCategory)
-    await this.page.locator('button[type=submit]').click()
-  }
-
   async searchByAllFilters(referenceNumber, userId, subCategory) {
     await this.page.locator('#referenceNumber').fill(referenceNumber)
     await this.page.locator('#userId').fill(userId)
@@ -30,10 +24,6 @@ class SystemLogsPage extends AdminPage {
 
   searchResults() {
     return this.page.locator('#main-content div.govuk-summary-card')
-  }
-
-  async submitSearch() {
-    await this.page.locator('button[type=submit]').click()
   }
 
   // Hand-written markup rather than the govukButton macro, so it's a plain
