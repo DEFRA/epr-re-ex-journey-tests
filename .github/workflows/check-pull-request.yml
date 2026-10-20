@@ -121,9 +121,6 @@ jobs:
           shard: ${{ matrix.shard }}
           artifact-suffix: ${{ matrix.suffix }}
 
-  # The API and accessibility suites are not scenarios, so they sit outside the
-  # matrix. Each is its own job so it runs beside the baseline e2e leg instead
-  # of in front of it.
   suite-tests:
     name: Run Journey Tests (${{ matrix.suite }} suite)
     runs-on: ubuntu-latest

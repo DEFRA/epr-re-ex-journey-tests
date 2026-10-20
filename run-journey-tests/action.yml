@@ -188,8 +188,7 @@ runs:
       shell: bash
       run: echo "start=$(date -u -d tomorrow +%m-%d)T00:00" >> "$GITHUB_OUTPUT"
 
-    # Starts in the background so the image pulls overlap the npm and browser
-    # installs below; "Wait for docker compose to finish starting" joins it.
+    # Starts in the background so the image pulls overlap the installs below.
     # Each EPR_* value prefers the caller-supplied commit, falls back to the
     # branch-matched build's short SHA, and falls back again (empty string)
     # to compose.yml's own :latest default when neither applies.

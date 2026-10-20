@@ -12,7 +12,7 @@ describe('shardFilePatterns', () => {
     'e.e2e.js'
   ]
 
-  it('should deal files out round-robin', () => {
+  it('should spread alphabetically adjacent files across the shards', () => {
     assert.deepEqual(shardFilePatterns(files, '2/3'), [
       'specs/admin/b\\.e2e\\.js$',
       'specs/e\\.e2e\\.js$'

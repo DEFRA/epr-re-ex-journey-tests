@@ -32,8 +32,6 @@ const fileFilters = (files, scope, shard) => {
     ? shardFilePatterns(scoped, shard)
     : scoped.toSorted().map(specFilter)
 
-  // Playwright runs every spec when given no file filters, so an empty
-  // selection must stop the run rather than widen it.
   if (filters.length === 0) {
     throw new Error(
       `no specs in the ${scope} scope${shard ? ` for shard ${shard}` : ''}`
@@ -69,7 +67,6 @@ const grepFlags = (suite, december) => {
 }
 
 /**
- * The arguments that select which browser specs a run executes.
  * @param {string[]} files spec paths relative to test/specs
  * @param {{ scope?: string, suite?: string, december?: string, shard?: string }} selection
  * @returns {string[]} arguments for `playwright test`
