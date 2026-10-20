@@ -43,10 +43,14 @@ const FURTHER_ACTION_HEADING = 'Further action needed'
 // for the closed-period banner/messaging copy. Splitting lets per-file
 // worker scheduling run these in parallel instead of serially in one
 // ~4 minute file.
+const MULTI_UPLOAD_TEST_TIMEOUT_MS = 4 * 60 * 1000
+
 test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => {
   test('should display closed period adjusted loads when a reported load is amended, asking for resubmission only once the reported figures change @cmaAdjusted @closedPeriodMessaging @cma', async ({
     page
   }) => {
+    test.setTimeout(MULTI_UPLOAD_TEST_TIMEOUT_MS)
+
     const homePage = new HomePage(page)
     const uploadSummaryLogPage = new UploadSummaryLogPage(page)
     const checkSummaryLogPage = new CheckSummaryLogPage(page)
