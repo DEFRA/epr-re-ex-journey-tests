@@ -21,10 +21,10 @@ inputs:
     description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - applies when test-scope is 'all' or 'frontend'"
     default: 'all'
   test-suite:
-    description: "which suite to run when test-scope is 'all' - 'api' (API specs), 'a11y' (@accessibility specs), 'e2e' (browser specs except @accessibility) or 'all' (everything)"
+    description: "which suite to run - 'api' (API specs, which need test-scope 'all'), 'a11y' (@accessibility specs), 'e2e' (browser specs except @accessibility) or 'all' (everything)"
     default: 'all'
   shard:
-    description: "shard of the e2e suite in the form 'current/total', for example '2/3', dealt out round-robin by spec file; empty runs the whole suite"
+    description: "shard of the browser specs in scope in the form 'current/total', for example '2/3', dealt out round-robin by spec file; empty runs them all"
     default: ''
   december-window-start:
     description: explicit override for DECEMBER_WASTE_WINDOW_START; empty lets the action derive one from december-scope (see "Resolve the December window" below)
@@ -275,21 +275,18 @@ runs:
     - name: Run the tests
       shell: bash
       env:
+        PW_SCOPE: ${{ inputs.test-scope }}
+        PW_SUITE: ${{ inputs.test-suite }}
+        PW_DECEMBER: ${{ inputs.december-scope }}
         PW_SHARD: ${{ inputs.shard }}
       run: |
-        case "${{ inputs.test-suite }}/${{ inputs.test-scope }}/${{ inputs.december-scope }}" in
-          api/*) npm run test:github:api ;;
-          a11y/*) npm run test:github:a11y ;;
-          */admin/*) npm run test:github:admin ;;
-          */frontend/only) npm run test:github:frontend:december ;;
-          */frontend/exclude) npm run test:github:frontend:non-december ;;
-          */frontend/*) npm run test:github:frontend ;;
-          e2e/*/exclude) npm run test:github:e2e:non-december ;;
-          e2e/*/all) npm run test:github:e2e ;;
-          */*/only) npm run test:github:december ;;
-          */*/exclude) npm run test:github:non-december ;;
-          *) npm run test:github ;;
-        esac
+        npm run clean
+        if [ "$PW_SUITE" = api ] || { [ "$PW_SUITE" = all ] && [ "$PW_SCOPE" = all ] && [ "$PW_DECEMBER" != only ]; }; then
+          npm run test:github:api
+        fi
+        if [ "$PW_SUITE" != api ]; then
+          npm run test:github:browser
+        fi
         npm run report
 
     # After the specs, not before: generated organisations land in the same
