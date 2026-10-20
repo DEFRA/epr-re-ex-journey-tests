@@ -44,6 +44,8 @@ const FURTHER_ACTION_HEADING = 'Further action needed'
 // worker scheduling run these in parallel instead of serially in one
 // ~4 minute file.
 test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => {
+  test.describe.configure({ mode: 'parallel' })
+
   test('should display closed period adjusted loads when a reported load is amended, asking for resubmission only once the reported figures change @cmaAdjusted @closedPeriodMessaging @cma', async ({
     page
   }) => {
