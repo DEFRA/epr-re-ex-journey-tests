@@ -17,15 +17,21 @@ import {
 } from '../support/seeding/organisation.js'
 import { seedSubmittedReport } from '../support/seeding/reports.js'
 import {
+  registrationStartYear,
+  submitSummaryLogContent,
   summaryLogDatedAt,
   summaryLogNumbered,
   summaryLogWithCellChanged
 } from '../support/seeding/summary-logs.js'
+import { summaryLogContentNumbered } from '../support/spreadsheet/summarylogs-content-generator.js'
 import {
   generateNumbers,
   generateRegNumber
 } from '../support/reg-acc-number.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
+
+/** @import { Page } from '@playwright/test' */
 
 // The adjusted-loads accordion splits each balance-affecting load by the
 // direction it moved the waste balance: added loads carry one heading, reduced
@@ -35,6 +41,79 @@ const ADJUSTED_ADDED_HEADING = 'This load has added to your waste balance'
 const ADJUSTED_REDUCED_HEADING = 'This load has reduced your waste balance'
 const MISSING_DATA_HEADING = 'does NOT have all the required summary log data'
 const FURTHER_ACTION_HEADING = 'Further action needed'
+
+// The report never reads a vehicle registration, so a closed-month edit to one
+// must not ask for resubmission.
+const vehicleRegistrationEdit = {
+  sheet: 'Exported (sections 1, 2 and 3)',
+  rowId: 1002,
+  column: 'CARRIER_VEHICLE_REGISTRATION_NUMBER',
+  value: 'AB12 CDE'
+}
+
+/**
+ * Seeds an organisation whose exporter has a submitted summary log and a
+ * submitted monthly report, and signs in as its user.
+ *
+ * @param {Page} page
+ * @returns {Promise<{regNumber: string, accNumber: string}>} the exporter's numbers
+ */
+const seedExporterWithSubmittedReport = async (page) => {
+  const organisationDetails = await createLinkedOrganisation([
+    { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
+    { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
+  ])
+  const exporterNumbers = generateNumbers({
+    wasteProcessingType: 'exporter',
+    materialSuffix: 'PA'
+  })
+
+  const migrationResponse = await updateMigratedOrganisation(
+    organisationDetails.refNo,
+    [
+      {
+        reprocessingType: 'output',
+        ...fillerNumbers(),
+        status: 'approved'
+      },
+      {
+        ...exporterNumbers,
+        status: 'approved',
+        validFrom: '2026-01-01'
+      }
+    ]
+  )
+  await seedOverseasSites(organisationDetails.refNo, [1], [124, 183, 512, 876])
+
+  const user = await createLinkAndLogin(
+    page,
+    organisationDetails.refNo,
+    migrationResponse.email
+  )
+
+  const exporterRegId = migrationResponse.registrationIds[1]
+  const submitted = await submitSummaryLogContent(
+    organisationDetails.refNo,
+    exporterRegId,
+    defraIdStub.authHeader(user.userId),
+    await summaryLogContentNumbered('resources/exporter.xlsx', exporterNumbers),
+    registrationStartYear('2026-01-01')
+  )
+  expect(submitted.status).toBe('submitted')
+
+  await seedSubmittedReport(
+    organisationDetails.refNo,
+    exporterRegId,
+    user.userId,
+    2026,
+    'monthly',
+    1,
+    1,
+    { prnRevenue: 100, freeTonnage: 0 }
+  )
+
+  return exporterNumbers
+}
 
 // Split from summarylogs.check.cma.e2e.js (PAE-1405 CI runtime work): this
 // group covers adjusted-load sub-state rendering (headings, accordions,
@@ -46,7 +125,7 @@ const FURTHER_ACTION_HEADING = 'Further action needed'
 test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => {
   test.describe.configure({ mode: 'parallel' })
 
-  test('should display closed period adjusted loads when a reported load is amended, asking for resubmission only once the reported figures change @cmaAdjusted @closedPeriodMessaging @cma', async ({
+  test('should not ask for resubmission when only a closed month vehicle registration is edited @cmaAdjusted @closedPeriodMessaging @cma', async ({
     page
   }) => {
     const homePage = new HomePage(page)
@@ -56,81 +135,16 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     const dashboardPage = new DashboardPage(page)
     const reportsPage = new ReportsPage(page)
 
-    const organisationDetails = await createLinkedOrganisation([
-      { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
-      { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
-    ])
-    const exporterNumbers = generateNumbers({
-      wasteProcessingType: 'exporter',
-      materialSuffix: 'PA'
-    })
-
-    const migrationResponse = await updateMigratedOrganisation(
-      organisationDetails.refNo,
-      [
-        {
-          reprocessingType: 'output',
-          ...fillerNumbers(),
-          status: 'approved'
-        },
-        {
-          ...exporterNumbers,
-          status: 'approved',
-          validFrom: '2026-01-01'
-        }
-      ]
-    )
-    await seedOverseasSites(
-      organisationDetails.refNo,
-      [1],
-      [124, 183, 512, 876]
-    )
-
-    const user = await createLinkAndLogin(
-      page,
-      organisationDetails.refNo,
-      migrationResponse.email
-    )
-
-    await dashboardPage.exportingTabLink().click()
-    await dashboardPage.selectLink(1)
-
-    const exporterSummaryLog = await summaryLogNumbered(
-      'resources/exporter.xlsx',
-      exporterNumbers
-    )
-    await wasteRecordsPage.submitSummaryLogLink().click()
-    await uploadSummaryLogPage.performUploadAndReturnToHomepage(
-      exporterSummaryLog
-    )
-
-    const exporterRegId = migrationResponse.registrationIds[1]
-    await seedSubmittedReport(
-      organisationDetails.refNo,
-      exporterRegId,
-      user.userId,
-      2026,
-      'monthly',
-      1,
-      1,
-      { prnRevenue: 100, freeTonnage: 0 }
-    )
+    const exporterNumbers = await seedExporterWithSubmittedReport(page)
 
     // The report never reads a vehicle registration, so this closed-month edit
     // must not ask for resubmission.
-    const vehicleRegistrationEdit = {
-      sheet: 'Exported (sections 1, 2 and 3)',
-      rowId: 1002,
-      column: 'CARRIER_VEHICLE_REGISTRATION_NUMBER',
-      value: 'AB12 CDE'
-    }
-
     await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
       await summaryLogWithCellChanged(
-        exporterSummaryLog,
+        await summaryLogNumbered('resources/exporter.xlsx', exporterNumbers),
         vehicleRegistrationEdit
       )
     )
@@ -153,18 +167,28 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     expect(await reportsPage.getSubmittedStatusBadge(1)).toBe('Submitted')
     await checkBodyTextDoesNotInclude(page, 'Requires resubmission', 5)
 
-    // Carrying the same edit isolates the real amendments from it.
-    await homePage.homeLink().click()
+    await homePage.signOutLink().click()
+    await expect(page).toHaveTitle(/Signed out/)
+  })
+
+  test('should display closed period adjusted loads when a reported load is amended, asking for resubmission once the reported figures change @cmaAdjusted @closedPeriodMessaging @cma', async ({
+    page
+  }) => {
+    const homePage = new HomePage(page)
+    const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+    const checkSummaryLogPage = new CheckSummaryLogPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const dashboardPage = new DashboardPage(page)
+
+    const exporterNumbers = await seedExporterWithSubmittedReport(page)
+
     await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
-      await summaryLogWithCellChanged(
-        await summaryLogNumbered(
-          'resources/exporter-adjustments.xlsx',
-          exporterNumbers
-        ),
-        vehicleRegistrationEdit
+      await summaryLogNumbered(
+        'resources/exporter-adjustments.xlsx',
+        exporterNumbers
       )
     )
     await uploadSummaryLogPage.continue()
