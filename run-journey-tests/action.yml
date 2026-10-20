@@ -201,7 +201,7 @@ runs:
           EPR_BACKEND=${{ inputs.epr-backend || steps.docker-backend-branch.outputs.image }} \
           EPR_RE_EX_ADMIN_FRONTEND=${{ inputs.epr-re-ex-admin-frontend || steps.docker-admin-frontend-branch.outputs.image }} \
           DECEMBER_WASTE_WINDOW_START="${{ inputs.december-window-start || steps.december-window.outputs.start }}" \
-          docker compose up --wait-timeout 300 -d --quiet-pull && status=0 || status=$?
+          docker compose up -d --quiet-pull && status=0 || status=$?
           echo "$status" > compose-up.status
         ) > compose-up.log 2>&1 &
 
