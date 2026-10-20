@@ -62,16 +62,6 @@ class RegistrationOverviewPage extends AdminPage {
       .click()
   }
 
-  async unsubmitReportLinkExists(row) {
-    return (
-      (await this.page
-        .locator(
-          `#reports > table > tbody > tr:nth-child(${row}) > td:nth-child(5) > a:nth-child(3)`
-        )
-        .count()) > 0
-    )
-  }
-
   async getSummaryLogsContent() {
     return this.page.locator('#summary-logs').innerText()
   }

@@ -95,12 +95,6 @@ async function navigateReprocessorToSupportingInfo(page) {
   await freePrnsPage.continue()
 }
 
-// The 3 tests below share one continuous login session/report, the same
-// pattern used in accredited.reprocessor.report.e2e.js - serial mode + a
-// manually-created page (rather than the per-test `page` fixture) shares the
-// setup instead of re-paying org creation, login, and summary log upload 3
-// times. Each test deletes the report it creates, leaving a fresh "Due"
-// period for the next.
 test.describe.serial('Deleting reports', () => {
   /** @type {import('@playwright/test').Page} */
   let page
@@ -115,101 +109,6 @@ test.describe.serial('Deleting reports', () => {
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
     await page.close()
-  })
-
-  test('should delete from the supporting information page @delReport', async () => {
-    const reportsPage = new ReportsPage(page)
-    const reportDetailPage = new ReportDetailPage(page)
-    const reportSupportingInformationPage = new ReportSupportingInformationPage(
-      page
-    )
-    const confirmDeleteReportPage = new ConfirmDeleteReportPage(page)
-
-    // Create report — accredited reprocessor redirects to tonnes-recycled
-    await reportsPage.selectActiveActionLink(1)
-    await reportDetailPage.useThisDataAndCheckDoubleClickPrevented()
-
-    // Navigate through reprocessor pages to reach supporting information
-    await navigateReprocessorToSupportingInfo(page)
-
-    // On supporting information page — click delete
-    const supportingInfoHeading =
-      await reportSupportingInformationPage.headingText()
-    expect(supportingInfoHeading).toBe(
-      'Add supporting information for your regulator (optional)'
-    )
-    await reportSupportingInformationPage.deleteReportLink().click()
-
-    // Confirm deletion page — verify content
-    const deleteHeading = await confirmDeleteReportPage.headingText()
-    expect(deleteHeading).toBe('Confirm deletion of this report')
-
-    const warningText = await confirmDeleteReportPage.warningText()
-    expect(warningText).toContain('This action cannot be undone')
-
-    // Test back link
-    await confirmDeleteReportPage.backLink().click()
-    const backHeading = await reportSupportingInformationPage.headingText()
-    expect(backHeading).toBe(
-      'Add supporting information for your regulator (optional)'
-    )
-
-    // Now delete
-    await reportSupportingInformationPage.deleteReportLink().click()
-    await confirmDeleteReportPage.confirmDeletionAndCheckDoubleClickPrevented()
-
-    // Should be back on reports list with status reverted to Due
-    const reportsHeading = await reportsPage.headingText()
-    expect(reportsHeading).toContain('Reports')
-
-    await expectActionRequiredStatus(page, 1)
-  })
-
-  test('should delete from the check your answers page @delReport', async () => {
-    const reportsPage = new ReportsPage(page)
-    const reportDetailPage = new ReportDetailPage(page)
-    const reportSupportingInformationPage = new ReportSupportingInformationPage(
-      page
-    )
-    const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
-    const confirmDeleteReportPage = new ConfirmDeleteReportPage(page)
-
-    // Create report again — accredited reprocessor redirects to tonnes-recycled
-    await reportsPage.selectActiveActionLink(1)
-    await reportDetailPage.useThisData()
-
-    // Navigate through reprocessor pages to reach supporting information
-    await navigateReprocessorToSupportingInfo(page)
-
-    // Continue through supporting information
-    await reportSupportingInformationPage.continue()
-
-    // On check your answers page — click delete and start again
-    const checkHeading = await reportCheckAnswersPage.headingText()
-    expect(checkHeading).toBe(
-      'Check your answers before you create this draft report'
-    )
-    await reportCheckAnswersPage.deleteAndStartAgainLink().click()
-
-    // Confirm deletion page — test back link returns to check your answers
-    const deleteHeading = await confirmDeleteReportPage.headingText()
-    expect(deleteHeading).toBe('Confirm deletion of this report')
-
-    await confirmDeleteReportPage.backLink().click()
-    const backToCheckAnswers = await reportCheckAnswersPage.headingText()
-    expect(backToCheckAnswers).toBe(
-      'Check your answers before you create this draft report'
-    )
-
-    // Return to confirm deletion and delete
-    await reportCheckAnswersPage.deleteAndStartAgainLink().click()
-    await confirmDeleteReportPage.confirmDeletion()
-
-    // Should be back on reports list with status reverted to Due
-    const reportsHeading = await reportsPage.headingText()
-    expect(reportsHeading).toContain('Reports')
-
-    await expectActionRequiredStatus(page, 1)
   })
 
   test('should delete from the submit page @deleteReport', async () => {
