@@ -56,7 +56,10 @@ const vehicleRegistrationEdit = {
  * submitted monthly report, and signs in as its user.
  *
  * @param {Page} page
- * @returns {Promise<{regNumber: string, accNumber: string}>} the exporter's numbers
+ * @returns {Promise<{
+ *   exporterNumbers: {regNumber: string, accNumber: string},
+ *   submitExporterSummaryLog: (fixturePath: string) => Promise<void>
+ * }>} the exporter's numbers, and a way to submit a further summary log for it
  */
 const seedExporterWithSubmittedReport = async (page) => {
   const organisationDetails = await createLinkedOrganisation([
@@ -92,14 +95,17 @@ const seedExporterWithSubmittedReport = async (page) => {
   )
 
   const exporterRegId = migrationResponse.registrationIds[1]
-  const submitted = await submitSummaryLogContent(
-    organisationDetails.refNo,
-    exporterRegId,
-    defraIdStub.authHeader(user.userId),
-    await summaryLogContentNumbered('resources/exporter.xlsx', exporterNumbers),
-    registrationStartYear('2026-01-01')
-  )
-  expect(submitted.status).toBe('submitted')
+  const submitExporterSummaryLog = async (fixturePath) => {
+    const submitted = await submitSummaryLogContent(
+      organisationDetails.refNo,
+      exporterRegId,
+      defraIdStub.authHeader(user.userId),
+      await summaryLogContentNumbered(fixturePath, exporterNumbers),
+      registrationStartYear('2026-01-01')
+    )
+    expect(submitted.status).toBe('submitted')
+  }
+  await submitExporterSummaryLog('resources/exporter.xlsx')
 
   await seedSubmittedReport(
     organisationDetails.refNo,
@@ -112,7 +118,7 @@ const seedExporterWithSubmittedReport = async (page) => {
     { prnRevenue: 100, freeTonnage: 0 }
   )
 
-  return exporterNumbers
+  return { exporterNumbers, submitExporterSummaryLog }
 }
 
 // Split from summarylogs.check.cma.e2e.js (PAE-1405 CI runtime work): this
@@ -135,10 +141,8 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     const dashboardPage = new DashboardPage(page)
     const reportsPage = new ReportsPage(page)
 
-    const exporterNumbers = await seedExporterWithSubmittedReport(page)
+    const { exporterNumbers } = await seedExporterWithSubmittedReport(page)
 
-    // The report never reads a vehicle registration, so this closed-month edit
-    // must not ask for resubmission.
     await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
@@ -180,15 +184,27 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     const wasteRecordsPage = new WasteRecordsPage(page)
     const dashboardPage = new DashboardPage(page)
 
-    const exporterNumbers = await seedExporterWithSubmittedReport(page)
+    const { exporterNumbers, submitExporterSummaryLog } =
+      await seedExporterWithSubmittedReport(page)
 
+    await submitExporterSummaryLog(
+      await summaryLogWithCellChanged(
+        await summaryLogNumbered('resources/exporter.xlsx', exporterNumbers),
+        vehicleRegistrationEdit
+      )
+    )
+
+    // Carrying the same edit isolates the real amendments from it.
     await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
-      await summaryLogNumbered(
-        'resources/exporter-adjustments.xlsx',
-        exporterNumbers
+      await summaryLogWithCellChanged(
+        await summaryLogNumbered(
+          'resources/exporter-adjustments.xlsx',
+          exporterNumbers
+        ),
+        vehicleRegistrationEdit
       )
     )
     await uploadSummaryLogPage.continue()
