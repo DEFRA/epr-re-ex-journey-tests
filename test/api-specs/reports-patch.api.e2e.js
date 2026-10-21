@@ -11,6 +11,7 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
+import { reportSubmissionPath } from '../support/seeding/report-paths.js'
 const YEAR = 2026
 const CADENCE = 'monthly'
 const PERIOD = 1
@@ -36,7 +37,12 @@ async function setUpExporterWithReport() {
 
   const registrationId = migrated.registrationIds[0]
   const authHeader = defraIdStub.authHeader(user.userId)
-  const reportPath = `/v1/organisations/${org.refNo}/registrations/${registrationId}/reports/${YEAR}/${CADENCE}/${PERIOD}/submissions/${SUBMISSION_NUMBER}`
+  const reportPath = await reportSubmissionPath(org.refNo, registrationId, {
+    year: YEAR,
+    cadence: CADENCE,
+    period: PERIOD,
+    submissionNumber: SUBMISSION_NUMBER
+  })
 
   const createResponse = await baseAPI.post(reportPath, '', authHeader)
   expect(createResponse.statusCode).to.equal(201)
@@ -124,7 +130,12 @@ test.describe('Reports PATCH endpoint @reportsPatch', () => {
 
     const nonExistentPeriod = 12
     const response = await baseAPI.patch(
-      `/v1/organisations/${org.refNo}/registrations/${registrationId}/reports/${YEAR}/${CADENCE}/${nonExistentPeriod}/submissions/${SUBMISSION_NUMBER}`,
+      await reportSubmissionPath(org.refNo, registrationId, {
+        year: YEAR,
+        cadence: CADENCE,
+        period: nonExistentPeriod,
+        submissionNumber: SUBMISSION_NUMBER
+      }),
       JSON.stringify({ prnRevenue: 100 }),
       authHeader
     )
@@ -153,8 +164,7 @@ test.describe('Reports PATCH endpoint @reportsPatch', () => {
   })
 
   test('reflects the PATCH on a subsequent GET @reportsPatchThenGet', async () => {
-    const { baseAPI, org, registrationId, authHeader, reportPath } =
-      await setUpExporterWithReport()
+    const { baseAPI, authHeader, reportPath } = await setUpExporterWithReport()
 
     const patchResponse = await baseAPI.patch(
       reportPath,
@@ -163,10 +173,7 @@ test.describe('Reports PATCH endpoint @reportsPatch', () => {
     )
     expect(patchResponse.statusCode).to.equal(200)
 
-    const getResponse = await baseAPI.get(
-      `/v1/organisations/${org.refNo}/registrations/${registrationId}/reports/${YEAR}/${CADENCE}/${PERIOD}/submissions/${SUBMISSION_NUMBER}`,
-      authHeader
-    )
+    const getResponse = await baseAPI.get(reportPath, authHeader)
 
     expect(getResponse.statusCode).to.equal(200)
     const body = /** @type {any} */ (await getResponse.body.json())

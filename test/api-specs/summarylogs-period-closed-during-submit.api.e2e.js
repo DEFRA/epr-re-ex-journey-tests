@@ -17,6 +17,7 @@ import {
   uploadAndValidateSummaryLog
 } from '../support/seeding/summary-logs.js'
 import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
+import { reportSubmissionPath } from '../support/seeding/report-paths.js'
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
 const YEAR = 2026
 const CADENCE = 'monthly'
@@ -70,7 +71,12 @@ test.describe('Summary log submit blocked by period-closed-during-submit guard @
 
     // The gap: submit a periodic report for the same registration, closing
     // the period after the summary log's createdAt was stamped.
-    const reportPath = `/v1/organisations/${org.refNo}/registrations/${registrationId}/reports/${YEAR}/${CADENCE}/${PERIOD}/submissions/${SUBMISSION_NUMBER}`
+    const reportPath = await reportSubmissionPath(org.refNo, registrationId, {
+      year: YEAR,
+      cadence: CADENCE,
+      period: PERIOD,
+      submissionNumber: SUBMISSION_NUMBER
+    })
     const createReportResponse = await baseAPI.post(reportPath, '', authHeader)
     expect(createReportResponse.statusCode).to.equal(201)
 

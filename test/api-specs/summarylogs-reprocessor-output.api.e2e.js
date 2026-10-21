@@ -1,6 +1,5 @@
 import { test } from '@playwright/test'
 import { expect } from 'chai'
-import { BaseAPI } from '../apis/base-api.js'
 import {
   createAndRegisterDefraIdUser,
   linkDefraIdUser
@@ -19,6 +18,7 @@ import {
   waitForSummaryLogStatus,
   waitForWasteBalance
 } from '../support/seeding/waiters.js'
+import { readReportDetail } from '../support/seeding/reports.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import {
   assertLoads,
@@ -278,11 +278,12 @@ test.describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput
       parseFloat(balanceAfterSecond[accreditationId].availableAmount)
     ).to.equal(9.25)
 
-    const baseAPI = new BaseAPI()
-    const reportPath = `/v1/organisations/${orgId}/registrations/${registrationId}/reports/2026/monthly/1/submissions/1`
-    const reportResponse = await baseAPI.get(reportPath, authHeader)
-    expect(reportResponse.statusCode).to.equal(200)
-    const report = /** @type {any} */ (await reportResponse.body.json())
+    const report = await readReportDetail(orgId, registrationId, {
+      year: 2026,
+      cadence: 'monthly',
+      period: 1,
+      submissionNumber: 1
+    })
 
     expect(report.operatorCategory).to.equal('REPROCESSOR')
     expect(report.cadence).to.equal('monthly')
