@@ -1,5 +1,6 @@
 import { BaseAPI } from '../../apis/base-api.js'
 import { assertSuccessResponse } from '../response-assertions.js'
+import { registrationPath } from './report-paths.js'
 
 const SUMMARY_LOG_FAILURE_STATUSES = [
   'invalid',
@@ -181,7 +182,7 @@ export async function waitForReportingPeriodStatus(
   periodStatus
 ) {
   const baseAPI = new BaseAPI()
-  const calendarPath = `/v1/organisations/${refNo}/registrations/${registrationId}/reports/calendar`
+  const calendarPath = `${await registrationPath(refNo, registrationId)}/reports/calendar`
   const timeoutMs = 30000
   const startTime = Date.now()
   let lastSeen = []

@@ -11,6 +11,7 @@ import {
   registerAndLinkDefraIdUser
 } from '../defra-id-linking.js'
 import { waitForReportingPeriodStatus } from './waiters.js'
+import { reportSubmissionPath } from './report-paths.js'
 import {
   createLinkedOrganisation,
   getOrganisation,
@@ -23,6 +24,28 @@ import {
 } from './summary-logs.js'
 import { summaryLogContentNumbered } from '../spreadsheet/summarylogs-content-generator.js'
 
+/**
+ * Reads a report as the service holds it, which only a regulator can ask for.
+ *
+ * @param {string} refNo
+ * @param {string} registrationId
+ * @param {{ year: number, cadence: string, period: number, submissionNumber: number }} periodSubmission
+ */
+export async function readReportDetail(
+  refNo,
+  registrationId,
+  periodSubmission
+) {
+  const authClient = new AuthClient()
+  await authClient.authenticate()
+  const path = `${await reportSubmissionPath(refNo, registrationId, periodSubmission)}?expand=detail`
+  const { detail } = await assertSuccessResponse(
+    await new BaseAPI().get(path, authClient.authHeader()),
+    `GET ${path}`
+  )
+  return detail
+}
+
 export async function unsubmitReport(
   organisationId,
   registrationId,
@@ -34,7 +57,7 @@ export async function unsubmitReport(
   const authClient = new AuthClient()
   const baseAPI = new BaseAPI()
   await authClient.authenticate()
-  const unsubmitEndpoint = `/v1/organisations/${organisationId}/registrations/${registrationId}/reports/${year}/${cadence}/${period}/submissions/${submissionNumber}/unsubmit`
+  const unsubmitEndpoint = `${await reportSubmissionPath(organisationId, registrationId, { year, cadence, period, submissionNumber })}/unsubmit`
   const response = await baseAPI.post(
     unsubmitEndpoint,
     '',
@@ -73,7 +96,16 @@ export async function seedSubmittedReport(
   const baseAPI = new BaseAPI()
   const authHeader = defraIdStub.authHeader(userId)
 
-  const reportPath = `/v1/organisations/${organisationId}/registrations/${registrationId}/reports/${year}/${cadence}/${period}/submissions/${submissionNumber}`
+  const reportPath = await reportSubmissionPath(
+    organisationId,
+    registrationId,
+    {
+      year,
+      cadence,
+      period,
+      submissionNumber
+    }
+  )
   const statusPath = `${reportPath}/status`
 
   const createResponse = await baseAPI.post(reportPath, '', authHeader)
@@ -185,7 +217,12 @@ export async function createSubmittedReport(refNo, registrationIndex = 0) {
     `POST /v1/organisations/${refNo}/link`
   )
 
-  const basePath = `/v1/organisations/${refNo}/registrations/${registrationId}/reports/${year}/${cadence}/${period}/submissions/1`
+  const basePath = await reportSubmissionPath(refNo, registrationId, {
+    year,
+    cadence,
+    period,
+    submissionNumber: 1
+  })
 
   const createResponse = await baseAPI.post(basePath, '', defraAuthHeader)
 
@@ -322,13 +359,6 @@ export async function seedRestatedClosedPeriod({ tonnageRecycled = 100 } = {}) {
   return { refNo, companyName, registrationId, defraAuthHeader }
 }
 
-const submissionPath = (
-  refNo,
-  registrationId,
-  { year, cadence, period, submissionNumber }
-) =>
-  `/v1/organisations/${refNo}/registrations/${registrationId}/reports/${year}/${cadence}/${period}/submissions/${submissionNumber}`
-
 /**
  * Creates a submission and leaves it in_progress, returning the version the
  * next transition needs. An in-flight draft is a state under test in its own
@@ -352,7 +382,11 @@ export async function seedDraftSubmission(
 ) {
   const baseAPI = new BaseAPI()
   const jsonHeaders = { ...defraAuthHeader, 'content-type': 'application/json' }
-  const basePath = submissionPath(refNo, registrationId, periodSubmission)
+  const basePath = await reportSubmissionPath(
+    refNo,
+    registrationId,
+    periodSubmission
+  )
 
   const createResponse = await baseAPI.post(basePath, '', defraAuthHeader)
   await assertSuccessResponse(createResponse, `POST ${basePath}`)
@@ -375,7 +409,11 @@ export async function submitSeededDraft(
 ) {
   const baseAPI = new BaseAPI()
   const jsonHeaders = { ...defraAuthHeader, 'content-type': 'application/json' }
-  const basePath = submissionPath(refNo, registrationId, periodSubmission)
+  const basePath = await reportSubmissionPath(
+    refNo,
+    registrationId,
+    periodSubmission
+  )
 
   const readyResponse = await baseAPI.post(
     `${basePath}/status`,
