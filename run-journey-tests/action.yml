@@ -24,7 +24,7 @@ inputs:
     description: "which suite to run - 'api' (API specs, whatever the test-scope), 'a11y' (@accessibility specs), 'e2e' (browser specs except @accessibility) or 'all' (everything)"
     default: 'all'
   shard:
-    description: "shard of the browser specs in scope in the form 'current/total', for example '2/3', dealt out round-robin by spec file; needs test-suite 'e2e' or 'a11y'; empty runs them all"
+    description: "shard of the browser specs in scope in the form 'current/total', for example '2/3', dealt out round-robin by spec file; needs test-suite 'e2e' and a december-scope other than 'only', as files are dealt out before the tags are matched; empty runs them all"
     default: ''
   december-window-start:
     description: explicit override for DECEMBER_WASTE_WINDOW_START; empty lets the action derive one from december-scope (see "Resolve the December window" below)
@@ -37,10 +37,10 @@ runs:
   using: 'composite'
   steps:
     - name: Check the inputs
-      if: inputs.shard != '' && inputs.test-suite != 'e2e' && inputs.test-suite != 'a11y'
+      if: inputs.shard != '' && (inputs.test-suite != 'e2e' || inputs.december-scope == 'only')
       shell: bash
       run: |
-        echo "::error::shard needs test-suite 'e2e' or 'a11y'; with '${{ inputs.test-suite }}' every shard would also run the API suite"
+        echo "::error::shard needs test-suite 'e2e' and a december-scope other than 'only', not '${{ inputs.test-suite }}' with '${{ inputs.december-scope }}': files are dealt out before the tags are matched, so some shards would hold no test"
         exit 1
 
     - name: Checkout repository if not called by Journey Test PR

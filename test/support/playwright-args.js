@@ -81,6 +81,21 @@ const grepFlags = (suite, december) => {
 }
 
 /**
+ * Shards deal out spec files before the grep applies, so a selection that only
+ * a few files match would leave some shards with no test to run.
+ * @param {string} suite
+ * @param {string} december
+ * @param {string} shard
+ */
+const assertShardable = (suite, december, shard) => {
+  if (shard && (suite !== 'e2e' || december === 'only')) {
+    throw new Error(
+      `shard needs test-suite e2e without december-scope only, not ${suite} with ${december}`
+    )
+  }
+}
+
+/**
  * @param {string[]} files spec paths relative to test/specs
  * @param {{ scope?: string, suite?: string, december?: string, shard?: string }} selection
  * @returns {string[]} arguments for `playwright test`
@@ -88,4 +103,7 @@ const grepFlags = (suite, december) => {
 export const playwrightArgs = (
   files,
   { scope = 'all', suite = 'all', december = 'all', shard = '' }
-) => [...fileFilters(files, scope, shard), ...grepFlags(suite, december)]
+) => {
+  assertShardable(suite, december, shard)
+  return [...fileFilters(files, scope, shard), ...grepFlags(suite, december)]
+}

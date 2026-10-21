@@ -105,16 +105,22 @@ describe('playwrightArgs', () => {
 
   describe('shard', () => {
     it('should deal the whole suite out round-robin', () => {
-      assert.deepEqual(playwrightArgs(files, { shard: '2/2' }), [
+      assert.deepEqual(playwrightArgs(files, { suite: 'e2e', shard: '2/2' }), [
         'specs/admin/b\\.e2e\\.js$',
-        'specs/e\\.e2e\\.js$'
+        'specs/e\\.e2e\\.js$',
+        '--grep-invert',
+        '@accessibility'
       ])
     })
 
     it('should deal out only the specs in the scope', () => {
       assert.deepEqual(
-        playwrightArgs(files, { scope: 'frontend', shard: '2/2' }),
-        ['specs/e\\.e2e\\.js$']
+        playwrightArgs(files, {
+          scope: 'frontend',
+          suite: 'e2e',
+          shard: '2/2'
+        }),
+        ['specs/e\\.e2e\\.js$', '--grep-invert', '@accessibility']
       )
     })
 
@@ -131,15 +137,32 @@ describe('playwrightArgs', () => {
 
     ;['4/3', '0/3', '1.5/3', '1/2.5', 'abc', '2', '/3'].forEach((shard) => {
       it(`should reject the malformed shard ${shard}`, () => {
-        assert.throws(() => playwrightArgs(files, { shard }), /invalid shard/)
+        assert.throws(
+          () => playwrightArgs(files, { suite: 'e2e', shard }),
+          /invalid shard/
+        )
       })
     })
 
     it('should fail a shard that selects no specs, rather than run them all', () => {
       assert.throws(
-        () => playwrightArgs(files, { scope: 'admin', shard: '3/3' }),
+        () =>
+          playwrightArgs(files, { scope: 'admin', suite: 'e2e', shard: '3/3' }),
         /no specs/
       )
+    })
+
+    ;[
+      { suite: 'all', december: 'all' },
+      { suite: 'a11y', december: 'all' },
+      { suite: 'e2e', december: 'only' }
+    ].forEach(({ suite, december }) => {
+      it(`should reject a shard of ${suite} with ${december} december scope, where a shard can hold no matching test`, () => {
+        assert.throws(
+          () => playwrightArgs(files, { suite, december, shard: '1/2' }),
+          /shard needs test-suite e2e/
+        )
+      })
     })
   })
 
