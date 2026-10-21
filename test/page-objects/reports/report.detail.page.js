@@ -29,10 +29,6 @@ class ReportDetailPage extends Page {
     return this.#sectionTotalByCaption('Total tonnage exported')
   }
 
-  async useThisDataAndCheckDoubleClickPrevented() {
-    await this.clickButtonCheckingDoubleClickPrevented('Use this data')
-  }
-
   async uploadNewSummaryLog() {
     await this.page
       .getByRole('button', { name: 'Upload new summary log', exact: true })

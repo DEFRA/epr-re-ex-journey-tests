@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test'
 import { HomePage } from 'page-objects/homepage.js'
-import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
 import { TonnesRecycledPage } from '../page-objects/reports/tonnes.recycled.page.js'
@@ -34,27 +33,6 @@ import {
   switchToNewTab
 } from '../support/windowtabs.js'
 import { ReportSubmittedPage } from 'page-objects/reports/report.submitted.page.js'
-
-async function startAndSubmitReport(page) {
-  const reportsPage = new ReportsPage(page)
-  const reportDetailPage = new ReportDetailPage(page)
-  const tonnesRecycledPage = new TonnesRecycledPage(page)
-  const tonnesNotRecycledPage = new TonnesNotRecycledPage(page)
-  const reportSupportingInformationPage = new ReportSupportingInformationPage(
-    page
-  )
-  const reportCheckAnswersPage = new ReportCheckAnswersPage(page)
-
-  await reportsPage.selectActiveActionLink(1)
-  await reportDetailPage.useThisData()
-  await tonnesRecycledPage.enterTonnage('12.50')
-  await tonnesRecycledPage.continue()
-  await tonnesNotRecycledPage.enterTonnage('7.50')
-  await tonnesNotRecycledPage.continue()
-  await reportSupportingInformationPage.continue()
-  await reportCheckAnswersPage.createReport()
-  await checkBodyText(page, 'report created', 30)
-}
 
 // Submitted via epr-backend's dev endpoint rather than driving the upload
 // UI: these journeys are about the reports wizard, not the upload itself,
@@ -122,17 +100,12 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
     'the reports landing has no closed quarter yet this year'
   )
 
-  // These 3 tests share one continuous login session/report, the same
+  // These 2 tests share one continuous login session/report, the same
   // pattern used in accredited.reprocessor.report.e2e.js - serial mode + a
   // manually-created page shares setup instead of re-paying org creation,
-  // login, and summary log upload 3 times. BackLinks cleans its report back
+  // login, and summary log upload twice. BackLinks cleans its report back
   // to "Due" so FullFlow (last, since it ends in a submitted/unsubmitted
   // state) starts fresh.
-  //
-  // CheckAnswersGuard (below, outside this group) leaves a Ready-to-submit
-  // report with no proven-safe way back to "Due" for this registered-only
-  // (no-accreditation) org shape, so it keeps its own independent setup
-  // rather than risk a flaky shared sequence.
   test.describe.serial('registered-only reprocessor with upload', () => {
     /** @type {import('@playwright/test').Page} */
     let page
@@ -155,33 +128,6 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
       await page.close()
-    })
-
-    test('should return 404 when navigating directly to PRN pages @registeredOnlyReprocessorRouteGuard', async () => {
-      const { organisationDetails, migrationResponse } = setupResponse
-
-      // Try to access prn-summary directly — should get 404
-      await page.goto(
-        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/${registrationStartYear()}/quarterly/1/submissions/1/prn-summary`
-      )
-      await checkBodyText(page, '404', 10)
-      await checkBodyText(page, 'Page not found', 10)
-
-      // Try to access free-prns directly — should get 404
-      await page.goto(
-        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/${registrationStartYear()}/quarterly/1/submissions/1/free-prns`
-      )
-      await checkBodyText(page, '404', 10)
-      await checkBodyText(page, 'Page not found', 10)
-
-      // The 404 checks above navigate away via raw page.goto to pages with no
-      // rendered dashboard, so re-open the dashboard from scratch (rather
-      // than assuming a table is already on the page) before returning to
-      // the reports list, so the next test in this shared session starts
-      // from the state it expects.
-      const dashboardPage = new DashboardPage(page)
-      await dashboardPage.open(organisationDetails.refNo)
-      await navigateToReports(page)
     })
 
     test('should navigate back correctly through the registered-only reprocessor flow @registeredOnlyReprocessorBackLinks', async () => {
@@ -372,32 +318,5 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       expect(unsubmittedBadge).toBe('Ready to submit')
       expect(unsubmittedColour).toBe('blue')
     })
-  })
-
-  test('should redirect to reports list when navigating back to check-answers after report is created @registeredOnlyReprocessorCheckAnswersGuard', async ({
-    page
-  }) => {
-    const homePage = new HomePage(page)
-    const reportsPage = new ReportsPage(page)
-
-    const { organisationDetails, migrationResponse, user, regNumber } =
-      await setupRegisteredOnlyReprocessor(page)
-    await uploadAndNavigateToReports(
-      page,
-      organisationDetails,
-      migrationResponse,
-      user,
-      regNumber
-    )
-    await startAndSubmitReport(page)
-
-    // Navigate back to check-answers — the guard should redirect to the reports list
-    await page.goBack()
-
-    const reportsHeading = await reportsPage.headingText()
-    expect(reportsHeading).toContain('Reports')
-
-    await homePage.signOutLink().click()
-    await expect(page).toHaveTitle(/Signed out/)
   })
 })

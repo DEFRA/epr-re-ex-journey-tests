@@ -106,20 +106,6 @@ class OrganisationsPage extends AdminPage {
     await this.searchBy({ search: orgName })
   }
 
-  /**
-   * The value each search field currently holds, keyed by field id.
-   *
-   * @returns {Promise<Record<string, string>>}
-   */
-  async searchFieldValues() {
-    /** @type {Record<string, string>} */
-    const values = {}
-    for (const id of SEARCH_FIELD_IDS) {
-      values[id] = await this.page.locator(`#${id}`).inputValue()
-    }
-    return values
-  }
-
   async searchResult() {
     return this.page.locator(SEARCH_RESULT_HEADING).innerText()
   }
@@ -136,29 +122,6 @@ class OrganisationsPage extends AdminPage {
 
   async getSuccessMessage() {
     return this.page.locator('#organisation-success-message').innerText()
-  }
-
-  async clearSearch() {
-    await this.page
-      .getByRole('link', {
-        name: 'Clear search and view all organisations',
-        exact: true
-      })
-      .click()
-    // The click triggers a full page load, and the counting reads that follow
-    // (searchResultExists, getTableRowCount) take the DOM as-is with no
-    // auto-wait - so settle on the reloaded form before returning.
-    await this.page
-      .locator('#search')
-      .waitFor({ state: 'visible', timeout: 10000 })
-  }
-
-  async getPermissionText() {
-    return this.page
-      .getByText('You do not have permission to edit this organisation.', {
-        exact: true
-      })
-      .innerText()
   }
 }
 

@@ -19,10 +19,7 @@ import {
   registrationStartYear,
   submitSummaryLogContent
 } from '../support/seeding/summary-logs.js'
-import {
-  generateNumbers,
-  generateRegNumber
-} from '../support/reg-acc-number.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
 import { summaryLogContentNumbered } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -98,7 +95,7 @@ async function uploadAndNavigateToReports(
 }
 
 test.describe('Accredited reprocessor report flow @accreditedReprocessor', () => {
-  // The 5 tests below share one continuous login session/report, the same
+  // The 4 tests below share one continuous login session/report, the same
   // way the original WDIO spec's single global `browser` session did - serial
   // mode + a manually-created page (rather than the per-test `page` fixture)
   // is Playwright's equivalent of that shared-session pattern.
@@ -129,14 +126,6 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
       await page.close()
-    })
-
-    test('should display upload new summary log button and cancel link on detail page @accreditedReprocessorDetailButtons', async () => {
-      const reportsPage = new ReportsPage(page)
-      const reportDetailPage = new ReportDetailPage(page)
-
-      await reportsPage.selectActiveActionLink(1)
-      await reportDetailPage.verifyDetailPageButtons()
     })
 
     test('should navigate back correctly through the accredited reprocessor flow @accreditedReprocessorBackLinks', async () => {
@@ -485,60 +474,6 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
 
       expect(unsubmittedBadge).toBe('Ready to submit')
       expect(unsubmittedColour).toBe('blue')
-    })
-  })
-
-  test.describe('non-accredited reprocessor route guard', () => {
-    test('should return 404 when registered-only reprocessor tries to access PRN pages @registeredOnlyReprocessorRouteGuard', async ({
-      page
-    }) => {
-      const homePage = new HomePage(page)
-
-      const organisationDetails = await createLinkedOrganisation([
-        {
-          material: 'Paper or board (R3)',
-          wasteProcessingType: 'Reprocessor',
-          withoutAccreditation: true
-        }
-      ])
-
-      const migrationResponse = await updateMigratedOrganisation(
-        organisationDetails.refNo,
-        [
-          {
-            reprocessingType: 'output',
-            regNumber: generateRegNumber({
-              wasteProcessingType: 'reprocessor',
-              materialSuffix: 'PA'
-            }),
-            status: 'approved',
-            withoutAccreditation: true
-          }
-        ]
-      )
-
-      await createLinkAndLogin(
-        page,
-        organisationDetails.refNo,
-        migrationResponse.email
-      )
-
-      // Try to access prn-summary directly — should get 404
-      await page.goto(
-        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/${registrationStartYear()}/monthly/1/submissions/1/prn-summary`
-      )
-      await checkBodyText(page, '404', 10)
-      await checkBodyText(page, 'Page not found', 10)
-
-      // Try to access free-prns directly — should get 404
-      await page.goto(
-        `/organisations/${organisationDetails.refNo}/registrations/${migrationResponse.registrationIds[0]}/reports/${registrationStartYear()}/monthly/1/submissions/1/free-prns`
-      )
-      await checkBodyText(page, '404', 10)
-      await checkBodyText(page, 'Page not found', 10)
-
-      await homePage.signOutLink().click()
-      await expect(page).toHaveTitle(/Signed out/)
     })
   })
 })

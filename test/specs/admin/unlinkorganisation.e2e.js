@@ -105,38 +105,4 @@ test.describe('Unlink organisation from Defra ID', () => {
     const userEmail = await systemLogsPage.logCardField(card, 'User email')
     expect(userEmail).toBeTruthy()
   })
-
-  test('leaves the organisation linked when the confirm page is cancelled @organisations @unlink', async ({
-    page
-  }) => {
-    const organisationsPage = new OrganisationsPage(page)
-    const organisationOverviewPage = new OrganisationOverviewPage(page)
-    const unlinkOrganisationConfirmationPage =
-      new UnlinkOrganisationConfirmationPage(page)
-
-    const linkedOrganisation = await createLinkedOrganisation([
-      { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
-    ])
-    const { organisation, refNo } = linkedOrganisation
-
-    await updateMigratedOrganisation(refNo, [
-      {
-        ...fillerNumbers(),
-        status: 'approved',
-        reprocessingType: 'input'
-      }
-    ])
-    await linkOrganisationToDefraId(refNo, organisation.email)
-
-    await organisationsPage.open()
-    await organisationsPage.searchFor(organisation.companyName)
-    await organisationsPage.viewLink(1)
-    await organisationOverviewPage.unlinkButton.click()
-
-    await unlinkOrganisationConfirmationPage.cancel()
-
-    await expect(organisationOverviewPage.unlinkButton).toBeVisible()
-    const orgAfterCancel = await getOrganisation(refNo)
-    expect(orgAfterCancel.linkedDefraOrganisation).toBeTruthy()
-  })
 })

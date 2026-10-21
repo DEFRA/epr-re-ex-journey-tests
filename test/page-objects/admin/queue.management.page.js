@@ -56,10 +56,6 @@ class QueueManagementPage extends AdminPage {
     await this.clearAllMessagesButton().click()
   }
 
-  async clearAllMessagesButtonExists() {
-    return (await this.clearAllMessagesButton().count()) > 0
-  }
-
   async getConfirmHeading() {
     return this.page.locator('h1').innerText()
   }
