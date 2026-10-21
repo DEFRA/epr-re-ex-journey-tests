@@ -17,7 +17,7 @@ import {
   uploadAndValidateSummaryLog
 } from '../support/seeding/summary-logs.js'
 import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
-import { reportSubmissionPath } from '../support/seeding/report-paths.js'
+import { reportSubmissionPath } from '../support/seeding/natural-key-paths.js'
 const FIXTURE_PATH = 'resources/summary-log.xlsx'
 const YEAR = 2026
 const CADENCE = 'monthly'

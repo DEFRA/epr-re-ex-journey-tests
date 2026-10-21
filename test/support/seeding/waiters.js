@@ -1,6 +1,6 @@
 import { BaseAPI } from '../../apis/base-api.js'
 import { assertSuccessResponse } from '../response-assertions.js'
-import { registrationPath } from './report-paths.js'
+import { registrationPath } from './natural-key-paths.js'
 
 const SUMMARY_LOG_FAILURE_STATUSES = [
   'invalid',

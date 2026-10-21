@@ -14,21 +14,23 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
+import {
+  organisationPath,
+  registrationPath
+} from '../support/seeding/natural-key-paths.js'
+
 async function setUpApprovedReprocessor() {
   const org = await createLinkedOrganisation([
     { wasteProcessingType: 'Reprocessor' }
   ])
+  const numbers = generateNumbers({
+    wasteProcessingType: 'reprocessor',
+    materialSuffix: 'PA'
+  })
   const migrated = await updateMigratedOrganisation(org.refNo, [
-    {
-      reprocessingType: 'input',
-      ...generateNumbers({
-        wasteProcessingType: 'reprocessor',
-        materialSuffix: 'PA'
-      }),
-      status: 'approved'
-    }
+    { reprocessingType: 'input', ...numbers, status: 'approved' }
   ])
-  return { org, migrated }
+  return { org, migrated, numbers }
 }
 
 // Mirrors linkDefraIdUser's own register+authorise+generateToken sequence,
@@ -70,7 +72,7 @@ test.describe('Organisation linking/unlinking negative paths @organisationLinkin
     const user = await registerAuthorisedUser(migrated.email)
 
     const response = await baseAPI.post(
-      `/v1/organisations/${org.refNo}/link`,
+      `${await organisationPath(org.refNo)}/link`,
       '',
       defraIdStub.authHeader(user.userId)
     )
@@ -92,7 +94,7 @@ test.describe('Organisation linking/unlinking negative paths @organisationLinkin
     expect(unlinkResponse.statusCode).to.equal(204)
 
     const relinkResponse = await baseAPI.post(
-      `/v1/organisations/${org.refNo}/link`,
+      `${await organisationPath(org.refNo)}/link`,
       '',
       defraIdStub.authHeader(user.userId)
     )
@@ -128,7 +130,7 @@ test.describe('Organisation linking/unlinking negative paths @organisationLinkin
 
     const secondUser = await registerAuthorisedUser('test123456@testuserz.com')
     const response = await baseAPI.post(
-      `/v1/organisations/${org.refNo}/link`,
+      `${await organisationPath(org.refNo)}/link`,
       '',
       defraIdStub.authHeader(secondUser.userId)
     )
@@ -144,7 +146,7 @@ test.describe('Organisation linking/unlinking negative paths @organisationLinkin
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
 
     const response = await baseAPI.post(
-      `/v1/organisations/${org.refNo}/link`,
+      `${await organisationPath(org.refNo)}/link`,
       '',
       defraIdStub.authHeader(user.userId)
     )
@@ -155,13 +157,13 @@ test.describe('Organisation linking/unlinking negative paths @organisationLinkin
   })
 
   test('rejects a linked user accessing another organisation @orgCrossOrganisationAccessRejected', async () => {
-    const { org, migrated } = await setUpApprovedReprocessor()
+    const { org, migrated, numbers } = await setUpApprovedReprocessor()
     const user = await createAndRegisterDefraIdUser(migrated.email)
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
 
-    const otherOrgId = '6507f1f77bcf86cd79943999'
+    const otherOrganisationNumber = '999999'
     const response = await baseAPI.post(
-      `/v1/organisations/${otherOrgId}/registrations/${migrated.registrationIds[0]}/summary-logs/${registrationStartYear()}`,
+      `/organisations/${otherOrganisationNumber}/registrations/${numbers.regNumber}/summary-logs/${registrationStartYear()}`,
       JSON.stringify({ redirectUrl: 'test-redirect' }),
       defraIdStub.authHeader(user.userId)
     )
@@ -180,7 +182,7 @@ test.describe('Organisation linking/unlinking negative paths @organisationLinkin
       'anothertest123456@testuserz.com'
     )
     const response = await baseAPI.post(
-      `/v1/organisations/${org.refNo}/registrations/${migrated.registrationIds[0]}/summary-logs/${registrationStartYear()}`,
+      `${await registrationPath(org.refNo, migrated.registrationIds[0])}/summary-logs/${registrationStartYear()}`,
       JSON.stringify({ redirectUrl: 'test-redirect' }),
       defraIdStub.authHeader(unlinkedUser.userId)
     )

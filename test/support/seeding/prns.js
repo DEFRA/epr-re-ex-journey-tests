@@ -4,6 +4,7 @@ import {
   assertStatus,
   assertSuccessResponseWithoutBody
 } from '../response-assertions.js'
+import { accreditationPath } from './natural-key-paths.js'
 
 /**
  * Creates a PRN against an accreditation, which needs a waste balance the
@@ -28,7 +29,7 @@ export async function createPrn(
   { isDecemberWaste } = {}
 ) {
   const baseAPI = new BaseAPI()
-  const path = `/v1/organisations/${refNo}/registrations/${registrationId}/accreditations/${accreditationId}/packaging-recycling-notes`
+  const path = `${await accreditationPath(refNo, registrationId, accreditationId)}/packaging-recycling-notes`
   const response = await baseAPI.post(
     path,
     JSON.stringify({
