@@ -145,7 +145,7 @@ export async function viewThrough(operators, get) {
     for (const registration of operator.registrations) {
       /** @type {WireSummaryLogs} */
       const listed = await get(
-        `/organisations/${operator.orgId}/registrations/${encodeURIComponent(registration.regNumber)}/summary-logs`
+        `/organisations/${encodeURIComponent(operator.orgId)}/registrations/${encodeURIComponent(registration.regNumber)}/summary-logs`
       )
       summaryLogs.push(
         ...listed.summaryLogs.map(({ uploadedAt, status }) => ({
