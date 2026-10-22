@@ -195,8 +195,8 @@ test.describe('Organisations page', () => {
       registrationOverviewHeaderRegex
     )
 
-    const reportsData = await registrationOverviewPage.getReportsTableData()
-    expect(reportsData.length).toBeGreaterThanOrEqual(1)
+    // A registration with no number yet has no reports to show.
+    await expect(registrationOverviewPage.reportsTable()).toHaveCount(0)
 
     const summaryLogContent =
       await registrationOverviewPage.getSummaryLogsContent()

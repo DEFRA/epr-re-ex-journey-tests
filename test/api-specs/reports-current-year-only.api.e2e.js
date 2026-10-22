@@ -12,6 +12,7 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
+import { registrationPath } from '../support/seeding/report-paths.js'
 
 test.describe('Reports list @reportsList', () => {
   test('lists only this calendar year, which the early-year report skips rely on @reportsListCurrentYearOnly', async () => {
@@ -36,7 +37,7 @@ test.describe('Reports list @reportsList', () => {
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
 
     const response = await new BaseAPI().get(
-      `/v1/organisations/${org.refNo}/registrations/${migrated.registrationIds[0]}/reports/calendar`,
+      `${await registrationPath(org.refNo, migrated.registrationIds[0])}/reports/calendar`,
       defraIdStub.authHeader(user.userId)
     )
     const { reportingPeriods } = /** @type {any} */ (await response.body.json())
