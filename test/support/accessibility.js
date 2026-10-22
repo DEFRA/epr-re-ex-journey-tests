@@ -16,6 +16,8 @@ import { buildAccessibilityHtmlReport } from './accessibility-report.js'
 const runsLighthouse = process.env.RUN_LIGHTHOUSE === 'true'
 const LIGHTHOUSE_AUDIT_TIMEOUT = 60 * 1000
 
+/** @typedef {import('axe-core').Result & {pageName: string}} AccessibilityViolation */
+
 // Impact isn't always present on a violation (axe-core's `impact` field is
 // optional), so anything unrecognised sorts after the known levels rather
 // than throwing the summary table ordering off.
@@ -249,7 +251,7 @@ async function setAccessibilitySummaryDescription(violations) {
  * stopping at the first one - so a multi-page tour surfaces every
  * offending page in one run instead of requiring a fix-rerun cycle per
  * page.
- * @param {Array<{pageName: string, id: string, impact: string, description: string, helpUrl: string}>} violations - accumulated output of scanPageForAccessibilityViolations
+ * @param {AccessibilityViolation[]} violations - accumulated output of scanPageForAccessibilityViolations
  */
 export async function assertNoSeriousOrCriticalViolations(violations) {
   await setAccessibilitySummaryDescription(violations)
@@ -274,18 +276,23 @@ export async function checkAccessibility(page, pageName) {
 
   test.info().setTimeout(test.info().timeout + LIGHTHOUSE_AUDIT_TIMEOUT)
   const collector = createAccessibilityCollector()
-  const violations = await scanPageForAccessibilityViolations(
-    page,
-    pageName,
-    collector
-  )
-  await attachAccessibilityReport(collector)
-  // Playwright has no per-worker teardown a support module can hook, so a
-  // Chrome left running here would outlive the worker.
-  await closeLighthouseChrome()
+  let violations
+  try {
+    violations = await scanPageForAccessibilityViolations(
+      page,
+      pageName,
+      collector
+    )
+    await attachAccessibilityReport(collector)
+  } finally {
+    // Playwright has no per-worker teardown a support module can hook, so a
+    // Chrome left running here would outlive the worker.
+    await closeLighthouseChrome()
+  }
   failOnSeriousOrCriticalViolations(violations)
 }
 
+/** @param {AccessibilityViolation[]} violations */
 function failOnSeriousOrCriticalViolations(violations) {
   const severe = violations.filter(
     (violation) =>
