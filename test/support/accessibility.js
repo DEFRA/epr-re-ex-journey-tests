@@ -13,7 +13,7 @@ import { buildAccessibilityHtmlReport } from './accessibility-report.js'
 
 // The smoke test run sets this. Lighthouse reloads every page it audits in
 // its own Chrome, which is too slow for the pull request runs.
-const runsLighthouse = true
+const runsLighthouse = process.env.RUN_LIGHTHOUSE === 'true'
 const LIGHTHOUSE_AUDIT_TIMEOUT = 60 * 1000
 
 /** @typedef {import('axe-core').Result & {pageName: string}} AccessibilityViolation */
