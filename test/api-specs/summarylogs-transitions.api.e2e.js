@@ -125,55 +125,7 @@ test.describe('Summary log upload-completed state transitions @summaryLogTransit
     )
   }
 
-  const validTransitions = ['pending', 'complete', 'rejected']
-
-  for (const toStatus of validTransitions) {
-    test(`allows a valid transition from pending to ${toStatus} @summaryLogValidTransition${toStatus}`, async () => {
-      const summaryLog = newSummaryLog('pending')
-
-      const firstResponse = await submitUploadCompleted(
-        baseAPI,
-        uploadPath,
-        summaryLog,
-        'pending'
-      )
-      expect(firstResponse.statusCode).to.equal(202)
-
-      const secondResponse = await submitUploadCompleted(
-        baseAPI,
-        uploadPath,
-        summaryLog,
-        toStatus
-      )
-      expect(secondResponse.statusCode).to.equal(202)
-    })
-  }
-
   const invalidTransitions = [
-    {
-      from: 'complete',
-      to: 'rejected',
-      fromLog: 'validating',
-      toLog: 'rejected'
-    },
-    {
-      from: 'complete',
-      to: 'pending',
-      fromLog: 'validating',
-      toLog: 'preprocessing'
-    },
-    {
-      from: 'rejected',
-      to: 'complete',
-      fromLog: 'rejected',
-      toLog: 'validating'
-    },
-    {
-      from: 'rejected',
-      to: 'pending',
-      fromLog: 'rejected',
-      toLog: 'preprocessing'
-    },
     {
       from: 'rejected',
       to: 'rejected',

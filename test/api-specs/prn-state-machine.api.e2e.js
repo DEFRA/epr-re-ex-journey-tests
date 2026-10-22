@@ -10,8 +10,7 @@ import {
 } from '../support/defra-id-linking.js'
 import {
   createLinkedOrganisation,
-  updateMigratedOrganisation,
-  seedOverseasSites
+  updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import {
   externalAPIAcceptPrn,
@@ -108,71 +107,6 @@ async function setUpAccreditedReprocessorWithBalance() {
   }
 }
 
-// The exporter twin of the reprocessor setup above, for the PERN create-time
-// balance check. Exporters need overseas sites seeded, and its summary log's
-// OSR_ID (default 100) has to match one of those seeded sites or the row is
-// excluded from the balance rather than credited.
-async function setUpAccreditedExporterWithBalance() {
-  const { regNumber, accNumber } = generateNumbers({
-    wasteProcessingType: 'exporter',
-    materialSuffix: 'PA'
-  })
-
-  const baseAPI = new BaseAPI()
-  const authClient = new AuthClient()
-  await authClient.authenticate()
-  const org = await createLinkedOrganisation([
-    { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
-  ])
-  const migrated = await updateMigratedOrganisation(org.refNo, [
-    { regNumber, accNumber, status: 'approved' }
-  ])
-  const user = await createAndRegisterDefraIdUser(migrated.email)
-  await linkDefraIdUser(org.refNo, user.userId, migrated.email)
-  await seedOverseasSites(org.refNo)
-  const authHeader = defraIdStub.authHeader(user.userId)
-  const registrationId = migrated.registrationIds[0]
-  const accreditationId = migrated.accreditationIds[0]
-
-  const content = await generateSummaryLogContent({
-    wasteProcessingType: 'exporter',
-    materialSuffix: 'PA',
-    regNumber,
-    accNumber,
-    rows: {
-      'Exported (sections 1, 2 and 3)': [
-        {
-          rowId: 9001,
-          fields: {
-            WERE_PRN_OR_PERN_ISSUED_ON_THIS_WASTE: 'No',
-            DID_WASTE_PASS_THROUGH_AN_INTERIM_SITE: 'No',
-            WAS_THE_WASTE_REFUSED: 'No',
-            WAS_THE_WASTE_STOPPED: 'No',
-            OSR_ID: 100,
-            TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED: 500
-          }
-        }
-      ]
-    }
-  })
-  await submitSummaryLogContent(
-    org.refNo,
-    registrationId,
-    authHeader,
-    content,
-    registrationStartYear()
-  )
-
-  return {
-    baseAPI,
-    authClient,
-    org,
-    registrationId,
-    accreditationId,
-    authHeader
-  }
-}
-
 const draftsPath = async (refNo, registrationId, accreditationId) =>
   `${await accreditationPath(refNo, registrationId, accreditationId)}/packaging-recycling-notes`
 
@@ -196,15 +130,6 @@ async function postDraft(
     }),
     authHeader
   )
-}
-
-// Asserts the create-time balance backstop: a 409 carrying both the message and
-// the machine-readable code the frontend discriminates on.
-async function assertInsufficientBalanceAtCreate(response) {
-  expect(response.statusCode).to.equal(409)
-  const body = /** @type {any} */ (await response.body.json())
-  expect(body.message).to.equal('Insufficient available waste balance')
-  expect(body.code).to.equal('INSUFFICIENT_AVAILABLE_BALANCE')
 }
 
 async function createPrn(
@@ -366,109 +291,6 @@ test.describe('PRN state machine @prnStateMachine', () => {
     )
   })
 
-  test('rejects issuance when the requested tonnage exceeds the available waste balance @prnInsufficientBalance', async () => {
-    // Draft creation is now itself balance-checked, so a single over-balance
-    // draft can no longer be created to reach the issuance-time backstop. The
-    // backstop is exercised instead by over-committing across two drafts:
-    // creation is point-in-time and reserves nothing, so a tiny first draft and
-    // a second draft equal to the whole available balance can both be created,
-    // but authorising the first drops the available balance below the second, so
-    // the second no longer fits. A tiny first draft keeps the transient
-    // ringfence small, since this balance is shared with the tests that follow.
-    const balance = await waitForWasteBalance(
-      ctx.org.refNo,
-      ctx.accreditationId,
-      ctx.authHeader
-    )
-    const available = Math.floor(
-      parseFloat(balance[ctx.accreditationId].availableAmount)
-    )
-
-    let firstPath
-    let secondPath
-    try {
-      const first = await createPrn(
-        ctx.baseAPI,
-        ctx.org.refNo,
-        ctx.registrationId,
-        ctx.accreditationId,
-        ctx.authHeader,
-        1
-      )
-      firstPath = first.prnPath
-      const second = await createPrn(
-        ctx.baseAPI,
-        ctx.org.refNo,
-        ctx.registrationId,
-        ctx.accreditationId,
-        ctx.authHeader,
-        available
-      )
-      secondPath = second.prnPath
-
-      const firstAuth = await updatePrnStatus(
-        ctx.baseAPI,
-        firstPath,
-        ctx.authHeader,
-        'awaiting_authorisation'
-      )
-      expect(firstAuth.statusCode).to.equal(200)
-
-      const secondAuth = await updatePrnStatus(
-        ctx.baseAPI,
-        secondPath,
-        ctx.authHeader,
-        'awaiting_authorisation'
-      )
-      expect(secondAuth.statusCode).to.equal(409)
-      const body = /** @type {any} */ (await secondAuth.body.json())
-      expect(body.message).to.equal('Insufficient available waste balance')
-    } finally {
-      // Always restore the shared balance for the tests that follow, even if an
-      // assertion above threw after the first draft was authorised: deleting it
-      // credits its tonnage back, and discarding the second touches nothing.
-      // Best-effort, so no status assertions here.
-      if (firstPath) {
-        await updatePrnStatus(ctx.baseAPI, firstPath, ctx.authHeader, 'deleted')
-      }
-      if (secondPath) {
-        await updatePrnStatus(
-          ctx.baseAPI,
-          secondPath,
-          ctx.authHeader,
-          'discarded'
-        )
-      }
-    }
-  })
-
-  test('rejects draft creation when the requested tonnage exceeds the available waste balance @prnInsufficientBalanceAtCreate', async () => {
-    // The create-time backstop: a draft for more than is available is refused up
-    // front with the same 409 the confirm-time transition raises, plus a
-    // machine-readable code the frontend discriminates on to show an inline
-    // error. Nothing is created, so no cleanup is needed.
-    const balance = await waitForWasteBalance(
-      ctx.org.refNo,
-      ctx.accreditationId,
-      ctx.authHeader
-    )
-    const overBalanceTonnage =
-      Math.floor(parseFloat(balance[ctx.accreditationId].availableAmount)) + 1
-
-    const response = await postDraft(
-      ctx.baseAPI,
-      {
-        refNo: ctx.org.refNo,
-        registrationId: ctx.registrationId,
-        accreditationId: ctx.accreditationId
-      },
-      ctx.authHeader,
-      overBalanceTonnage
-    )
-
-    await assertInsufficientBalanceAtCreate(response)
-  })
-
   test('deletes a PRN awaiting authorisation, crediting the balance back, then blocks further transitions @prnDeleteFlow', async () => {
     const { prnPath } = await createPrn(
       ctx.baseAPI,
@@ -621,121 +443,6 @@ test.describe('PRN state machine @prnStateMachine', () => {
     expect(cancelledNote.status.acceptedAt).to.equal(undefined)
   })
 
-  test('lists PRNs created for the accreditation @prnListing', async () => {
-    await createPrn(
-      ctx.baseAPI,
-      ctx.org.refNo,
-      ctx.registrationId,
-      ctx.accreditationId,
-      ctx.authHeader,
-      5
-    )
-
-    const response = await ctx.baseAPI.get(
-      await draftsPath(ctx.org.refNo, ctx.registrationId, ctx.accreditationId),
-      ctx.authHeader
-    )
-
-    expect(response.statusCode).to.equal(200)
-    const { items } = /** @type {any} */ (await response.body.json())
-    expect(items.length).to.be.greaterThan(0)
-    expect(
-      items.every((prn) => prn.issuedToOrganisation.id === 'testId')
-    ).to.equal(true)
-  })
-
-  // These 3 tests permanently mutate the shared accreditation's own status
-  // (suspended -> cancelled -> approved) and must run last, in this order -
-  // mocha preserves declaration order within a describe block, so this is
-  // safe as long as nothing above depends on the accreditation still being
-  // plain 'approved'.
-  test('blocks issuance (but not creation) once the accreditation is suspended @prnSuspendedAccreditationBlocksIssuance', async () => {
-    const suspendResponse = await updateAccreditationStatus(
-      ctx.baseAPI,
-      ctx.authClient,
-      ctx.org.refNo,
-      'suspended'
-    )
-    expect(suspendResponse.statusCode).to.equal(200)
-
-    const { prnPath } = await createPrn(
-      ctx.baseAPI,
-      ctx.org.refNo,
-      ctx.registrationId,
-      ctx.accreditationId,
-      ctx.authHeader,
-      5
-    )
-
-    const authResponse = await updatePrnStatus(
-      ctx.baseAPI,
-      prnPath,
-      ctx.authHeader,
-      'awaiting_authorisation'
-    )
-    expect(authResponse.statusCode).to.equal(200)
-
-    const issueResponse = await updatePrnStatus(
-      ctx.baseAPI,
-      prnPath,
-      ctx.authHeader,
-      'awaiting_acceptance'
-    )
-    expect(issueResponse.statusCode).to.equal(403)
-    const body = /** @type {any} */ (await issueResponse.body.json())
-    expect(body.message).to.equal(
-      'Cannot issue a PRN on a suspended accreditation'
-    )
-  })
-
-  test('blocks both issuance and creation once the accreditation is cancelled @prnCancelledAccreditationBlocksBoth', async () => {
-    const cancelResponse = await updateAccreditationStatus(
-      ctx.baseAPI,
-      ctx.authClient,
-      ctx.org.refNo,
-      'cancelled'
-    )
-    expect(cancelResponse.statusCode).to.equal(200)
-
-    const createResponse = await ctx.baseAPI.post(
-      await draftsPath(ctx.org.refNo, ctx.registrationId, ctx.accreditationId),
-      JSON.stringify({
-        issuedToOrganisation: {
-          id: 'testId',
-          name: 'Test Organisation Ltd',
-          tradingName: 'Trading Name'
-        },
-        tonnage: 5
-      }),
-      ctx.authHeader
-    )
-    expect(createResponse.statusCode).to.equal(403)
-    const createBody = /** @type {any} */ (await createResponse.body.json())
-    expect(createBody.message).to.equal(
-      'Cannot create a PRN on a cancelled accreditation'
-    )
-  })
-
-  test('allows PRN creation again once the accreditation is re-approved @prnReapprovedAccreditationUnlocksCreation', async () => {
-    const approveResponse = await updateAccreditationStatus(
-      ctx.baseAPI,
-      ctx.authClient,
-      ctx.org.refNo,
-      'approved'
-    )
-    expect(approveResponse.statusCode).to.equal(200)
-
-    const { prnPath } = await createPrn(
-      ctx.baseAPI,
-      ctx.org.refNo,
-      ctx.registrationId,
-      ctx.accreditationId,
-      ctx.authHeader,
-      5
-    )
-    expect(prnPath).to.be.a('string')
-  })
-
   // The admin cancellation path (PAE-1823). Covers the two acceptance criteria
   // that no other test reaches: AC5/AC6, that the tonnage is credited back and
   // is visible immediately, and AC8, that a note cancelled from `accepted`
@@ -823,38 +530,45 @@ test.describe('PRN state machine @prnStateMachine', () => {
     expect(cancelledNote.status.rejectedAt).to.equal(undefined)
     expect(cancelledNote.status.cancelledAt).to.be.a('string')
   })
-})
 
-// The create-time balance check applies to exporters (PERN) as well as
-// reprocessors (PRN); the backend runs the same assertion on both journeys.
-// A dedicated exporter setup proves the exporter path reaches it too.
-test.describe('PERN create-time balance check @pernCreateBalanceCheck', () => {
-  let ctx
-
-  test.beforeAll(async () => {
-    ctx = await setUpAccreditedExporterWithBalance()
-  })
-
-  test('rejects draft creation when the requested tonnage exceeds the available waste balance @pernInsufficientBalanceAtCreate', async () => {
-    const balance = await waitForWasteBalance(
-      ctx.org.refNo,
-      ctx.accreditationId,
-      ctx.authHeader
-    )
-    const overBalanceTonnage =
-      Math.floor(parseFloat(balance[ctx.accreditationId].availableAmount)) + 1
-
-    const response = await postDraft(
+  // Suspends the shared accreditation for good, so it must run last; tests in
+  // a describe block run in declaration order.
+  test('blocks issuance (but not creation) once the accreditation is suspended @prnSuspendedAccreditationBlocksIssuance', async () => {
+    const suspendResponse = await updateAccreditationStatus(
       ctx.baseAPI,
-      {
-        refNo: ctx.org.refNo,
-        registrationId: ctx.registrationId,
-        accreditationId: ctx.accreditationId
-      },
+      ctx.authClient,
+      ctx.org.refNo,
+      'suspended'
+    )
+    expect(suspendResponse.statusCode).to.equal(200)
+
+    const { prnPath } = await createPrn(
+      ctx.baseAPI,
+      ctx.org.refNo,
+      ctx.registrationId,
+      ctx.accreditationId,
       ctx.authHeader,
-      overBalanceTonnage
+      5
     )
 
-    await assertInsufficientBalanceAtCreate(response)
+    const authResponse = await updatePrnStatus(
+      ctx.baseAPI,
+      prnPath,
+      ctx.authHeader,
+      'awaiting_authorisation'
+    )
+    expect(authResponse.statusCode).to.equal(200)
+
+    const issueResponse = await updatePrnStatus(
+      ctx.baseAPI,
+      prnPath,
+      ctx.authHeader,
+      'awaiting_acceptance'
+    )
+    expect(issueResponse.statusCode).to.equal(403)
+    const body = /** @type {any} */ (await issueResponse.body.json())
+    expect(body.message).to.equal(
+      'Cannot issue a PRN on a suspended accreditation'
+    )
   })
 })

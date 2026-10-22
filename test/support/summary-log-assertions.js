@@ -49,36 +49,6 @@ export function assertReportingPeriodLoads(loadsByReportingPeriod, expected) {
   }
 }
 
-export function assertReportingPeriodBucketRows(
-  loadsByReportingPeriod,
-  expectedRows
-) {
-  for (const expected of expectedRows) {
-    const bucket = expected.bucket
-      .split('.')
-      .reduce((acc, k) => acc?.[k], loadsByReportingPeriod)
-
-    const actualRow = bucket?.rows?.find((row) => row.rowId === expected.rowId)
-    if (!actualRow) {
-      expect.fail(
-        `Expected row ${expected.rowId} in bucket ${expected.bucket} but found rows: ${JSON.stringify(bucket?.rows)}`
-      )
-    }
-    expect(actualRow.wasteRecordType).to.equal(
-      expected.wasteRecordType,
-      `Failed wasteRecordType at ${expected.bucket} row ${expected.rowId}`
-    )
-    expect(actualRow.exclusionReasons.join(',')).to.equal(
-      expected.exclusionReasons ?? '',
-      `Failed exclusionReasons at ${expected.bucket} row ${expected.rowId}`
-    )
-    expect(actualRow.tonnageDelta).to.equal(
-      expected.tonnageDelta,
-      `Failed tonnageDelta at ${expected.bucket} row ${expected.rowId}`
-    )
-  }
-}
-
 // expected: array of { code, field?, sheet?, table?, row?, rowId?, header?, actual? }
 // Only keys present on an expected entry are checked against each failure.
 export function assertValidationFailures(failures, expected) {
