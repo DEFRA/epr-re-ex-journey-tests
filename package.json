@@ -4,7 +4,7 @@
   "type": "module",
   "description": "",
   "engines": {
-    "node": "^24.21.0"
+    "node": "^24.22.1"
   },
   "author": "Defra DDTS",
   "license": "OGL-UK-3.0",
@@ -70,11 +70,11 @@
   "dependencies": {
     "@axe-core/playwright": "4.13.0",
     "@faker-js/faker": "10.6.0",
-    "@playwright/test": "1.64.0",
+    "@playwright/test": "1.64.1",
     "allure-commandline": "2.46.1",
     "allure-playwright": "3.13.0",
     "browserstack-local": "1.5.16",
-    "browserstack-node-sdk": "1.72.3",
+    "browserstack-node-sdk": "1.73.1",
     "chai": "6.3.0",
     "chrome-launcher": "1.2.2",
     "decimal.js": "10.6.0",
@@ -84,7 +84,7 @@
     "jszip": "3.10.2",
     "lighthouse": "13.5.0",
     "pino": "10.4.0",
-    "undici": "8.11.2"
+    "undici": "8.12.1"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

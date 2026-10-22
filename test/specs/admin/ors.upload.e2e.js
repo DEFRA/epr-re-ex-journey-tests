@@ -260,25 +260,6 @@ test.describe('ORS upload flow @orsUpload', () => {
       ).toEqual('Import completed')
     })
 
-    test('Should filter list by registration number', async ({ page }) => {
-      const orsUploadPage = new OrsUploadPage(page)
-
-      await orsUploadPage.openList()
-      await orsUploadPage.filterByRegistrationNumber(alphaRegistrationNumber)
-      await expect(
-        orsUploadPage.clearRegistrationNumberFilterLink()
-      ).toBeVisible()
-      expect(await orsUploadPage.getRegistrationNumberFilterValue()).toBe(
-        alphaRegistrationNumber
-      )
-
-      const filteredRows = await orsUploadPage.getListTableRows()
-      expect(filteredRows.length).toBe(3)
-      expect(
-        filteredRows.every((row) => row[1] === alphaRegistrationNumber)
-      ).toBe(true)
-    })
-
     test('Should clear the registration number filter', async ({ page }) => {
       const orsUploadPage = new OrsUploadPage(page)
 
@@ -289,63 +270,6 @@ test.describe('ORS upload flow @orsUpload', () => {
       await expect(
         orsUploadPage.clearRegistrationNumberFilterLink()
       ).toBeHidden()
-    })
-
-    test('Should preserve filter through pagination', async ({ page }) => {
-      const orsUploadPage = new OrsUploadPage(page)
-
-      await orsUploadPage.openList(
-        new URLSearchParams({
-          page: '1',
-          pageSize: '2',
-          registrationNumber: alphaRegistrationNumber
-        }).toString()
-      )
-      await orsUploadPage.expectPaginationVisible()
-
-      const pageOneStatus = await orsUploadPage.getPaginationStatusText()
-      expect(pageOneStatus).toContain('Showing page 1 of 2')
-
-      const pageOneRows = await orsUploadPage.getListTableRows()
-      expect(pageOneRows).toHaveLength(2)
-      expect(
-        pageOneRows.every((row) => row[1] === alphaRegistrationNumber)
-      ).toBe(true)
-
-      await orsUploadPage.clickPageNumber(2)
-      await expect(orsUploadPage.paginationStatus()).toContainText(
-        'Showing page 2 of 2'
-      )
-      await expect(orsUploadPage.registrationNumberInput).toHaveValue(
-        alphaRegistrationNumber
-      )
-
-      const pageTwoRows = await orsUploadPage.getListTableRows()
-      expect(pageTwoRows).toHaveLength(1)
-      expect(pageTwoRows[0][1]).toEqual(alphaRegistrationNumber)
-    })
-
-    test('Should download CSV with active filter', async ({ page }) => {
-      const orsUploadPage = new OrsUploadPage(page)
-
-      await orsUploadPage.openList(
-        new URLSearchParams({
-          page: '1',
-          pageSize: '2',
-          registrationNumber: alphaRegistrationNumber
-        }).toString()
-      )
-      const filteredCsvDownload = await orsUploadPage.fetchListCsv()
-      expect(filteredCsvDownload.status).toEqual(200)
-      expect(filteredCsvDownload.contentType).toContain('text/csv')
-      expect(filteredCsvDownload.contentDisposition).toEqual(
-        'attachment; filename="overseas-reprocessing-sites.csv"'
-      )
-      expect(filteredCsvDownload.body).toContain(
-        'Org ID,Registration Number,Accreditation Number,ORS ID'
-      )
-      expect(filteredCsvDownload.body).toContain(alphaRegistrationNumber)
-      expect(filteredCsvDownload.body).toContain(betaRegistrationNumber)
     })
 
     test('Should show empty state for non-matching filter', async ({

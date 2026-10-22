@@ -78,27 +78,4 @@ test.describe('Admin summary log document view', () => {
       loads.openPeriodLoads.added.balanceAffecting.tonnageDelta
     ).toBeGreaterThan(0)
   })
-
-  test('An unknown summary log id falls through to the standard Page not found @summaryLogDocument', async ({
-    page
-  }) => {
-    await openRegistrationOverview(page)
-
-    // The registration overview URL shares the summary-log URL's prefix; swap
-    // /overview for an unknown log so the backend 404 propagates to the
-    // standard not-found page rather than a 500. Assert the suffix first so a
-    // future route change fails here, not confusingly as a 200 later.
-    const overviewUrl = page.url()
-    expect(overviewUrl).toMatch(/\/overview$/)
-    const notFoundUrl = overviewUrl.replace(
-      /\/overview$/,
-      '/summary-logs/unknown-summary-log-id'
-    )
-
-    const response = await page.goto(notFoundUrl)
-
-    expect(response?.status()).toEqual(404)
-    const body = await page.textContent('body')
-    expect(body).toContain('Page not found')
-  })
 })

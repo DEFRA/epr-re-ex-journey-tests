@@ -1,6 +1,10 @@
 import { AdminPage } from 'page-objects/admin/page'
 
 class RegistrationOverviewPage extends AdminPage {
+  reportsTable() {
+    return this.page.locator('#reports table')
+  }
+
   async getReportsTableData() {
     // .count() below reads the DOM as-is with no auto-wait, so without this
     // the table can be read before it's rendered - seen as an intermittent
@@ -60,16 +64,6 @@ class RegistrationOverviewPage extends AdminPage {
         `#reports > table > tbody > tr:nth-child(${row}) > td:nth-child(5) > a:nth-child(3)`
       )
       .click()
-  }
-
-  async unsubmitReportLinkExists(row) {
-    return (
-      (await this.page
-        .locator(
-          `#reports > table > tbody > tr:nth-child(${row}) > td:nth-child(5) > a:nth-child(3)`
-        )
-        .count()) > 0
-    )
   }
 
   async getSummaryLogsContent() {
