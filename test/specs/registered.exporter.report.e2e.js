@@ -105,7 +105,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
     let setupResponse
 
     test.beforeAll(async ({ browser }) => {
-      page = await browser.newPage()
+      page = await (await browser.newContext()).newPage()
       setupResponse = await setupRegisteredOnlyExporter(page)
       await seedOverseasSites(
         setupResponse.organisationDetails.refNo,
@@ -125,7 +125,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       const homePage = new HomePage(page)
       await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
-      await page.close()
+      await page.context().close()
     })
 
     test('should complete the full registered-only exporter report flow through to confirmation @registeredOnlyExporterFullFlow @smoketest', async () => {

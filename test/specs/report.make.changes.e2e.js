@@ -85,7 +85,7 @@ test.describe
   let regId
 
   test.beforeAll(async ({ browser }) => {
-    page = await browser.newPage()
+    page = await (await browser.newContext()).newPage()
 
     ;({ organisationDetails, migrationResponse, regId } =
       await seedSubmittedRegisteredReprocessor())
@@ -103,7 +103,7 @@ test.describe
     const homePage = new HomePage(page)
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
-    await page.close()
+    await page.context().close()
   })
 
   test('shows the make changes button on the latest submitted report and lets the operator cancel or upload a new summary log without triggering resubmission @makeChangesCancel @makeChangesUploadNewSummaryLog', async () => {

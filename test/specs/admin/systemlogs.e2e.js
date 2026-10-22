@@ -24,7 +24,7 @@ test.describe('System logs search @searchSystemLogs', () => {
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
 
-    page = await browser.newPage()
+    page = await (await browser.newContext()).newPage()
 
     const loginPage = new AdminLoginPage(page)
     const homePage = new HomePage(page)
@@ -52,7 +52,7 @@ test.describe('System logs search @searchSystemLogs', () => {
   })
 
   test.afterAll(async () => {
-    await page.close()
+    await page.context().close()
   })
 
   test('shows no results when user ID matches no logs', async () => {

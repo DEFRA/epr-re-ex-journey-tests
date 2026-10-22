@@ -111,7 +111,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
     let setupResponse
 
     test.beforeAll(async ({ browser }) => {
-      page = await browser.newPage()
+      page = await (await browser.newContext()).newPage()
       setupResponse = await setupAccreditedReprocessor(page)
       await uploadAndNavigateToReports(
         page,
@@ -126,7 +126,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       const homePage = new HomePage(page)
       await homePage.signOutLink().click()
       await expect(page).toHaveTitle(/Signed out/)
-      await page.close()
+      await page.context().close()
     })
 
     test('should navigate back correctly through the accredited reprocessor flow @accreditedReprocessorBackLinks', async () => {
