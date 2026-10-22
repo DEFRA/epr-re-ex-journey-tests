@@ -243,7 +243,11 @@ runs:
     # drops a library, Playwright refuses to launch and names the package.
     - name: Install Playwright browsers
       if: inputs.test-suite != 'api'
-      run: npx playwright install chromium
+      run: |
+        timeout 300 npx playwright install chromium || {
+          echo "::error::Chromium download exceeded 5 minutes. Re-run the job."
+          exit 1
+        }
       shell: bash
 
     - name: Wait for docker compose to finish starting
