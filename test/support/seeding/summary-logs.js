@@ -8,30 +8,24 @@ import config from '../../config/config.js'
 import { assertSuccessResponse } from '../response-assertions.js'
 import { SEEDED_VALID_FROM } from './organisation.js'
 import { waitForSummaryLogStatus } from './waiters.js'
+import {
+  summaryLogByIdPath,
+  summaryLogUploadPath
+} from './natural-key-paths.js'
 
 // A fixture opens with its column markers, its headings and the worked example
 // the template ships. An operator's own loads start below those.
 const FIRST_LOAD_ROW = 4
 
 /**
- * The year a registration's summary logs are uploaded under: the backend
- * resolves the accreditation itself from the registration's live link, so
- * seeding only needs to work out the year the registration started in.
+ * The year a registered-only summary log is uploaded under: an accredited one
+ * is uploaded under its accreditation's year instead (summaryLogUploadPath).
  *
  * @param {string} [validFrom] ISO date, defaulting to the value seeded organisations start from
  * @returns {number}
  */
 export const registrationStartYear = (validFrom = SEEDED_VALID_FROM) =>
   new Date(validFrom).getUTCFullYear()
-
-/**
- * @param {string} orgId
- * @param {string} registrationId
- * @param {string} [base]
- * @returns {string}
- */
-const summaryLogsPath = (orgId, registrationId, base = '/v1/organisations') =>
-  `${base}/${orgId}/registrations/${registrationId}/summary-logs`
 
 /**
  * Writes a copy of a summary log fixture with every load re-dated to the given
@@ -296,8 +290,7 @@ export async function ingestSummaryLogFixture(
   year
 ) {
   const baseAPI = new BaseAPI()
-  const basePath = summaryLogsPath(orgId, registrationId)
-  const createPath = `${basePath}/${year}`
+  const createPath = await summaryLogUploadPath(orgId, registrationId, year)
 
   const initiateResponse = await baseAPI.post(
     createPath,
@@ -309,9 +302,14 @@ export async function ingestSummaryLogFixture(
     `POST ${createPath}`
   )
 
-  const summaryLogPath = `${basePath}/${summaryLogId}`
+  const summaryLogPath = await summaryLogByIdPath(
+    orgId,
+    registrationId,
+    summaryLogId
+  )
+  const uploadCompletedPath = `${createPath}/${summaryLogId}/upload-completed`
   const uploadCompletedResponse = await baseAPI.post(
-    `${basePath}/${year}/${summaryLogId}/upload-completed`,
+    uploadCompletedPath,
     JSON.stringify({
       form: {
         summaryLogUpload: {
@@ -327,7 +325,7 @@ export async function ingestSummaryLogFixture(
   if (uploadCompletedResponse.statusCode !== 202) {
     const body = await uploadCompletedResponse.body.json()
     throw new Error(
-      `POST ${basePath}/${year}/${summaryLogId}/upload-completed: expected 202 but got ${uploadCompletedResponse.statusCode}\n${JSON.stringify(body)}`
+      `POST ${uploadCompletedPath}: expected 202 but got ${uploadCompletedResponse.statusCode}\n${JSON.stringify(body)}`
     )
   }
 
@@ -384,8 +382,7 @@ export async function uploadSummaryLog(
   year,
   baseAPI = new BaseAPI()
 ) {
-  const basePath = summaryLogsPath(refNo, registrationId)
-  const createPath = `${basePath}/${year}`
+  const createPath = await summaryLogUploadPath(refNo, registrationId, year)
 
   const initiateResponse = await baseAPI.post(
     createPath,
@@ -424,7 +421,11 @@ export async function uploadSummaryLog(
 
   return {
     summaryLogId,
-    summaryLogPath: `${basePath}/${summaryLogId}`,
+    summaryLogPath: await summaryLogByIdPath(
+      refNo,
+      registrationId,
+      summaryLogId
+    ),
     baseAPI
   }
 }
@@ -498,7 +499,7 @@ export async function submitSummaryLogContent(
   year,
   baseAPI = new BaseAPI()
 ) {
-  const path = `${summaryLogsPath(refNo, registrationId, '/v1/dev/organisations')}/${year}`
+  const path = `/v1/dev/organisations/${refNo}/registrations/${registrationId}/summary-logs/${year}`
   const response = await baseAPI.post(path, JSON.stringify(content), {
     ...defraAuthHeader,
     'content-type': 'application/json'

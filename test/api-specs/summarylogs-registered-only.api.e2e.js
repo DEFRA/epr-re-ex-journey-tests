@@ -16,7 +16,7 @@ import {
 } from '../support/seeding/summary-logs.js'
 import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
 import { readReportDetail } from '../support/seeding/reports.js'
-import { reportSubmissionPath } from '../support/seeding/report-paths.js'
+import { reportSubmissionPath } from '../support/seeding/natural-key-paths.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import {
   assertLoads,

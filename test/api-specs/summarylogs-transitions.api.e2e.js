@@ -5,6 +5,7 @@ import { BaseAPI } from '../apis/base-api.js'
 import { SummaryLog } from '../support/generator.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
 import { registrationStartYear } from '../support/seeding/summary-logs.js'
+import { summaryLogUploadPath } from '../support/seeding/natural-key-paths.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
@@ -21,7 +22,12 @@ import {
 // whose "from" state is 'complete' (i.e. 'validating') are exposed to this;
 // attemptFromComplete below re-attempts with a fresh summary log if the race
 // is lost, rather than accepting it as flaky.
-async function submitUploadCompleted(baseAPI, summaryLog, fileStatus) {
+async function submitUploadCompleted(
+  baseAPI,
+  uploadPath,
+  summaryLog,
+  fileStatus
+) {
   summaryLog.setFileData(
     summaryLog.s3Bucket,
     summaryLog.s3Key,
@@ -29,7 +35,7 @@ async function submitUploadCompleted(baseAPI, summaryLog, fileStatus) {
     summaryLog.filename,
     fileStatus
   )
-  const path = `/v1/organisations/${summaryLog.orgId}/registrations/${summaryLog.regId}/summary-logs/${registrationStartYear()}/${summaryLog.summaryLogId}/upload-completed`
+  const path = `${uploadPath}/${summaryLog.summaryLogId}/upload-completed`
   return baseAPI.post(
     path,
     JSON.stringify(summaryLog.toUploadCompletedPayload())
@@ -40,6 +46,7 @@ test.describe('Summary log upload-completed state transitions @summaryLogTransit
   const baseAPI = new BaseAPI()
   let orgId
   let registrationId
+  let uploadPath
 
   test.beforeAll(async () => {
     const org = await createLinkedOrganisation([
@@ -57,6 +64,11 @@ test.describe('Summary log upload-completed state transitions @summaryLogTransit
     ])
     orgId = org.refNo
     registrationId = migrated.registrationIds[0]
+    uploadPath = await summaryLogUploadPath(
+      orgId,
+      registrationId,
+      registrationStartYear()
+    )
   })
 
   function newSummaryLog(fileStatus) {
@@ -81,6 +93,7 @@ test.describe('Summary log upload-completed state transitions @summaryLogTransit
       const summaryLog = newSummaryLog('complete')
       const firstResponse = await submitUploadCompleted(
         baseAPI,
+        uploadPath,
         summaryLog,
         'complete'
       )
@@ -88,6 +101,7 @@ test.describe('Summary log upload-completed state transitions @summaryLogTransit
 
       const secondResponse = await submitUploadCompleted(
         baseAPI,
+        uploadPath,
         summaryLog,
         to
       )
@@ -119,6 +133,7 @@ test.describe('Summary log upload-completed state transitions @summaryLogTransit
 
       const firstResponse = await submitUploadCompleted(
         baseAPI,
+        uploadPath,
         summaryLog,
         'pending'
       )
@@ -126,6 +141,7 @@ test.describe('Summary log upload-completed state transitions @summaryLogTransit
 
       const secondResponse = await submitUploadCompleted(
         baseAPI,
+        uploadPath,
         summaryLog,
         toStatus
       )
@@ -187,6 +203,7 @@ test.describe('Summary log upload-completed state transitions @summaryLogTransit
 
       const firstResponse = await submitUploadCompleted(
         baseAPI,
+        uploadPath,
         summaryLog,
         from
       )
@@ -194,6 +211,7 @@ test.describe('Summary log upload-completed state transitions @summaryLogTransit
 
       const secondResponse = await submitUploadCompleted(
         baseAPI,
+        uploadPath,
         summaryLog,
         to
       )
