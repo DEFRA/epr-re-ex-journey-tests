@@ -30,6 +30,7 @@ import {
   switchToNewTab
 } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
+import { checkAccessibility } from '../support/accessibility.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { navigateToReports } from '../support/report-navigation.js'
 
@@ -139,12 +140,16 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       const reportsPage = new ReportsPage(page)
       const tonnesNotExportedPage = new TonnesNotExportedPage(page)
 
+      await checkAccessibility(page, 'Reports list')
+
       // Start the report — verify detail page buttons before proceeding
       await reportsPage.selectActiveActionLink(1)
+      await checkAccessibility(page, 'Report detail (summary log data)')
       await reportDetailPage.verifyDetailPageButtons()
 
       await reportsPage.selectActiveActionLink(1)
       await reportDetailPage.useThisData()
+      await checkAccessibility(page, 'Tonnes not exported')
 
       // --- Tonnes not exported page ---
       const tonnesNotExportedHeading = await tonnesNotExportedPage.headingText()
@@ -159,6 +164,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       expect(supportingInfoHeading).toBe(
         'Add supporting information for your regulator (optional)'
       )
+      await checkAccessibility(page, 'Supporting information')
       await reportSupportingInformationPage.continue()
 
       // --- Check your answers page ---
@@ -166,6 +172,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
       expect(checkHeading).toBe(
         'Check your answers before you create this draft report'
       )
+      await checkAccessibility(page, 'Check your answers')
 
       // Verify tonnage not exported value and change link present on CYA
       await checkBodyText(page, '5.50', 10)
@@ -184,6 +191,7 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
 
       // Verify confirmation page
       await checkBodyText(page, 'report created', 30)
+      await checkAccessibility(page, 'Report created (confirmation)')
 
       // --- View draft report in new tab ---
       await confirmationPage.viewDraftReport().click()
@@ -204,12 +212,14 @@ test.describe('Registered-only exporter report flow @registeredOnlyExporter', ()
 
       await confirmationPage.goToReports().click()
       await reportsPage.selectActiveActionLink(1)
+      await checkAccessibility(page, 'Confirm and submit report declaration')
 
       // Confirm and submit report
       await monthlyReportDraftDeclarationPage.confirmAndSubmit()
 
       const confirmationText = await reportSubmittedPage.confirmationText()
       expect(confirmationText).toContain('report submitted to regulator')
+      await checkAccessibility(page, 'Report submitted (confirmation)')
 
       await reportSubmittedPage.viewReportLink().click()
       newTab = await switchToNewTab(page)

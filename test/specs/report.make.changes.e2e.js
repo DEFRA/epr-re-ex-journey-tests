@@ -11,6 +11,7 @@ import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
 import { ResubmissionExplainerPage } from 'page-objects/reports/resubmission.explainer.page.js'
 import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js'
 import { checkBodyText } from '../support/checks.js'
+import { checkAccessibility } from '../support/accessibility.js'
 import {
   createAndRegisterDefraIdUser,
   linkDefraIdUser
@@ -93,6 +94,7 @@ test.describe
     const homePage = new HomePage(page)
 
     await homePage.open()
+    await checkAccessibility(page, 'Home page')
     await homePage.startNowButton().click()
     await defraIdStubPage.loginViaEmail(migrationResponse.email)
   })

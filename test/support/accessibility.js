@@ -247,7 +247,22 @@ async function setAccessibilitySummaryDescription(violations) {
  */
 export async function assertNoSeriousOrCriticalViolations(violations) {
   await setAccessibilitySummaryDescription(violations)
+  failOnSeriousOrCriticalViolations(violations)
+}
 
+/**
+ * Scans the page the journey is on with axe, logs every violation to
+ * Allure, and fails the journey here if any is Serious or Critical.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} pageName
+ */
+export async function checkAccessibility(page, pageName) {
+  failOnSeriousOrCriticalViolations(
+    await scanPageForAccessibilityViolations(page, pageName)
+  )
+}
+
+function failOnSeriousOrCriticalViolations(violations) {
   const severe = violations.filter(
     (violation) =>
       violation.impact === 'critical' || violation.impact === 'serious'

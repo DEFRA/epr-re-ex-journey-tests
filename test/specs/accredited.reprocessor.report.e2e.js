@@ -22,6 +22,7 @@ import {
 import { generateNumbers } from '../support/reg-acc-number.js'
 import { summaryLogContentNumbered } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
+import { checkAccessibility } from '../support/accessibility.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { navigateToReports } from '../support/report-navigation.js'
@@ -214,6 +215,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
 
       const deleteHeading = await confirmDeleteReportPage.headingText()
       expect(deleteHeading).toBe('Confirm deletion of this report')
+      await checkAccessibility(page, 'Confirm delete report')
 
       // Back link should return to tonnes-recycled
       await confirmDeleteReportPage.backLink().click()
@@ -332,6 +334,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       // --- Tonnes recycled page ---
       const tonnesRecycledHeading = await tonnesRecycledPage.headingText()
       expect(tonnesRecycledHeading).toBeTruthy()
+      await checkAccessibility(page, 'Tonnes recycled')
 
       await tonnesRecycledPage.enterTonnage('15.02')
       await tonnesRecycledPage.continue()
@@ -339,6 +342,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       // --- Tonnes not recycled page ---
       const tonnesNotRecycledHeading = await tonnesNotRecycledPage.headingText()
       expect(tonnesNotRecycledHeading).toBeTruthy()
+      await checkAccessibility(page, 'Tonnes not recycled')
 
       await tonnesNotRecycledPage.enterTonnage('89.31')
       await tonnesNotRecycledPage.continue()
@@ -346,6 +350,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       // --- PRN summary page ---
       const prnSummaryHeading = await reprocessorPrnSummaryPage.headingText()
       expect(prnSummaryHeading).toBeTruthy()
+      await checkAccessibility(page, 'Reprocessor PRN summary')
 
       await reprocessorPrnSummaryPage.enterRevenue('1576.12')
       await reprocessorPrnSummaryPage.continue()
@@ -353,6 +358,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       // --- Free PRNs page ---
       const freePrnsHeading = await freePrnsPage.headingText()
       expect(freePrnsHeading).toBeTruthy()
+      await checkAccessibility(page, 'Free PRNs')
 
       await freePrnsPage.enterTonnage('0')
       await freePrnsPage.continue()

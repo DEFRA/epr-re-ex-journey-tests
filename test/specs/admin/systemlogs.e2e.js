@@ -7,6 +7,7 @@ import { Navigation } from 'page-objects/admin/navigation.page'
 import { OrganisationsPage } from 'page-objects/admin/organisations.page'
 import { SystemLogsPage } from 'page-objects/admin/system.logs.page'
 import { createLinkedOrganisation } from '../../support/seeding/organisation.js'
+import { checkAccessibility } from '../../support/accessibility.js'
 test.describe('System logs search @searchSystemLogs', () => {
   let linkedOrganisation
 
@@ -59,6 +60,7 @@ test.describe('System logs search @searchSystemLogs', () => {
     const systemLogsPage = new SystemLogsPage(page)
 
     await navigation.clickOnLink('System logs')
+    await checkAccessibility(page, 'System logs')
 
     await systemLogsPage.searchByUserId('no-such-user-id')
     await expect(
