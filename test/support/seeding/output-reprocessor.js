@@ -23,8 +23,11 @@ import { waitForWasteBalance } from './waiters.js'
  *
  * @returns {Promise<{
  *   refNo: string,
+ *   orgId: number,
  *   registrationId: string,
+ *   registrationNumber: string,
  *   accreditationId: string,
+ *   email: string,
  *   authHeader: {Authorization?: string},
  *   windowOpen: boolean
  * }>}
@@ -86,8 +89,11 @@ export async function seedAccreditedOutputReprocessor() {
 
   return {
     refNo: org.refNo,
+    orgId: org.orgId,
     registrationId,
+    registrationNumber: regNumber,
     accreditationId,
+    email: migrated.email,
     authHeader,
     windowOpen
   }

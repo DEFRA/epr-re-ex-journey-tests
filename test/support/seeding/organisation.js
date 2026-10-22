@@ -8,6 +8,7 @@ import { trackCreatedOrgId } from '../cleanup-tracker.js'
 import { currentYear } from '../date.js'
 import { MATERIALS } from '../materials.js'
 import { generateNumbers } from '../reg-acc-number.js'
+import { accreditationPath } from './natural-key-paths.js'
 import {
   assertSuccessResponse,
   assertSuccessResponseWithoutBody
@@ -801,7 +802,7 @@ export async function getDecemberPrnEligibility(
   const baseAPI = new BaseAPI()
   const authClient = new AuthClient()
   await authClient.authenticate()
-  const path = `/v1/organisations/${refNo}/registrations/${registrationId}/accreditations/${accreditationId}/packaging-recycling-notes/december-prn-eligibility`
+  const path = `${await accreditationPath(refNo, registrationId, accreditationId)}/packaging-recycling-notes/december-prn-eligibility`
   const eligibilityResponse = await baseAPI.get(path, authClient.authHeader())
   return await assertSuccessResponse(eligibilityResponse, path)
 }
