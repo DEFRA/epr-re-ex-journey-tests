@@ -13,7 +13,7 @@ import { assertSuccessResponse } from '../../response-assertions.js'
 /**
  * The ids the summary needs of an operator the service holds.
  *
- * @typedef {{refNo: string, registrations: Iterable<{registrationId: string, planned: {id: string}}>}} HeldOperator
+ * @typedef {{refNo: string, orgId: number, registrations: Iterable<{regNumber: string, planned: {id: string}}>}} HeldOperator
  */
 
 /**
@@ -118,10 +118,13 @@ export async function readServiceView(run) {
   const auth = new AuthClient()
   await auth.authenticate()
   const api = new BaseAPI()
-  const held = [...run.operators.values()].map(({ refNo, registrations }) => ({
-    refNo,
-    registrations: registrations.values()
-  }))
+  const held = [...run.operators.values()].map(
+    ({ refNo, orgId, registrations }) => ({
+      refNo,
+      orgId,
+      registrations: registrations.values()
+    })
+  )
   return viewThrough(held, async (path) =>
     assertSuccessResponse(await api.get(path, auth.authHeader()), path)
   )
@@ -142,7 +145,7 @@ export async function viewThrough(operators, get) {
     for (const registration of operator.registrations) {
       /** @type {WireSummaryLogs} */
       const listed = await get(
-        `/v1/organisations/${operator.refNo}/registrations/${registration.registrationId}/summary-logs`
+        `/organisations/${operator.orgId}/registrations/${encodeURIComponent(registration.regNumber)}/summary-logs`
       )
       summaryLogs.push(
         ...listed.summaryLogs.map(({ uploadedAt, status }) => ({
