@@ -6,9 +6,15 @@ import {
   story,
   descriptionHtml
 } from 'allure-js-commons'
+import { test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { runLighthouseAudit } from './lighthouse.js'
+import { closeLighthouseChrome, runLighthouseAudit } from './lighthouse.js'
 import { buildAccessibilityHtmlReport } from './accessibility-report.js'
+
+// The smoke test run sets this. Lighthouse reloads every page it audits in
+// its own Chrome, which is too slow for the pull request runs.
+const runsLighthouse = process.env.RUN_LIGHTHOUSE === 'true'
+const LIGHTHOUSE_AUDIT_TIMEOUT = 60 * 1000
 
 // Impact isn't always present on a violation (axe-core's `impact` field is
 // optional), so anything unrecognised sorts after the known levels rather
@@ -252,14 +258,32 @@ export async function assertNoSeriousOrCriticalViolations(violations) {
 
 /**
  * Scans the page the journey is on with axe, logs every violation to
- * Allure, and fails the journey here if any is Serious or Critical.
+ * Allure, and fails the journey here if any is Serious or Critical. With
+ * RUN_LIGHTHOUSE=true it also audits the page with Lighthouse and attaches
+ * the combined report.
  * @param {import('@playwright/test').Page} page
  * @param {string} pageName
  */
 export async function checkAccessibility(page, pageName) {
-  failOnSeriousOrCriticalViolations(
-    await scanPageForAccessibilityViolations(page, pageName)
+  if (!runsLighthouse) {
+    failOnSeriousOrCriticalViolations(
+      await scanPageForAccessibilityViolations(page, pageName)
+    )
+    return
+  }
+
+  test.info().setTimeout(test.info().timeout + LIGHTHOUSE_AUDIT_TIMEOUT)
+  const collector = createAccessibilityCollector()
+  const violations = await scanPageForAccessibilityViolations(
+    page,
+    pageName,
+    collector
   )
+  await attachAccessibilityReport(collector)
+  // Playwright has no per-worker teardown a support module can hook, so a
+  // Chrome left running here would outlive the worker.
+  await closeLighthouseChrome()
+  failOnSeriousOrCriticalViolations(violations)
 }
 
 function failOnSeriousOrCriticalViolations(violations) {
