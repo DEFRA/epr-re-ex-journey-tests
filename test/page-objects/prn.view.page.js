@@ -1,6 +1,12 @@
 import { Page } from 'page-objects/page'
 
 class PRNViewPage extends Page {
+  open(orgId, registrationNumber, year, prnId) {
+    return this.page.goto(
+      `/organisations/${orgId}/registrations/${registrationNumber}/accreditations/${year}/packaging-recycling-notes/${prnId}/view`
+    )
+  }
+
   returnToPRNList() {
     return this.page.getByRole('link', {
       name: 'Return to PRN list',
