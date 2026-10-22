@@ -15,6 +15,8 @@ import {
   uploadSummaryLog
 } from '../support/seeding/summary-logs.js'
 import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
+import { readReportDetail } from '../support/seeding/reports.js'
+import { reportSubmissionPath } from '../support/seeding/report-paths.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import {
   assertLoads,
@@ -23,6 +25,13 @@ import {
 } from '../support/summary-log-assertions.js'
 
 const FLOCI_SUMMARY_LOGS = 'docker/scripts/floci/summarylogs'
+
+const QUARTER_1_2026 = {
+  year: 2026,
+  cadence: 'quarterly',
+  period: 1,
+  submissionNumber: 1
+}
 
 // Ported from epr-backend-journey-tests' summarylogs-exporter-registered-only.feature
 // and summarylogs-reprocessor-registered-only.feature. See
@@ -107,13 +116,18 @@ test.describe('Summary Logs - Registered Only Exporter @summaryLogExporterRegOnl
       'submitted'
     )
 
-    const reportPath = `/v1/organisations/${org.refNo}/registrations/${registrationId}/reports/2026/quarterly/1/submissions/1`
-    const createReportResponse = await baseAPI.post(reportPath, '', authHeader)
+    const createReportResponse = await baseAPI.post(
+      await reportSubmissionPath(org.refNo, registrationId, QUARTER_1_2026),
+      '',
+      authHeader
+    )
     expect(createReportResponse.statusCode).to.equal(201)
 
-    const reportResponse = await baseAPI.get(reportPath, authHeader)
-    expect(reportResponse.statusCode).to.equal(200)
-    const report = /** @type {any} */ (await reportResponse.body.json())
+    const report = await readReportDetail(
+      org.refNo,
+      registrationId,
+      QUARTER_1_2026
+    )
     expect(report.wasteProcessingType).to.equal('exporter')
   })
 
@@ -297,10 +311,11 @@ test.describe('Summary Logs - Registered Only Reprocessor @summaryLogReprocessor
     // step is needed here: submitting the summary log leaves a placeholder
     // report record in place already (matching the source Cucumber
     // scenario, which also retrieves straight after submit).
-    const reportPath = `/v1/organisations/${org.refNo}/registrations/${registrationId}/reports/2026/quarterly/1/submissions/1`
-    const reportResponse = await baseAPI.get(reportPath, authHeader)
-    expect(reportResponse.statusCode).to.equal(200)
-    const report = /** @type {any} */ (await reportResponse.body.json())
+    const report = await readReportDetail(
+      org.refNo,
+      registrationId,
+      QUARTER_1_2026
+    )
 
     expect(report.operatorCategory).to.equal('REPROCESSOR_REGISTERED_ONLY')
     expect(report.cadence).to.equal('quarterly')
