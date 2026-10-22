@@ -10,11 +10,19 @@ import {
 } from '../support/seeding/organisation.js'
 import {
   ingestSummaryLogFixture,
-  registrationStartYear
+  registrationStartYear,
+  summaryLogNumbered,
+  uploadSummaryLog
 } from '../support/seeding/summary-logs.js'
 import { waitForSummaryLogStatus } from '../support/seeding/waiters.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
-import { assertValidationFailures } from '../support/summary-log-assertions.js'
+import {
+  assertLoads,
+  assertReportingPeriodLoads,
+  assertValidationFailures
+} from '../support/summary-log-assertions.js'
+
+const FLOCI_SUMMARY_LOGS = 'docker/scripts/floci/summarylogs'
 
 // Ported from epr-backend-journey-tests' summarylogs-validation.feature.
 // Each scenario uses the floci fixtures from docker/scripts/floci/summarylogs/,
@@ -86,7 +94,7 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
     // NOT covered: the source's DB-level assertion that the summary log
     // document itself was created with matching file/status fields - this
     // API test layer has no MongoDB client wired up (HTTP-only throughout
-    // test/api-specs/).
+    // test/api-specs/), same gap as summarylogs-period-closed-during-submit.
     const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
       orgId,
       registrationId,
@@ -110,5 +118,51 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
       { code: 'TEMPLATE_VERSION_INVALID', field: 'TEMPLATE_VERSION' },
       { code: 'REGISTRATION_REQUIRED', field: 'REGISTRATION_NUMBER' }
     ])
+  })
+
+  // RowID 1000 has a missing DATE_RECEIVED column
+  //
+  // NOT covered: the source's per-waste-record-type load breakdown
+  // (loadsByWasteRecordType, i.e. received/processed/sentOn sub-counts). The
+  // epr-backend image this compose stack currently runs does not compute
+  // that field at all - confirmed by reading the running container's own
+  // classify-and-persist.js, which only returns { loads, loadsByReportingPeriod }
+  // with no loadsByWasteRecordType field, even though the sibling epr-backend
+  // git checkout's source (PAE-1261) has long since added it. The deployed
+  // image is genuinely behind that checkout despite its git.hash label
+  // claiming to descend from that commit - an environment/build gap, not a
+  // test bug. Revisit once the running image picks up that feature.
+  test('creates Waste Records but excludes missing date row @summaryLogMissingDateRow', async () => {
+    const { summaryLogPath, baseAPI } = await uploadSummaryLog(
+      orgId,
+      registrationId,
+      authHeader,
+      await summaryLogNumbered(
+        `${FLOCI_SUMMARY_LOGS}/missing-date-row.xlsx`,
+        inputNumbers
+      ),
+      year
+    )
+    const responseData = await waitForSummaryLogStatus(
+      baseAPI,
+      summaryLogPath,
+      authHeader,
+      'validated'
+    )
+
+    assertLoads(responseData.loads, [
+      { loadType: 'added.valid', count: 3, rowIds: '1001,4000,5000' },
+      { loadType: 'added.invalid', count: 2, rowIds: '1000,1002' },
+      { loadType: 'added.included', count: 2, rowIds: '1001,5000' },
+      { loadType: 'added.excluded', count: 2, rowIds: '1000,1002' }
+    ])
+
+    assertReportingPeriodLoads(responseData.loadsByReportingPeriod, {
+      'openPeriodLoads.added.balanceAffecting.count': 2,
+      'openPeriodLoads.added.balanceAffecting.tonnageDelta': 309.99,
+      'openPeriodLoads.added.nonBalanceAffecting.count': 2,
+      'openPeriodLoads.adjusted.balanceAffecting.count': 0,
+      'closedPeriodLoads.added.balanceAffecting.count': 0
+    })
   })
 })

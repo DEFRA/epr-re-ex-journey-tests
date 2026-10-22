@@ -127,6 +127,30 @@ test.describe('Summary log upload-completed state transitions @summaryLogTransit
 
   const invalidTransitions = [
     {
+      from: 'complete',
+      to: 'rejected',
+      fromLog: 'validating',
+      toLog: 'rejected'
+    },
+    {
+      from: 'complete',
+      to: 'pending',
+      fromLog: 'validating',
+      toLog: 'preprocessing'
+    },
+    {
+      from: 'rejected',
+      to: 'complete',
+      fromLog: 'rejected',
+      toLog: 'validating'
+    },
+    {
+      from: 'rejected',
+      to: 'pending',
+      fromLog: 'rejected',
+      toLog: 'preprocessing'
+    },
+    {
       from: 'rejected',
       to: 'rejected',
       fromLog: 'rejected',
