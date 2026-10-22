@@ -6,7 +6,7 @@ import {
   story,
   descriptionHtml
 } from 'allure-js-commons'
-import { test } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { closeLighthouseChrome, runLighthouseAudit } from './lighthouse.js'
 import { buildAccessibilityHtmlReport } from './accessibility-report.js'
@@ -188,12 +188,13 @@ export async function attachAccessibilityReport(collector) {
   }
 
   const html = buildAccessibilityHtmlReport(collector)
+  const pageNames = collector.pages.map((page) => page.pageName).join(', ')
 
   await step(
-    '📊 Full accessibility & performance report (Axe + Lighthouse)',
+    `📊 Full accessibility & performance report (Axe + Lighthouse): ${pageNames}`,
     async () => {
       await attachment(
-        'Accessibility & performance report (Axe + Lighthouse)',
+        `Accessibility & performance report (Axe + Lighthouse): ${pageNames}`,
         html,
         'text/html'
       )
@@ -260,20 +261,25 @@ export async function assertNoSeriousOrCriticalViolations(violations) {
 
 /**
  * Scans the page the journey is on with axe, logs every violation to
- * Allure, and fails the journey here if any is Serious or Critical. With
- * RUN_LIGHTHOUSE=true it also audits the page with Lighthouse and attaches
- * the combined report.
+ * Allure, and fails the journey if any is Serious or Critical. The failure
+ * is soft, so the journey carries on and one run reports every offending
+ * page. With RUN_LIGHTHOUSE=true it also audits the page with Lighthouse
+ * and attaches the combined report.
  * @param {import('@playwright/test').Page} page
  * @param {string} pageName
  */
 export async function checkAccessibility(page, pageName) {
-  if (!runsLighthouse) {
-    failOnSeriousOrCriticalViolations(
-      await scanPageForAccessibilityViolations(page, pageName)
-    )
-    return
-  }
+  const violations = runsLighthouse
+    ? await scanPageWithLighthouse(page, pageName)
+    : await scanPageForAccessibilityViolations(page, pageName)
+  expect.soft(() => failOnSeriousOrCriticalViolations(violations)).not.toThrow()
+}
 
+/**
+ * @param {import('@playwright/test').Page} page
+ * @param {string} pageName
+ */
+async function scanPageWithLighthouse(page, pageName) {
   test.info().setTimeout(test.info().timeout + LIGHTHOUSE_AUDIT_TIMEOUT)
   const collector = createAccessibilityCollector()
   let violations
@@ -285,11 +291,11 @@ export async function checkAccessibility(page, pageName) {
     )
     await attachAccessibilityReport(collector)
   } finally {
-    // Playwright has no per-worker teardown a support module can hook, so a
-    // Chrome left running here would outlive the worker.
+    // The specs import test straight from @playwright/test, so no worker
+    // fixture exists to close a shared Chrome when the worker finishes.
     await closeLighthouseChrome()
   }
-  failOnSeriousOrCriticalViolations(violations)
+  return violations
 }
 
 /** @param {AccessibilityViolation[]} violations */

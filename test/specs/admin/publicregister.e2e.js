@@ -106,5 +106,9 @@ test.describe('Public Register page', () => {
         : `Q${report.period} Report`
     expect(orgRow[reportColumn]).toBeTruthy()
     expect(orgRow[reportColumn]).not.toEqual('N/A')
+
+    await navigation.clickOnLink('Waste records export')
+    await expect(page).toHaveTitle(/Waste records export/)
+    await checkAccessibility(page, 'Waste records export')
   })
 })
