@@ -14,7 +14,7 @@ import { getOrganisation } from './organisation.js'
  */
 export async function organisationPath(refNo) {
   const { orgId } = await getOrganisation(refNo)
-  return `/organisations/${orgId}`
+  return `/organisations/${encodeURIComponent(orgId)}`
 }
 
 /**
@@ -26,7 +26,7 @@ export async function registrationPath(refNo, registrationId) {
   const { registrationNumber } = registrations.find(
     (/** @type {{ id: string }} */ { id }) => id === registrationId
   )
-  return `/organisations/${orgId}/registrations/${encodeURIComponent(registrationNumber)}`
+  return `/organisations/${encodeURIComponent(orgId)}/registrations/${encodeURIComponent(registrationNumber)}`
 }
 
 /**
@@ -45,7 +45,7 @@ async function accreditationYear(
 ) {
   const authClient = new AuthClient()
   await authClient.authenticate()
-  const path = `/organisations/${orgId}`
+  const path = `/organisations/${encodeURIComponent(orgId)}`
   const { registrations } = await assertSuccessResponse(
     await new BaseAPI().get(path, authClient.authHeader()),
     `GET ${path}`
@@ -86,7 +86,7 @@ export async function accreditationPath(
       `Organisation ${orgId} serves no accreditation ${accreditationNumber} under registration ${registrationNumber}`
     )
   }
-  return `/organisations/${orgId}/registrations/${encodeURIComponent(registrationNumber)}/accreditations/${year}`
+  return `/organisations/${encodeURIComponent(orgId)}/registrations/${encodeURIComponent(registrationNumber)}/accreditations/${year}`
 }
 
 /**
