@@ -12,7 +12,10 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
-import { registrationPath } from '../support/seeding/natural-key-paths.js'
+import {
+  reportingPeriodsOf,
+  yearCalendarPath
+} from '../support/seeding/year-calendar.js'
 
 test.describe('Reports list @reportsList', () => {
   test('lists only this calendar year, which the early-year report skips rely on @reportsListCurrentYearOnly', async () => {
@@ -37,11 +40,12 @@ test.describe('Reports list @reportsList', () => {
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
 
     const response = await new BaseAPI().get(
-      `${await registrationPath(org.refNo, migrated.registrationIds[0])}/reports/calendar`,
+      await yearCalendarPath(org.refNo, migrated.registrationIds[0]),
       defraIdStub.authHeader(user.userId)
     )
-    const { reportingPeriods } = /** @type {any} */ (await response.body.json())
-    const otherYears = reportingPeriods
+    const otherYears = reportingPeriodsOf(
+      /** @type {any} */ (await response.body.json())
+    )
       .map((/** @type {{ startDate: string }} */ period) =>
         new Date(period.startDate).getUTCFullYear()
       )

@@ -1,6 +1,6 @@
 import { BaseAPI } from '../../apis/base-api.js'
 import { assertSuccessResponse } from '../response-assertions.js'
-import { registrationPath } from './natural-key-paths.js'
+import { reportingPeriodsOf, yearCalendarPath } from './year-calendar.js'
 
 const SUMMARY_LOG_FAILURE_STATUSES = [
   'invalid',
@@ -172,7 +172,7 @@ export async function waitForAvailableBalance(
   )
 }
 
-// Polls the reports calendar until some reporting period carries the given
+// Polls this year's reports calendar until some reporting period carries the given
 // periodStatus. The resubmission flag is written by the backend's summary-log
 // submit worker, so it can land shortly after the log reaches 'submitted'.
 export async function waitForReportingPeriodStatus(
@@ -182,16 +182,15 @@ export async function waitForReportingPeriodStatus(
   periodStatus
 ) {
   const baseAPI = new BaseAPI()
-  const calendarPath = `${await registrationPath(refNo, registrationId)}/reports/calendar`
+  const calendarPath = await yearCalendarPath(refNo, registrationId)
   const timeoutMs = 30000
   const startTime = Date.now()
   let lastSeen = []
 
   while (Date.now() - startTime < timeoutMs) {
     const response = await baseAPI.get(calendarPath, defraAuthHeader)
-    const { reportingPeriods } = await assertSuccessResponse(
-      response,
-      `GET ${calendarPath}`
+    const reportingPeriods = reportingPeriodsOf(
+      await assertSuccessResponse(response, `GET ${calendarPath}`)
     )
     if (reportingPeriods.some((rp) => rp.periodStatus === periodStatus)) {
       return
