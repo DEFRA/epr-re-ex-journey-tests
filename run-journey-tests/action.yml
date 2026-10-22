@@ -230,10 +230,6 @@ runs:
           npm run "generate:spreadsheet:$variant"
         done
 
-    # Doesn't skip the apt-get portion of --with-deps (OS packages aren't
-    # restorable this way on a fresh runner each time) but lets Playwright's
-    # own already-installed check skip re-downloading the browser binary
-    # itself when the cache hits.
     - name: Cache Playwright browsers
       if: inputs.test-suite != 'api'
       uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
@@ -241,11 +237,15 @@ runs:
         path: ~/.cache/ms-playwright
         key: playwright-browsers-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
+    # No --with-deps: the GitHub Ubuntu runner image already carries every
+    # library Chromium needs, and the extra fonts apt would add come from a
+    # mirror that can take ten minutes to serve them. If a later runner image
+    # drops a library, Playwright refuses to launch and names the package.
     - name: Install Playwright browsers
       if: inputs.test-suite != 'api'
       run: |
-        timeout 600 npx playwright install --with-deps chromium || {
-          echo "::error::Playwright install exceeded 10 minutes - usually an apt mirror stall on the runner. Re-run the job."
+        timeout 300 npx playwright install chromium || {
+          echo "::error::Chromium download exceeded 5 minutes. Re-run the job."
           exit 1
         }
       shell: bash
