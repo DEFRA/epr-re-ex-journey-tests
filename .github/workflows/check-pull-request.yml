@@ -77,7 +77,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   tests:
-    name: Run Journey Tests (${{ matrix.name }})
+    name: Run Journey Tests (${{ matrix.name }}${{ matrix.shard && format(' {0}', matrix.shard) || '' }})
     runs-on: ubuntu-latest
     needs: pr-prep
     timeout-minutes: 90
@@ -94,8 +94,19 @@ jobs:
         include:
           - name: baseline
             december-scope: exclude
+            shard: 1/3
+            suffix: -baseline-shard1
+          - name: baseline
+            december-scope: exclude
+            shard: 2/3
+            suffix: -baseline-shard2
+          - name: baseline
+            december-scope: exclude
+            shard: 3/3
+            suffix: -baseline-shard3
           - name: december
             december-scope: only
+            suffix: -december
     steps:
       - name: Checkout journey-tests repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -106,7 +117,31 @@ jobs:
           branch: ${{ github.head_ref }}
           journey-test-pr: true
           december-scope: ${{ matrix.december-scope }}
-          artifact-suffix: -${{ matrix.name }}
+          test-suite: e2e
+          shard: ${{ matrix.shard }}
+          artifact-suffix: ${{ matrix.suffix }}
+
+  suite-tests:
+    name: Run Journey Tests (${{ matrix.suite }} suite)
+    runs-on: ubuntu-latest
+    needs: pr-prep
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [api, a11y]
+    steps:
+      - name: Checkout journey-tests repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run journey tests
+        uses: ./run-journey-tests
+        with:
+          branch: ${{ github.head_ref }}
+          journey-test-pr: true
+          december-scope: exclude
+          test-suite: ${{ matrix.suite }}
+          artifact-suffix: -${{ matrix.suite }}
 
   # Aggregate gate carrying the exact name the branch ruleset requires; matrix
   # legs report as "Run Journey Tests (<name>)" and can't match it. `if: always()`
@@ -117,13 +152,13 @@ jobs:
   tests-gate:
     name: Run Journey Tests
     runs-on: ubuntu-latest
-    needs: tests
+    needs: [tests, suite-tests]
     if: always()
     steps:
-      - name: Gate on all journey matrix passes
+      - name: Gate on all journey passes
         shell: bash
         run: |
-          if [ "${{ needs.tests.result }}" != "success" ]; then
-            echo "one or more journey matrix passes did not succeed: ${{ needs.tests.result }}"
+          if [ "${{ needs.tests.result }}" != "success" ] || [ "${{ needs.suite-tests.result }}" != "success" ]; then
+            echo "one or more journey passes did not succeed: tests=${{ needs.tests.result }} suite-tests=${{ needs.suite-tests.result }}"
             exit 1
           fi

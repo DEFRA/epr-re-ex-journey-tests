@@ -11,7 +11,7 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
-import { reportSubmissionPath } from '../support/seeding/report-paths.js'
+import { reportSubmissionPath } from '../support/seeding/natural-key-paths.js'
 const YEAR = 2026
 const CADENCE = 'monthly'
 const PERIOD = 1
