@@ -117,12 +117,10 @@ export async function createLinkedOrganisation(dataRows) {
   const baseAPI = new BaseAPI()
 
   const organisation = new Organisation()
-  let payload = ''
-  if (dataRows[0].wasteProcessingType === 'Reprocessor') {
-    payload = organisation.toNonRegisteredUKSoleTraderPayload()
-  } else {
-    payload = organisation.toPayload()
-  }
+  let payload =
+    dataRows[0].wasteProcessingType === 'Reprocessor'
+      ? organisation.toNonRegisteredUKSoleTraderPayload()
+      : organisation.toPayload()
 
   let response = await baseAPI.post(
     '/v1/apply/organisation',
@@ -560,15 +558,11 @@ export async function updateMigratedOrganisation(
     data.submittedToRegulator = submittedToRegulator
   }
 
-  let email = ''
-  if (updateDataRows[0].email) {
-    email = updateDataRows[0].email
-  } else {
-    // Replace email address with a newly generated one in Environment to avoid same email address all the time
-    email = process.env.ENVIRONMENT
-      ? fakerEN_GB.internet.email()
-      : data.submitterContactDetails.email
-  }
+  // Replace email address with a newly generated one in Environment to avoid same email address all the time
+  const generatedEmail = process.env.ENVIRONMENT
+    ? fakerEN_GB.internet.email()
+    : data.submitterContactDetails.email
+  const email = updateDataRows[0].email || generatedEmail
   data.submitterContactDetails.email = email
 
   data.status = updateDataRows[0].status
