@@ -30,7 +30,7 @@ test.describe('Unlink organisation from Defra ID', () => {
     const linkedOrganisation = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
-    const { organisation, refNo } = linkedOrganisation
+    const { organisation, refNo, orgId } = linkedOrganisation
 
     await updateMigratedOrganisation(refNo, [
       {
@@ -85,13 +85,15 @@ test.describe('Unlink organisation from Defra ID', () => {
     let card = false
     const deadline = Date.now() + 15000
     while (!card) {
-      await systemLogsPage.searchFor(refNo)
+      await systemLogsPage.searchFor(orgId)
       card = (await systemLogsPage.unlinkLogCard()) ?? false
       if (card) {
         break
       }
       if (Date.now() > deadline) {
-        throw new Error(`unlink system log did not appear for ${refNo}`)
+        throw new Error(
+          `unlink system log did not appear for organisation ${orgId}`
+        )
       }
       await page.waitForTimeout(1000)
     }
