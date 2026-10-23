@@ -159,12 +159,8 @@ test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput',
       accreditationId,
       authHeader
     )
-    expect(parseFloat(balanceAfterFirst[accreditationId].amount)).to.equal(
-      361.62
-    )
-    expect(
-      parseFloat(balanceAfterFirst[accreditationId].availableAmount)
-    ).to.equal(361.62)
+    expect(parseFloat(balanceAfterFirst.amount)).to.equal(361.62)
+    expect(parseFloat(balanceAfterFirst.availableAmount)).to.equal(361.62)
 
     // Second upload: fails validation for a removed row. Depends on the
     // first upload's rows already being submitted.
@@ -327,12 +323,8 @@ test.describe('Summary Logs - Reprocessor on Input @summaryLogReprocessorInput',
       authHeader,
       45000
     )
-    expect(parseFloat(balanceAfterThird[accreditationId].amount)).to.equal(
-      386.51
-    )
-    expect(
-      parseFloat(balanceAfterThird[accreditationId].availableAmount)
-    ).to.equal(386.51)
+    expect(parseFloat(balanceAfterThird.amount)).to.equal(386.51)
+    expect(parseFloat(balanceAfterThird.availableAmount)).to.equal(386.51)
   })
 
   test('fails in-sheet revalidation @summaryLogReprocessorInputInvalid', async () => {

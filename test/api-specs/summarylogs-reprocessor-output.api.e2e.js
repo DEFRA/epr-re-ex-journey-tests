@@ -197,10 +197,8 @@ test.describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput
       accreditationId,
       authHeader
     )
-    expect(parseFloat(balanceAfterFirst[accreditationId].amount)).to.equal(3)
-    expect(
-      parseFloat(balanceAfterFirst[accreditationId].availableAmount)
-    ).to.equal(3)
+    expect(parseFloat(balanceAfterFirst.amount)).to.equal(3)
+    expect(parseFloat(balanceAfterFirst.availableAmount)).to.equal(3)
 
     // Adjustments: RowID 3001 is ignored (date falls outside accreditation
     // range); 1003/5002 are from non-contributing tables; 3003/3004 are
@@ -271,12 +269,8 @@ test.describe('Summary Logs - Reprocessor on Output @summaryLogReprocessorOutput
       authHeader,
       45000
     )
-    expect(parseFloat(balanceAfterSecond[accreditationId].amount)).to.equal(
-      9.25
-    )
-    expect(
-      parseFloat(balanceAfterSecond[accreditationId].availableAmount)
-    ).to.equal(9.25)
+    expect(parseFloat(balanceAfterSecond.amount)).to.equal(9.25)
+    expect(parseFloat(balanceAfterSecond.availableAmount)).to.equal(9.25)
 
     const report = await readReportDetail(orgId, registrationId, {
       year: 2026,
