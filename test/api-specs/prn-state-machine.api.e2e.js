@@ -380,9 +380,7 @@ test.describe('PRN state machine @prnStateMachine', () => {
       ctx.accreditationId,
       ctx.authHeader
     )
-    const available = Math.floor(
-      parseFloat(balance[ctx.accreditationId].availableAmount)
-    )
+    const available = Math.floor(parseFloat(balance.availableAmount))
 
     let firstPath
     let secondPath
@@ -453,7 +451,7 @@ test.describe('PRN state machine @prnStateMachine', () => {
       ctx.authHeader
     )
     const overBalanceTonnage =
-      Math.floor(parseFloat(balance[ctx.accreditationId].availableAmount)) + 1
+      Math.floor(parseFloat(balance.availableAmount)) + 1
 
     const response = await postDraft(
       ctx.baseAPI,
@@ -748,10 +746,8 @@ test.describe('PRN state machine @prnStateMachine', () => {
       ctx.accreditationId,
       ctx.authHeader
     )
-    const availableBefore = parseFloat(
-      balanceBefore[ctx.accreditationId].availableAmount
-    )
-    const amountBefore = parseFloat(balanceBefore[ctx.accreditationId].amount)
+    const availableBefore = parseFloat(balanceBefore.availableAmount)
+    const amountBefore = parseFloat(balanceBefore.amount)
 
     const tonnage = 5
     const { prnId, prnPath } = await createPrn(
@@ -803,12 +799,8 @@ test.describe('PRN state machine @prnStateMachine', () => {
       ctx.accreditationId,
       ctx.authHeader
     )
-    expect(
-      parseFloat(balanceAfter[ctx.accreditationId].availableAmount)
-    ).to.equal(availableBefore)
-    expect(parseFloat(balanceAfter[ctx.accreditationId].amount)).to.equal(
-      amountBefore
-    )
+    expect(parseFloat(balanceAfter.availableAmount)).to.equal(availableBefore)
+    expect(parseFloat(balanceAfter.amount)).to.equal(amountBefore)
 
     // AC8: the note reaches the external cancelled feed with the acceptance
     // recorded and no rejection, distinguishing it from the producer-rejection
@@ -842,7 +834,7 @@ test.describe('PERN create-time balance check @pernCreateBalanceCheck', () => {
       ctx.authHeader
     )
     const overBalanceTonnage =
-      Math.floor(parseFloat(balance[ctx.accreditationId].availableAmount)) + 1
+      Math.floor(parseFloat(balance.availableAmount)) + 1
 
     const response = await postDraft(
       ctx.baseAPI,
