@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test'
 import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { Navigation } from 'page-objects/admin/navigation.page'
 import { TonnageMonitoringPage } from 'page-objects/admin/tonnage.monitoring.page'
+import { checkAccessibility } from '../../support/accessibility.js'
 
 test.describe('Tonnage Monitoring page', () => {
   test('Should be able to view Tonnage Monitoring if logged in @tonnageMonitoring', async ({
@@ -22,6 +23,7 @@ test.describe('Tonnage Monitoring page', () => {
     const tableData = await tonnageMonitoringPage.tonnageMaterialTableData()
 
     expect(tableData.length).toBeGreaterThan(0)
+    await checkAccessibility(page, 'Tonnage monitoring')
     const firstRow = tableData[0]
     expect(firstRow).toHaveProperty('Material')
     expect(firstRow).toHaveProperty('Type')

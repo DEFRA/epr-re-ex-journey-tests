@@ -109,6 +109,10 @@ export class PrnHelper {
 
   async createAndCheckPrnDetails(prnDetails) {
     await this.createAndCheckDraftPrn(prnDetails)
+    await this.confirmDraftPrn(prnDetails)
+  }
+
+  async confirmDraftPrn(prnDetails) {
     await this.checkBeforeCreatingPrnPage.createPRNButton().click()
     const message = await this.prnCreatedPage.messageText()
     expect(message).toContain(`${this.prnWording} created`)
@@ -221,10 +225,16 @@ export class PrnHelper {
     }
   }
 
-  async cancelPRNAndReturnToPRNsDashboard(
-    prnDetails,
-    { checkDoubleClick = false } = {}
-  ) {
+  async cancelPRNAndReturnToPRNsDashboard(prnDetails, options) {
+    await this.cancelPRN(prnDetails, options)
+    if (!this.isPern) {
+      await this.prnCancelledPage.prnsPage().click()
+    } else {
+      await this.prnCancelledPage.pernsPage().click()
+    }
+  }
+
+  async cancelPRN(prnDetails, { checkDoubleClick = false } = {}) {
     await this.prnViewPage.cancelPRNButton().click()
     const confirmCancelHeading = await this.confirmCancelPrnPage.headingText()
     expect(confirmCancelHeading).toBe(
@@ -242,10 +252,5 @@ export class PrnHelper {
     const prnStatus = await this.prnCancelledPage.statusText()
     expect(prnStatus).toContain('Cancelled')
     prnDetails.status = 'Cancelled'
-    if (!this.isPern) {
-      await this.prnCancelledPage.prnsPage().click()
-    } else {
-      await this.prnCancelledPage.pernsPage().click()
-    }
   }
 }

@@ -39,17 +39,27 @@ describe('playwrightArgs', () => {
       {
         suite: 'a11y',
         december: 'all',
-        expected: ['--grep', '@accessibility']
+        expected: ['--grep', '@accessibility', '--pass-with-no-tests']
       },
       {
         suite: 'a11y',
         december: 'only',
-        expected: ['--grep', '(?=.*@decWaste)(?=.*@accessibility)']
+        expected: [
+          '--grep',
+          '(?=.*@decWaste)(?=.*@accessibility)',
+          '--pass-with-no-tests'
+        ]
       },
       {
         suite: 'a11y',
         december: 'exclude',
-        expected: ['--grep', '@accessibility', '--grep-invert', '@decWaste']
+        expected: [
+          '--grep',
+          '@accessibility',
+          '--grep-invert',
+          '@decWaste',
+          '--pass-with-no-tests'
+        ]
       }
     ]
 
