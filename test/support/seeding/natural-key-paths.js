@@ -90,6 +90,21 @@ export async function accreditationPath(
 }
 
 /**
+ * An accreditation's waste balance, under the registration it is linked to.
+ *
+ * @param {string} refNo
+ * @param {string} accreditationId
+ */
+export async function wasteBalancePath(refNo, accreditationId) {
+  const { registrations } = await getOrganisation(refNo)
+  const { id } = registrations.find(
+    (/** @type {{ accreditationId?: string }} */ registration) =>
+      registration.accreditationId === accreditationId
+  )
+  return `${await accreditationPath(refNo, id, accreditationId)}/waste-balance`
+}
+
+/**
  * Where a summary log upload starts, and its upload-completed callback sits
  * under: the registration's accreditation when it holds a live one, as the id
  * route stamped it, otherwise the registration for the year.

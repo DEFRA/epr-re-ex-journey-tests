@@ -58,12 +58,8 @@ test.describe('Cancel an awaiting acceptance PRN from the admin UI', () => {
       seeded.accreditationId,
       seeded.authHeader
     )
-    const availableBefore = parseFloat(
-      balanceBefore[seeded.accreditationId].availableAmount
-    )
-    const amountBefore = parseFloat(
-      balanceBefore[seeded.accreditationId].amount
-    )
+    const availableBefore = parseFloat(balanceBefore.availableAmount)
+    const amountBefore = parseFloat(balanceBefore.amount)
 
     const loginPage = new AdminLoginPage(page)
     const navigation = new Navigation(page)
@@ -108,9 +104,7 @@ test.describe('Cancel an awaiting acceptance PRN from the admin UI', () => {
             seeded.accreditationId,
             seeded.authHeader
           )
-          return parseFloat(
-            balanceAfter[seeded.accreditationId].availableAmount
-          )
+          return parseFloat(balanceAfter.availableAmount)
         },
         { timeout: 30000 }
       )
@@ -121,7 +115,7 @@ test.describe('Cancel an awaiting acceptance PRN from the admin UI', () => {
       seeded.accreditationId,
       seeded.authHeader
     )
-    expect(parseFloat(balanceAfter[seeded.accreditationId].amount)).toEqual(
+    expect(parseFloat(balanceAfter.amount)).toEqual(
       amountBefore + seeded.tonnage
     )
   })

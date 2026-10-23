@@ -223,12 +223,11 @@ test.describe('Local scenarios - Summary Logs uploaded as a workbook @summaryLog
       let wasteBalance
       if (scenario.accredited) {
         const accreditationId = migrated.accreditationIds[0]
-        const balances = await waitForWasteBalance(
+        wasteBalance = await waitForWasteBalance(
           org.refNo,
           accreditationId,
           authHeader
         )
-        wasteBalance = balances[accreditationId]
         expect(wasteBalance.availableAmount).toBeGreaterThan(0)
       }
 
