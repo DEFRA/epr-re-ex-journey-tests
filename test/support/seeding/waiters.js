@@ -172,17 +172,16 @@ export async function waitForAvailableBalance(
   )
 }
 
-// Polls this year's reports calendar until some reporting period carries the given
+// Polls the year's reports calendar until some reporting period carries the given
 // periodStatus. The resubmission flag is written by the backend's summary-log
 // submit worker, so it can land shortly after the log reaches 'submitted'.
 export async function waitForReportingPeriodStatus(
-  refNo,
-  registrationId,
+  keys,
   defraAuthHeader,
   periodStatus
 ) {
   const baseAPI = new BaseAPI()
-  const calendarPath = await yearCalendarPath(refNo, registrationId)
+  const calendarPath = yearCalendarPath(keys)
   const timeoutMs = 30000
   const startTime = Date.now()
   let lastSeen = []
