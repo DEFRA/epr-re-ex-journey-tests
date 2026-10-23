@@ -14,7 +14,10 @@ import {
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
-import { registrationPath } from '../support/seeding/natural-key-paths.js'
+import {
+  organisationPath,
+  registrationPath
+} from '../support/seeding/natural-key-paths.js'
 
 async function setUpApprovedReprocessor() {
   const org = await createLinkedOrganisation([
@@ -58,13 +61,13 @@ test.describe('Organisation linking/unlinking negative paths @organisationLinkin
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
 
     const firstUnlink = await baseAPI.delete(
-      `/v1/organisations/${org.refNo}/link`,
+      `${await organisationPath(org.refNo)}/link`,
       authClient.authHeader()
     )
     expect(firstUnlink.statusCode).to.equal(204)
 
     const secondUnlink = await baseAPI.delete(
-      `/v1/organisations/${org.refNo}/link`,
+      `${await organisationPath(org.refNo)}/link`,
       authClient.authHeader()
     )
     expect(secondUnlink.statusCode).to.equal(409)
