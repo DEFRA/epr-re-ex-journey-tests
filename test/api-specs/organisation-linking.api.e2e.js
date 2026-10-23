@@ -88,7 +88,7 @@ test.describe('Organisation linking/unlinking negative paths @organisationLinkin
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
 
     const unlinkResponse = await baseAPI.delete(
-      `/v1/organisations/${org.refNo}/link`,
+      `${await organisationPath(org.refNo)}/link`,
       authClient.authHeader()
     )
     expect(unlinkResponse.statusCode).to.equal(204)
@@ -107,13 +107,13 @@ test.describe('Organisation linking/unlinking negative paths @organisationLinkin
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
 
     const firstUnlink = await baseAPI.delete(
-      `/v1/organisations/${org.refNo}/link`,
+      `${await organisationPath(org.refNo)}/link`,
       authClient.authHeader()
     )
     expect(firstUnlink.statusCode).to.equal(204)
 
     const secondUnlink = await baseAPI.delete(
-      `/v1/organisations/${org.refNo}/link`,
+      `${await organisationPath(org.refNo)}/link`,
       authClient.authHeader()
     )
     expect(secondUnlink.statusCode).to.equal(409)
