@@ -20,6 +20,7 @@ import {
   checkBodyText,
   checkBodyTextDoesNotInclude
 } from '../support/checks.js'
+import { checkAccessibility } from '../support/accessibility.js'
 import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { CheckSummaryLogPage } from 'page-objects/check.summary.log.page.js'
 import { RegisteredOnlyPeriodPage } from 'page-objects/regulator/registered-only-period.page.js'
@@ -289,12 +290,15 @@ test.describe('@registeredOnly', () => {
     )
 
     await loginViaHomePage(page, migrationResponse.email)
+    await checkAccessibility(page, 'Dashboard (registered-only)')
 
     await dashboardPage.selectTableLink(1, 1)
     await checkBodyText(page, exporterRegNumber, 10)
+    await checkAccessibility(page, 'Waste records (registered-only)')
 
     await wasteRecordsPage.submitSummaryLogLink().click()
     await expect(page).toHaveTitle(/Summary log: upload/)
+    await checkAccessibility(page, 'Upload summary log')
 
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered('resources/exporter-regonly.xlsx', {
@@ -309,10 +313,12 @@ test.describe('@registeredOnly', () => {
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(page, 'new loads will be recorded', 30)
     await checkBodyText(page, 'These have been added to your summary log.', 30)
+    await checkAccessibility(page, 'Check summary log')
     await checkSummaryLogPage.uploadButton().click()
 
     await checkBodyText(page, 'Summary log uploaded', 30)
     await checkBodyTextDoesNotInclude(page, 'Your updated waste balance', 10)
+    await checkAccessibility(page, 'Summary log uploaded (confirmation)')
     await uploadSummaryLogPage.returnToHomePageLink().click()
 
     await homePage.signOutLink().click()

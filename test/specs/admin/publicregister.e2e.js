@@ -10,6 +10,7 @@ import {
 import { generateNumbers } from '../../support/reg-acc-number.js'
 import { createSubmittedReport } from '../../support/seeding/reports.js'
 import { parseCsvRows } from '../../support/csv.js'
+import { checkAccessibility } from '../../support/accessibility.js'
 
 // Matches the fixed abbreviation list the backend's compliance-reporting-periods
 // uses to build the CSV's dynamic "<Mon> Report" column headers.
@@ -71,6 +72,7 @@ test.describe('Public Register page', () => {
 
     await navigation.clickOnLink('Public register')
     await expect(publicRegisterPage.downloadPublicRegisterButton).toBeVisible()
+    await checkAccessibility(page, 'Public register')
     await publicRegisterPage.downloadPublicRegisterButton.click()
 
     const csv = await publicRegisterPage.fetchCsv()
@@ -104,5 +106,9 @@ test.describe('Public Register page', () => {
         : `Q${report.period} Report`
     expect(orgRow[reportColumn]).toBeTruthy()
     expect(orgRow[reportColumn]).not.toEqual('N/A')
+
+    await navigation.clickOnLink('Waste records export')
+    await expect(page).toHaveTitle(/Waste records export/)
+    await checkAccessibility(page, 'Waste records export')
   })
 })

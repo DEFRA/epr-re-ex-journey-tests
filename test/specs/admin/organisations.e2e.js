@@ -12,6 +12,7 @@ import {
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
 import { createSubmittedReport } from '../../support/seeding/reports.js'
+import { checkAccessibility } from '../../support/accessibility.js'
 import { SystemLogsPage } from 'page-objects/admin/system.logs.page'
 import { UnsubmitConfirmationPage } from 'page-objects/admin/unsubmit.confirmation.page'
 
@@ -211,6 +212,8 @@ test.describe('Organisations page', () => {
     const registrationOverviewPage = new RegistrationOverviewPage(page)
     const unsubmitConfirmationPage = new UnsubmitConfirmationPage(page)
 
+    await checkAccessibility(page, 'Home')
+
     const linkedOrganisation = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
@@ -231,6 +234,7 @@ test.describe('Organisations page', () => {
     await createSubmittedReport(linkedOrganisation.refNo)
 
     await organisationsPage.open()
+    await checkAccessibility(page, 'Organisations')
 
     await organisationsPage.searchFor(organisation.companyName)
     const searchResult = await organisationsPage.searchResult()
@@ -254,6 +258,7 @@ test.describe('Organisations page', () => {
     const organisationOverviewPageHeader =
       await organisationOverviewPage.getHeaderText()
     expect(organisationOverviewPageHeader).toEqual(organisation.companyName)
+    await checkAccessibility(page, 'Organisation overview')
 
     await organisationOverviewPage.viewRegistrationLink(1)
 
@@ -263,6 +268,7 @@ test.describe('Organisations page', () => {
     expect(reportsData[lastRowIdx].status).toEqual('Submitted')
     expect(reportsData[lastRowIdx].actions).toContain('View')
     expect(reportsData[lastRowIdx].actions).toContain('Unsubmit')
+    await checkAccessibility(page, 'Registration overview')
 
     // unsubmit report
     await registrationOverviewPage.clickOnUnsubmitReportLink(lastRowIdx + 1)
@@ -270,6 +276,7 @@ test.describe('Organisations page', () => {
     expect(warningText).toContain(
       "Unsubmitting will move the report back to 'ready to submit'. The operator will need to delete and resubmit it."
     )
+    await checkAccessibility(page, 'Confirm unsubmit report')
     await unsubmitConfirmationPage.confirmUnsubmitButton().click()
 
     const successMessage = await unsubmitConfirmationPage.getSuccessMessage()
