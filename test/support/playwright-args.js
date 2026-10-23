@@ -1,6 +1,5 @@
 import { shardFilePatterns, specFilter } from './shard.js'
 
-const ACCESSIBILITY_TAG = '@accessibility'
 const DECEMBER_TAG = '@decWaste'
 
 /** @type {Record<string, (file: string) => boolean>} */
@@ -41,15 +40,8 @@ const fileFilters = (files, scope, shard) => {
   return filters
 }
 
-const suites = ['all', 'e2e', 'a11y']
+const suites = ['all', 'e2e']
 const decemberScopes = ['all', 'only', 'exclude']
-
-/**
- * @param {string[]} tags
- * @returns {string}
- */
-const allOf = (tags) =>
-  tags.length === 1 ? tags[0] : tags.map((tag) => `(?=.*${tag})`).join('')
 
 /**
  * @param {string} suite
@@ -65,21 +57,9 @@ const grepFlags = (suite, december) => {
     throw new Error(`invalid december scope: ${december}`)
   }
 
-  const required = [
-    ...(december === 'only' ? [DECEMBER_TAG] : []),
-    ...(suite === 'a11y' ? [ACCESSIBILITY_TAG] : [])
-  ]
-  const excluded = [
-    ...(december === 'exclude' ? [DECEMBER_TAG] : []),
-    ...(suite === 'e2e' ? [ACCESSIBILITY_TAG] : [])
-  ]
-
   return [
-    ...(required.length ? ['--grep', allOf(required)] : []),
-    ...(excluded.length ? ['--grep-invert', excluded.join('|')] : []),
-    // No spec carries the accessibility tag, but callers of the action may
-    // still run an a11y leg.
-    ...(suite === 'a11y' ? ['--pass-with-no-tests'] : [])
+    ...(december === 'only' ? ['--grep', DECEMBER_TAG] : []),
+    ...(december === 'exclude' ? ['--grep-invert', DECEMBER_TAG] : [])
   ]
 }
 
