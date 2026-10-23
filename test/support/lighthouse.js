@@ -65,9 +65,8 @@ async function getChromeInstance() {
 }
 
 /**
- * Closes the shared Lighthouse Chrome instance, if one was launched during
- * the run. Call once per spec file (e.g. from a `test.afterAll` hook) so
- * the process doesn't linger once the last audit is done.
+ * Closes the shared Lighthouse Chrome instance, if one was launched, so
+ * the process doesn't outlive the audit.
  */
 export async function closeLighthouseChrome() {
   if (chromeInstance) {
