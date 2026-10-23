@@ -5,6 +5,7 @@ import { CreatePRNPage } from 'page-objects/create.prn.page.js'
 import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
 import { PRNIssuedPage } from 'page-objects/prn.issued.page.js'
 import { todayddMMMMyyyy } from './date.js'
+import { registrationStartYear } from './seeding/summary-logs.js'
 import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
 import { ConfirmCancelPRNPage } from 'page-objects/confirm.cancel.prn.page.js'
 import { PRNCancelledPage } from 'page-objects/prn.cancelled.page.js'
@@ -219,7 +220,7 @@ export class PrnHelper {
     ]) {
       await link.click()
       expect(await this.prnDashboardPage.headingText()).toBe(
-        `${this.prnWording}s`
+        `${this.prnWording}s (${registrationStartYear()})`
       )
       await this.page.goBack()
     }
