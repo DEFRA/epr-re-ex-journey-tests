@@ -68,11 +68,30 @@ test.describe('Accepting a PRN into an obligation year (RPD) @decWaste @prnOblig
   const accreditationYear = registrationStartYear()
   let ctx
 
-  // The accepted document as stored, read through RPD's feed. The by-id and
-  // natural-key routes replay the ledger on read, so they would hide a
-  // document the accept failed to update.
-  const findStored = (prnNumber, issuedFrom) =>
-    findInRpdFeed(prnNumber, 'accepted', issuedFrom)
+  // The stored document, as RPD's feed reads it. The by-id and natural-key
+  // routes replay the ledger on read, so they would hide a document the accept
+  // failed to update.
+  async function findStored(prnNumber, status) {
+    let cursor
+    do {
+      const query = new URLSearchParams({ statuses: status, limit: '1000' })
+      if (cursor) {
+        query.set('cursor', cursor)
+      }
+      const response = await baseAPI.get(
+        `/v1/admin/packaging-recycling-notes?${query}`,
+        ctx.authClient.authHeader()
+      )
+      expect(response.statusCode).toBe(200)
+      const body = /** @type {any} */ (await response.body.json())
+      const found = body.items.find((item) => item.prnNumber === prnNumber)
+      if (found) {
+        return found
+      }
+      cursor = body.hasMore ? body.nextCursor : undefined
+    } while (cursor)
+    throw new Error(`${prnNumber} not found among ${status} PRNs`)
+  }
 
   // Skips a December PRN's test when the window is shut on this environment.
   async function issuePrnOrSkip(isDecemberWaste) {
@@ -115,32 +134,32 @@ test.describe('Accepting a PRN into an obligation year (RPD) @decWaste @prnOblig
   })
 
   test('keeps a December PRN in its accreditation year when RPD accepts it there (AC1) @prnObligationYearDecSame', async () => {
-    const { prnNumber, issuedFrom } = await issuePrnOrSkip(true)
+    const { prnNumber } = await issuePrnOrSkip(true)
 
     await externalAPIAcceptPrn(
       { prnNumber },
       { obligationYear: accreditationYear }
     )
 
-    const stored = await findStored(prnNumber, issuedFrom)
+    const stored = await findStored(prnNumber, 'accepted')
     expect(stored.isDecemberWaste).toBe(true)
-    expect(stored.accreditation.accreditationYear).toBe(accreditationYear)
+    expect(stored.accreditationYear).toBe(accreditationYear)
     expect(stored.obligationYear).toBe(accreditationYear)
   })
 
   test("moves a December PRN to the following obligation year when RPD accepts it into Y+1, and the operator's PRN page says so (AC2) @prnObligationYearDecNext", async ({
     page
   }) => {
-    const { prnId, prnNumber, issuedFrom } = await issuePrnOrSkip(true)
+    const { prnId, prnNumber } = await issuePrnOrSkip(true)
 
     await externalAPIAcceptPrn(
       { prnNumber },
       { obligationYear: accreditationYear + 1 }
     )
 
-    const stored = await findStored(prnNumber, issuedFrom)
+    const stored = await findStored(prnNumber, 'accepted')
     expect(stored.isDecemberWaste).toBe(true)
-    expect(stored.accreditation.accreditationYear).toBe(accreditationYear)
+    expect(stored.accreditationYear).toBe(accreditationYear)
     expect(stored.obligationYear).toBe(accreditationYear + 1)
 
     await loginViaHomePage(page, ctx.email)
@@ -159,13 +178,13 @@ test.describe('Accepting a PRN into an obligation year (RPD) @decWaste @prnOblig
   })
 
   test('keeps an ordinary PRN in its accreditation year when RPD sends no year (AC3) @prnObligationYearOrdinary', async () => {
-    const { prnNumber, issuedFrom } = await issuePrnOrSkip(false)
+    const { prnNumber } = await issuePrnOrSkip(false)
 
     await externalAPIAcceptPrn({ prnNumber })
 
-    const stored = await findStored(prnNumber, issuedFrom)
+    const stored = await findStored(prnNumber, 'accepted')
     expect(stored.isDecemberWaste).toBe(false)
-    expect(stored.accreditation.accreditationYear).toBe(accreditationYear)
+    expect(stored.accreditationYear).toBe(accreditationYear)
     expect(stored.obligationYear).toBe(accreditationYear)
   })
 
@@ -199,7 +218,7 @@ test.describe('Accepting a PRN into an obligation year (RPD) @decWaste @prnOblig
       { obligationYear: accreditationYear + 1 }
     )
 
-    const stored = await findStored(prnNumber, issuedFrom)
+    const stored = await findStored(prnNumber, 'accepted')
     expect(stored.obligationYear).toBe(accreditationYear + 1)
   })
 
