@@ -146,7 +146,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       // On tonnes-recycled — back link goes to reports list
       await tonnesRecycledPage.backLink().click()
       const reportsHeading = await reportsPage.headingText()
-      expect(reportsHeading).toContain('Reports')
+      expect(reportsHeading).toMatch(/reports/i)
 
       // Re-enter the wizard — report is in_progress so the action link
       // routes straight to tonnes-recycled
@@ -228,7 +228,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
 
       // Should be back on reports list with status reverted to Due
       let reportsHeading = await reportsPage.headingText()
-      expect(reportsHeading).toContain('Reports')
+      expect(reportsHeading).toMatch(/reports/i)
 
       await expectActionRequiredStatus(page, 1)
 
@@ -249,7 +249,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
 
       // Should be back on reports list with status reverted to Due
       reportsHeading = await reportsPage.headingText()
-      expect(reportsHeading).toContain('Reports')
+      expect(reportsHeading).toMatch(/reports/i)
 
       await expectActionRequiredStatus(page, 1)
     })
@@ -275,7 +275,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
 
       // Should redirect back to reports list
       const reportsHeading = await reportsPage.headingText()
-      expect(reportsHeading).toContain('Reports')
+      expect(reportsHeading).toMatch(/reports/i)
 
       // Resume the report — should land on tonnes-recycled with pre-populated data
       await reportsPage.selectActiveActionLink(1)
@@ -420,7 +420,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       await confirmationPage.goToReports().click()
 
       const reportsHeading = await reportsPage.headingText()
-      expect(reportsHeading).toContain('Reports')
+      expect(reportsHeading).toMatch(/reports/i)
 
       await reportsPage.selectActiveActionLink(1)
 

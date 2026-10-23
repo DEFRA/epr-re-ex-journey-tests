@@ -130,7 +130,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       // On prn-summary — back link goes to reports list
       await prnSummaryPage.backLink().click()
       const reportsHeading = await reportsPage.headingText()
-      expect(reportsHeading).toContain('Reports')
+      expect(reportsHeading).toMatch(/reports/i)
 
       // Re-enter the wizard — report is in_progress so the action link
       // routes straight to prn-summary
@@ -188,7 +188,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
 
       // Should be back on reports list with status reverted to Due
       let reportsHeading = await reportsPage.headingText()
-      expect(reportsHeading).toContain('Reports')
+      expect(reportsHeading).toMatch(/reports/i)
 
       await expectActionRequiredStatus(page, 1)
 
@@ -207,7 +207,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
 
       // Should be back on reports list with status reverted to Due
       reportsHeading = await reportsPage.headingText()
-      expect(reportsHeading).toContain('Reports')
+      expect(reportsHeading).toMatch(/reports/i)
 
       await expectActionRequiredStatus(page, 1)
     })
@@ -228,7 +228,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
 
       // Should redirect back to reports list
       const reportsHeading = await reportsPage.headingText()
-      expect(reportsHeading).toContain('Reports')
+      expect(reportsHeading).toMatch(/reports/i)
 
       // Resume the report — Continue goes directly to prn-summary for accredited exporters
       await reportsPage.selectActiveActionLink(1)
@@ -243,7 +243,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
 
       // Should redirect back to reports list
       const reportsHeadingAfterSave = await reportsPage.headingText()
-      expect(reportsHeadingAfterSave).toContain('Reports')
+      expect(reportsHeadingAfterSave).toMatch(/reports/i)
 
       // Clean up — delete the report (Continue goes directly to prn-summary)
       await reportsPage.selectActiveActionLink(1)
@@ -328,7 +328,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       await page.goBack()
 
       const reportsHeading = await reportsPage.headingText()
-      expect(reportsHeading).toContain('Reports')
+      expect(reportsHeading).toMatch(/reports/i)
 
       // Refresh to see the status change
       await page.reload()

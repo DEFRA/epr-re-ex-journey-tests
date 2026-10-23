@@ -65,7 +65,7 @@ class ReportDetailPage extends Page {
     await this.page.goBack()
     await this.cancelAndReturnToReports()
     const reportsPage = new ReportsPage(this.page)
-    await expect(reportsPage.heading()).toContainText('Reports', {
+    await expect(reportsPage.heading()).toContainText(/reports/i, {
       timeout: 10000
     })
   }

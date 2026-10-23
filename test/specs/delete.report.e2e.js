@@ -161,7 +161,7 @@ test.describe.serial('Deleting reports', () => {
 
     // Should be back on reports list with status reverted to due
     const reportsHeading = await reportsPage.headingText()
-    expect(reportsHeading).toContain('Reports')
+    expect(reportsHeading).toMatch(/reports/i)
 
     await expectActionRequiredStatus(page, 1)
   })

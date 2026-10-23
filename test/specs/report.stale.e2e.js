@@ -204,7 +204,7 @@ test.describe('Stale report @staleReport', () => {
 
     // "Return to reports" navigates back to the reports list without deleting
     await reportStaleErrorPage.returnToReports().click()
-    expect(await reportsPage.headingText()).toContain('Reports')
+    expect(await reportsPage.headingText()).toMatch(/reports/i)
 
     // Report is still present — navigating again shows the error page
     await reportsPage.selectActiveActionLink(1)
@@ -215,7 +215,7 @@ test.describe('Stale report @staleReport', () => {
     // "Delete and start again" deletes the report and returns to reports with
     // its un-started action-required status (Due, or Overdue if past due date)
     await reportStaleErrorPage.deleteAndStartAgain()
-    expect(await reportsPage.headingText()).toContain('Reports')
+    expect(await reportsPage.headingText()).toMatch(/reports/i)
     await expectActionRequiredStatus(page, 1)
 
     await homePage.signOutLink().click()
@@ -281,7 +281,7 @@ test.describe('Stale report @staleReport', () => {
     // "Delete and start again" deletes the report and returns to reports with
     // its un-started action-required status (Due, or Overdue if past due date)
     await reportStaleErrorPage.deleteAndStartAgain()
-    expect(await reportsPage.headingText()).toContain('Reports')
+    expect(await reportsPage.headingText()).toMatch(/reports/i)
     await expectActionRequiredStatus(page, 1)
 
     await homePage.signOutLink().click()

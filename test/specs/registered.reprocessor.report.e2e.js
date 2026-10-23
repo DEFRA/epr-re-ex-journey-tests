@@ -145,7 +145,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       // On tonnes-recycled — back link goes to reports list
       await tonnesRecycledPage.backLink().click()
       const reportsHeading = await reportsPage.headingText()
-      expect(reportsHeading).toContain('Reports')
+      expect(reportsHeading).toMatch(/reports/i)
 
       // Re-enter the wizard — report is in_progress so the action link
       // routes straight to tonnes-recycled
