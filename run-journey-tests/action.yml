@@ -39,15 +39,20 @@ runs:
     - name: Check the test suite
       if: ${{ !contains(fromJSON('["all", "api", "e2e"]'), inputs.test-suite) }}
       shell: bash
+      env:
+        TEST_SUITE: ${{ inputs.test-suite }}
       run: |
-        echo "::error::unknown test-suite '${{ inputs.test-suite }}': use 'all', 'api' or 'e2e'"
+        echo "::error::unknown test-suite '$TEST_SUITE': use 'all', 'api' or 'e2e'"
         exit 1
 
     - name: Check the inputs
       if: inputs.shard != '' && (inputs.test-suite != 'e2e' || inputs.december-scope == 'only')
       shell: bash
+      env:
+        TEST_SUITE: ${{ inputs.test-suite }}
+        DECEMBER_SCOPE: ${{ inputs.december-scope }}
       run: |
-        echo "::error::shard needs test-suite 'e2e' and a december-scope other than 'only', not '${{ inputs.test-suite }}' with '${{ inputs.december-scope }}': files are dealt out before the tags are matched, so some shards would hold no test"
+        echo "::error::shard needs test-suite 'e2e' and a december-scope other than 'only', not '$TEST_SUITE' with '$DECEMBER_SCOPE': files are dealt out before the tags are matched, so some shards would hold no test"
         exit 1
 
     - name: Checkout repository if not called by Journey Test PR
