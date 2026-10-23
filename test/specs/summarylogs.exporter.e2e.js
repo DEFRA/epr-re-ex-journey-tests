@@ -130,7 +130,7 @@ test.describe('Summary Logs Exporter', () => {
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
 
-    await checkBodyText(page, 'Summary log uploaded', 30)
+    await uploadSummaryLogPage.checkUploaded()
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '30.00 tonnes', 10)
 
@@ -141,7 +141,7 @@ test.describe('Summary Logs Exporter', () => {
       false
     )
 
-    await uploadSummaryLogPage.returnToHomePageLink().click()
+    await uploadSummaryLogPage.returnToHome()
 
     await dashboardPage.exportingTabLink().click()
 
@@ -226,11 +226,11 @@ test.describe('Summary Logs Exporter', () => {
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
 
-    await checkBodyText(page, 'Summary log uploaded', 30)
+    await uploadSummaryLogPage.checkUploaded()
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '139.00 tonnes', 10)
 
-    await uploadSummaryLogPage.returnToHomePageLink().click()
+    await uploadSummaryLogPage.returnToHome()
 
     await dashboardPage.exportingTabLink().click()
 

@@ -142,10 +142,10 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     expect(await checkSummaryLogPage.importantBanner().count()).toBe(0)
 
     await checkSummaryLogPage.uploadButton().click()
-    await checkBodyText(page, 'Summary log uploaded', 30)
+    await uploadSummaryLogPage.checkUploaded()
     await checkBodyTextDoesNotInclude(page, FURTHER_ACTION_HEADING, 5)
 
-    await uploadSummaryLogPage.returnToHomePageLink().click()
+    await uploadSummaryLogPage.returnToHome()
     await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.manageReportsLink().click()
@@ -238,8 +238,8 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
 
     // The figure change must flag the report seeded from this same log.
     await checkSummaryLogPage.uploadButton().click()
-    await checkBodyText(page, 'Summary log uploaded', 30)
-    await uploadSummaryLogPage.returnToHomePageLink().click()
+    await uploadSummaryLogPage.checkUploaded()
+    await uploadSummaryLogPage.returnToHome()
     await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.manageReportsLink().click()
