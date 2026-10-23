@@ -95,56 +95,6 @@ class RegistrationOverviewPage extends AdminPage {
       .getByRole('link', { name: 'View data' })
       .click()
   }
-
-  accreditationStatusRow() {
-    return this.page.locator('.govuk-summary-list__row', {
-      has: this.page.locator('dt', { hasText: 'Accreditation status' })
-    })
-  }
-
-  async getAccreditationStatus() {
-    const row = this.accreditationStatusRow()
-    await row.waitFor({ state: 'visible', timeout: 10000 })
-    return row.locator('.govuk-summary-list__value').innerText()
-  }
-
-  // Clicks a status-transition action (Approve, Suspend, Reapprove, Cancel,
-  // Reinstate) on the Accreditation status row. Each action's accessible name
-  // ends in the visually hidden word "accreditation".
-  async clickAccreditationAction(actionText) {
-    await this.accreditationStatusRow()
-      .getByRole('link', {
-        name: new RegExp(`^${actionText} accreditation$`, 'i')
-      })
-      .click()
-  }
-
-  // The registration's own status row is labelled just "Status" - anchored
-  // regex so it doesn't also match the "Accreditation status" row below it.
-  // Regex hasText matches the raw (untrimmed) text content, and the summary
-  // list macro pads the dt with whitespace, so the anchors must allow it.
-  registrationStatusRow() {
-    return this.page.locator('.govuk-summary-list__row', {
-      has: this.page.locator('dt', { hasText: /^\s*Status\s*$/ })
-    })
-  }
-
-  async getRegistrationStatus() {
-    const row = this.registrationStatusRow()
-    await row.waitFor({ state: 'visible', timeout: 10000 })
-    return row.locator('.govuk-summary-list__value').innerText()
-  }
-
-  // Clicks a status-transition action (Approve, Reject, Reopen, Cancel,
-  // Reinstate) on the registration's Status row. Each action's accessible name ends in the
-  // visually hidden word "registration".
-  async clickRegistrationAction(actionText) {
-    await this.registrationStatusRow()
-      .getByRole('link', {
-        name: new RegExp(`^${actionText} registration$`, 'i')
-      })
-      .click()
-  }
 }
 
 export { RegistrationOverviewPage }
