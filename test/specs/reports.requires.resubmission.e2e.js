@@ -133,8 +133,8 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
 
     await checkSummaryLogPage.uploadButton().click()
     await checkBodyText(page, 'Your waste records are being updated', 30)
-    await checkBodyText(page, 'Summary log uploaded', 30)
-    await uploadSummaryLogPage.returnToHomePageLink().click()
+    await uploadSummaryLogPage.checkUploaded()
+    await uploadSummaryLogPage.returnToHome()
 
     // The Reports landing page now shows a "Requires resubmission" entry for the
     // restated period, with a "Review and create draft" call to action.
