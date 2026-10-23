@@ -21,7 +21,7 @@ inputs:
     description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - applies to the browser specs under every test-scope; the API specs ignore it"
     default: 'all'
   test-suite:
-    description: "which suite to run - 'api' (API specs, whatever the test-scope), 'a11y' (@accessibility specs), 'e2e' (browser specs except @accessibility) or 'all' (everything)"
+    description: "which suite to run - 'api' (API specs, whatever the test-scope), 'e2e' (browser specs) or 'all' (everything)"
     default: 'all'
   shard:
     description: "shard of the browser specs in scope in the form 'current/total', for example '2/3', dealt out round-robin by spec file; needs test-suite 'e2e' and a december-scope other than 'only', as files are dealt out before the tags are matched; empty runs them all"
@@ -36,6 +36,13 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Check the test suite
+      if: ${{ !contains(fromJSON('["all", "api", "e2e"]'), inputs.test-suite) }}
+      shell: bash
+      run: |
+        echo "::error::unknown test-suite '${{ inputs.test-suite }}': use 'all', 'api' or 'e2e'"
+        exit 1
+
     - name: Check the inputs
       if: inputs.shard != '' && (inputs.test-suite != 'e2e' || inputs.december-scope == 'only')
       shell: bash
