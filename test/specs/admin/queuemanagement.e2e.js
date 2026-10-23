@@ -4,6 +4,7 @@ import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { Navigation } from 'page-objects/admin/navigation.page'
 import { QueueManagementPage } from 'page-objects/admin/queue.management.page'
 import { sendMessageToDlq, purgeDlq } from '../../support/sqs-helpers.js'
+import { checkAccessibility } from '../../support/accessibility.js'
 
 const testMessage = {
   type: 'PROCESS_SUMMARY_LOG',
@@ -36,6 +37,7 @@ test.describe('Queue management page', () => {
 
     const headerText = await queueManagementPage.getHeaderText()
     expect(headerText).toBe('Queue management')
+    await checkAccessibility(page, 'Queue management')
 
     // Verify messages table columns
     const headers = await queueManagementPage.getTableHeaders()

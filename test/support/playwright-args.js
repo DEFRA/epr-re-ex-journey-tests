@@ -76,7 +76,10 @@ const grepFlags = (suite, december) => {
 
   return [
     ...(required.length ? ['--grep', allOf(required)] : []),
-    ...(excluded.length ? ['--grep-invert', excluded.join('|')] : [])
+    ...(excluded.length ? ['--grep-invert', excluded.join('|')] : []),
+    // No spec carries the accessibility tag, but callers of the action may
+    // still run an a11y leg.
+    ...(suite === 'a11y' ? ['--pass-with-no-tests'] : [])
   ]
 }
 
