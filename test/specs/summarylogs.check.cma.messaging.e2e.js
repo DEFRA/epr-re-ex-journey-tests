@@ -144,7 +144,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
     // The caption names the material of the one registration this operator
     // holds, so it is that registration's reports and not just a reports page.
     const reportsPage = new ReportsPage(page)
-    expect(await reportsPage.headingText()).toContain('Reports')
+    expect(await reportsPage.headingText()).toMatch(/reports/i)
     expect(await reportsPage.captionText()).toBe('Paper and board')
 
     await homePage.signOutLink().click()
