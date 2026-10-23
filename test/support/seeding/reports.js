@@ -344,8 +344,11 @@ export async function seedRestatedClosedPeriod({ tonnageRecycled = 100 } = {}) {
     )
   }
   await waitForReportingPeriodStatus(
-    refNo,
-    registrationId,
+    {
+      organisationNumber: linkedOrganisation.orgId,
+      registrationNumber: regNumber,
+      year: RESTATED_PERIOD.year
+    },
     defraAuthHeader,
     'requires_resubmission'
   )
