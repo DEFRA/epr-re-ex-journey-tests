@@ -214,8 +214,9 @@ export class PrnHelper {
       this.prnIssuedPage.issueAnotherPRN()
     ]) {
       await link.click()
+      const [, year] = /\/accreditations\/(\d{4})\//.exec(this.page.url())
       expect(await this.prnDashboardPage.headingText()).toBe(
-        `${this.prnWording}s`
+        `${this.prnWording}s (${year})`
       )
       await this.page.goBack()
     }
