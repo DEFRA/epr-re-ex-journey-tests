@@ -7,6 +7,7 @@ import { Navigation } from 'page-objects/admin/navigation.page'
 import { OrganisationsPage } from 'page-objects/admin/organisations.page'
 import { SystemLogsPage } from 'page-objects/admin/system.logs.page'
 import { createLinkedOrganisation } from '../../support/seeding/organisation.js'
+import { checkAccessibility } from '../../support/accessibility.js'
 test.describe('System logs search @searchSystemLogs', () => {
   let linkedOrganisation
 
@@ -23,7 +24,7 @@ test.describe('System logs search @searchSystemLogs', () => {
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
     ])
 
-    page = await browser.newPage()
+    page = await (await browser.newContext()).newPage()
 
     const loginPage = new AdminLoginPage(page)
     const homePage = new HomePage(page)
@@ -51,7 +52,7 @@ test.describe('System logs search @searchSystemLogs', () => {
   })
 
   test.afterAll(async () => {
-    await page.close()
+    await page.context().close()
   })
 
   test('shows no results when user ID matches no logs', async () => {
@@ -59,6 +60,7 @@ test.describe('System logs search @searchSystemLogs', () => {
     const systemLogsPage = new SystemLogsPage(page)
 
     await navigation.clickOnLink('System logs')
+    await checkAccessibility(page, 'System logs')
 
     await systemLogsPage.searchByUserId('no-such-user-id')
     await expect(

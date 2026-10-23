@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test'
 
+import { checkAccessibility } from '../support/accessibility.js'
+
 /**
  * @import { Page } from '@playwright/test'
  */
@@ -79,6 +81,7 @@ test.describe('Cookie consent @cookieConsent', () => {
     })
 
     await openStartPageWithBanner(page)
+    await checkAccessibility(page, 'Start page')
     await banner(page)
       .getByRole('button', { name: 'Accept analytics cookies' })
       .click()

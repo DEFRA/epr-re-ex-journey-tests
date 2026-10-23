@@ -17,6 +17,7 @@ import {
   registrationStartYear,
   submitSummaryLogContent
 } from './seeding/summary-logs.js'
+import { checkAccessibility } from './accessibility.js'
 import { defraIdStub } from './defra-id-stub.js'
 import { createLinkAndLogin } from './login-helper.js'
 import { tonnageWordings, tradingName } from './fixtures.js'
@@ -159,6 +160,7 @@ export async function runDeleteCreatedPrn(
   expect(confirmDeleteHeadingText).toBe(
     `Are you sure you want to delete this ${wording}?`
   )
+  await checkAccessibility(page, `Confirm delete ${wording}`)
   await confirmDeletePRNPage.backLink().click()
 
   // Now delete the PRN/PERN
