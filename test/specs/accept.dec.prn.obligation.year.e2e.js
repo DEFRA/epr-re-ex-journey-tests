@@ -27,6 +27,11 @@ const baseAPI = new BaseAPI()
 const feedWindowStart = () =>
   new Date(Date.now() - FEED_WINDOW_MS).toISOString()
 
+const objectIdAt = (isoDate) =>
+  Math.floor(new Date(isoDate).getTime() / 1000)
+    .toString(16)
+    .padStart(8, '0') + '0'.repeat(16)
+
 async function rpdAuthHeader() {
   await config.cognitoAuth.generateToken()
   return config.cognitoAuth.authHeader()
@@ -70,14 +75,16 @@ test.describe('Accepting a PRN into an obligation year (RPD) @decWaste @prnOblig
 
   // The stored document, as RPD's feed reads it. The by-id and natural-key
   // routes replay the ledger on read, so they would hide a document the accept
-  // failed to update.
-  async function findStored(prnNumber, status) {
-    let cursor
+  // failed to update. The list pages by _id, so the cursor starts at an id
+  // minted when the PRN was created, skipping every older PRN.
+  async function findStored(prnNumber, status, createdFrom) {
+    let cursor = objectIdAt(createdFrom)
     do {
-      const query = new URLSearchParams({ statuses: status, limit: '1000' })
-      if (cursor) {
-        query.set('cursor', cursor)
-      }
+      const query = new URLSearchParams({
+        statuses: status,
+        limit: '1000',
+        cursor
+      })
       const response = await baseAPI.get(
         `/v1/admin/packaging-recycling-notes?${query}`,
         ctx.authClient.authHeader()
@@ -134,14 +141,14 @@ test.describe('Accepting a PRN into an obligation year (RPD) @decWaste @prnOblig
   })
 
   test('keeps a December PRN in its accreditation year when RPD accepts it there (AC1) @prnObligationYearDecSame', async () => {
-    const { prnNumber } = await issuePrnOrSkip(true)
+    const { prnNumber, issuedFrom } = await issuePrnOrSkip(true)
 
     await externalAPIAcceptPrn(
       { prnNumber },
       { obligationYear: accreditationYear }
     )
 
-    const stored = await findStored(prnNumber, 'accepted')
+    const stored = await findStored(prnNumber, 'accepted', issuedFrom)
     expect(stored.isDecemberWaste).toBe(true)
     expect(stored.accreditationYear).toBe(accreditationYear)
     expect(stored.obligationYear).toBe(accreditationYear)
@@ -150,14 +157,14 @@ test.describe('Accepting a PRN into an obligation year (RPD) @decWaste @prnOblig
   test("moves a December PRN to the following obligation year when RPD accepts it into Y+1, and the operator's PRN page says so (AC2) @prnObligationYearDecNext", async ({
     page
   }) => {
-    const { prnId, prnNumber } = await issuePrnOrSkip(true)
+    const { prnId, prnNumber, issuedFrom } = await issuePrnOrSkip(true)
 
     await externalAPIAcceptPrn(
       { prnNumber },
       { obligationYear: accreditationYear + 1 }
     )
 
-    const stored = await findStored(prnNumber, 'accepted')
+    const stored = await findStored(prnNumber, 'accepted', issuedFrom)
     expect(stored.isDecemberWaste).toBe(true)
     expect(stored.accreditationYear).toBe(accreditationYear)
     expect(stored.obligationYear).toBe(accreditationYear + 1)
@@ -178,11 +185,11 @@ test.describe('Accepting a PRN into an obligation year (RPD) @decWaste @prnOblig
   })
 
   test('keeps an ordinary PRN in its accreditation year when RPD sends no year (AC3) @prnObligationYearOrdinary', async () => {
-    const { prnNumber } = await issuePrnOrSkip(false)
+    const { prnNumber, issuedFrom } = await issuePrnOrSkip(false)
 
     await externalAPIAcceptPrn({ prnNumber })
 
-    const stored = await findStored(prnNumber, 'accepted')
+    const stored = await findStored(prnNumber, 'accepted', issuedFrom)
     expect(stored.isDecemberWaste).toBe(false)
     expect(stored.accreditationYear).toBe(accreditationYear)
     expect(stored.obligationYear).toBe(accreditationYear)
@@ -218,7 +225,7 @@ test.describe('Accepting a PRN into an obligation year (RPD) @decWaste @prnOblig
       { obligationYear: accreditationYear + 1 }
     )
 
-    const stored = await findStored(prnNumber, 'accepted')
+    const stored = await findStored(prnNumber, 'accepted', issuedFrom)
     expect(stored.obligationYear).toBe(accreditationYear + 1)
   })
 
