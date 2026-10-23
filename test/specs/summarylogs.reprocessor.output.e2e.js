@@ -82,11 +82,11 @@ test.describe('Summary Logs Reprocessor Output', () => {
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
 
-    await checkBodyText(page, 'Summary log uploaded', 30)
+    await uploadSummaryLogPage.checkUploaded()
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '3.00 tonnes', 10)
 
-    await uploadSummaryLogPage.returnToHomePageLink().click()
+    await uploadSummaryLogPage.returnToHome()
 
     let availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe('3.00')
@@ -119,11 +119,11 @@ test.describe('Summary Logs Reprocessor Output', () => {
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
 
-    await checkBodyText(page, 'Summary log uploaded', 30)
+    await uploadSummaryLogPage.checkUploaded()
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '9.25 tonnes', 10)
 
-    await uploadSummaryLogPage.returnToHomePageLink().click()
+    await uploadSummaryLogPage.returnToHome()
 
     availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe('9.25')

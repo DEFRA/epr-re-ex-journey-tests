@@ -13,8 +13,8 @@ class UploadSummaryLogPage extends SummaryLogUploadActions {
     await new CheckSummaryLogPage(this.page).uploadButton().click()
 
     await checkBodyText(this.page, 'Your waste records are being updated', 30)
-    await checkBodyText(this.page, 'Summary log uploaded', 30)
-    await this.returnToHomePageLink().click()
+    await this.checkUploaded()
+    await this.returnToHome()
   }
 
   async getValidationErrors() {
