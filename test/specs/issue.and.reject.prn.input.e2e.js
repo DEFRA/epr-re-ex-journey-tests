@@ -6,6 +6,7 @@ import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
 import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
 import { PRNIssuedPage } from 'page-objects/prn.issued.page.js'
 import { PRNViewPage } from 'page-objects/prn.view.page.js'
+import { PRNCancelledPage } from 'page-objects/prn.cancelled.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import {
@@ -19,6 +20,7 @@ import {
 } from '../support/seeding/summary-logs.js'
 import { generateSummaryLogContent } from '../support/spreadsheet/summarylogs-content-generator.js'
 import { checkBodyText } from '../support/checks.js'
+import { checkAccessibility } from '../support/accessibility.js'
 import {
   thirdTradingName as newTradingName,
   createPrnDetails
@@ -56,7 +58,8 @@ test.describe('Issuing Packing Recycling Notes', () => {
       prnDashboardPage,
       prnViewPage,
       prnIssuedPage,
-      confirmCancelPrnPage
+      confirmCancelPrnPage,
+      prnCancelledPage
 
     const rebindPageObjects = () => {
       prnHelper = new PrnHelper(currentPage)
@@ -69,6 +72,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
       prnViewPage = new PRNViewPage(currentPage)
       prnIssuedPage = new PRNIssuedPage(currentPage)
       confirmCancelPrnPage = new ConfirmCancelPRNPage(currentPage)
+      prnCancelledPage = new PRNCancelledPage(currentPage)
     }
     rebindPageObjects()
 
@@ -138,9 +142,13 @@ test.describe('Issuing Packing Recycling Notes', () => {
       registrationStartYear()
     )
 
+    await checkAccessibility(currentPage, 'Dashboard')
+
     await dashboardPage.selectTableLink(1, 1)
+    await checkAccessibility(currentPage, 'Waste records (accredited)')
 
     await wasteRecordsPage.createNewPRNLink().click()
+    await checkAccessibility(currentPage, 'Create PRN')
 
     const ordinaryPool = await checkWasteBalanceForWindow(
       createPRNPage,
@@ -157,7 +165,10 @@ test.describe('Issuing Packing Recycling Notes', () => {
       wasteBalancePool: ordinaryPool
     })
 
-    await prnHelper.createAndCheckPrnDetails(prnDetails)
+    await prnHelper.createAndCheckDraftPrn(prnDetails)
+    await checkAccessibility(currentPage, 'Check before creating PRN')
+    await prnHelper.confirmDraftPrn(prnDetails)
+    await checkAccessibility(currentPage, 'PRN created')
 
     await checkBodyText(
       currentPage,
@@ -187,11 +198,17 @@ test.describe('Issuing Packing Recycling Notes', () => {
     expect(selectPRNHeadingText).toBe('Select a PRN')
 
     await prnHelper.checkAwaitingRows(prnDetails, 1)
+    await checkAccessibility(
+      currentPage,
+      'PRN dashboard (awaiting authorisation)'
+    )
     // End of PRN Dashboard checks
 
     // Issue the created PRN
     await prnDashboardPage.selectAwaitingLink(1)
+    await checkAccessibility(currentPage, 'PRN view (awaiting authorisation)')
     await prnHelper.issuePrnAndUpdateDetails(prnDetails)
+    await checkAccessibility(currentPage, 'PRN issued')
 
     await prnIssuedPage.viewPdfButton().click()
     currentPage = await switchToNewTabAndClosePreviousTab(currentPage)
@@ -267,23 +284,29 @@ test.describe('Issuing Packing Recycling Notes', () => {
     const tableHeading = await prnDashboardPage.getTableHeading()
     expect(tableHeading).toBe('PRNs awaiting cancellation')
     await prnHelper.checkAwaitingRows(prnDetails, 1)
+    await checkAccessibility(
+      currentPage,
+      'PRN dashboard (awaiting cancellation)'
+    )
 
     // Select the now awaiting-cancellation PRN
     await prnDashboardPage.selectAwaitingLink(1)
 
     await prnHelper.checkViewPrnDetails(prnDetails)
+    await checkAccessibility(currentPage, 'PRN view (awaiting cancellation)')
 
     // Test back link of cancellation page
     await prnViewPage.cancelPRNButton().click()
 
     const confirmCancelHeading = await confirmCancelPrnPage.headingText()
     expect(confirmCancelHeading).toBe('Confirm cancellation of this PRN')
+    await checkAccessibility(currentPage, 'Confirm cancel PRN')
     await confirmCancelPrnPage.backLink().click()
 
     // Now cancel the PRN and return to PRN Dashboard page
-    await prnHelper.cancelPRNAndReturnToPRNsDashboard(prnDetails, {
-      checkDoubleClick: true
-    })
+    await prnHelper.cancelPRN(prnDetails, { checkDoubleClick: true })
+    await checkAccessibility(currentPage, 'PRN cancelled')
+    await prnCancelledPage.prnsPage().click()
 
     await prnDashboardPage.cancelledTab().click()
     await prnHelper.checkCancelledRows(prnDetails, 1)

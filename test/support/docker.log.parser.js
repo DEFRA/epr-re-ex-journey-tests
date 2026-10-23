@@ -35,7 +35,7 @@ export class DockerLogParser {
     try {
       return await this.runDockerCommand(latestTimestamp)
     } catch (error) {
-      throw new Error(`Failed to get logs: ${error.message}`)
+      throw new Error(`Failed to get logs: ${error.message}`, { cause: error })
     }
   }
 

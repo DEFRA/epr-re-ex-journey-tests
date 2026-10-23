@@ -9,6 +9,7 @@ import {
 import { generateNumbers } from '../../support/reg-acc-number.js'
 import { createSubmittedReport } from '../../support/seeding/reports.js'
 import { parseCsvRows } from '../../support/csv.js'
+import { checkAccessibility } from '../../support/accessibility.js'
 import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { Navigation } from 'page-objects/admin/navigation.page'
 import { ReportSubmissionsPage } from 'page-objects/admin/report.submissions.page'
@@ -50,6 +51,7 @@ test.describe('Report Submissions page', () => {
     const reportSubmissionsPage = new ReportSubmissionsPage(page)
 
     await navigation.clickOnLink('Report submissions')
+    await checkAccessibility(page, 'Report submissions')
 
     const csv = /** @type {CsvResponse} */ (
       /** @type {unknown} */ (await reportSubmissionsPage.fetchCsv())

@@ -117,12 +117,10 @@ export async function createLinkedOrganisation(dataRows) {
   const baseAPI = new BaseAPI()
 
   const organisation = new Organisation()
-  let payload = ''
-  if (dataRows[0].wasteProcessingType === 'Reprocessor') {
-    payload = organisation.toNonRegisteredUKSoleTraderPayload()
-  } else {
-    payload = organisation.toPayload()
-  }
+  let payload =
+    dataRows[0].wasteProcessingType === 'Reprocessor'
+      ? organisation.toNonRegisteredUKSoleTraderPayload()
+      : organisation.toPayload()
 
   let response = await baseAPI.post(
     '/v1/apply/organisation',
@@ -339,7 +337,7 @@ export function approveMigratedRegistration(
  * today and discards the status history sent with it, so the history is only
  * honoured in a PUT that leaves the statuses as they are.
  *
- * @returns {Promise<{refNo: string, email: string, years: number[]}>}
+ * @returns {Promise<{refNo: string, email: string, years: number[], organisationNumber: number, registrationNumber: string}>}
  */
 export async function seedOrganisationAcrossYears() {
   const thisYear = currentYear()
@@ -350,11 +348,12 @@ export async function seedOrganisationAcrossYears() {
     { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
   ])
 
+  const numbers = fillerNumbers()
   const { email } = await approveMigratedRegistration(
     refNo,
     { registrationIndex: 0, accreditationIndex: 0 },
     {
-      ...fillerNumbers(),
+      ...numbers,
       reprocessingType: 'input',
       validFrom: `${firstYear}-01-01`,
       validTo: `${thisYear + 1}-01-01`,
@@ -377,7 +376,13 @@ export async function seedOrganisationAcrossYears() {
   const years = [thisYear, thisYear - 1, firstYear]
   await assertOrganisationYears(orgId, years)
 
-  return { refNo, email, years }
+  return {
+    refNo,
+    email,
+    years,
+    organisationNumber: orgId,
+    registrationNumber: numbers.regNumber
+  }
 }
 
 /**
@@ -553,15 +558,11 @@ export async function updateMigratedOrganisation(
     data.submittedToRegulator = submittedToRegulator
   }
 
-  let email = ''
-  if (updateDataRows[0].email) {
-    email = updateDataRows[0].email
-  } else {
-    // Replace email address with a newly generated one in Environment to avoid same email address all the time
-    email = process.env.ENVIRONMENT
-      ? fakerEN_GB.internet.email()
-      : data.submitterContactDetails.email
-  }
+  // Replace email address with a newly generated one in Environment to avoid same email address all the time
+  const generatedEmail = process.env.ENVIRONMENT
+    ? fakerEN_GB.internet.email()
+    : data.submitterContactDetails.email
+  const email = updateDataRows[0].email || generatedEmail
   data.submitterContactDetails.email = email
 
   data.status = updateDataRows[0].status

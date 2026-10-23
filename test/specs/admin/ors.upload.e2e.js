@@ -13,6 +13,7 @@ import {
   createOrsSpreadsheet,
   validOrsSites
 } from '../../support/ors-spreadsheet.js'
+import { checkAccessibility } from '../../support/accessibility.js'
 import { OrganisationsPage } from 'page-objects/admin/organisations.page'
 import { OrganisationOverviewPage } from 'page-objects/admin/organisation.overview.page'
 import { RegistrationOverviewPage } from 'page-objects/admin/registration.overview.page'
@@ -25,6 +26,7 @@ async function uploadWorkbookAndWaitForCompletion(
 ) {
   await orsUploadPage.open()
   await expect(page).toHaveTitle(/Upload ORS workbooks/)
+  await checkAccessibility(page, 'Upload ORS workbooks')
 
   await orsUploadPage.expectUploadFormVisible()
   await orsUploadPage.uploadWorkbook(workbookPath)
@@ -90,6 +92,7 @@ test.describe('ORS upload flow @orsUpload', () => {
 
     await page.getByRole('link', { name: 'View ORS records' }).click()
     await expect(page).toHaveTitle(/Overseas reprocessing sites/)
+    await checkAccessibility(page, 'Overseas sites')
     await orsUploadPage.expectDownloadCsvVisible()
 
     const csvDownload = await orsUploadPage.fetchListCsv()

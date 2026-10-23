@@ -18,10 +18,10 @@ const withEcmaVersion = (config) =>
     : config
 
 export default [
+  { ignores: [...neostandard.resolveIgnoresFromGitignore(), 'docker'] },
   js.configs.recommended,
   ...neostandard({
     env: ['node'],
-    ignores: [...neostandard.resolveIgnoresFromGitignore(), 'docker'],
     noJsx: true,
     noStyle: true
   }).map(withEcmaVersion),

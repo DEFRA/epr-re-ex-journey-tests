@@ -25,21 +25,19 @@ async function generate(options = {}) {
       context,
       i % 2 === 0
     )
-    let streets = []
-    if (i % 2 === 0) {
-      streets = [
-        'reprocessor input street',
-        'reprocessor output street',
-        'exporter street',
-        'registered only reprocessor'
-      ]
-    } else {
-      streets = [
-        'reprocessor input street',
-        'reprocessor output street',
-        'registered only exporter'
-      ]
-    }
+    const streets =
+      i % 2 === 0
+        ? [
+            'reprocessor input street',
+            'reprocessor output street',
+            'exporter street',
+            'registered only reprocessor'
+          ]
+        : [
+            'reprocessor input street',
+            'reprocessor output street',
+            'registered only exporter'
+          ]
 
     const noOfWasteProcessingTypes = streets.length
 
