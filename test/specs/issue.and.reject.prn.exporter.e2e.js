@@ -37,8 +37,6 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     page
   }) => {
     let currentPage = page
-    let homePage = new HomePage(currentPage)
-    let confirmCancelPrnPage = new ConfirmCancelPRNPage(currentPage)
     const createPRNPage = new CreatePRNPage(currentPage)
     let prnCreatedPage = new PRNCreatedPage(currentPage)
     let prnDashboardPage = new PRNDashboardPage(currentPage)
@@ -248,9 +246,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     prnDashboardPage = new PRNDashboardPage(currentPage)
     wasteRecordsPage = new WasteRecordsPage(currentPage)
     prnCreatedPage = new PRNCreatedPage(currentPage)
-    dashboardPage = new DashboardPage(currentPage)
-    prnIssuedPage = new PRNIssuedPage(currentPage)
-    confirmCancelPrnPage = new ConfirmCancelPRNPage(currentPage)
+    const confirmCancelPrnPage = new ConfirmCancelPRNPage(currentPage)
 
     // Check Issued PERN details
     await prnHelper.checkViewPrnDetails(pernDetails)
@@ -325,7 +321,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     prnDashboardPage = new PRNDashboardPage(currentPage)
     wasteRecordsPage = new WasteRecordsPage(currentPage)
     dashboardPage = new DashboardPage(currentPage)
-    homePage = new HomePage(currentPage)
+    const homePage = new HomePage(currentPage)
 
     await prnHelper.checkViewPrnDetails(pernDetails)
     await prnViewPage.returnToPERNList().click()
