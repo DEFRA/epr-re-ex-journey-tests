@@ -11,6 +11,7 @@ import {
   fillerNumbers,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
+import { generateNumbers } from '../../support/reg-acc-number.js'
 import { createSubmittedReport } from '../../support/seeding/reports.js'
 import { checkAccessibility } from '../../support/accessibility.js'
 import { SystemLogsPage } from 'page-objects/admin/system.logs.page'
@@ -133,6 +134,17 @@ test.describe('Organisations page', () => {
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
     ])
 
+    const reprocessorNumbers = fillerNumbers()
+    const exporterNumbers = generateNumbers({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'PA'
+    })
+
+    await updateMigratedOrganisation(linkedOrganisation.refNo, [
+      { ...reprocessorNumbers, status: 'approved', reprocessingType: 'input' },
+      { ...exporterNumbers, status: 'approved' }
+    ])
+
     const { organisation, registrations } = linkedOrganisation
 
     await organisationsPage.open()
@@ -146,9 +158,9 @@ test.describe('Organisations page', () => {
       {
         header: organisation.companyName,
         orgId: `${linkedOrganisation.orgId}`,
-        regAccNumbers: UNNUMBERED_REG_ACC_PAIRS,
+        regAccNumbers: `${reprocessorNumbers.regNumber} - ${reprocessorNumbers.accNumber}\n${exporterNumbers.regNumber} - ${exporterNumbers.accNumber}`,
         regulator: 'EA',
-        status: 'created'
+        status: 'active'
       }
     ]
     expect(searchOrgTable).toEqual(expectedSearchOrgTable)
@@ -160,26 +172,27 @@ test.describe('Organisations page', () => {
       await organisationOverviewPage.getHeaderText()
     expect(organisationOverviewPageHeader).toEqual(organisation.companyName)
 
+    // Sorted by registration number: a reprocessor's (R..ER..) before an exporter's (R..EX..)
     const registrationsData =
       await organisationOverviewPage.getRegistrationsTableData()
     const expectedRegistrationsData = [
       {
-        registrationNumber: '',
-        registrationStatus: 'created',
-        processingType: 'reprocessor',
+        registrationNumber: reprocessorNumbers.regNumber,
+        registrationStatus: 'approved',
+        processingType: 'reprocessor - input',
         material: 'paper',
         site: registrations[0].streetAddress,
-        accreditationNumber: '',
-        accreditationStatus: 'created'
+        accreditationNumber: reprocessorNumbers.accNumber,
+        accreditationStatus: 'approved'
       },
       {
-        registrationNumber: '',
-        registrationStatus: 'created',
+        registrationNumber: exporterNumbers.regNumber,
+        registrationStatus: 'approved',
         processingType: 'exporter',
         material: 'paper',
         site: '',
-        accreditationNumber: '',
-        accreditationStatus: 'created'
+        accreditationNumber: exporterNumbers.accNumber,
+        accreditationStatus: 'approved'
       }
     ]
     expect(registrationsData).toEqual(expectedRegistrationsData)
@@ -189,15 +202,11 @@ test.describe('Organisations page', () => {
     // registration overview page
     const registrationOverviewPageHeader =
       await registrationOverviewPage.getHeaderText()
-    const registrationOverviewHeaderRegex = new RegExp(
-      `^${organisation.companyName} - \\w+$` // Header is company name following by registration number or (dynamic) registration id (when no registration number has been assigned)
-    )
-    expect(registrationOverviewPageHeader).toMatch(
-      registrationOverviewHeaderRegex
+    expect(registrationOverviewPageHeader).toEqual(
+      `${organisation.companyName} - ${reprocessorNumbers.regNumber}`
     )
 
-    // A registration with no number yet has no reports to show.
-    await expect(registrationOverviewPage.reportsTable()).toHaveCount(0)
+    await expect(registrationOverviewPage.reportsTable()).toBeVisible()
 
     const summaryLogContent =
       await registrationOverviewPage.getSummaryLogsContent()
