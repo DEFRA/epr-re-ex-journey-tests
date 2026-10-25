@@ -160,7 +160,7 @@ test.describe('Organisations page', () => {
         orgId: `${linkedOrganisation.orgId}`,
         regAccNumbers: `${reprocessorNumbers.regNumber} - ${reprocessorNumbers.accNumber}\n${exporterNumbers.regNumber} - ${exporterNumbers.accNumber}`,
         regulator: 'EA',
-        status: 'active'
+        status: 'approved'
       }
     ]
     expect(searchOrgTable).toEqual(expectedSearchOrgTable)
