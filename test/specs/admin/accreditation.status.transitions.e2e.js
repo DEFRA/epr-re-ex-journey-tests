@@ -71,7 +71,12 @@ test.describe('Admin accreditation status transitions', () => {
     expect(await statusChangesPage.getRegistrationStatus()).toBe('created')
 
     // No Approve accreditation action while the registration is not approved
-    // (PAE-1800) — Reject is still offered
+    // (PAE-1800), with a note saying why — Reject is still offered
+    await expect(
+      statusChangesPage
+        .accreditationRow()
+        .getByText('Linked registration not approved')
+    ).toBeVisible()
     await expect(
       statusChangesPage
         .accreditationRow()
@@ -84,17 +89,21 @@ test.describe('Admin accreditation status transitions', () => {
     ).toHaveCount(1)
 
     // Granting the registration through the admin UI opens the gate
+    const registrationNumber = issuedRegistrationNumber()
     await statusChangesPage.clickRegistrationAction('Approve')
     expect(await registrationTransitionPage.getHeading()).toBe(
       'Approve registration'
     )
     await registrationTransitionPage.fillGrantFields({
       validFrom: GRANTED_VALID_FROM,
-      registrationNumber: issuedRegistrationNumber()
+      registrationNumber
     })
     await registrationTransitionPage.confirm('Approve now')
 
     expect(await statusChangesPage.getRegistrationStatus()).toBe('approved')
+    expect(await statusChangesPage.getAccreditationLinkedNumber()).toBe(
+      registrationNumber
+    )
 
     // The registration's granted valid-from is persisted exactly as entered.
     // Registrations don't expire (PAE-1904), so there is no valid-to to assert.
@@ -123,16 +132,20 @@ test.describe('Admin accreditation status transitions', () => {
 
     // created -> approved: grant, issuing the accreditation number and the
     // validity window typed on the confirm page (PAE-1814)
+    const accreditationNumber = issuedAccreditationNumber()
     await statusChangesPage.clickAccreditationAction('Approve')
     expect(await transitionPage.getHeading()).toBe('Approve accreditation')
     await transitionPage.fillGrantFields({
       validFrom: GRANTED_VALID_FROM,
       validTo: GRANTED_VALID_TO,
-      accreditationNumber: issuedAccreditationNumber()
+      accreditationNumber
     })
     await transitionPage.confirm('Approve now')
 
     expect(await statusChangesPage.getAccreditationStatus()).toBe('approved')
+    expect(await statusChangesPage.getRegistrationLinkedNumber()).toBe(
+      accreditationNumber
+    )
 
     // The accreditation's granted validity window is persisted exactly as
     // entered, and the valid-to has replaced the seeded one
