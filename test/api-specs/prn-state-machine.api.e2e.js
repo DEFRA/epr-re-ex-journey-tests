@@ -25,6 +25,7 @@ import { generateSummaryLogContent } from '../support/spreadsheet/summarylogs-co
 import { waitForWasteBalance } from '../support/seeding/waiters.js'
 import { assertAuditLog } from '../support/docker-log-assertions.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
+import { accreditationPath } from '../support/seeding/natural-key-paths.js'
 
 // Sets up one linked, approved Reprocessor Input registration with a real
 // waste-balance ledger. Both draft creation and the draft->awaiting_authorisation
@@ -172,8 +173,8 @@ async function setUpAccreditedExporterWithBalance() {
   }
 }
 
-const draftsPath = (refNo, registrationId, accreditationId) =>
-  `/v1/organisations/${refNo}/registrations/${registrationId}/accreditations/${accreditationId}/packaging-recycling-notes`
+const draftsPath = async (refNo, registrationId, accreditationId) =>
+  `${await accreditationPath(refNo, registrationId, accreditationId)}/packaging-recycling-notes`
 
 // Posts a draft-creation request and returns the raw response, without asserting
 // the outcome, so both the success helper and the rejection tests can share it.
@@ -184,7 +185,7 @@ async function postDraft(
   tonnage
 ) {
   return baseAPI.post(
-    draftsPath(refNo, registrationId, accreditationId),
+    await draftsPath(refNo, registrationId, accreditationId),
     JSON.stringify({
       issuedToOrganisation: {
         id: 'testId',
@@ -222,7 +223,7 @@ async function createPrn(
   )
   expect(response.statusCode).to.equal(201)
   const body = /** @type {any} */ (await response.body.json())
-  const path = draftsPath(refNo, registrationId, accreditationId)
+  const path = await draftsPath(refNo, registrationId, accreditationId)
   return { prnId: body.id, prnPath: `${path}/${body.id}` }
 }
 
@@ -379,9 +380,7 @@ test.describe('PRN state machine @prnStateMachine', () => {
       ctx.accreditationId,
       ctx.authHeader
     )
-    const available = Math.floor(
-      parseFloat(balance[ctx.accreditationId].availableAmount)
-    )
+    const available = Math.floor(parseFloat(balance.availableAmount))
 
     let firstPath
     let secondPath
@@ -452,7 +451,7 @@ test.describe('PRN state machine @prnStateMachine', () => {
       ctx.authHeader
     )
     const overBalanceTonnage =
-      Math.floor(parseFloat(balance[ctx.accreditationId].availableAmount)) + 1
+      Math.floor(parseFloat(balance.availableAmount)) + 1
 
     const response = await postDraft(
       ctx.baseAPI,
@@ -631,15 +630,15 @@ test.describe('PRN state machine @prnStateMachine', () => {
     )
 
     const response = await ctx.baseAPI.get(
-      `/v1/organisations/${ctx.org.refNo}/registrations/${ctx.registrationId}/accreditations/${ctx.accreditationId}/packaging-recycling-notes`,
+      await draftsPath(ctx.org.refNo, ctx.registrationId, ctx.accreditationId),
       ctx.authHeader
     )
 
     expect(response.statusCode).to.equal(200)
-    const prns = /** @type {any} */ (await response.body.json())
-    expect(prns.length).to.be.greaterThan(0)
+    const { items } = /** @type {any} */ (await response.body.json())
+    expect(items.length).to.be.greaterThan(0)
     expect(
-      prns.every((prn) => prn.issuedToOrganisation.id === 'testId')
+      items.every((prn) => prn.issuedToOrganisation.id === 'testId')
     ).to.equal(true)
   })
 
@@ -697,7 +696,7 @@ test.describe('PRN state machine @prnStateMachine', () => {
     expect(cancelResponse.statusCode).to.equal(200)
 
     const createResponse = await ctx.baseAPI.post(
-      `/v1/organisations/${ctx.org.refNo}/registrations/${ctx.registrationId}/accreditations/${ctx.accreditationId}/packaging-recycling-notes`,
+      await draftsPath(ctx.org.refNo, ctx.registrationId, ctx.accreditationId),
       JSON.stringify({
         issuedToOrganisation: {
           id: 'testId',
@@ -747,10 +746,8 @@ test.describe('PRN state machine @prnStateMachine', () => {
       ctx.accreditationId,
       ctx.authHeader
     )
-    const availableBefore = parseFloat(
-      balanceBefore[ctx.accreditationId].availableAmount
-    )
-    const amountBefore = parseFloat(balanceBefore[ctx.accreditationId].amount)
+    const availableBefore = parseFloat(balanceBefore.availableAmount)
+    const amountBefore = parseFloat(balanceBefore.amount)
 
     const tonnage = 5
     const { prnId, prnPath } = await createPrn(
@@ -802,12 +799,8 @@ test.describe('PRN state machine @prnStateMachine', () => {
       ctx.accreditationId,
       ctx.authHeader
     )
-    expect(
-      parseFloat(balanceAfter[ctx.accreditationId].availableAmount)
-    ).to.equal(availableBefore)
-    expect(parseFloat(balanceAfter[ctx.accreditationId].amount)).to.equal(
-      amountBefore
-    )
+    expect(parseFloat(balanceAfter.availableAmount)).to.equal(availableBefore)
+    expect(parseFloat(balanceAfter.amount)).to.equal(amountBefore)
 
     // AC8: the note reaches the external cancelled feed with the acceptance
     // recorded and no rejection, distinguishing it from the producer-rejection
@@ -841,7 +834,7 @@ test.describe('PERN create-time balance check @pernCreateBalanceCheck', () => {
       ctx.authHeader
     )
     const overBalanceTonnage =
-      Math.floor(parseFloat(balance[ctx.accreditationId].availableAmount)) + 1
+      Math.floor(parseFloat(balance.availableAmount)) + 1
 
     const response = await postDraft(
       ctx.baseAPI,

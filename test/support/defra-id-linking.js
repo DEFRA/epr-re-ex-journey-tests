@@ -4,6 +4,7 @@ import { BaseAPI } from '../apis/base-api.js'
 import { defraIdStub } from './defra-id-stub.js'
 import Users from './users.js'
 import { assertSuccessResponse } from './response-assertions.js'
+import { organisationPath } from './seeding/natural-key-paths.js'
 
 // Entra tokens go through the shared AuthClient (see auth.js). Defra ID user
 // tokens all go through the shared defraIdStub, which connects via
@@ -114,7 +115,7 @@ export async function linkDefraIdUser(organisationId, userId, email) {
   const authHeader = await signInDefraIdUser(userId, email)
 
   const linkResponse = await baseAPI.post(
-    `/v1/organisations/${organisationId}/link`,
+    `${await organisationPath(organisationId)}/link`,
     '',
     authHeader
   )
@@ -144,15 +145,9 @@ export async function linkOrganisationToDefraId(refNo, email) {
   const defraToken = await getDefraUserToken(email, orgId)
   const defraAuthHeader = { Authorization: `Bearer ${defraToken}` }
 
-  const linkResponse = await baseAPI.post(
-    `/v1/organisations/${refNo}/link`,
-    '',
-    defraAuthHeader
-  )
+  const linkPath = `${await organisationPath(refNo)}/link`
+  const linkResponse = await baseAPI.post(linkPath, '', defraAuthHeader)
 
-  await assertSuccessResponse(
-    linkResponse,
-    `POST /v1/organisations/${refNo}/link`
-  )
+  await assertSuccessResponse(linkResponse, `POST ${linkPath}`)
   return { defraOrgId: orgId, defraOrgName: 'Test Organisation' }
 }

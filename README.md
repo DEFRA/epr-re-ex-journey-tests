@@ -98,7 +98,6 @@ Tags are for `--grep` spec selection, not documentation. Every tag is camelCase 
 - `@organisations` - admin-app specs that operate on an organisation as an admin-facing entity: viewing/updating it, its registrations and submissions, and linking/unlinking its Defra ID. Not for regulator-side or applicant-facing organisation views - use `@regulator` there.
 - `@regulator` - specs exercising the regulator frontend: login, browsing/searching organisations, reading registrations and accreditations, and regulator-side permission boundaries. Everything under `specs/regulator/` should carry it.
 - `@cma` - specs covering closed-period adjustments surfaced in summary logs and reports: adjusted-load detection, the associated messaging, and resubmission behaviour once a period has closed.
-- `@accessibility` - WCAG accessibility scans (axe-core sweeps, plus a Lighthouse accessibility/performance/SEO audit per page in `specs/accessibility.e2e.js`) of a page or app variant. Keep these specs purely accessibility-focused; don't fold functional assertions into one just because it's already visiting the page.
 - `@permissions` - specs asserting a role is denied an admin action it shouldn't have (e.g. a service-maintainer scope blocked from unsubmitting a report or purging the DLQ). For the negative/restricted-access case only, not happy-path admin flows.
 - `@extTestOnly` - specs that only work against the ext-test environment, typically because they sign in through a real, non-stubbed identity provider that's only wired up there (see the Defra ID note in `test/config/config.js`). These still guard themselves with a runtime `test.skip` keyed off `process.env.ENVIRONMENT`, so an accidental run elsewhere skips rather than fails - the tag is for selecting or excluding this slice by concern (e.g. `GREP='@extTestOnly'`), not a substitute for the runtime guard.
 
@@ -109,6 +108,8 @@ Everything else you'll see in a test title (`@delPRNExp`, `@summaryLogReprocesso
 A journey test earns its confidence by resembling what a user does. A spec that reaches past the user, to a test id, a deep link or a URL check, can pass while the user is stuck: the button is mislabelled, the link is missing, the page at the right address is an error. So a spec reads like the user's story: land on an entry page, follow the links and buttons, and check what the page now shows, using Playwright's user-facing locators (`getByRole`, `getByLabel`, `getByText`).
 
 **Find elements by what the user perceives.** Role and accessible name first: `getByRole('button', { name: 'Continue' })`, `getByRole('link', { name: 'Reports' })`, `getByRole('heading', { name: 'Upload your summary log' })`. Then `getByLabel` for a form field and `getByText` for other visible text. Reach for a `data-testid`, an id, a `govuk-*` class or an `nth-child` only when no user-facing query can express the target. A role query that finds nothing usually means a screen reader user could not find it either, so raise it with the app that owns the page rather than write the selector. The bar applies wherever the locator lives, page objects included.
+
+**Check a page's accessibility in a journey that visits it.** Call `checkAccessibility(page, '<page name>')` from `test/support/accessibility.js` once the page has rendered. It runs an axe scan and fails the journey on any Serious or Critical violation. One journey per page is enough; prefer a `@smoketest` journey where one reaches the page, so the check also runs against real environments. The smoke test run, `npm run test:smoketest`, sets `RUN_LIGHTHOUSE=true`, which makes each check also run a Lighthouse audit of the page and attach its report to Allure. The pull request runs leave it off.
 
 **Navigate the way the user does.** Open the entry page, then click through. A `page.goto` deep into a journey skips the journey the spec claims to cover; keep it for the entry point and for a page the user would genuinely reach by URL.
 
@@ -427,6 +428,19 @@ Steps:
 By default, the provided workflow will run when triggered manually from GitHub or when triggered by another workflow.
 
 If you want to use the repository exclusively for running docker composed based test suites consider disabling the publish.yml workflow.
+
+### Running the suite in parts
+
+Each run of `run-journey-tests` brings up its own stack, so a pull request can run the suite as parallel legs. These inputs choose what a leg runs, and combine:
+
+- `test-scope`: `all` (the default), `frontend` (the specs outside `admin/`) or `admin`.
+- `test-suite`: `all` (the default), `api` (the API specs, whatever the `test-scope`), `a11y` (the `@accessibility` specs) or `e2e` (the browser specs without `@accessibility`).
+- `december-scope`: `all`, `only` (the `@decWaste` specs) or `exclude`.
+- `shard`: `current/total`, for example `2/3`. It splits the browser specs in scope by file, dealt out round-robin so that the heavy `summarylogs.*` files land in different shards. Playwright's own `--shard` splits contiguously and puts them together. It needs `test-suite: e2e` and a `december-scope` other than `only`. Files are dealt out before the tags are matched, so a selection only a few files carry, such as `@accessibility` or `@decWaste`, would leave some shards with no test, and `all` would repeat the API specs on every shard.
+
+`npm run test:github:browser` runs `bin/run-browser-specs.js`, which turns these into Playwright arguments (`test/support/playwright-args.js`, unit tested) and starts Playwright with them; any extra arguments, such as `--list`, are passed on. The API specs run when the suite is `api`, or `all` with `test-scope: all` and a December scope other than `only`.
+
+This repository's own pull request workflow runs the `baseline` `e2e` specs (`december-scope: exclude`) as three shards and the `december` specs as one leg, with `api` and `a11y` as separate jobs, and `tests-gate` still reports the single required check.
 
 ## BrowserStack
 

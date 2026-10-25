@@ -18,8 +18,14 @@ inputs:
     description: which specs to run - 'admin' (test/specs/admin only), 'frontend' (everything except test/specs/admin), or 'all'
     default: 'all'
   december-scope:
-    description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - applies when test-scope is 'all' or 'frontend'"
+    description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - applies to the browser specs under every test-scope; the API specs ignore it"
     default: 'all'
+  test-suite:
+    description: "which suite to run - 'api' (API specs, whatever the test-scope), 'a11y' (@accessibility specs), 'e2e' (browser specs except @accessibility) or 'all' (everything)"
+    default: 'all'
+  shard:
+    description: "shard of the browser specs in scope in the form 'current/total', for example '2/3', dealt out round-robin by spec file; needs test-suite 'e2e' and a december-scope other than 'only', as files are dealt out before the tags are matched; empty runs them all"
+    default: ''
   december-window-start:
     description: explicit override for DECEMBER_WASTE_WINDOW_START; empty lets the action derive one from december-scope (see "Resolve the December window" below)
     default: ''
@@ -30,6 +36,13 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Check the inputs
+      if: inputs.shard != '' && (inputs.test-suite != 'e2e' || inputs.december-scope == 'only')
+      shell: bash
+      run: |
+        echo "::error::shard needs test-suite 'e2e' and a december-scope other than 'only', not '${{ inputs.test-suite }}' with '${{ inputs.december-scope }}': files are dealt out before the tags are matched, so some shards would hold no test"
+        exit 1
+
     - name: Checkout repository if not called by Journey Test PR
       if: inputs.journey-test-pr == 'false'
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -37,11 +50,9 @@ runs:
         repository: DEFRA/epr-re-ex-journey-tests
         ref: ${{inputs.branch}}
 
-    # Lets the three conditional `docker build` steps below use the GitHub
-    # Actions cache backend (--cache-from/--cache-to type=gha), so layers
-    # persist across CI runs for the same sibling-repo branch instead of
-    # rebuilding from scratch every time. Cheap/fast even when none of the
-    # three services end up building from source this run.
+    # Lets the matching-branch builds in "Start docker compose" use the GitHub
+    # Actions cache backend (--cache-from/--cache-to type=gha). Cheap/fast even
+    # when none of the three services end up building from source this run.
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
@@ -76,21 +87,6 @@ runs:
         ref: ${{ steps.frontend-branch.outputs.ref }}
         path: epr-frontend
 
-    - name: Build Docker image from epr-frontend matching branch
-      if: inputs.epr-frontend == '' && steps.frontend-branch.outputs.exists == 'true'
-      id: docker-frontend-branch
-      shell: bash
-      run: |
-        cd epr-frontend
-        EPR_FRONTEND_SHA=$(git rev-parse --short HEAD)
-        IMAGE_TAG="defradigital/epr-frontend:${EPR_FRONTEND_SHA}"
-        docker buildx build \
-          --cache-from type=gha,scope=epr-frontend \
-          --cache-to type=gha,mode=max,scope=epr-frontend \
-          --load \
-          -t $IMAGE_TAG .
-        echo "image=$EPR_FRONTEND_SHA" >> "$GITHUB_OUTPUT"
-
     - name: Check for matching epr-backend branch
       if: inputs.epr-backend == ''
       id: backend-branch
@@ -113,21 +109,6 @@ runs:
         repository: DEFRA/epr-backend
         ref: ${{ steps.backend-branch.outputs.ref }}
         path: epr-backend
-
-    - name: Build Docker image from epr-backend matching branch
-      if: inputs.epr-backend == '' && steps.backend-branch.outputs.exists == 'true'
-      id: docker-backend-branch
-      shell: bash
-      run: |
-        cd epr-backend
-        EPR_BACKEND_SHA=$(git rev-parse --short HEAD)
-        IMAGE_TAG="defradigital/epr-backend:${EPR_BACKEND_SHA}"
-        docker buildx build \
-          --cache-from type=gha,scope=epr-backend \
-          --cache-to type=gha,mode=max,scope=epr-backend \
-          --load \
-          -t $IMAGE_TAG .
-        echo "image=$EPR_BACKEND_SHA" >> "$GITHUB_OUTPUT"
 
     - name: Check for matching epr-re-ex-admin-frontend branch
       if: inputs.epr-re-ex-admin-frontend == ''
@@ -152,20 +133,71 @@ runs:
         ref: ${{ steps.admin-frontend-branch.outputs.ref }}
         path: epr-re-ex-admin-frontend
 
-    - name: Build Docker image from epr-re-ex-admin-frontend matching branch
-      if: inputs.epr-re-ex-admin-frontend == '' && steps.admin-frontend-branch.outputs.exists == 'true'
-      id: docker-admin-frontend-branch
+    # windowStart is MM-DDTHH:mm with no year, so it recurs annually against
+    # the accreditation's own relevant year. Callers that want the window
+    # closed (december-scope: exclude) don't need to compute a value
+    # themselves: when no explicit december-window-start is given, this
+    # derives one - tomorrow's MM-DD is strictly later than today on all 365
+    # days, where a fixed 12-31 bound would open on 31 December itself. It is
+    # tomorrow in UK time, as the services read the window: in summer time a
+    # UTC tomorrow is already today in London for the last hour of the day. A
+    # december-scope: only caller gets an empty value here, which Start
+    # docker compose below then leaves for compose.yml's own always-open
+    # default to take over.
+    - name: Resolve the December window
+      if: inputs.december-window-start == '' && inputs.december-scope == 'exclude'
+      id: december-window
       shell: bash
+      run: echo "start=$(TZ=Europe/London date -d tomorrow +%m-%d)T00:00" >> "$GITHUB_OUTPUT"
+
+    # Starts in the background so the builds of any matching branches and the
+    # image pulls overlap the installs below. Each EPR_* value prefers the
+    # caller-supplied commit, falls back to the matching branch's short SHA,
+    # and falls back again (empty) to compose.yml's own :latest default.
+    - name: Start docker compose
+      shell: bash
+      env:
+        BUILD_FRONTEND: ${{ inputs.epr-frontend == '' && steps.frontend-branch.outputs.exists == 'true' }}
+        BUILD_BACKEND: ${{ inputs.epr-backend == '' && steps.backend-branch.outputs.exists == 'true' }}
+        BUILD_ADMIN_FRONTEND: ${{ inputs.epr-re-ex-admin-frontend == '' && steps.admin-frontend-branch.outputs.exists == 'true' }}
+        EPR_FRONTEND: ${{ inputs.epr-frontend }}
+        EPR_BACKEND: ${{ inputs.epr-backend }}
+        EPR_RE_EX_ADMIN_FRONTEND: ${{ inputs.epr-re-ex-admin-frontend }}
+        DECEMBER_WASTE_WINDOW_START: ${{ inputs.december-window-start || steps.december-window.outputs.start }}
       run: |
-        cd epr-re-ex-admin-frontend
-        EPR_RE_EX_ADMIN_FRONTEND_SHA=$(git rev-parse --short HEAD)
-        IMAGE_TAG="defradigital/epr-re-ex-admin-frontend:${EPR_RE_EX_ADMIN_FRONTEND_SHA}"
-        docker buildx build \
-          --cache-from type=gha,scope=epr-re-ex-admin-frontend \
-          --cache-to type=gha,mode=max,scope=epr-re-ex-admin-frontend \
-          --load \
-          -t $IMAGE_TAG .
-        echo "image=$EPR_RE_EX_ADMIN_FRONTEND_SHA" >> "$GITHUB_OUTPUT"
+        (
+          export EPR_FRONTEND EPR_BACKEND EPR_RE_EX_ADMIN_FRONTEND DECEMBER_WASTE_WINDOW_START
+          build() {
+            docker buildx build \
+              --cache-from type=gha,scope="$1" \
+              --cache-to type=gha,mode=max,scope="$1" \
+              --load \
+              -t "defradigital/$1:$(git -C "$1" rev-parse --short HEAD)" \
+              "$1" 2>&1 | sed "s/^/[$1] /"
+          }
+          pids=()
+          if [ "$BUILD_FRONTEND" = true ]; then
+            build epr-frontend & pids+=($!)
+            EPR_FRONTEND=$(git -C epr-frontend rev-parse --short HEAD)
+          fi
+          if [ "$BUILD_BACKEND" = true ]; then
+            build epr-backend & pids+=($!)
+            EPR_BACKEND=$(git -C epr-backend rev-parse --short HEAD)
+          fi
+          if [ "$BUILD_ADMIN_FRONTEND" = true ]; then
+            build epr-re-ex-admin-frontend & pids+=($!)
+            EPR_RE_EX_ADMIN_FRONTEND=$(git -C epr-re-ex-admin-frontend rev-parse --short HEAD)
+          fi
+          status=0
+          for pid in "${pids[@]}"; do
+            wait "$pid" || status=$?
+          done
+          if [ "$status" = 0 ]; then
+            docker compose up -d --quiet-pull && status=0 || status=$?
+          fi
+          echo "$status" > compose-up.status.tmp
+          mv compose-up.status.tmp compose-up.status
+        ) > compose-up.log 2>&1 &
 
     - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
       with:
@@ -187,59 +219,43 @@ runs:
     # that drift visible.
     #
     # The spreadsheet half needs no stack (pure ExcelJS + faker), so it runs
-    # before the compose bring-up. Each variant reads a different template and
-    # a different worksheet config, so all five run - ~13s for the set.
+    # while compose is still starting in the background. Each variant reads a
+    # different template and a different worksheet config, so all five run -
+    # ~13s for the set.
     - name: Smoke the spreadsheet generators
+      if: inputs.test-suite == 'api' || inputs.test-suite == 'all'
       shell: bash
       run: |
         for variant in exporter input output regOnlyExporter regOnlyReprocessor; do
           npm run "generate:spreadsheet:$variant"
         done
 
-    # Doesn't skip the apt-get portion of --with-deps (OS packages aren't
-    # restorable this way on a fresh runner each time) but lets Playwright's
-    # own already-installed check skip re-downloading the browser binary
-    # itself when the cache hits.
     - name: Cache Playwright browsers
+      if: inputs.test-suite != 'api'
       uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
       with:
         path: ~/.cache/ms-playwright
         key: playwright-browsers-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
+    # No --with-deps: the GitHub Ubuntu runner image already carries every
+    # library Chromium needs, and the extra fonts apt would add come from a
+    # mirror that can take ten minutes to serve them. If a later runner image
+    # drops a library, Playwright refuses to launch and names the package.
     - name: Install Playwright browsers
+      if: inputs.test-suite != 'api'
       run: |
-        timeout 600 npx playwright install --with-deps chromium || {
-          echo "::error::Playwright install exceeded 10 minutes - usually an apt mirror stall on the runner. Re-run the job."
+        timeout 300 npx playwright install chromium || {
+          echo "::error::Chromium download exceeded 5 minutes. Re-run the job."
           exit 1
         }
       shell: bash
 
-    # windowStart is MM-DDTHH:mm with no year, so it recurs annually against
-    # the accreditation's own relevant year. Callers that want the window
-    # closed (december-scope: exclude) don't need to compute a value
-    # themselves: when no explicit december-window-start is given, this
-    # derives one - tomorrow's MM-DD is strictly later than today on all 365
-    # days, where a fixed 12-31 bound would open on 31 December itself. A
-    # december-scope: only caller gets an empty value here, which Start
-    # docker compose below then leaves for compose.yml's own always-open
-    # default to take over.
-    - name: Resolve the December window
-      if: inputs.december-window-start == '' && inputs.december-scope == 'exclude'
-      id: december-window
-      shell: bash
-      run: echo "start=$(date -u -d tomorrow +%m-%d)T00:00" >> "$GITHUB_OUTPUT"
-
-    # Each EPR_* value below prefers the caller-supplied commit, falls back to
-    # the branch-matched build's short SHA, and falls back again (empty
-    # string) to compose.yml's own :latest default when neither applies.
-    - name: Start docker compose
+    - name: Wait for docker compose to finish starting
       shell: bash
       run: |
-        EPR_FRONTEND=${{ inputs.epr-frontend || steps.docker-frontend-branch.outputs.image }} \
-        EPR_BACKEND=${{ inputs.epr-backend || steps.docker-backend-branch.outputs.image }} \
-        EPR_RE_EX_ADMIN_FRONTEND=${{ inputs.epr-re-ex-admin-frontend || steps.docker-admin-frontend-branch.outputs.image }} \
-        DECEMBER_WASTE_WINDOW_START="${{ inputs.december-window-start || steps.december-window.outputs.start }}" \
-        docker compose up --wait-timeout 300 -d --quiet-pull
+        timeout 300 bash -c 'until [ -f compose-up.status ]; do sleep 2; done' || true
+        cat compose-up.log
+        [ "$(cat compose-up.status 2>/dev/null)" = 0 ]
 
     - name: Wait for services to be ready
       shell: bash
@@ -253,24 +269,19 @@ runs:
 
     - name: Run the tests
       shell: bash
+      env:
+        PW_SCOPE: ${{ inputs.test-scope }}
+        PW_SUITE: ${{ inputs.test-suite }}
+        PW_DECEMBER: ${{ inputs.december-scope }}
+        PW_SHARD: ${{ inputs.shard }}
       run: |
-        case "${{ inputs.test-scope }}" in
-          admin) npm run test:github:admin ;;
-          frontend)
-            case "${{ inputs.december-scope }}" in
-              only) npm run test:github:frontend:december ;;
-              exclude) npm run test:github:frontend:non-december ;;
-              *) npm run test:github:frontend ;;
-            esac
-            ;;
-          *)
-            case "${{ inputs.december-scope }}" in
-              only) npm run test:github:december ;;
-              exclude) npm run test:github:non-december ;;
-              *) npm run test:github ;;
-            esac
-            ;;
-        esac
+        npm run clean
+        if [ "$PW_SUITE" = api ] || { [ "$PW_SUITE" = all ] && [ "$PW_SCOPE" = all ] && [ "$PW_DECEMBER" != only ]; }; then
+          npm run test:github:api
+        fi
+        if [ "$PW_SUITE" != api ]; then
+          npm run test:github:browser
+        fi
         npm run report
 
     # After the specs, not before: generated organisations land in the same
@@ -280,6 +291,7 @@ runs:
     # failure only touches FAILED rather than exiting non-zero, so this still
     # runs and reports independently.
     - name: Smoke the API data generators
+      if: inputs.test-suite == 'api' || inputs.test-suite == 'all'
       shell: bash
       run: npm run generatedata:withLinking
 
@@ -297,12 +309,22 @@ runs:
         name: allure-report${{ inputs.artifact-suffix }}
         path: ./allure-report
 
+    - name: Upload allure results
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: allure-results${{ inputs.artifact-suffix }}
+        path: ./allure-results/*-result.json
+        if-no-files-found: ignore
+
     - name: Upload docker compose logs
       if: always()
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
         name: docker-compose-logs${{ inputs.artifact-suffix }}
-        path: ./logs.txt
+        path: |
+          ./logs.txt
+          ./compose-up.log
 
     - name: Fail this step if FAILED file exists
       if: always()

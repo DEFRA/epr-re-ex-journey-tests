@@ -6,9 +6,17 @@ import {
   story,
   descriptionHtml
 } from 'allure-js-commons'
+import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { runLighthouseAudit } from './lighthouse.js'
+import { closeLighthouseChrome, runLighthouseAudit } from './lighthouse.js'
 import { buildAccessibilityHtmlReport } from './accessibility-report.js'
+
+// The smoke test run sets this. Lighthouse reloads every page it audits in
+// its own Chrome, which is too slow for the pull request runs.
+const runsLighthouse = process.env.RUN_LIGHTHOUSE === 'true'
+const LIGHTHOUSE_AUDIT_TIMEOUT = 60 * 1000
+
+/** @typedef {import('axe-core').Result & {pageName: string}} AccessibilityViolation */
 
 // Impact isn't always present on a violation (axe-core's `impact` field is
 // optional), so anything unrecognised sorts after the known levels rather
@@ -180,12 +188,13 @@ export async function attachAccessibilityReport(collector) {
   }
 
   const html = buildAccessibilityHtmlReport(collector)
+  const pageNames = collector.pages.map((page) => page.pageName).join(', ')
 
   await step(
-    '📊 Full accessibility & performance report (Axe + Lighthouse)',
+    `📊 Full accessibility & performance report (Axe + Lighthouse): ${pageNames}`,
     async () => {
       await attachment(
-        'Accessibility & performance report (Axe + Lighthouse)',
+        `Accessibility & performance report (Axe + Lighthouse): ${pageNames}`,
         html,
         'text/html'
       )
@@ -243,11 +252,54 @@ async function setAccessibilitySummaryDescription(violations) {
  * stopping at the first one - so a multi-page tour surfaces every
  * offending page in one run instead of requiring a fix-rerun cycle per
  * page.
- * @param {Array<{pageName: string, id: string, impact: string, description: string, helpUrl: string}>} violations - accumulated output of scanPageForAccessibilityViolations
+ * @param {AccessibilityViolation[]} violations - accumulated output of scanPageForAccessibilityViolations
  */
 export async function assertNoSeriousOrCriticalViolations(violations) {
   await setAccessibilitySummaryDescription(violations)
+  failOnSeriousOrCriticalViolations(violations)
+}
 
+/**
+ * Scans the page the journey is on with axe, logs every violation to
+ * Allure, and fails the journey if any is Serious or Critical. The failure
+ * is soft, so the journey carries on and one run reports every offending
+ * page. With RUN_LIGHTHOUSE=true it also audits the page with Lighthouse
+ * and attaches the combined report.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} pageName
+ */
+export async function checkAccessibility(page, pageName) {
+  const violations = runsLighthouse
+    ? await scanPageWithLighthouse(page, pageName)
+    : await scanPageForAccessibilityViolations(page, pageName)
+  expect.soft(() => failOnSeriousOrCriticalViolations(violations)).not.toThrow()
+}
+
+/**
+ * @param {import('@playwright/test').Page} page
+ * @param {string} pageName
+ */
+async function scanPageWithLighthouse(page, pageName) {
+  test.info().setTimeout(test.info().timeout + LIGHTHOUSE_AUDIT_TIMEOUT)
+  const collector = createAccessibilityCollector()
+  let violations
+  try {
+    violations = await scanPageForAccessibilityViolations(
+      page,
+      pageName,
+      collector
+    )
+    await attachAccessibilityReport(collector)
+  } finally {
+    // The specs import test straight from @playwright/test, so no worker
+    // fixture exists to close a shared Chrome when the worker finishes.
+    await closeLighthouseChrome()
+  }
+  return violations
+}
+
+/** @param {AccessibilityViolation[]} violations */
+function failOnSeriousOrCriticalViolations(violations) {
   const severe = violations.filter(
     (violation) =>
       violation.impact === 'critical' || violation.impact === 'serious'

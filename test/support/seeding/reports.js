@@ -11,7 +11,7 @@ import {
   registerAndLinkDefraIdUser
 } from '../defra-id-linking.js'
 import { waitForReportingPeriodStatus } from './waiters.js'
-import { reportSubmissionPath } from './report-paths.js'
+import { organisationPath, reportSubmissionPath } from './natural-key-paths.js'
 import {
   createLinkedOrganisation,
   getOrganisation,
@@ -206,16 +206,10 @@ export async function createSubmittedReport(refNo, registrationIndex = 0) {
   const defraAuthHeader = { Authorization: `Bearer ${defraToken}` }
   const jsonHeaders = { ...defraAuthHeader, 'content-type': 'application/json' }
 
-  const linkResponse = await baseAPI.post(
-    `/v1/organisations/${refNo}/link`,
-    '',
-    defraAuthHeader
-  )
+  const linkPath = `${await organisationPath(refNo)}/link`
+  const linkResponse = await baseAPI.post(linkPath, '', defraAuthHeader)
 
-  await assertSuccessResponse(
-    linkResponse,
-    `POST /v1/organisations/${refNo}/link`
-  )
+  await assertSuccessResponse(linkResponse, `POST ${linkPath}`)
 
   const basePath = await reportSubmissionPath(refNo, registrationId, {
     year,
@@ -350,8 +344,11 @@ export async function seedRestatedClosedPeriod({ tonnageRecycled = 100 } = {}) {
     )
   }
   await waitForReportingPeriodStatus(
-    refNo,
-    registrationId,
+    {
+      organisationNumber: linkedOrganisation.orgId,
+      registrationNumber: regNumber,
+      year: RESTATED_PERIOD.year
+    },
     defraAuthHeader,
     'requires_resubmission'
   )

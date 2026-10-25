@@ -25,7 +25,7 @@ const answers = new Map([
     }
   ],
   [
-    '/v1/organisations/org-1/registrations/reg-1/summary-logs',
+    '/organisations/500001/registrations/R26EA1/summary-logs',
     {
       summaryLogs: [
         { uploadedAt: '2026-02-03T10:00:00.000Z', status: 'submitted' },
@@ -34,7 +34,7 @@ const answers = new Map([
     }
   ],
   [
-    '/v1/organisations/org-1/registrations/reg-2/summary-logs',
+    '/organisations/500001/registrations/R26EX2/summary-logs',
     { summaryLogs: [] }
   ],
   [
@@ -104,9 +104,10 @@ const get = (path) => {
 const held = [
   {
     refNo: 'org-1',
+    orgId: 500001,
     registrations: [
-      { registrationId: 'reg-1', planned: { id: 'OP-0001-R1' } },
-      { registrationId: 'reg-2', planned: { id: 'OP-0001-R2' } }
+      { regNumber: 'R26EA1', planned: { id: 'OP-0001-R1' } },
+      { regNumber: 'R26EX2', planned: { id: 'OP-0001-R2' } }
     ]
   }
 ]

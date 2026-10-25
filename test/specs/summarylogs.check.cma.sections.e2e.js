@@ -36,6 +36,8 @@ import {
 // closed-period banner/messaging copy. Splitting lets per-file worker
 // scheduling run these in parallel instead of serially in one ~4 minute file.
 test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility', () => {
+  test.describe.configure({ mode: 'parallel' })
+
   // The "should not display closed period sections when uploading loads only
   // to open periods @noClosedSection" case used to live here, but its
   // org/upload setup was byte-for-byte identical to summarylogs.exporter.e2e.js's
