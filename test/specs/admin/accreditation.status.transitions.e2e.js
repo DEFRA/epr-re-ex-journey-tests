@@ -2,8 +2,7 @@ import { test, expect } from '@playwright/test'
 
 import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { OrganisationsPage } from 'page-objects/admin/organisations.page'
-import { OrganisationOverviewPage } from 'page-objects/admin/organisation.overview.page'
-import { RegistrationOverviewPage } from 'page-objects/admin/registration.overview.page'
+import { StatusChangesPage } from 'page-objects/admin/status.changes.page'
 import { RegistrationTransitionPage } from 'page-objects/admin/registration.transition.page'
 import { AccreditationTransitionPage } from 'page-objects/admin/accreditation.transition.page'
 import {
@@ -27,7 +26,7 @@ const GRANTED_VALID_TO_ISO = `${CURRENT_YEAR}-12-31`
 const SEEDED_VALID_TO = `${CURRENT_YEAR + 1}-01-01`
 
 // Walks the full accreditation lifecycle through the admin UI transition
-// actions on the registration overview page:
+// actions below the organisation's JSON editor:
 //   created -> rejected -> created (reopen) -> approved (grant) -> suspended -> approved (reapprove)
 //   -> suspended -> cancelled (cancel) -> approved (reinstate after appeal)
 // Covering every admin status-transition journey to date (PAE-1617, PAE-1618, PAE-1619,
@@ -48,8 +47,7 @@ test.describe('Admin accreditation status transitions', () => {
     page
   }) => {
     const organisationsPage = new OrganisationsPage(page)
-    const organisationOverviewPage = new OrganisationOverviewPage(page)
-    const registrationOverviewPage = new RegistrationOverviewPage(page)
+    const statusChangesPage = new StatusChangesPage(page)
     const registrationTransitionPage = new RegistrationTransitionPage(page)
     const transitionPage = new AccreditationTransitionPage(page)
 
@@ -67,42 +65,44 @@ test.describe('Admin accreditation status transitions', () => {
 
     await organisationsPage.open()
     await organisationsPage.searchFor(companyName)
-    await organisationsPage.viewLink(1)
-    await organisationOverviewPage.viewRegistrationLink(1)
+    await organisationsPage.editLink(1)
 
-    expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
-      'created'
-    )
-    expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
-      'created'
-    )
+    expect(await statusChangesPage.getAccreditationStatus()).toBe('created')
+    expect(await statusChangesPage.getRegistrationStatus()).toBe('created')
 
     // No Approve accreditation action while the registration is not approved
-    // (PAE-1800) — Reject is still offered
+    // (PAE-1800), with a note saying why — Reject is still offered
     await expect(
-      registrationOverviewPage
-        .accreditationStatusRow()
+      statusChangesPage
+        .accreditationRow()
+        .getByText('Linked registration not approved')
+    ).toBeVisible()
+    await expect(
+      statusChangesPage
+        .accreditationRow()
         .getByRole('link', { name: /approve accreditation/i })
     ).toHaveCount(0)
     await expect(
-      registrationOverviewPage
-        .accreditationStatusRow()
+      statusChangesPage
+        .accreditationRow()
         .getByRole('link', { name: /reject accreditation/i })
     ).toHaveCount(1)
 
     // Granting the registration through the admin UI opens the gate
-    await registrationOverviewPage.clickRegistrationAction('Approve')
+    const registrationNumber = issuedRegistrationNumber()
+    await statusChangesPage.clickRegistrationAction('Approve')
     expect(await registrationTransitionPage.getHeading()).toBe(
       'Approve registration'
     )
     await registrationTransitionPage.fillGrantFields({
       validFrom: GRANTED_VALID_FROM,
-      registrationNumber: issuedRegistrationNumber()
+      registrationNumber
     })
     await registrationTransitionPage.confirm('Approve now')
 
-    expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
-      'approved'
+    expect(await statusChangesPage.getRegistrationStatus()).toBe('approved')
+    expect(await statusChangesPage.getAccreditationLinkedNumber()).toBe(
+      registrationNumber
     )
 
     // The registration's granted valid-from is persisted exactly as entered.
@@ -111,42 +111,40 @@ test.describe('Admin accreditation status transitions', () => {
     expect(grantedRegistration.validFrom).toBe(GRANTED_VALID_FROM_ISO)
 
     await expect(
-      registrationOverviewPage
-        .accreditationStatusRow()
+      statusChangesPage
+        .accreditationRow()
         .getByRole('link', { name: /approve accreditation/i })
     ).toHaveCount(1)
 
     // created -> rejected: refuse the application (PAE-1618)
-    await registrationOverviewPage.clickAccreditationAction('Reject')
+    await statusChangesPage.clickAccreditationAction('Reject')
     expect(await transitionPage.getHeading()).toBe('Reject accreditation')
     await transitionPage.confirm('Reject now')
 
-    expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
-      'rejected'
-    )
+    expect(await statusChangesPage.getAccreditationStatus()).toBe('rejected')
 
     // rejected -> created: reopen for rework (PAE-1623)
-    await registrationOverviewPage.clickAccreditationAction('Reopen')
+    await statusChangesPage.clickAccreditationAction('Reopen')
     expect(await transitionPage.getHeading()).toBe('Reopen accreditation')
     await transitionPage.confirm('Reopen now')
 
-    expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
-      'created'
-    )
+    expect(await statusChangesPage.getAccreditationStatus()).toBe('created')
 
     // created -> approved: grant, issuing the accreditation number and the
     // validity window typed on the confirm page (PAE-1814)
-    await registrationOverviewPage.clickAccreditationAction('Approve')
+    const accreditationNumber = issuedAccreditationNumber()
+    await statusChangesPage.clickAccreditationAction('Approve')
     expect(await transitionPage.getHeading()).toBe('Approve accreditation')
     await transitionPage.fillGrantFields({
       validFrom: GRANTED_VALID_FROM,
       validTo: GRANTED_VALID_TO,
-      accreditationNumber: issuedAccreditationNumber()
+      accreditationNumber
     })
     await transitionPage.confirm('Approve now')
 
-    expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
-      'approved'
+    expect(await statusChangesPage.getAccreditationStatus()).toBe('approved')
+    expect(await statusChangesPage.getRegistrationLinkedNumber()).toBe(
+      accreditationNumber
     )
 
     // The accreditation's granted validity window is persisted exactly as
@@ -160,50 +158,42 @@ test.describe('Admin accreditation status transitions', () => {
     // An approved accreditation offers Suspend only — no direct cancel
     // (suspend first, PAE-1624)
     await expect(
-      registrationOverviewPage
-        .accreditationStatusRow()
+      statusChangesPage
+        .accreditationRow()
         .getByRole('link', { name: /cancel accreditation/i })
     ).toHaveCount(0)
 
     // approved -> suspended
-    await registrationOverviewPage.clickAccreditationAction('Suspend')
+    await statusChangesPage.clickAccreditationAction('Suspend')
     expect(await transitionPage.getHeading()).toBe('Suspend accreditation')
     await transitionPage.confirm('Suspend now')
 
-    expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
-      'suspended'
-    )
+    expect(await statusChangesPage.getAccreditationStatus()).toBe('suspended')
 
     // suspended -> approved: reapprove lifts the suspension
-    await registrationOverviewPage.clickAccreditationAction('Reapprove')
+    await statusChangesPage.clickAccreditationAction('Reapprove')
     expect(await transitionPage.getHeading()).toBe('Reapprove accreditation')
     await transitionPage.confirm('Reapprove now')
 
-    expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
-      'approved'
-    )
+    expect(await statusChangesPage.getAccreditationStatus()).toBe('approved')
 
     // approved -> suspended -> cancelled: cancellation is terminal and only
     // reachable from suspended
-    await registrationOverviewPage.clickAccreditationAction('Suspend')
+    await statusChangesPage.clickAccreditationAction('Suspend')
     await transitionPage.confirm('Suspend now')
 
-    await registrationOverviewPage.clickAccreditationAction('Cancel')
+    await statusChangesPage.clickAccreditationAction('Cancel')
     expect(await transitionPage.getHeading()).toBe('Cancel accreditation')
     await transitionPage.confirm('Cancel accreditation now')
 
-    expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
-      'cancelled'
-    )
+    expect(await statusChangesPage.getAccreditationStatus()).toBe('cancelled')
 
     // cancelled -> approved: reinstatement after a successful appeal,
     // effective on the day it is actioned
-    await registrationOverviewPage.clickAccreditationAction('Reinstate')
+    await statusChangesPage.clickAccreditationAction('Reinstate')
     expect(await transitionPage.getHeading()).toBe('Reinstate accreditation')
     await transitionPage.confirm('Reinstate now')
 
-    expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
-      'approved'
-    )
+    expect(await statusChangesPage.getAccreditationStatus()).toBe('approved')
   })
 })
