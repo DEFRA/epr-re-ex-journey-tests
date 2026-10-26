@@ -5,8 +5,10 @@ class SystemLogsPage extends AdminPage {
     return super.open('/system-logs')
   }
 
-  async searchFor(orgName) {
-    await this.page.locator('#referenceNumber').fill(orgName)
+  async searchFor(organisationNumber) {
+    await this.page
+      .locator('#organisationNumber')
+      .fill(String(organisationNumber))
     await this.page.locator('button[type=submit]').click()
   }
 
@@ -15,8 +17,10 @@ class SystemLogsPage extends AdminPage {
     await this.page.locator('button[type=submit]').click()
   }
 
-  async searchByAllFilters(referenceNumber, userId, subCategory) {
-    await this.page.locator('#referenceNumber').fill(referenceNumber)
+  async searchByAllFilters(organisationNumber, userId, subCategory) {
+    await this.page
+      .locator('#organisationNumber')
+      .fill(String(organisationNumber))
     await this.page.locator('#userId').fill(userId)
     await this.page.locator('#subCategory').selectOption(subCategory)
     await this.page.locator('button[type=submit]').click()
@@ -32,8 +36,8 @@ class SystemLogsPage extends AdminPage {
     return this.page.getByRole('link', { name: 'Clear search', exact: true })
   }
 
-  async referenceNumberValue() {
-    return this.page.locator('#referenceNumber').inputValue()
+  async organisationNumberValue() {
+    return this.page.locator('#organisationNumber').inputValue()
   }
 
   async userIdValue() {
@@ -71,7 +75,7 @@ class SystemLogsPage extends AdminPage {
     // triggers a full page load) - seen as an intermittent "log not found"
     // result in CI even when the log exists.
     await this.page
-      .locator('#referenceNumber')
+      .locator('#organisationNumber')
       .waitFor({ state: 'visible', timeout: 10000 })
 
     const cards = this.page.locator('#main-content .govuk-summary-card')
