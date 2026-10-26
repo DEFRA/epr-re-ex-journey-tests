@@ -433,13 +433,13 @@ If you want to use the repository exclusively for running docker composed based 
 Each run of `run-journey-tests` brings up its own stack, so a pull request can run the suite as parallel legs. These inputs choose what a leg runs, and combine:
 
 - `test-scope`: `all` (the default), `frontend` (the specs outside `admin/`) or `admin`.
-- `test-suite`: `all` (the default), `api` (the API specs, whatever the `test-scope`), `a11y` (the `@accessibility` specs) or `e2e` (the browser specs without `@accessibility`).
+- `test-suite`: `all` (the default), `api` (the API specs, whatever the `test-scope`) or `e2e` (the browser specs).
 - `december-scope`: `all`, `only` (the `@decWaste` specs) or `exclude`.
-- `shard`: `current/total`, for example `2/3`. It splits the browser specs in scope by file, dealt out round-robin so that the heavy `summarylogs.*` files land in different shards. Playwright's own `--shard` splits contiguously and puts them together. It needs `test-suite: e2e` and a `december-scope` other than `only`. Files are dealt out before the tags are matched, so a selection only a few files carry, such as `@accessibility` or `@decWaste`, would leave some shards with no test, and `all` would repeat the API specs on every shard.
+- `shard`: `current/total`, for example `2/3`. It splits the browser specs in scope by file, dealt out round-robin so that the heavy `summarylogs.*` files land in different shards. Playwright's own `--shard` splits contiguously and puts them together. It needs `test-suite: e2e` and a `december-scope` other than `only`. Files are dealt out before the tags are matched, so a selection only a few files carry, such as `@decWaste`, would leave some shards with no test, and `all` would repeat the API specs on every shard.
 
 `npm run test:github:browser` runs `bin/run-browser-specs.js`, which turns these into Playwright arguments (`test/support/playwright-args.js`, unit tested) and starts Playwright with them; any extra arguments, such as `--list`, are passed on. The API specs run when the suite is `api`, or `all` with `test-scope: all` and a December scope other than `only`.
 
-This repository's own pull request workflow runs the `baseline` `e2e` specs (`december-scope: exclude`) as three shards and the `december` specs as one leg, with `api` and `a11y` as separate jobs, and `tests-gate` still reports the single required check.
+This repository's own pull request workflow runs the `baseline` `e2e` specs (`december-scope: exclude`) as three shards and the `december` specs as one leg, with `api` as a separate job, and `tests-gate` still reports the single required check.
 
 ## BrowserStack
 
