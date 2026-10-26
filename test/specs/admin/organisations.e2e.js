@@ -97,7 +97,7 @@ test.describe('Organisations page', () => {
     expect(updatedSearchOrgTable).toEqual(expectedUpdatedSearchOrgTable)
 
     await navigation.clickOnLink('System logs')
-    await systemLogsPage.searchFor(linkedOrganisation.refNo)
+    await systemLogsPage.searchFor(updatedOrgId)
     const searchResults = await systemLogsPage.searchResults()
     await expect(searchResults).toBeAttached()
 

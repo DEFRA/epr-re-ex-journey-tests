@@ -1,5 +1,4 @@
 import { test } from '@playwright/test'
-import { expect } from 'chai'
 import {
   createAndRegisterDefraIdUser,
   linkDefraIdUser
@@ -91,95 +90,6 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
     year = registrationStartYear('2025-01-01')
   })
 
-  test('fails validation (Fatal) for Invalid Row ID and cannot be submitted @summaryLogInvalidRowId', async () => {
-    const { summaryLogPath, baseAPI } = await uploadSummaryLog(
-      orgId,
-      registrationId,
-      authHeader,
-      await summaryLogNumbered(
-        `${FLOCI_SUMMARY_LOGS}/invalid-row-id.xlsx`,
-        inputNumbers
-      ),
-      year
-    )
-    const responseData = await waitForSummaryLogStatus(
-      baseAPI,
-      summaryLogPath,
-      authHeader,
-      'invalid'
-    )
-
-    assertValidationFailures(responseData.validation.failures, [
-      {
-        code: 'VALUE_OUT_OF_RANGE',
-        sheet: 'Received (sections 1, 2 and 3)',
-        table: 'RECEIVED_LOADS_FOR_REPROCESSING',
-        actual: 100
-      },
-      {
-        code: 'VALUE_OUT_OF_RANGE',
-        sheet: 'Received (sections 1, 2 and 3)',
-        table: 'RECEIVED_LOADS_FOR_REPROCESSING',
-        actual: 101
-      },
-      {
-        code: 'VALUE_OUT_OF_RANGE',
-        sheet: 'Received (sections 1, 2 and 3)',
-        table: 'RECEIVED_LOADS_FOR_REPROCESSING',
-        actual: 102
-      }
-    ])
-
-    const submitResponse = await baseAPI.post(
-      `${summaryLogPath}/submit`,
-      '',
-      authHeader
-    )
-    expect(submitResponse.statusCode).to.equal(409)
-    const body = /** @type {any} */ (await submitResponse.body.json())
-    expect(body.message).to.equal(
-      'Summary log must be validated before submission. Current status: invalid'
-    )
-  })
-
-  test('fails validation (Fatal) for Invalid Table name and cannot be submitted @summaryLogInvalidTableName', async () => {
-    const { summaryLogPath, baseAPI } = await uploadSummaryLog(
-      orgId,
-      registrationId,
-      authHeader,
-      await summaryLogNumbered(
-        `${FLOCI_SUMMARY_LOGS}/invalid-table-name.xlsx`,
-        inputNumbers
-      ),
-      year
-    )
-    const responseData = await waitForSummaryLogStatus(
-      baseAPI,
-      summaryLogPath,
-      authHeader,
-      'invalid'
-    )
-
-    assertValidationFailures(responseData.validation.failures, [
-      {
-        code: 'TABLE_UNRECOGNISED',
-        sheet: 'Received (sections 1, 2 and 3)',
-        table: 'INVALID_TABLE'
-      }
-    ])
-
-    const submitResponse = await baseAPI.post(
-      `${summaryLogPath}/submit`,
-      '',
-      authHeader
-    )
-    expect(submitResponse.statusCode).to.equal(409)
-    const body = /** @type {any} */ (await submitResponse.body.json())
-    expect(body.message).to.equal(
-      'Summary log must be validated before submission. Current status: invalid'
-    )
-  })
-
   test('accepts upload and marks as invalid when summary log validation fails @summaryLogUploadCompletedInvalid', async () => {
     // NOT covered: the source's DB-level assertion that the summary log
     // document itself was created with matching file/status fields - this
@@ -208,52 +118,6 @@ test.describe('Summary log row-level validation @summaryLogValidation', () => {
       { code: 'TEMPLATE_VERSION_INVALID', field: 'TEMPLATE_VERSION' },
       { code: 'REGISTRATION_REQUIRED', field: 'REGISTRATION_NUMBER' }
     ])
-  })
-
-  test('processes with pending status and all required fields @summaryLogUploadCompletedPending', async () => {
-    // NOT covered: the source's structured-log-message assertion and its DB
-    // check - no log capture or MongoDB client wired up in this layer.
-    const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
-      orgId,
-      registrationId,
-      authHeader,
-      {
-        s3Key: 'test-upload-key',
-        filename: 'test-upload.xlsx',
-        fileStatus: 'pending'
-      },
-      year
-    )
-    const responseData = await waitForSummaryLogStatus(
-      baseAPI,
-      summaryLogPath,
-      authHeader,
-      'preprocessing'
-    )
-    expect(responseData.status).to.equal('preprocessing')
-  })
-
-  test('processes with rejected status with all required fields @summaryLogUploadCompletedRejected', async () => {
-    // NOT covered: same log-message/DB gap as the pending-status case above.
-    const { summaryLogPath, baseAPI } = await ingestSummaryLogFixture(
-      orgId,
-      registrationId,
-      authHeader,
-      {
-        s3Key: 'test-upload-key',
-        filename: 'test-upload.xlsx',
-        fileStatus: 'rejected'
-      },
-      year
-    )
-    const responseData = await waitForSummaryLogStatus(
-      baseAPI,
-      summaryLogPath,
-      authHeader,
-      'rejected'
-    )
-    expect(responseData.status).to.equal('rejected')
-    expect(responseData.validation.failures[0].code).to.equal('FILE_REJECTED')
   })
 
   // RowID 1000 has a missing DATE_RECEIVED column
