@@ -24,42 +24,17 @@ describe('playwrightArgs', () => {
       {
         suite: 'e2e',
         december: 'all',
-        expected: ['--grep-invert', '@accessibility']
+        expected: []
       },
       {
         suite: 'e2e',
         december: 'only',
-        expected: ['--grep', '@decWaste', '--grep-invert', '@accessibility']
+        expected: ['--grep', '@decWaste']
       },
       {
         suite: 'e2e',
         december: 'exclude',
-        expected: ['--grep-invert', '@decWaste|@accessibility']
-      },
-      {
-        suite: 'a11y',
-        december: 'all',
-        expected: ['--grep', '@accessibility', '--pass-with-no-tests']
-      },
-      {
-        suite: 'a11y',
-        december: 'only',
-        expected: [
-          '--grep',
-          '(?=.*@decWaste)(?=.*@accessibility)',
-          '--pass-with-no-tests'
-        ]
-      },
-      {
-        suite: 'a11y',
-        december: 'exclude',
-        expected: [
-          '--grep',
-          '@accessibility',
-          '--grep-invert',
-          '@decWaste',
-          '--pass-with-no-tests'
-        ]
+        expected: ['--grep-invert', '@decWaste']
       }
     ]
 
@@ -69,7 +44,7 @@ describe('playwrightArgs', () => {
       })
     })
 
-    ;['a11Y', 'api', ''].forEach((suite) => {
+    ;['a11y', 'api', ''].forEach((suite) => {
       it(`should reject the suite '${suite}' for the browser specs`, () => {
         assert.throws(() => playwrightArgs(files, { suite }), /invalid suite/)
       })
@@ -117,9 +92,7 @@ describe('playwrightArgs', () => {
     it('should deal the whole suite out round-robin', () => {
       assert.deepEqual(playwrightArgs(files, { suite: 'e2e', shard: '2/2' }), [
         'specs/admin/b\\.e2e\\.js$',
-        'specs/e\\.e2e\\.js$',
-        '--grep-invert',
-        '@accessibility'
+        'specs/e\\.e2e\\.js$'
       ])
     })
 
@@ -130,7 +103,7 @@ describe('playwrightArgs', () => {
           suite: 'e2e',
           shard: '2/2'
         }),
-        ['specs/e\\.e2e\\.js$', '--grep-invert', '@accessibility']
+        ['specs/e\\.e2e\\.js$']
       )
     })
 
@@ -141,7 +114,7 @@ describe('playwrightArgs', () => {
           december: 'exclude',
           shard: '1/5'
         }),
-        ['specs/a\\.e2e\\.js$', '--grep-invert', '@decWaste|@accessibility']
+        ['specs/a\\.e2e\\.js$', '--grep-invert', '@decWaste']
       )
     })
 
@@ -164,7 +137,6 @@ describe('playwrightArgs', () => {
 
     ;[
       { suite: 'all', december: 'all' },
-      { suite: 'a11y', december: 'all' },
       { suite: 'e2e', december: 'only' }
     ].forEach(({ suite, december }) => {
       it(`should reject a shard of ${suite} with ${december} december scope, where a shard can hold no matching test`, () => {

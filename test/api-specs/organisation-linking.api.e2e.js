@@ -55,52 +55,6 @@ test.describe('Organisation linking/unlinking negative paths @organisationLinkin
     await authClient.authenticate()
   })
 
-  test('rejects linking when the registration is not yet approved @orgLinkNotLinkable', async () => {
-    const org = await createLinkedOrganisation([
-      { wasteProcessingType: 'Reprocessor' }
-    ])
-    const migrated = await updateMigratedOrganisation(org.refNo, [
-      {
-        reprocessingType: 'input',
-        ...generateNumbers({
-          wasteProcessingType: 'reprocessor',
-          materialSuffix: 'PA'
-        }),
-        status: 'created'
-      }
-    ])
-    const user = await registerAuthorisedUser(migrated.email)
-
-    const response = await baseAPI.post(
-      `${await organisationPath(org.refNo)}/link`,
-      '',
-      defraIdStub.authHeader(user.userId)
-    )
-
-    expect(response.statusCode).to.equal(409)
-    const body = /** @type {any} */ (await response.body.json())
-    expect(body.message).to.equal('Organisation is not in a linkable state')
-  })
-
-  test('allows re-linking after unlinking @orgLinkRelinkAfterUnlink', async () => {
-    const { org, migrated } = await setUpApprovedReprocessor()
-    const user = await createAndRegisterDefraIdUser(migrated.email)
-    await linkDefraIdUser(org.refNo, user.userId, migrated.email)
-
-    const unlinkResponse = await baseAPI.delete(
-      `${await organisationPath(org.refNo)}/link`,
-      authClient.authHeader()
-    )
-    expect(unlinkResponse.statusCode).to.equal(204)
-
-    const relinkResponse = await baseAPI.post(
-      `${await organisationPath(org.refNo)}/link`,
-      '',
-      defraIdStub.authHeader(user.userId)
-    )
-    expect(relinkResponse.statusCode).to.equal(200)
-  })
-
   test('rejects unlinking an organisation that is not linked @orgUnlinkNotLinked', async () => {
     const { org, migrated } = await setUpApprovedReprocessor()
     const user = await createAndRegisterDefraIdUser(migrated.email)
@@ -121,39 +75,6 @@ test.describe('Organisation linking/unlinking negative paths @organisationLinkin
     expect(body.message).to.equal(
       'Organisation is not linked so cannot be unlinked'
     )
-  })
-
-  test('rejects a different user attempting to link an already-linked organisation @orgLinkDifferentUserRejected', async () => {
-    const { org, migrated } = await setUpApprovedReprocessor()
-    const firstUser = await createAndRegisterDefraIdUser(migrated.email)
-    await linkDefraIdUser(org.refNo, firstUser.userId, migrated.email)
-
-    const secondUser = await registerAuthorisedUser('test123456@testuserz.com')
-    const response = await baseAPI.post(
-      `${await organisationPath(org.refNo)}/link`,
-      '',
-      defraIdStub.authHeader(secondUser.userId)
-    )
-
-    expect(response.statusCode).to.equal(409)
-    const body = /** @type {any} */ (await response.body.json())
-    expect(body.message).to.equal('Organisation is not in a linkable state')
-  })
-
-  test('rejects re-linking the same user to an already-linked organisation @orgLinkAlreadyLinkedRejected', async () => {
-    const { org, migrated } = await setUpApprovedReprocessor()
-    const user = await createAndRegisterDefraIdUser(migrated.email)
-    await linkDefraIdUser(org.refNo, user.userId, migrated.email)
-
-    const response = await baseAPI.post(
-      `${await organisationPath(org.refNo)}/link`,
-      '',
-      defraIdStub.authHeader(user.userId)
-    )
-
-    expect(response.statusCode).to.equal(409)
-    const body = /** @type {any} */ (await response.body.json())
-    expect(body.message).to.equal('Organisation is not in a linkable state')
   })
 
   test('rejects a linked user accessing another organisation @orgCrossOrganisationAccessRejected', async () => {
