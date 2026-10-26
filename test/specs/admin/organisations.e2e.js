@@ -134,15 +134,14 @@ test.describe('Organisations page', () => {
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
     ])
 
-    const reprocessorNumbers = fillerNumbers()
-    const exporterNumbers = generateNumbers({
-      wasteProcessingType: 'exporter',
+    const reprocessorNumbers = generateNumbers({
+      wasteProcessingType: 'reprocessorInput',
       materialSuffix: 'PA'
     })
 
+    // The exporter stays created and unnumbered, so the overview leaves it out.
     await updateMigratedOrganisation(linkedOrganisation.refNo, [
-      { ...reprocessorNumbers, status: 'approved', reprocessingType: 'input' },
-      { ...exporterNumbers, status: 'approved' }
+      { ...reprocessorNumbers, status: 'approved', reprocessingType: 'input' }
     ])
 
     const { organisation, registrations } = linkedOrganisation
@@ -158,7 +157,7 @@ test.describe('Organisations page', () => {
       {
         header: organisation.companyName,
         orgId: `${linkedOrganisation.orgId}`,
-        regAccNumbers: `${reprocessorNumbers.regNumber} - ${reprocessorNumbers.accNumber}\n${exporterNumbers.regNumber} - ${exporterNumbers.accNumber}`,
+        regAccNumbers: `${reprocessorNumbers.regNumber} - ${reprocessorNumbers.accNumber}\nNone - None`,
         regulator: 'EA',
         status: 'approved'
       }
@@ -172,7 +171,6 @@ test.describe('Organisations page', () => {
       await organisationOverviewPage.getHeaderText()
     expect(organisationOverviewPageHeader).toEqual(organisation.companyName)
 
-    // Sorted by registration number: a reprocessor's (R..ER..) before an exporter's (R..EX..)
     const registrationsData =
       await organisationOverviewPage.getRegistrationsTableData()
     const expectedRegistrationsData = [
@@ -183,15 +181,6 @@ test.describe('Organisations page', () => {
         material: 'paper',
         site: registrations[0].streetAddress,
         accreditationNumber: reprocessorNumbers.accNumber,
-        accreditationStatus: 'approved'
-      },
-      {
-        registrationNumber: exporterNumbers.regNumber,
-        registrationStatus: 'approved',
-        processingType: 'exporter',
-        material: 'paper',
-        site: '',
-        accreditationNumber: exporterNumbers.accNumber,
         accreditationStatus: 'approved'
       }
     ]
