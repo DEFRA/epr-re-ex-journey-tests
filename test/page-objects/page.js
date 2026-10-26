@@ -45,11 +45,11 @@ class Page {
 
   /**
    * Clicks a link that saves a file and answers what the browser was given.
-   * The body of a spreadsheet is not worth asserting, so only its size is.
    * @param {import('@playwright/test').Locator} link
    * @returns {Promise<{
    *   failure: string | null,
    *   filename: string,
+   *   body: Buffer,
    *   byteLength: number
    * }>}
    */
@@ -58,15 +58,17 @@ class Page {
       this.page.waitForEvent('download'),
       link.click()
     ])
-    let byteLength = 0
+    const chunks = []
     for await (const chunk of await download.createReadStream()) {
-      byteLength += chunk.length
+      chunks.push(chunk)
     }
+    const body = Buffer.concat(chunks)
 
     return {
       failure: await download.failure(),
       filename: download.suggestedFilename(),
-      byteLength
+      body,
+      byteLength: body.length
     }
   }
 

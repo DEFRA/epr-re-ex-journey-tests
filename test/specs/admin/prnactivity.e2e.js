@@ -2,7 +2,11 @@ import { test, expect } from '@playwright/test'
 
 import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { Navigation } from 'page-objects/admin/navigation.page'
+import { OrganisationsPage } from 'page-objects/admin/organisations.page'
+import { OrganisationOverviewPage } from 'page-objects/admin/organisation.overview.page'
 import { PrnActivityPage } from 'page-objects/admin/prn.activity.page'
+import { RegistrationOverviewPage } from 'page-objects/admin/registration.overview.page'
+import { parseCsvBody } from '../../support/csv.js'
 import { seedAdminActivityData } from '../../support/seeding/admin-activity.js'
 test.describe('PRN activity page', () => {
   let seeded
@@ -42,5 +46,70 @@ test.describe('PRN activity page', () => {
     expect(csv.body).toContain('PRN Number')
     expect(csv.body).toContain(seeded.prnNumber)
     expect(csv.body).toContain(seeded.accreditationNumber)
+  })
+
+  test("Should download one accreditation's PRN activity from its registration overview @prnActivity", async ({
+    page
+  }) => {
+    const loginPage = new AdminLoginPage(page)
+    const organisationsPage = new OrganisationsPage(page)
+    const organisationOverviewPage = new OrganisationOverviewPage(page)
+    const registrationOverviewPage = new RegistrationOverviewPage(page)
+
+    await loginPage.loginAsServiceMaintainer()
+    await organisationsPage.open()
+    await organisationsPage.searchFor(seeded.companyName)
+    await organisationsPage.viewLink(1)
+    await organisationOverviewPage.viewRegistrationLink(1)
+
+    const csv = await registrationOverviewPage.download(
+      registrationOverviewPage.prnActivityDownloadLink()
+    )
+    expect(csv.failure).toBeNull()
+    expect(csv.filename).toEqual(
+      `prn-activity-${seeded.registrationNumber}-${seeded.accreditationYear}.csv`
+    )
+
+    const [header, ...rows] = parseCsvBody(csv.body.toString('utf8'))
+    expect(header).toEqual([
+      'PRN Number',
+      'Status',
+      'Issued To',
+      'Tonnage',
+      'Material',
+      'Process To Be Used',
+      'December Waste',
+      'Issued Date',
+      'Issued By',
+      'Position',
+      'Accreditation Number',
+      'Accreditation Year',
+      'Obligation Year',
+      'Submitted To Regulator',
+      'Organisation Name',
+      'Waste Processing Type'
+    ])
+    // The issue date is checked by shape alone, because UTC and UK time can
+    // name different days around midnight.
+    expect(rows).toEqual([
+      [
+        seeded.prnNumber,
+        'accepted',
+        'Trading Name',
+        String(seeded.tonnage),
+        'paper',
+        'R3',
+        'No',
+        expect.stringMatching(/^\d{2}\/\d{2}\/\d{4}$/),
+        seeded.issuedBy,
+        '',
+        seeded.accreditationNumber,
+        String(seeded.accreditationYear),
+        String(seeded.accreditationYear),
+        'sepa',
+        seeded.companyName,
+        'reprocessor'
+      ]
+    ])
   })
 })

@@ -39,6 +39,8 @@ import { defraIdStub } from '../defra-id-stub.js'
  *   registrationNumber: string,
  *   prnNumber: string,
  *   tonnage: number,
+ *   accreditationYear: number,
+ *   issuedBy: string,
  *   authHeader: {Authorization?: string}
  * }>}
  */
@@ -93,12 +95,13 @@ export async function seedAdminActivityData({ acceptPrn = true } = {}) {
       ]
     }
   })
+  const accreditationYear = registrationStartYear()
   await submitSummaryLogContent(
     org.refNo,
     registrationId,
     authHeader,
     content,
-    registrationStartYear()
+    accreditationYear
   )
   await waitForWasteBalance(org.refNo, accreditationId, authHeader)
 
@@ -133,6 +136,8 @@ export async function seedAdminActivityData({ acceptPrn = true } = {}) {
     registrationNumber,
     prnNumber: issued.prnNumber,
     tonnage,
+    accreditationYear,
+    issuedBy: `${user.firstName} ${user.lastName}`,
     authHeader
   }
 }
