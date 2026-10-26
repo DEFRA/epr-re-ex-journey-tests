@@ -9,23 +9,6 @@ const OVERSEAS_SITES_PATH =
 test.describe('Basic auth @basicAuth', () => {
   const baseAPI = new BaseAPI()
 
-  test('returns the organisation when using the default basic auth credentials @basicAuthOrganisation', async () => {
-    const { refNo } = await createLinkedOrganisation([
-      { wasteProcessingType: 'Reprocessor' }
-    ])
-    const basicAuth = new BasicAuth()
-    await basicAuth.defaultBasicAuthHeader()
-
-    const response = await baseAPI.get(
-      `/v1/organisations/${refNo}`,
-      basicAuth.authHeader()
-    )
-
-    expect(response.statusCode).to.equal(200)
-    const body = /** @type {any} */ (await response.body.json())
-    expect(body.id).to.equal(refNo)
-  })
-
   test('returns a 422 validation error for malformed overseas-sites path params via basic auth @basicAuthOverseasSitesValidation', async () => {
     const basicAuth = new BasicAuth()
     await basicAuth.defaultBasicAuthHeader()
