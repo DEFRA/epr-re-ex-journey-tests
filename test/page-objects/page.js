@@ -58,6 +58,7 @@ class Page {
       this.page.waitForEvent('download'),
       link.click()
     ])
+    /** @type {Buffer[]} */
     const chunks = []
     for await (const chunk of await download.createReadStream()) {
       chunks.push(chunk)
