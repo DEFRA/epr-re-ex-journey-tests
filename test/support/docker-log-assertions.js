@@ -108,7 +108,7 @@ export async function assertAuditLogs(
 
   const startTime = Date.now()
   const accumulatedLogs = []
-  let unmet = expectedList
+  let unmet
 
   do {
     accumulatedLogs.push(...(await dockerLogParser.retrieveAuditLogs()))
