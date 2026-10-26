@@ -86,7 +86,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '3.00 tonnes', 10)
 
-    await uploadSummaryLogPage.returnToHome()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
     let availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe('3.00')
@@ -123,7 +123,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '9.25 tonnes', 10)
 
-    await uploadSummaryLogPage.returnToHome()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
     availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe('9.25')

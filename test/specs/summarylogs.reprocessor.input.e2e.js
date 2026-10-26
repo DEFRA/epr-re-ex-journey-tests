@@ -117,7 +117,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '391.62 tonnes', 10)
 
-    await uploadSummaryLogPage.returnToHome()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
     const availableWasteBalance = await dashboardPage.availableWasteBalance(1)
     expect(availableWasteBalance).toBe('391.62')
