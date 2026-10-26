@@ -144,7 +144,7 @@ test.describe('@registeredOnly', () => {
     await checkBodyText(page, 'These have been added to your summary log.', 30)
     await checkSummaryLogPage.uploadButton().click()
 
-    await checkBodyText(page, 'Summary log uploaded', 30)
+    await uploadSummaryLogPage.checkUploaded()
     await checkBodyTextDoesNotInclude(page, 'Your updated waste balance', 10)
     await uploadSummaryLogPage.returnToHomePageLink().click()
 
@@ -316,7 +316,7 @@ test.describe('@registeredOnly', () => {
     await checkAccessibility(page, 'Check summary log')
     await checkSummaryLogPage.uploadButton().click()
 
-    await checkBodyText(page, 'Summary log uploaded', 30)
+    await uploadSummaryLogPage.checkUploaded()
     await checkBodyTextDoesNotInclude(page, 'Your updated waste balance', 10)
     await checkAccessibility(page, 'Summary log uploaded (confirmation)')
     await uploadSummaryLogPage.returnToHomePageLink().click()

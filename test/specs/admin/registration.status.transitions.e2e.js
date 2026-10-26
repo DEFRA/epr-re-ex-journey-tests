@@ -2,8 +2,7 @@ import { test, expect } from '@playwright/test'
 
 import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { OrganisationsPage } from 'page-objects/admin/organisations.page'
-import { OrganisationOverviewPage } from 'page-objects/admin/organisation.overview.page'
-import { RegistrationOverviewPage } from 'page-objects/admin/registration.overview.page'
+import { StatusChangesPage } from 'page-objects/admin/status.changes.page'
 import { RegistrationTransitionPage } from 'page-objects/admin/registration.transition.page'
 import {
   createLinkedOrganisation,
@@ -19,7 +18,7 @@ const GRANTED_VALID_FROM = { day: '1', month: '1', year: `${CURRENT_YEAR}` }
 const GRANTED_VALID_FROM_ISO = `${CURRENT_YEAR}-01-01`
 
 // Walks the full registration lifecycle through the admin UI transition
-// actions on the registration overview page:
+// actions below the organisation's JSON editor:
 //   created -> rejected (reject) -> created (reopen) -> approved (grant)
 //   -> cancelled (cancel) -> approved (reinstate after appeal)
 // Covering every admin status-transition journey to date (PAE-1599,
@@ -39,8 +38,7 @@ test.describe('Admin registration status transitions', () => {
     page
   }) => {
     const organisationsPage = new OrganisationsPage(page)
-    const organisationOverviewPage = new OrganisationOverviewPage(page)
-    const registrationOverviewPage = new RegistrationOverviewPage(page)
+    const statusChangesPage = new StatusChangesPage(page)
     const transitionPage = new RegistrationTransitionPage(page)
 
     const organisationDetails = await createLinkedOrganisation([
@@ -57,34 +55,27 @@ test.describe('Admin registration status transitions', () => {
 
     await organisationsPage.open()
     await organisationsPage.searchFor(companyName)
-    await organisationsPage.viewLink(1)
-    await organisationOverviewPage.viewRegistrationLink(1)
+    await organisationsPage.editLink(1)
 
-    expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
-      'created'
-    )
+    expect(await statusChangesPage.getRegistrationStatus()).toBe('created')
 
     // created -> rejected: refuse the application (PAE-1609)
-    await registrationOverviewPage.clickRegistrationAction('Reject')
+    await statusChangesPage.clickRegistrationAction('Reject')
     expect(await transitionPage.getHeading()).toBe('Reject registration')
     await transitionPage.confirm('Reject now')
 
-    expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
-      'rejected'
-    )
+    expect(await statusChangesPage.getRegistrationStatus()).toBe('rejected')
 
     // rejected -> created: reopen for rework (PAE-1614)
-    await registrationOverviewPage.clickRegistrationAction('Reopen')
+    await statusChangesPage.clickRegistrationAction('Reopen')
     expect(await transitionPage.getHeading()).toBe('Reopen registration')
     await transitionPage.confirm('Reopen now')
 
-    expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
-      'created'
-    )
+    expect(await statusChangesPage.getRegistrationStatus()).toBe('created')
 
     // created -> approved: grant, issuing the registration number (PAE-1599)
     // and the valid-from date typed on the confirm page (PAE-1814)
-    await registrationOverviewPage.clickRegistrationAction('Approve')
+    await statusChangesPage.clickRegistrationAction('Approve')
     expect(await transitionPage.getHeading()).toBe('Approve registration')
     await transitionPage.fillGrantFields({
       validFrom: GRANTED_VALID_FROM,
@@ -92,9 +83,7 @@ test.describe('Admin registration status transitions', () => {
     })
     await transitionPage.confirm('Approve now')
 
-    expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
-      'approved'
-    )
+    expect(await statusChangesPage.getRegistrationStatus()).toBe('approved')
 
     // The granted valid-from is persisted exactly as entered
     const grantedOrganisation = await getOrganisation(orgId)
@@ -103,36 +92,31 @@ test.describe('Admin registration status transitions', () => {
 
     // approved: grant is a one-way door — no Approve action remains
     await expect(
-      registrationOverviewPage
-        .registrationStatusRow()
+      statusChangesPage
+        .registrationRow()
         .getByRole('link', { name: /approve registration/i })
     ).toHaveCount(0)
 
     // approved -> cancelled: direct cancel, no suspended state (PAE-1615)
-    await registrationOverviewPage.clickRegistrationAction('Cancel')
+    await statusChangesPage.clickRegistrationAction('Cancel')
     expect(await transitionPage.getHeading()).toBe('Cancel registration')
     await transitionPage.confirm('Cancel registration now')
 
-    expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
-      'cancelled'
-    )
+    expect(await statusChangesPage.getRegistrationStatus()).toBe('cancelled')
 
     // cancelled -> approved: reinstatement after a successful appeal (PAE-1616)
-    await registrationOverviewPage.clickRegistrationAction('Reinstate')
+    await statusChangesPage.clickRegistrationAction('Reinstate')
     expect(await transitionPage.getHeading()).toBe('Reinstate registration')
     await transitionPage.confirm('Reinstate now')
 
-    expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
-      'approved'
-    )
+    expect(await statusChangesPage.getRegistrationStatus()).toBe('approved')
   })
 
   test('cancelling a registration cascades cancellation to its linked accreditation and gates its reinstatement @registrationTransitions', async ({
     page
   }) => {
     const organisationsPage = new OrganisationsPage(page)
-    const organisationOverviewPage = new OrganisationOverviewPage(page)
-    const registrationOverviewPage = new RegistrationOverviewPage(page)
+    const statusChangesPage = new StatusChangesPage(page)
     const transitionPage = new RegistrationTransitionPage(page)
 
     // An approved registration with an approved linked accreditation, so the
@@ -154,52 +138,39 @@ test.describe('Admin registration status transitions', () => {
 
     await organisationsPage.open()
     await organisationsPage.searchFor(companyName)
-    await organisationsPage.viewLink(1)
-    await organisationOverviewPage.viewRegistrationLink(1)
+    await organisationsPage.editLink(1)
 
-    expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
-      'approved'
-    )
-    expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
-      'approved'
-    )
+    expect(await statusChangesPage.getRegistrationStatus()).toBe('approved')
+    expect(await statusChangesPage.getAccreditationStatus()).toBe('approved')
 
-    await registrationOverviewPage.clickRegistrationAction('Cancel')
+    await statusChangesPage.clickRegistrationAction('Cancel')
     expect(await transitionPage.getHeading()).toBe('Cancel registration')
     await transitionPage.confirm('Cancel registration now')
 
-    expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
-      'cancelled'
-    )
+    expect(await statusChangesPage.getRegistrationStatus()).toBe('cancelled')
     // The cascade force-cancelled the linked accreditation in the same update
-    expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
-      'cancelled'
-    )
+    expect(await statusChangesPage.getAccreditationStatus()).toBe('cancelled')
 
     // The cascade-cancelled accreditation cannot be reinstated on its own:
     // no Reinstate action while the registration is cancelled (PAE-1800)
     await expect(
-      registrationOverviewPage
-        .accreditationStatusRow()
+      statusChangesPage
+        .accreditationRow()
         .getByRole('link', { name: /reinstate accreditation/i })
     ).toHaveCount(0)
 
     // cancelled -> approved: reinstating the registration reopens the gate
-    await registrationOverviewPage.clickRegistrationAction('Reinstate')
+    await statusChangesPage.clickRegistrationAction('Reinstate')
     expect(await transitionPage.getHeading()).toBe('Reinstate registration')
     await transitionPage.confirm('Reinstate now')
 
-    expect(await registrationOverviewPage.getRegistrationStatus()).toBe(
-      'approved'
-    )
+    expect(await statusChangesPage.getRegistrationStatus()).toBe('approved')
     // No reverse cascade: the accreditation stays cancelled, but its
     // Reinstate action is offered again now the registration is approved
-    expect(await registrationOverviewPage.getAccreditationStatus()).toBe(
-      'cancelled'
-    )
+    expect(await statusChangesPage.getAccreditationStatus()).toBe('cancelled')
     await expect(
-      registrationOverviewPage
-        .accreditationStatusRow()
+      statusChangesPage
+        .accreditationRow()
         .getByRole('link', { name: /reinstate accreditation/i })
     ).toHaveCount(1)
   })

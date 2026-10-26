@@ -104,6 +104,8 @@ Everything else you'll see in a test title (`@delPRNExp`, `@summaryLogExporter`,
 
 ### Writing a spec
 
+Before you add a spec, check that the test belongs here. [Where a Test Goes](https://github.com/DEFRA/epr-re-ex-service/blob/main/docs/testing/0002-test-coverage.md) says what belongs in the journey tests and what belongs in the service repos.
+
 A journey test earns its confidence by resembling what a user does. A spec that reaches past the user, to a test id, a deep link or a URL check, can pass while the user is stuck: the button is mislabelled, the link is missing, the page at the right address is an error. So a spec reads like the user's story: land on an entry page, follow the links and buttons, and check what the page now shows, using Playwright's user-facing locators (`getByRole`, `getByLabel`, `getByText`).
 
 **Find elements by what the user perceives.** Role and accessible name first: `getByRole('button', { name: 'Continue' })`, `getByRole('link', { name: 'Reports' })`, `getByRole('heading', { name: 'Upload your summary log' })`. Then `getByLabel` for a form field and `getByText` for other visible text. Reach for a `data-testid`, an id, a `govuk-*` class or an `nth-child` only when no user-facing query can express the target. A role query that finds nothing usually means a screen reader user could not find it either, so raise it with the app that owns the page rather than write the selector. The bar applies wherever the locator lives, page objects included.

@@ -40,3 +40,16 @@ ignore:
           never extract to disk. No upstream patch (latest unzipper 0.12.5 is
           still flagged and is incompatible with exceljs). Test-only tooling.
         expires: 2027-03-21T00:00:00.000Z
+  # ReDoS in basic-ftp's Client.list() directory-listing parser. basic-ftp
+  # reaches us only via browserstack-node-sdk > pac-proxy-agent > get-uri, and
+  # only when a PAC file is fetched from an ftp:// URL. The suite configures its
+  # outbound proxy as a plain HTTP_PROXY (undici ProxyAgent), never a PAC file.
+  # The fix (6.2.1) is a major bump; every get-uri release pins basic-ftp ^5.
+  'SNYK-JS-BASICFTP-20419408':
+    - '*':
+        reason: >-
+          ReDoS in basic-ftp Client.list(), reached only when pac-proxy-agent
+          fetches a PAC file over ftp://. The suite uses a plain HTTP_PROXY, no
+          PAC file. Fix is basic-ftp 6.x but get-uri pins ^5 in every release.
+          Test-only BrowserStack tooling, not a production path.
+        expires: 2027-04-26T00:00:00.000Z
