@@ -1,6 +1,11 @@
 import { Page } from 'page-objects/page'
+import { checkBodyText } from '../support/checks.js'
 
 const SUBMIT_SELECTOR = '#main-content button[type=submit]'
+
+// Mirrors the frontend, which uploads every summary log for this year until
+// the upload year becomes selectable.
+export const UPLOAD_YEAR = 2026
 
 // Flag-independent upload-page primitives for UploadSummaryLogPage: the upload
 // page itself is unchanged by the flag (only the check page after it differs).
@@ -18,6 +23,10 @@ export class SummaryLogUploadActions extends Page {
 
   async continue() {
     await this.submit(SUBMIT_SELECTOR)
+  }
+
+  async checkUploaded() {
+    await checkBodyText(this.page, `Summary log uploaded (${UPLOAD_YEAR})`, 30)
   }
 
   returnToHomePageLink() {

@@ -10,6 +10,7 @@ import { createLinkedOrganisation } from '../../support/seeding/organisation.js'
 import { checkAccessibility } from '../../support/accessibility.js'
 test.describe('System logs search @searchSystemLogs', () => {
   let linkedOrganisation
+  const updatedOrgId = () => Number(linkedOrganisation.orgId) + 100000
 
   // All tests below share one continuous, already-logged-in session: the
   // org-ID bump only needs to happen once to produce a searchable system-log
@@ -44,7 +45,7 @@ test.describe('System logs search @searchSystemLogs', () => {
     expect(await organisationsPage.searchResult()).toEqual('1 result found')
     await organisationsPage.editLink(1)
     await jsonEditor.switchToTreeEditor()
-    await jsonEditor.updateOrgId(Number(linkedOrganisation.orgId) + 100000)
+    await jsonEditor.updateOrgId(updatedOrgId())
     await jsonEditor.saveButton().click()
 
     const successMessage = await organisationsPage.getSuccessMessage()
@@ -73,12 +74,12 @@ test.describe('System logs search @searchSystemLogs', () => {
     const systemLogsPage = new SystemLogsPage(page)
 
     await navigation.clickOnLink('System logs')
-    await systemLogsPage.searchFor(linkedOrganisation.refNo)
+    await systemLogsPage.searchFor(updatedOrgId())
     const userId = await systemLogsPage.firstResultUserId()
 
     await navigation.clickOnLink('System logs')
     await systemLogsPage.searchByAllFilters(
-      linkedOrganisation.refNo,
+      updatedOrgId(),
       userId,
       'epr-organisations'
     )
@@ -88,7 +89,7 @@ test.describe('System logs search @searchSystemLogs', () => {
 
     await systemLogsPage.clearSearchLink().click()
 
-    expect(await systemLogsPage.referenceNumberValue()).toBe('')
+    expect(await systemLogsPage.organisationNumberValue()).toBe('')
     expect(await systemLogsPage.userIdValue()).toBe('')
     expect(await systemLogsPage.eventTypeValue()).toBe('')
     await expect(
