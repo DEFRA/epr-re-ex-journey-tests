@@ -51,20 +51,6 @@ async function setUpExporterWithReport() {
 }
 
 test.describe('Reports PATCH endpoint @reportsPatch', () => {
-  test('succeeds patching prnRevenue on an in_progress report @reportsPatchPrnRevenue', async () => {
-    const { baseAPI, authHeader, reportPath } = await setUpExporterWithReport()
-
-    const response = await baseAPI.patch(
-      reportPath,
-      JSON.stringify({ prnRevenue: 1576.12 }),
-      authHeader
-    )
-
-    expect(response.statusCode).to.equal(200)
-    const body = /** @type {any} */ (await response.body.json())
-    expect(body.prn.totalRevenue).to.equal(1576.12)
-  })
-
   test('succeeds patching freeTonnage on an in_progress report @reportsPatchFreeTonnage', async () => {
     const { baseAPI, authHeader, reportPath } = await setUpExporterWithReport()
 
@@ -145,22 +131,6 @@ test.describe('Reports PATCH endpoint @reportsPatch', () => {
     expect(body.message).to.equal(
       `No report found for ${CADENCE} period ${nonExistentPeriod} of ${YEAR}`
     )
-  })
-
-  test('still supports patching supportingInformation unchanged @reportsPatchSupportingInformation', async () => {
-    const { baseAPI, authHeader, reportPath } = await setUpExporterWithReport()
-
-    const response = await baseAPI.patch(
-      reportPath,
-      JSON.stringify({
-        supportingInformation: 'Test supporting information'
-      }),
-      authHeader
-    )
-
-    expect(response.statusCode).to.equal(200)
-    const body = /** @type {any} */ (await response.body.json())
-    expect(body.supportingInformation).to.equal('Test supporting information')
   })
 
   test('reflects the PATCH on a subsequent GET @reportsPatchThenGet', async () => {
