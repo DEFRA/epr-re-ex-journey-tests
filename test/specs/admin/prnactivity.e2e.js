@@ -9,6 +9,7 @@ import { RegistrationOverviewPage } from 'page-objects/admin/registration.overvi
 import { parseCsvBody } from '../../support/csv.js'
 import { seedAdminActivityData } from '../../support/seeding/admin-activity.js'
 test.describe('PRN activity page', () => {
+  /** @type {Awaited<ReturnType<typeof seedAdminActivityData>>} */
   let seeded
 
   test.beforeAll(async () => {

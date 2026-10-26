@@ -48,6 +48,7 @@ class RegistrationOverviewPage extends AdminPage {
       .getByRole('link', { name: 'View', exact: true })
   }
 
+  /** @returns {import('@playwright/test').Locator} */
   prnActivityDownloadLink() {
     return this.page
       .locator('.govuk-summary-list__row', {
