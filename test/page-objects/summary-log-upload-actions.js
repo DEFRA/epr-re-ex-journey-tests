@@ -1,4 +1,3 @@
-import { expect } from '@playwright/test'
 import { Page } from 'page-objects/page'
 import { checkBodyText } from '../support/checks.js'
 
@@ -30,11 +29,8 @@ export class SummaryLogUploadActions extends Page {
     await checkBodyText(this.page, `Summary log uploaded (${UPLOAD_YEAR})`, 30)
   }
 
-  async returnToHome() {
-    await this.returnToHomeLink().click()
-    await expect(this.page).toHaveURL(
-      new RegExp(`/organisations/\\d+/${UPLOAD_YEAR}$`)
-    )
+  returnToHomePageLink() {
+    return this.returnToHomeLink()
   }
 
   async confirmAndCheckDoubleClickPrevented() {

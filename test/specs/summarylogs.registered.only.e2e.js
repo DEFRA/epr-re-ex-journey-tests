@@ -146,7 +146,7 @@ test.describe('@registeredOnly', () => {
 
     await uploadSummaryLogPage.checkUploaded()
     await checkBodyTextDoesNotInclude(page, 'Your updated waste balance', 10)
-    await uploadSummaryLogPage.returnToHome()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
     await dashboardPage.exportingTabLink().click()
     const exportRow = await dashboardPage.getTableRow(1, 1)
@@ -319,7 +319,7 @@ test.describe('@registeredOnly', () => {
     await uploadSummaryLogPage.checkUploaded()
     await checkBodyTextDoesNotInclude(page, 'Your updated waste balance', 10)
     await checkAccessibility(page, 'Summary log uploaded (confirmation)')
-    await uploadSummaryLogPage.returnToHome()
+    await uploadSummaryLogPage.returnToHomePageLink().click()
 
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
