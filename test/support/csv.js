@@ -9,7 +9,7 @@
  * @param {string} body
  * @returns {string[][]}
  */
-function parseCsvBody(body) {
+export function parseCsvBody(body) {
   const rows = []
   let row = []
   let field = ''
