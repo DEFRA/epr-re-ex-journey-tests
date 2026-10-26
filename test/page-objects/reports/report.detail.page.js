@@ -62,11 +62,7 @@ class ReportDetailPage extends Page {
     })
 
     await this.uploadNewSummaryLog()
-    const uploadSummaryLogPage = new UploadSummaryLogPage(this.page)
-    await expect(uploadSummaryLogPage.heading()).toContainText(
-      'Upload your summary log',
-      { timeout: 10000 }
-    )
+    await new UploadSummaryLogPage(this.page).checkOnUploadPage()
 
     await this.page.goBack()
     await this.cancelAndReturnToReports()

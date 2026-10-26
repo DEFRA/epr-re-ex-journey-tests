@@ -128,7 +128,7 @@ test.describe('@registeredOnly', () => {
     await checkBodyTextDoesNotInclude(page, 'PRNs', 5)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await expect(page).toHaveTitle(/Summary log: upload/)
+    await uploadSummaryLogPage.checkOnUploadPage()
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered('resources/reprocessor-output-regonly.xlsx', {
         regNumber: reprocessorRegNumber
@@ -297,7 +297,7 @@ test.describe('@registeredOnly', () => {
     await checkAccessibility(page, 'Waste records (registered-only)')
 
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await expect(page).toHaveTitle(/Summary log: upload/)
+    await uploadSummaryLogPage.checkOnUploadPage()
     await checkAccessibility(page, 'Upload summary log')
 
     await uploadSummaryLogPage.uploadFile(
