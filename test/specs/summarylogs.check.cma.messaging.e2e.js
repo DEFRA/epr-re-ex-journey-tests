@@ -129,7 +129,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
     await checkSummaryLogPage.uploadButton().click()
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
-    await checkBodyText(page, 'Summary log uploaded', 30)
+    await uploadSummaryLogPage.checkUploaded()
 
     // The "Further action needed" section and "Go to reports" button are shown
     // on the success page, and the button links to the reports page.
