@@ -8,9 +8,7 @@ import { AdminPage } from 'page-objects/admin/page'
  *   search?: string,
  *   orgId?: string,
  *   registrationNumber?: string,
- *   registrationId?: string,
- *   accreditationNumber?: string,
- *   accreditationId?: string
+ *   accreditationNumber?: string
  * }} SearchCriteria
  */
 
@@ -23,9 +21,7 @@ const SEARCH_FIELD_IDS = [
   'search',
   'orgId',
   'registrationNumber',
-  'registrationId',
-  'accreditationNumber',
-  'accreditationId'
+  'accreditationNumber'
 ]
 
 // The "n results found" heading, rendered only when a search was made.
