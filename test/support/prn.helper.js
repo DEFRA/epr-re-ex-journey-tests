@@ -5,6 +5,7 @@ import { CreatePRNPage } from 'page-objects/create.prn.page.js'
 import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
 import { PRNIssuedPage } from 'page-objects/prn.issued.page.js'
 import { todayddMMMMyyyy } from './date.js'
+import { registrationStartYear } from './seeding/summary-logs.js'
 import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
 import { ConfirmCancelPRNPage } from 'page-objects/confirm.cancel.prn.page.js'
 import { PRNCancelledPage } from 'page-objects/prn.cancelled.page.js'
@@ -219,10 +220,25 @@ export class PrnHelper {
     ]) {
       await link.click()
       expect(await this.prnDashboardPage.headingText()).toBe(
-        `${this.prnWording}s`
+        `${this.prnWording}s (${registrationStartYear()})`
       )
       await this.page.goBack()
     }
+  }
+
+  async returnHomeFromCreatedPage() {
+    await this.prnCreatedPage.returnToRegistrationPage().click()
+    const tab = this.isPern ? '/exporting' : ''
+    await expect(this.page).toHaveURL(
+      new RegExp(`/organisations/\\d+/${registrationStartYear()}${tab}$`)
+    )
+  }
+
+  async returnHomeFromIssuedPage() {
+    await this.prnIssuedPage.returnToHomeLink().click()
+    await expect(this.page).toHaveURL(
+      new RegExp(`/accreditations/${registrationStartYear()}$`)
+    )
   }
 
   async cancelPRNAndReturnToPRNsDashboard(prnDetails, options) {

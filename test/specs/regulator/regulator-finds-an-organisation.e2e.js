@@ -15,6 +15,7 @@ import { checkBodyText } from '../../support/checks.js'
 import { currentYear } from '../../support/date.js'
 import { SEEDED_VALID_FROM } from '../../support/seeding/organisation.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
+import { registrationStartYear } from '../../support/seeding/summary-logs.js'
 // A ledger Date cell, e.g. "18 August 2026, 5:06pm".
 const LEDGER_TIMESTAMP = /^\d{1,2} [A-Z][a-z]+ \d{4}, \d{1,2}:\d{2}(am|pm)$/
 
@@ -165,7 +166,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     await cancellationLink.click()
     await checkBodyText(page, seeded.cancellationPrnNumber, 10)
-    await prnViewPage.crumbLink('PRNs').click()
+    await prnViewPage.crumbLink(`PRNs (${registrationStartYear()})`).click()
 
     await prnListPage.selectAwaitingLink(1)
 
@@ -187,11 +188,11 @@ test.describe('A regulator looking up an operator @regulator', () => {
       seeded.companyName,
       'Registration details',
       'Accreditation details',
-      'PRNs',
+      `PRNs (${registrationStartYear()})`,
       seeded.prnId
     ])
 
-    await prnViewPage.crumbLink('PRNs').click()
+    await prnViewPage.crumbLink(`PRNs (${registrationStartYear()})`).click()
 
     await expect(prnsPage.detailedView()).toBeVisible()
 
