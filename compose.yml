@@ -89,7 +89,7 @@ services:
       retries: 5
 
   cdp-uploader:
-    image: defradigital/cdp-uploader:1.27.0@sha256:4749a2ff6ddd34ccdc2caf63afaac1f26f3b8f0dcfd775eb36511725f39deedd
+    image: defradigital/cdp-uploader:1.28.0@sha256:c2ad7db7c7141a02d1dfd621ace5bf628bd71d156bbe6bd7dbd976f0468f9845
     networks:
       - cdp-tenant
     ports:
@@ -177,7 +177,7 @@ services:
   # Simulates Entra ID (Microsoft) sign-in: used for epr-backend's
   # service-to-service auth and for epr-re-ex-admin-frontend's browser login.
   entra-stub:
-    image: defradigital/epr-re-ex-entra-stub:0.147.0@sha256:c9e6f1421725d16611bb8136c1598d5feb3f434f678dc97121425a965beb0110
+    image: defradigital/epr-re-ex-entra-stub:0.153.0@sha256:f62e24951f11374ffaf79ed03fc6690ca544e272e2a29492ddbe3300687ab183
     networks:
       - cdp-tenant
     ports:

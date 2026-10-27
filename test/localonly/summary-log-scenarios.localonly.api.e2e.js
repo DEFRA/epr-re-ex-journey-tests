@@ -29,10 +29,9 @@ import logger from '../support/logger.js'
 // operator does instead - a real workbook through cdp-uploader - trading the
 // dev route's speed for a summary log that can be downloaded again.
 //
-// Like automated-scaling.localonly.api.e2e.js, this lives outside
-// test/api-specs and test/specs so it never runs as part of `npm test` /
-// `test:local` / `test:github`. Run it deliberately against a local docker
-// compose stack:
+// Like automated-scaling.localonly.api.e2e.js, this lives outside test/specs
+// so it never runs as part of `npm test` / `test:local` / `test:github`. Run
+// it deliberately against a local docker compose stack:
 //
 //   GREP='@summaryLogScenarios' npm run test:localonly:grep
 //

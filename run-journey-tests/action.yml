@@ -18,10 +18,10 @@ inputs:
     description: which specs to run - 'admin' (test/specs/admin only), 'frontend' (everything except test/specs/admin), or 'all'
     default: 'all'
   december-scope:
-    description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - applies to the browser specs under every test-scope; the API specs ignore it"
+    description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - applies under every test-scope"
     default: 'all'
   test-suite:
-    description: "which suite to run - 'api' (API specs, whatever the test-scope), 'e2e' (browser specs) or 'all' (everything)"
+    description: "which suite to run - 'e2e' or 'all' (the browser specs), or 'api', which runs no specs and passes, until callers drop their api legs"
     default: 'all'
   shard:
     description: "shard of the browser specs in scope in the form 'current/total', for example '2/3', dealt out round-robin by spec file; needs test-suite 'e2e' and a december-scope other than 'only', as files are dealt out before the tags are matched; empty runs them all"
@@ -228,14 +228,15 @@ runs:
     # testing; the specs seed from their own fixtures, so nothing else here
     # exercises them and drift in the backend or in the committed templates
     # only surfaces when someone runs them by hand. These two smoke steps keep
-    # that drift visible.
+    # that drift visible. They run on one leg of a caller's matrix: the first
+    # shard, or the unsharded leg that is not December-only.
     #
     # The spreadsheet half needs no stack (pure ExcelJS + faker), so it runs
     # while compose is still starting in the background. Each variant reads a
     # different template and a different worksheet config, so all five run -
     # ~13s for the set.
     - name: Smoke the spreadsheet generators
-      if: inputs.test-suite == 'api' || inputs.test-suite == 'all'
+      if: inputs.test-suite != 'api' && inputs.december-scope != 'only' && (inputs.shard == '' || startsWith(inputs.shard, '1/'))
       shell: bash
       run: |
         for variant in exporter input output regOnlyExporter regOnlyReprocessor; do
@@ -280,6 +281,7 @@ runs:
         timeout 180 bash -c 'until curl -f http://localhost:3002/health; do sleep 5; done'
 
     - name: Run the tests
+      if: inputs.test-suite != 'api'
       shell: bash
       env:
         PW_SCOPE: ${{ inputs.test-scope }}
@@ -288,12 +290,7 @@ runs:
         PW_SHARD: ${{ inputs.shard }}
       run: |
         npm run clean
-        if [ "$PW_SUITE" = api ] || { [ "$PW_SUITE" = all ] && [ "$PW_SCOPE" = all ] && [ "$PW_DECEMBER" != only ]; }; then
-          npm run test:github:api
-        fi
-        if [ "$PW_SUITE" != api ]; then
-          npm run test:github:browser
-        fi
+        npm run test:github:browser
         npm run report
 
     # After the specs, not before: generated organisations land in the same
@@ -303,7 +300,7 @@ runs:
     # failure only touches FAILED rather than exiting non-zero, so this still
     # runs and reports independently.
     - name: Smoke the API data generators
-      if: inputs.test-suite == 'api' || inputs.test-suite == 'all'
+      if: inputs.test-suite != 'api' && inputs.december-scope != 'only' && (inputs.shard == '' || startsWith(inputs.shard, '1/'))
       shell: bash
       run: npm run generatedata:withLinking
 
