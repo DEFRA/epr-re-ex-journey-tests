@@ -34,6 +34,7 @@ import { expectActionRequiredStatus } from '../support/report-status.js'
 import { MonthlyReportDraftDeclarationPage } from 'page-objects/reports/monthly.report.draft.declaration.page.js'
 import { ReportSubmittedPage } from 'page-objects/reports/report.submitted.page.js'
 import { currentYear } from '~/test/support/date.js'
+import { expectPeriodYear } from 'page-objects/reports/report-period.js'
 
 test.describe('Accredited exporter report flow @accreditedExporter', () => {
   // These tests share one login session across the whole describe block
@@ -292,7 +293,7 @@ test.describe('Accredited exporter report flow @accreditedExporter', () => {
       expect(checkHeading).toBe(
         'Check your answers before you create this draft report'
       )
-      await reportCheckAnswersPage.expectPeriodYear(currentYear())
+      await expectPeriodYear(page, currentYear())
 
       // Verify PRN revenue persists to CYA
       await checkBodyText(page, '1,500.50', 10)
