@@ -275,63 +275,6 @@ export async function summaryLogWithCellChanged(
   return writeCopy(workbook, fixturePath)
 }
 
-// Initiates a summary log against a real registration, then feeds the
-// upload-completed callback a pre-seeded floci S3 object directly (matching
-// docker/scripts/floci/init.sh's summary-log fixture keys) rather than
-// driving a real cdp-uploader multipart upload. The async validation worker
-// reads the real object from S3 at that key, so this reaches genuine
-// 'validated'/'invalid' outcomes (with real validation.failures/loads data)
-// without needing the CDP uploader network path.
-export async function ingestSummaryLogFixture(
-  orgId,
-  registrationId,
-  defraAuthHeader,
-  { s3Key, filename, fileId = randomUUID(), fileStatus = 'complete' },
-  year
-) {
-  const baseAPI = new BaseAPI()
-  const createPath = await summaryLogUploadPath(orgId, registrationId, year)
-
-  const initiateResponse = await baseAPI.post(
-    createPath,
-    JSON.stringify({ redirectUrl: '/' }),
-    { ...defraAuthHeader, 'content-type': 'application/json' }
-  )
-  const { summaryLogId } = await assertSuccessResponse(
-    initiateResponse,
-    `POST ${createPath}`
-  )
-
-  const summaryLogPath = await summaryLogByIdPath(
-    orgId,
-    registrationId,
-    summaryLogId
-  )
-  const uploadCompletedPath = `${createPath}/${summaryLogId}/upload-completed`
-  const uploadCompletedResponse = await baseAPI.post(
-    uploadCompletedPath,
-    JSON.stringify({
-      form: {
-        summaryLogUpload: {
-          fileId,
-          filename,
-          fileStatus,
-          s3Bucket: 're-ex-summary-logs',
-          s3Key
-        }
-      }
-    })
-  )
-  if (uploadCompletedResponse.statusCode !== 202) {
-    const body = await uploadCompletedResponse.body.json()
-    throw new Error(
-      `POST ${uploadCompletedPath}: expected 202 but got ${uploadCompletedResponse.statusCode}\n${JSON.stringify(body)}`
-    )
-  }
-
-  return { summaryLogId, summaryLogPath, baseAPI }
-}
-
 // Drives a summary log over HTTP without the operator frontend as far as
 // 'validated': initiate (backend) → multipart file POST (cdp-uploader) → poll.
 export async function uploadAndValidateSummaryLog(
