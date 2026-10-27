@@ -27,12 +27,12 @@ export class SummaryLogUploadActions extends Page {
   }
 
   async checkOnUploadPage() {
-    await expect(this.page).toHaveTitle(
-      new RegExp(`Summary log: upload \\(${UPLOAD_YEAR}\\)`)
-    )
     await expect(this.heading()).toContainText(
       `Upload your summary log (${UPLOAD_YEAR})`,
       { timeout: 10000 }
+    )
+    await expect(this.page).toHaveTitle(
+      new RegExp(`Summary log: upload \\(${UPLOAD_YEAR}\\)`)
     )
   }
 
