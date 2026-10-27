@@ -153,13 +153,13 @@ If you wish to use a port other than 8081 for the mitmproxy web UI, pass in the 
 Now, run the tests with:
 
 ```bash
-WITH_PROXY=true npm run test:api
+WITH_PROXY=true npm run test:local
 ```
 
 The default proxy port is 7777. You can point at a different proxy (e.g. one already running elsewhere) by setting `HTTP_PROXY` instead - no code change needed:
 
 ```bash
-WITH_PROXY=true HTTP_PROXY=http://localhost:8888 npm run test:api
+WITH_PROXY=true HTTP_PROXY=http://localhost:8888 npm run test:local
 ```
 
 ### Feature flags in journey tests
@@ -435,13 +435,13 @@ If you want to use the repository exclusively for running docker composed based 
 Each run of `run-journey-tests` brings up its own stack, so a pull request can run the suite as parallel legs. These inputs choose what a leg runs, and combine:
 
 - `test-scope`: `all` (the default), `frontend` (the specs outside `admin/`) or `admin`.
-- `test-suite`: `all` (the default), `api` (the API specs, whatever the `test-scope`) or `e2e` (the browser specs).
+- `test-suite`: `all` (the default) or `e2e`, which both run the browser specs. `api` runs no specs and passes, so a caller's `api` leg stays green until the caller drops it.
 - `december-scope`: `all`, `only` (the `@decWaste` specs) or `exclude`.
-- `shard`: `current/total`, for example `2/3`. It splits the browser specs in scope by file, dealt out round-robin so that the heavy `summarylogs.*` files land in different shards. Playwright's own `--shard` splits contiguously and puts them together. It needs `test-suite: e2e` and a `december-scope` other than `only`. Files are dealt out before the tags are matched, so a selection only a few files carry, such as `@decWaste`, would leave some shards with no test, and `all` would repeat the API specs on every shard.
+- `shard`: `current/total`, for example `2/3`. It splits the browser specs in scope by file, dealt out round-robin so that the heavy `summarylogs.*` files land in different shards. Playwright's own `--shard` splits contiguously and puts them together. It needs `test-suite: e2e` and a `december-scope` other than `only`. Files are dealt out before the tags are matched, so a selection only a few files carry, such as `@decWaste`, would leave some shards with no test.
 
-`npm run test:github:browser` runs `bin/run-browser-specs.js`, which turns these into Playwright arguments (`test/support/playwright-args.js`, unit tested) and starts Playwright with them; any extra arguments, such as `--list`, are passed on. The API specs run when the suite is `api`, or `all` with `test-scope: all` and a December scope other than `only`.
+`npm run test:github:browser` runs `bin/run-browser-specs.js`, which turns these into Playwright arguments (`test/support/playwright-args.js`, unit tested) and starts Playwright with them; any extra arguments, such as `--list`, are passed on. The generator smoke steps run on one leg only: the first shard, or the unsharded leg that is not December-only.
 
-This repository's own pull request workflow runs the `baseline` `e2e` specs (`december-scope: exclude`) as three shards and the `december` specs as one leg, with `api` as a separate job, and `tests-gate` still reports the single required check.
+This repository's own pull request workflow runs the `baseline` `e2e` specs (`december-scope: exclude`) as three shards and the `december` specs as one leg, and `tests-gate` still reports the single required check.
 
 ## BrowserStack
 

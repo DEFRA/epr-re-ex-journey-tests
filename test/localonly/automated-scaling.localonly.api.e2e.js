@@ -25,14 +25,13 @@ import logger from '../support/logger.js'
 // steps and have an identical shape, so they collapse here into a single
 // 0->12000 loop with no behaviour change.
 //
-// This intentionally lives outside test/api-specs and test/specs, so it is
-// never picked up by playwright.api.config.js or playwright.config.js and
-// never runs as part of `npm test` / `test:local` / `test:github` etc. Run it
-// deliberately with `npm run test:localonly` against a local docker compose
-// stack - like docker-log-assertions.js, it reads `docker logs` for the
-// epr-backend container to catch async-worker failures under row-count
-// growth, which only makes sense locally (config.testLogs is false against a
-// deployed environment).
+// This intentionally lives outside test/specs, so it is never picked up by
+// playwright.config.js and never runs as part of `npm test` / `test:local` /
+// `test:github` etc. Run it deliberately with `npm run test:localonly` against
+// a local docker compose stack - it reads `docker logs` for the epr-backend
+// container to catch async-worker failures under row-count growth, which only
+// makes sense locally (config.testLogs is false against a deployed
+// environment).
 
 const ROWS_PER_UPLOAD = 2000
 const MAX_TOTAL_ROWS = 12000

@@ -6,11 +6,17 @@ import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
 import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js'
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
-import { seedOrganisationAcrossYears } from '~/test/support/seeding/organisation.js'
+import {
+  reportsLandingHasNoClosedPeriod,
+  seedOrganisationAcrossYears
+} from '~/test/support/seeding/organisation.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
 import { currentYear } from '~/test/support/date.js'
 import { defraIdStub } from '~/test/support/defra-id-stub.js'
-import { fetchYearCalendar } from '~/test/support/seeding/year-calendar.js'
+import {
+  fetchYearCalendar,
+  reportingPeriodsOf
+} from '~/test/support/seeding/year-calendar.js'
 import {
   submitSummaryLogContent,
   summaryLogDatedAt
@@ -77,6 +83,33 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       )
       expectReportsOnlyFor(registeredOnly, yearSelected)
       expect(accredited).toBeUndefined()
+    })
+
+    test("This year's reports hold no period from an earlier year, which the early-year report skips rely on", async ({
+      page
+    }) => {
+      const { refNo, email, organisationNumber, registrationNumber } =
+        await seedOrganisationAcrossYears()
+
+      const user = await createLinkAndLogin(page, refNo, email)
+
+      const calendar = await fetchYearCalendar(
+        { organisationNumber, registrationNumber, year: currentYear() },
+        defraIdStub.authHeader(user.userId)
+      )
+      const periods = reportingPeriodsOf(calendar)
+      const removeTheSkips =
+        "This year's reports now show a period from another year: remove the reportsLandingHasNoClosedPeriod skips and seed those specs with validFromWithClosedPeriod"
+      expect(periods.length > 0, removeTheSkips).toBe(
+        !reportsLandingHasNoClosedPeriod('monthly')
+      )
+      expect(
+        periods.filter(
+          (/** @type {{ year: number }} */ period) =>
+            period.year !== currentYear()
+        ),
+        removeTheSkips
+      ).toStrictEqual([])
     })
   })
 

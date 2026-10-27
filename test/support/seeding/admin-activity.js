@@ -23,12 +23,10 @@ import { defraIdStub } from '../defra-id-stub.js'
  * a real summary-log upload+submit (for the waste balance, summary log
  * upload row and credited-tonnage row) plus one PRN, by default taken
  * through to 'accepted' (for PRN activity and PRN tonnage); pass
- * `acceptPrn: false` to leave it at 'awaiting_acceptance' instead
- * (PAE-1859). Mirrors prn-state-machine.api.e2e.js's setup, reused here for
- * the admin-side reporting pages rather than the PRN state machine itself.
+ * `acceptPrn: false` to leave it at 'awaiting_acceptance' instead.
  * @param {Object} [options]
  * @param {boolean} [options.acceptPrn] - Set false to leave the seeded PRN at
- *   'awaiting_acceptance' rather than driving it to 'accepted' (PAE-1859).
+ *   'awaiting_acceptance' rather than driving it to 'accepted'.
  * @returns {Promise<{
  *   refNo: string,
  *   orgId: number,

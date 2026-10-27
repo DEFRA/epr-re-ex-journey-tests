@@ -24,28 +24,6 @@ import {
 } from './summary-logs.js'
 import { summaryLogContentNumbered } from '../spreadsheet/summarylogs-content-generator.js'
 
-/**
- * Reads a report as the service holds it, which only a regulator can ask for.
- *
- * @param {string} refNo
- * @param {string} registrationId
- * @param {{ year: number, cadence: string, period: number, submissionNumber: number }} periodSubmission
- */
-export async function readReportDetail(
-  refNo,
-  registrationId,
-  periodSubmission
-) {
-  const authClient = new AuthClient()
-  await authClient.authenticate()
-  const path = `${await reportSubmissionPath(refNo, registrationId, periodSubmission)}?expand=detail`
-  const { detail } = await assertSuccessResponse(
-    await new BaseAPI().get(path, authClient.authHeader()),
-    `GET ${path}`
-  )
-  return detail
-}
-
 export async function unsubmitReport(
   organisationId,
   registrationId,
