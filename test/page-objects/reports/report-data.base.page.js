@@ -1,11 +1,6 @@
 import { Page } from 'page-objects/page'
-import { expectPeriodYear } from './report-period.js'
 
 export class ReportDataBasePage extends Page {
-  async expectPeriodYear(year) {
-    await expectPeriodYear(this.page, year)
-  }
-
   async continue() {
     await this.page.locator('button[value="continue"]').click()
   }

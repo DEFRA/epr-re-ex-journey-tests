@@ -1,3 +1,4 @@
+import { expect } from '@playwright/test'
 import { checkDoubleClickPrevented } from '../support/double-click.js'
 
 class Page {
@@ -19,6 +20,17 @@ class Page {
 
   backLink() {
     return this.page.locator('.govuk-back-link')
+  }
+
+  /**
+   * Reads the year where the page shows it, then checks the address holds it.
+   * @param {import('@playwright/test').Locator} locator
+   * @param {string} text
+   * @param {RegExp} url
+   */
+  async expectYearShown(locator, text, url) {
+    await expect(locator).toContainText(text, { timeout: 10000 })
+    await expect(this.page).toHaveURL(url)
   }
 
   /**
