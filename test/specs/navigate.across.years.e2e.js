@@ -98,7 +98,9 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
         defraIdStub.authHeader(user.userId)
       )
       const periods = reportingPeriodsOf(calendar)
-      expect(periods.length > 0).toBe(
+      const removeTheSkips =
+        "This year's reports now show a period from another year: remove the reportsLandingHasNoClosedPeriod skips and seed those specs with validFromWithClosedPeriod"
+      expect(periods.length > 0, removeTheSkips).toBe(
         !reportsLandingHasNoClosedPeriod('monthly')
       )
       expect(
@@ -106,7 +108,7 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
           (/** @type {{ year: number }} */ period) =>
             period.year !== currentYear()
         ),
-        "This year's reports now span another year: remove the reportsLandingHasNoClosedPeriod skips and seed those specs with validFromWithClosedPeriod"
+        removeTheSkips
       ).toStrictEqual([])
     })
   })
