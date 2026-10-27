@@ -38,9 +38,8 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
   }) => {
     let currentPage = page
     const createPRNPage = new CreatePRNPage(currentPage)
-    let prnCreatedPage = new PRNCreatedPage(currentPage)
     let prnDashboardPage = new PRNDashboardPage(currentPage)
-    let prnIssuedPage = new PRNIssuedPage(currentPage)
+    const prnIssuedPage = new PRNIssuedPage(currentPage)
     let prnViewPage = new PRNViewPage(currentPage)
     let dashboardPage = new DashboardPage(currentPage)
     let wasteRecordsPage = new WasteRecordsPage(currentPage)
@@ -145,7 +144,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       10
     )
 
-    await prnCreatedPage.returnToRegistrationPage().click()
+    await prnHelper.returnHomeFromCreatedPage()
     await dashboardPage.selectTableLink(1, 1)
     await wasteRecordsPage.managePERNsLink().click()
 
@@ -178,9 +177,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     prnViewPage = new PRNViewPage(currentPage)
     prnDashboardPage = new PRNDashboardPage(currentPage)
     wasteRecordsPage = new WasteRecordsPage(currentPage)
-    prnCreatedPage = new PRNCreatedPage(currentPage)
     dashboardPage = new DashboardPage(currentPage)
-    prnIssuedPage = new PRNIssuedPage(currentPage)
 
     await prnHelper.checkViewPrnDetails(pernDetails)
 
@@ -216,7 +213,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     await prnHelper.createAndCheckPrnDetails(newPernDetails)
     // End of new PERN creation
 
-    await prnCreatedPage.returnToRegistrationPage().click()
+    await prnHelper.returnHomeFromCreatedPage()
     await dashboardPage.selectTableLink(1, 1)
 
     await wasteRecordsPage.managePERNsLink().click()
@@ -230,7 +227,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     await prnHelper.issuePrnAndUpdateDetails(newPernDetails, 'EX')
     await prnHelper.checkIssuedPageLinks()
 
-    await prnIssuedPage.returnToHomeLink().click()
+    await prnHelper.returnHomeFromIssuedPage()
     await wasteRecordsPage.managePERNsLink().click()
 
     // Check issued PERNs
@@ -245,7 +242,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     prnViewPage = new PRNViewPage(currentPage)
     prnDashboardPage = new PRNDashboardPage(currentPage)
     wasteRecordsPage = new WasteRecordsPage(currentPage)
-    prnCreatedPage = new PRNCreatedPage(currentPage)
+    const prnCreatedPage = new PRNCreatedPage(currentPage)
     const confirmCancelPrnPage = new ConfirmCancelPRNPage(currentPage)
 
     // Check Issued PERN details

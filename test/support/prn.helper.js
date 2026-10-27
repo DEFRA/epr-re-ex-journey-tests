@@ -226,6 +226,21 @@ export class PrnHelper {
     }
   }
 
+  async returnHomeFromCreatedPage() {
+    await this.prnCreatedPage.returnToRegistrationPage().click()
+    const tab = this.isPern ? '/exporting' : ''
+    await expect(this.page).toHaveURL(
+      new RegExp(`/organisations/\\d+/${registrationStartYear()}${tab}$`)
+    )
+  }
+
+  async returnHomeFromIssuedPage() {
+    await this.prnIssuedPage.returnToHomeLink().click()
+    await expect(this.page).toHaveURL(
+      new RegExp(`/accreditations/${registrationStartYear()}$`)
+    )
+  }
+
   async cancelPRNAndReturnToPRNsDashboard(prnDetails, options) {
     await this.cancelPRN(prnDetails, options)
     if (!this.isPern) {

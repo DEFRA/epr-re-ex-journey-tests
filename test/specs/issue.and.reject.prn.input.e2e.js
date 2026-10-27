@@ -181,7 +181,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
       10
     )
 
-    await prnCreatedPage.returnToRegistrationPage().click()
+    await prnHelper.returnHomeFromCreatedPage()
     await dashboardPage.selectTableLink(1, 1)
     await wasteRecordsPage.managePRNsLink().click()
 
@@ -259,7 +259,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     // Both Manage PRNs and Issue another PRN links should point to the same page
     await prnHelper.checkIssuedPageLinks()
 
-    await prnIssuedPage.returnToHomeLink().click()
+    await prnHelper.returnHomeFromIssuedPage()
     await wasteRecordsPage.managePRNsLink().click()
 
     // Check issued PRNs
