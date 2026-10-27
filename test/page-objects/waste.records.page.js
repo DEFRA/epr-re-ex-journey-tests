@@ -1,4 +1,3 @@
-import { expect } from '@playwright/test'
 import { Page } from 'page-objects/page'
 
 class WasteRecordsPage extends Page {
@@ -37,8 +36,11 @@ class WasteRecordsPage extends Page {
   }
 
   async expectYear(year) {
-    await expect(this.heading()).toContainText(`(${year})`, { timeout: 10000 })
-    await expect(this.page).toHaveURL(new RegExp(`/${year}$`))
+    await this.expectYearShown(
+      this.heading(),
+      `(${year})`,
+      new RegExp(`/${year}$`)
+    )
   }
 
   // The "Registration and accreditation" summary card. Scoping by its heading

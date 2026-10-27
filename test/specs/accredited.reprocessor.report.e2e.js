@@ -35,6 +35,7 @@ import { expectActionRequiredStatus } from '../support/report-status.js'
 import { MonthlyReportDraftDeclarationPage } from 'page-objects/reports/monthly.report.draft.declaration.page.js'
 import { ReportSubmittedPage } from 'page-objects/reports/report.submitted.page.js'
 import { currentYear } from '~/test/support/date.js'
+import { expectPeriodYear } from 'page-objects/reports/report-period.js'
 
 async function setupAccreditedReprocessor(page) {
   const numbers = generateNumbers({
@@ -304,7 +305,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       expect(checkHeading).toBe(
         'Check your answers before you create this draft report'
       )
-      await reportCheckAnswersPage.expectPeriodYear(currentYear())
+      await expectPeriodYear(page, currentYear())
 
       // Clean up — delete the report
       await reportCheckAnswersPage.deleteAndStartAgainLink().click()
@@ -374,7 +375,7 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
       expect(checkHeading).toBe(
         'Check your answers before you create this draft report'
       )
-      await reportCheckAnswersPage.expectPeriodYear(currentYear())
+      await expectPeriodYear(page, currentYear())
 
       // Verify data persists to CYA
       await checkBodyText(page, '15.02', 10)

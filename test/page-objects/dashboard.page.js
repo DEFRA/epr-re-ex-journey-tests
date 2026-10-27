@@ -1,4 +1,3 @@
-import { expect } from '@playwright/test'
 import { Page } from 'page-objects/page'
 
 class DashboardPage extends Page {
@@ -45,10 +44,9 @@ class DashboardPage extends Page {
   }
 
   async expectYear(year) {
-    await expect(this.yearHeading()).toHaveText(`This is ${year} data`, {
-      timeout: 10000
-    })
-    await expect(this.page).toHaveURL(
+    await this.expectYearShown(
+      this.yearHeading(),
+      `This is ${year} data`,
       new RegExp(`/organisations/\\d+/${year}(/exporting)?$`)
     )
   }

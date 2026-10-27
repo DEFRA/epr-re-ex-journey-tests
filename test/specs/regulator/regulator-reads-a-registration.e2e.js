@@ -11,6 +11,7 @@ import { RegistrationDetailsPage } from 'page-objects/regulator/registration.det
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page'
+import { currentYear } from '../../support/date.js'
 import { SEEDED_VALID_FROM } from '../../support/seeding/organisation.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
 
@@ -270,6 +271,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     await accreditationPage.reportsDetailedViewLink().click()
 
     await expect(reportsPage.detailedView()).toBeVisible()
+    await reportsPage.expectYear(currentYear())
 
     const reportsCaption = await reportsPage.captionText()
     expect(reportsCaption).toContain(seeded.companyName)
@@ -281,7 +283,7 @@ test.describe('A regulator reading a registration @regulator', () => {
       seeded.companyName,
       'Registration details',
       'Accreditation details',
-      'Reports'
+      `Reports (${currentYear()})`
     ])
 
     // The same table as the summary's, so the same columns.
