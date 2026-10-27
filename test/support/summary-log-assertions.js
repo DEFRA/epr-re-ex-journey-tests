@@ -40,15 +40,6 @@ export function assertLoadsByWasteRecordType(
   }
 }
 
-export function assertReportingPeriodLoads(loadsByReportingPeriod, expected) {
-  for (const [key, value] of Object.entries(expected)) {
-    const actual = key
-      .split('.')
-      .reduce((acc, k) => acc?.[k], loadsByReportingPeriod)
-    expect(actual).to.equal(value, `Failed at ${key}: got ${actual}`)
-  }
-}
-
 // expected: array of { code, field?, sheet?, table?, row?, rowId?, header?, actual? }
 // Only keys present on an expected entry are checked against each failure.
 export function assertValidationFailures(failures, expected) {
