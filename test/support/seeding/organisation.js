@@ -446,7 +446,8 @@ export async function updateMigratedOrganisation(
   orgId,
   updateDataRows,
   submittedToRegulator,
-  validFrom = SEEDED_VALID_FROM
+  validFrom = SEEDED_VALID_FROM,
+  createdOn = SEEDED_CREATED_ON
 ) {
   const authClient = new AuthClient()
   const baseAPI = new BaseAPI()
@@ -482,7 +483,7 @@ export async function updateMigratedOrganisation(
       if (entry.status === 'created') {
         return {
           ...entry,
-          updatedAt: SEEDED_CREATED_ON
+          updatedAt: createdOn
         }
       }
       return entry
@@ -533,7 +534,7 @@ export async function updateMigratedOrganisation(
         if (entry.status === 'created') {
           return {
             ...entry,
-            updatedAt: SEEDED_CREATED_ON
+            updatedAt: createdOn
           }
         }
         return entry

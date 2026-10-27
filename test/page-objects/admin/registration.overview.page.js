@@ -5,6 +5,17 @@ class RegistrationOverviewPage extends AdminPage {
     return this.page.locator('#reports table')
   }
 
+  reportsCaption() {
+    return this.page.locator('#reports table caption')
+  }
+
+  async clickOnReportYearLink(year) {
+    await this.page
+      .locator('#reports')
+      .getByRole('link', { name: String(year), exact: true })
+      .click()
+  }
+
   async getReportsTableData() {
     // .count() below reads the DOM as-is with no auto-wait, so without this
     // the table can be read before it's rendered - seen as an intermittent

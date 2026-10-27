@@ -1,5 +1,6 @@
 import { BaseAPI } from '../../apis/base-api.js'
 import { AuthClient } from '../auth.js'
+import { currentYear } from '../date.js'
 import { defraIdStub } from '../defra-id-stub.js'
 import { generateRegNumber } from '../reg-acc-number.js'
 import {
@@ -332,6 +333,61 @@ export async function seedRestatedClosedPeriod({ tonnageRecycled = 100 } = {}) {
   )
 
   return { refNo, companyName, registrationId, defraAuthHeader }
+}
+
+/**
+ * Seeds a registered-only reprocessor approved since the start of last year,
+ * with last year's Q4 submitted, so the admin overview has a previous year to
+ * link to.
+ *
+ * @returns {Promise<{ companyName: string, previousYear: number }>}
+ */
+export async function seedPreviousYearReport() {
+  const previousYear = currentYear() - 1
+  const linkedOrganisation = await createLinkedOrganisation([
+    {
+      material: 'Paper or board (R3)',
+      wasteProcessingType: 'Reprocessor',
+      withoutAccreditation: true
+    }
+  ])
+  const refNo = linkedOrganisation.refNo
+
+  const migrated = await updateMigratedOrganisation(
+    refNo,
+    [
+      {
+        regNumber: generateRegNumber({
+          wasteProcessingType: 'reprocessor',
+          materialSuffix: 'PA'
+        }),
+        status: 'approved',
+        reprocessingType: 'output'
+      }
+    ],
+    undefined,
+    `${previousYear}-01-01`,
+    `${previousYear - 1}-12-31`
+  )
+  const registrationId = migrated.registrationIds[0]
+
+  const orgData = await getOrganisation(refNo)
+  const user = await registerAndLinkDefraIdUser(
+    refNo,
+    orgData.submitterContactDetails.email
+  )
+
+  await seedReportSubmission(
+    refNo,
+    registrationId,
+    defraIdStub.authHeader(user.userId),
+    { year: previousYear, cadence: 'quarterly', period: 4, submissionNumber: 1 }
+  )
+
+  return {
+    companyName: linkedOrganisation.organisation.companyName,
+    previousYear
+  }
 }
 
 /**
