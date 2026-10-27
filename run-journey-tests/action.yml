@@ -21,7 +21,7 @@ inputs:
     description: "'only' runs just the December-waste specs (tagged @decWaste), 'exclude' runs everything else, 'all' runs both - applies under every test-scope"
     default: 'all'
   test-suite:
-    description: "which suite to run - 'e2e' or 'all' (the browser specs), or 'api', which runs no specs and passes, until callers drop their api legs"
+    description: "which suite to run - 'e2e' or 'all', which both run the browser specs"
     default: 'all'
   shard:
     description: "shard of the browser specs in scope in the form 'current/total', for example '2/3', dealt out round-robin by spec file; needs test-suite 'e2e' and a december-scope other than 'only', as files are dealt out before the tags are matched; empty runs them all"
@@ -37,12 +37,12 @@ runs:
   using: 'composite'
   steps:
     - name: Check the test suite
-      if: ${{ !contains(fromJSON('["all", "api", "e2e"]'), inputs.test-suite) }}
+      if: ${{ !contains(fromJSON('["all", "e2e"]'), inputs.test-suite) }}
       shell: bash
       env:
         TEST_SUITE: ${{ inputs.test-suite }}
       run: |
-        echo "::error::unknown test-suite '$TEST_SUITE': use 'all', 'api' or 'e2e'"
+        echo "::error::unknown test-suite '$TEST_SUITE': use 'all' or 'e2e'"
         exit 1
 
     - name: Check the inputs
@@ -236,7 +236,7 @@ runs:
     # different template and a different worksheet config, so all five run -
     # ~13s for the set.
     - name: Smoke the spreadsheet generators
-      if: inputs.test-suite != 'api' && inputs.december-scope != 'only' && (inputs.shard == '' || startsWith(inputs.shard, '1/'))
+      if: inputs.december-scope != 'only' && (inputs.shard == '' || startsWith(inputs.shard, '1/'))
       shell: bash
       run: |
         for variant in exporter input output regOnlyExporter regOnlyReprocessor; do
@@ -244,7 +244,6 @@ runs:
         done
 
     - name: Cache Playwright browsers
-      if: inputs.test-suite != 'api'
       uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
       with:
         path: ~/.cache/ms-playwright
@@ -255,7 +254,6 @@ runs:
     # mirror that can take ten minutes to serve them. If a later runner image
     # drops a library, Playwright refuses to launch and names the package.
     - name: Install Playwright browsers
-      if: inputs.test-suite != 'api'
       run: |
         timeout 300 npx playwright install chromium || {
           echo "::error::Chromium download exceeded 5 minutes. Re-run the job."
@@ -281,7 +279,6 @@ runs:
         timeout 180 bash -c 'until curl -f http://localhost:3002/health; do sleep 5; done'
 
     - name: Run the tests
-      if: inputs.test-suite != 'api'
       shell: bash
       env:
         PW_SCOPE: ${{ inputs.test-scope }}
@@ -300,7 +297,7 @@ runs:
     # failure only touches FAILED rather than exiting non-zero, so this still
     # runs and reports independently.
     - name: Smoke the API data generators
-      if: inputs.test-suite != 'api' && inputs.december-scope != 'only' && (inputs.shard == '' || startsWith(inputs.shard, '1/'))
+      if: inputs.december-scope != 'only' && (inputs.shard == '' || startsWith(inputs.shard, '1/'))
       shell: bash
       run: npm run generatedata:withLinking
 

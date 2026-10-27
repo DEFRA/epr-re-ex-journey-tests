@@ -435,7 +435,7 @@ If you want to use the repository exclusively for running docker composed based 
 Each run of `run-journey-tests` brings up its own stack, so a pull request can run the suite as parallel legs. These inputs choose what a leg runs, and combine:
 
 - `test-scope`: `all` (the default), `frontend` (the specs outside `admin/`) or `admin`.
-- `test-suite`: `all` (the default) or `e2e`, which both run the browser specs. `api` runs no specs and passes, so a caller's `api` leg stays green until the caller drops it.
+- `test-suite`: `all` (the default) or `e2e`, which both run the browser specs.
 - `december-scope`: `all`, `only` (the `@decWaste` specs) or `exclude`.
 - `shard`: `current/total`, for example `2/3`. It splits the browser specs in scope by file, dealt out round-robin so that the heavy `summarylogs.*` files land in different shards. Playwright's own `--shard` splits contiguously and puts them together. It needs `test-suite: e2e` and a `december-scope` other than `only`. Files are dealt out before the tags are matched, so a selection only a few files carry, such as `@decWaste`, would leave some shards with no test.
 
