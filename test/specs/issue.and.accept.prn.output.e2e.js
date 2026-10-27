@@ -284,7 +284,9 @@ test.describe('Issuing Packing Recycling Notes', () => {
     // crumb on the note the ledger opened. It is where an operator manages
     // their PRNs, and a regulator is given the same list with nothing on it
     // to manage.
-    await regulatorPrnViewPage.crumbLink('PRNs').click()
+    await regulatorPrnViewPage
+      .crumbLink(`PRNs (${registrationStartYear()})`)
+      .click()
 
     await regulatorPrnDashboardPage.issuedTab().click()
     await prnHelper.checkIssuedRows(prnDetails, 1)
