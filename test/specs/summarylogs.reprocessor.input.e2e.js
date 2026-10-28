@@ -97,7 +97,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
     await checkBodyText(page, numbers.accNumber, 10)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await expect(page).toHaveTitle(/Summary log: upload/)
+    await uploadSummaryLogPage.checkOnUploadPage()
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered(
         await summaryLogDatedAt('resources/summary-log.xlsx', new Date()),
