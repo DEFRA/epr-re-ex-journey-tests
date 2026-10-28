@@ -128,9 +128,7 @@ test.describe
       'need to resubmit this report'
     )
     await makeChangesPage.uploadNewSummaryLog()
-    expect(await uploadSummaryLogPage.headingText()).toContain(
-      'Upload your summary log'
-    )
+    await uploadSummaryLogPage.checkOnUploadPage()
 
     await page.goBack()
     await makeChangesPage.cancel()

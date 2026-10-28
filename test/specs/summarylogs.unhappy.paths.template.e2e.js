@@ -118,7 +118,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.continue()
-    await expect(page).toHaveTitle(/Summary log: upload/)
+    await uploadSummaryLogPage.checkOnUploadPage()
 
     // GOV.UK's Button component debounces preventDoubleClick for 1s from any
     // click on the button — including this one, blocked from submitting by
@@ -178,7 +178,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
 
-    await expect(page).toHaveTitle(/Summary log: upload/)
+    await uploadSummaryLogPage.checkOnUploadPage()
 
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered('resources/exporter-invalid.xlsx', numbers)
