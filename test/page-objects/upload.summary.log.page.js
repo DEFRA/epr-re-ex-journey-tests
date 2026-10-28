@@ -1,4 +1,5 @@
 import { checkBodyText } from '../support/checks.js'
+import { checkOnCheckPage } from '../support/summary-log-checks.js'
 import { SummaryLogUploadActions } from './summary-log-upload-actions.js'
 import { CheckSummaryLogPage } from './check.summary.log.page.js'
 
@@ -8,10 +9,9 @@ class UploadSummaryLogPage extends SummaryLogUploadActions {
     await this.continue()
 
     await checkBodyText(this.page, 'Your summary log is being checked', 30)
-    const checkSummaryLogPage = new CheckSummaryLogPage(this.page)
-    await checkSummaryLogPage.checkOnCheckPage()
+    await checkOnCheckPage(this.page)
 
-    await checkSummaryLogPage.uploadButton().click()
+    await new CheckSummaryLogPage(this.page).uploadButton().click()
 
     await checkBodyText(this.page, 'Your waste records are being updated', 30)
     await this.checkUploaded()

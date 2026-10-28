@@ -19,6 +19,7 @@ import {
   checkBodyText,
   checkBodyTextDoesNotInclude
 } from '../support/checks.js'
+import { checkOnCheckPage } from '../support/summary-log-checks.js'
 import {
   createLinkedOrganisation,
   reportsLandingHasNoClosedPeriod,
@@ -128,7 +129,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     )
     await uploadSummaryLogPage.continue()
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkSummaryLogPage.checkOnCheckPage()
+    await checkOnCheckPage(page)
     await checkBodyText(page, 'Closed periods: new loads', 30)
 
     await checkSummaryLogPage.uploadButton().click()

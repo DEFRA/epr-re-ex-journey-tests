@@ -20,6 +20,10 @@ import {
   checkBodyText,
   checkBodyTextDoesNotInclude
 } from '../support/checks.js'
+import {
+  checkOnCheckPage,
+  checkOnUploadPage
+} from '../support/summary-log-checks.js'
 import { checkAccessibility } from '../support/accessibility.js'
 import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { CheckSummaryLogPage } from 'page-objects/check.summary.log.page.js'
@@ -128,7 +132,7 @@ test.describe('@registeredOnly', () => {
     await checkBodyTextDoesNotInclude(page, 'PRNs', 5)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await uploadSummaryLogPage.checkOnUploadPage()
+    await checkOnUploadPage(page)
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered('resources/reprocessor-output-regonly.xlsx', {
         regNumber: reprocessorRegNumber
@@ -138,7 +142,7 @@ test.describe('@registeredOnly', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkSummaryLogPage.checkOnCheckPage()
+    await checkOnCheckPage(page)
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(page, 'new loads will be recorded', 30)
     await checkBodyText(page, 'These have been added to your summary log.', 30)
@@ -297,7 +301,7 @@ test.describe('@registeredOnly', () => {
     await checkAccessibility(page, 'Waste records (registered-only)')
 
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await uploadSummaryLogPage.checkOnUploadPage()
+    await checkOnUploadPage(page)
     await checkAccessibility(page, 'Upload summary log')
 
     await uploadSummaryLogPage.uploadFile(
@@ -309,7 +313,7 @@ test.describe('@registeredOnly', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkSummaryLogPage.checkOnCheckPage()
+    await checkOnCheckPage(page)
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(page, 'new loads will be recorded', 30)
     await checkBodyText(page, 'These have been added to your summary log.', 30)

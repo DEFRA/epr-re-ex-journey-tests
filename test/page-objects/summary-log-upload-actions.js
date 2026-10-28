@@ -1,4 +1,3 @@
-import { expect } from '@playwright/test'
 import { Page } from 'page-objects/page'
 import { checkBodyText } from '../support/checks.js'
 
@@ -24,16 +23,6 @@ export class SummaryLogUploadActions extends Page {
 
   async continue() {
     await this.submit(SUBMIT_SELECTOR)
-  }
-
-  async checkOnUploadPage() {
-    await expect(this.heading()).toContainText(
-      `Upload your summary log (${UPLOAD_YEAR})`,
-      { timeout: 10000 }
-    )
-    await expect(this.page).toHaveTitle(
-      new RegExp(`Summary log: upload \\(${UPLOAD_YEAR}\\)`)
-    )
   }
 
   async checkUploaded() {

@@ -9,6 +9,7 @@ import {
   checkBodyText,
   checkBodyTextDoesNotInclude
 } from '../support/checks.js'
+import { checkOnCheckPage } from '../support/summary-log-checks.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
@@ -137,7 +138,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkSummaryLogPage.checkOnCheckPage()
+    await checkOnCheckPage(page)
     await checkBodyText(page, 'Closed periods: adjusted loads', 30)
     expect(await checkSummaryLogPage.importantBanner().count()).toBe(0)
 
@@ -170,7 +171,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkSummaryLogPage.checkOnCheckPage()
+    await checkOnCheckPage(page)
 
     await checkBodyText(page, 'Closed periods: adjusted loads', 30)
     expect(await checkSummaryLogPage.importantBanner().count()).toBe(1)
@@ -315,7 +316,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkSummaryLogPage.checkOnCheckPage()
+    await checkOnCheckPage(page)
     await checkBodyText(page, 'Open periods: adjusted loads', 30)
 
     const subStates = (await checkSummaryLogPage.allSubStateHeadings()).join(
@@ -396,7 +397,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkSummaryLogPage.checkOnCheckPage()
+    await checkOnCheckPage(page)
     await checkBodyText(page, 'Open periods: adjusted loads', 30)
 
     await checkSummaryLogPage.expandAllLoadDetails()

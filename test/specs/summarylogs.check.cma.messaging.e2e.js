@@ -6,6 +6,7 @@ import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { ReportsPage } from '../page-objects/reports/reports.page.js'
 import { checkBodyText } from '../support/checks.js'
+import { checkOnCheckPage } from '../support/summary-log-checks.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation
@@ -106,7 +107,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkSummaryLogPage.checkOnCheckPage()
+    await checkOnCheckPage(page)
 
     // The "Important" banner is shown on the check before you submit page.
     const banner = checkSummaryLogPage.importantBanner()
