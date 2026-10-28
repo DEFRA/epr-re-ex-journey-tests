@@ -128,7 +128,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     )
     await uploadSummaryLogPage.continue()
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await new CheckSummaryLogPage(page).checkOnCheckPage()
+    await checkSummaryLogPage.checkOnCheckPage()
     await checkBodyText(page, 'Closed periods: new loads', 30)
 
     await checkSummaryLogPage.uploadButton().click()

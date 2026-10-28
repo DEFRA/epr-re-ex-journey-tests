@@ -8,9 +8,10 @@ class UploadSummaryLogPage extends SummaryLogUploadActions {
     await this.continue()
 
     await checkBodyText(this.page, 'Your summary log is being checked', 30)
-    await new CheckSummaryLogPage(this.page).checkOnCheckPage()
+    const checkSummaryLogPage = new CheckSummaryLogPage(this.page)
+    await checkSummaryLogPage.checkOnCheckPage()
 
-    await new CheckSummaryLogPage(this.page).uploadButton().click()
+    await checkSummaryLogPage.uploadButton().click()
 
     await checkBodyText(this.page, 'Your waste records are being updated', 30)
     await this.checkUploaded()
