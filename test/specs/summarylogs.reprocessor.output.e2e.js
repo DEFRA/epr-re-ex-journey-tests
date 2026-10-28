@@ -63,7 +63,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
     await checkBodyText(page, numbers.accNumber, 10)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await expect(page).toHaveTitle(/Summary log: upload/)
+    await uploadSummaryLogPage.checkOnUploadPage()
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered('resources/reprocessor-output.xlsx', numbers)
     )
@@ -97,7 +97,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
     expect(wasteBalanceAmount).toBe('3.00')
 
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await expect(page).toHaveTitle(/Summary log: upload/)
+    await uploadSummaryLogPage.checkOnUploadPage()
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered(
         'resources/reprocessor-output-adjustments.xlsx',

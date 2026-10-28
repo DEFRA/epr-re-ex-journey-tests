@@ -63,7 +63,7 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
 
     await wasteRecordsPage.submitSummaryLogLink().click()
 
-    await expect(page).toHaveTitle(/Summary log: upload/)
+    await uploadSummaryLogPage.checkOnUploadPage()
 
     await uploadSummaryLogPage.uploadFile('resources/cover-invalid.xlsx')
     await uploadSummaryLogPage.continue()
