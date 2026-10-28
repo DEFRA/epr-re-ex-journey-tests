@@ -11,8 +11,10 @@ import { RegistrationDetailsPage } from 'page-objects/regulator/registration.det
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page'
+import { currentYear } from '../../support/date.js'
 import { SEEDED_VALID_FROM } from '../../support/seeding/organisation.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
+import { registrationStartYear } from '../../support/seeding/summary-logs.js'
 
 /**
  * The tonnage a row reads, as a number. Whether a table formats it to two
@@ -270,6 +272,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     await accreditationPage.reportsDetailedViewLink().click()
 
     await expect(reportsPage.detailedView()).toBeVisible()
+    await reportsPage.expectYear(currentYear())
 
     const reportsCaption = await reportsPage.captionText()
     expect(reportsCaption).toContain(seeded.companyName)
@@ -281,7 +284,7 @@ test.describe('A regulator reading a registration @regulator', () => {
       seeded.companyName,
       'Registration details',
       'Accreditation details',
-      'Reports'
+      `Reports (${currentYear()})`
     ])
 
     // The same table as the summary's, so the same columns.
@@ -366,7 +369,7 @@ test.describe('A regulator reading a registration @regulator', () => {
       seeded.companyName,
       'Registration details',
       'Accreditation details',
-      'PRNs'
+      `PRNs (${registrationStartYear()})`
     ])
 
     const awaitingLink = prnsPage.awaitingLink(1)
@@ -400,7 +403,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     // it by its id.
     expect((await prnViewPage.breadcrumbs()).at(-1)).toBe(seeded.prnId)
 
-    await prnViewPage.crumbLink('PRNs').click()
+    await prnViewPage.crumbLink(`PRNs (${registrationStartYear()})`).click()
     await expect(prnsPage.detailedView()).toBeVisible()
 
     expect(await prnsPage.backLink().count()).toBe(0)

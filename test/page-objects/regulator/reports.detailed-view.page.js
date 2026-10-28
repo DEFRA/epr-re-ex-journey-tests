@@ -17,6 +17,14 @@ class ReportsDetailedViewPage extends Page {
     )
   }
 
+  async expectYear(year) {
+    await this.expectYearShown(
+      this.heading(),
+      `Reports (${year})`,
+      new RegExp(`/accreditations/${year}/reports$`)
+    )
+  }
+
   /**
    * The caption's size is the design's to choose, so any size is read.
    * @returns {Promise<string>}

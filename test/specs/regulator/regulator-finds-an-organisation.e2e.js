@@ -12,8 +12,10 @@ import { ReportViewPage } from 'page-objects/reports/report.view.page'
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page'
 import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page'
 import { checkBodyText } from '../../support/checks.js'
+import { currentYear } from '../../support/date.js'
 import { SEEDED_VALID_FROM } from '../../support/seeding/organisation.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
+import { registrationStartYear } from '../../support/seeding/summary-logs.js'
 // A ledger Date cell, e.g. "18 August 2026, 5:06pm".
 const LEDGER_TIMESTAMP = /^\d{1,2} [A-Z][a-z]+ \d{4}, \d{1,2}:\d{2}(am|pm)$/
 
@@ -25,9 +27,8 @@ const LEDGER_TIMESTAMP = /^\d{1,2} [A-Z][a-z]+ \d{4}, \d{1,2}:\d{2}(am|pm)$/
  */
 const seededRegisteredOnlyYears = () => {
   const firstYear = new Date(SEEDED_VALID_FROM).getUTCFullYear()
-  const currentYear = new Date().getUTCFullYear()
 
-  return Array.from({ length: currentYear - firstYear + 1 }, (_, offset) =>
+  return Array.from({ length: currentYear() - firstYear + 1 }, (_, offset) =>
     String(firstYear + offset)
   )
 }
@@ -165,7 +166,7 @@ test.describe('A regulator looking up an operator @regulator', () => {
 
     await cancellationLink.click()
     await checkBodyText(page, seeded.cancellationPrnNumber, 10)
-    await prnViewPage.crumbLink('PRNs').click()
+    await prnViewPage.crumbLink(`PRNs (${registrationStartYear()})`).click()
 
     await prnListPage.selectAwaitingLink(1)
 
@@ -187,17 +188,17 @@ test.describe('A regulator looking up an operator @regulator', () => {
       seeded.companyName,
       'Registration details',
       'Accreditation details',
-      'PRNs',
+      `PRNs (${registrationStartYear()})`,
       seeded.prnId
     ])
 
-    await prnViewPage.crumbLink('PRNs').click()
+    await prnViewPage.crumbLink(`PRNs (${registrationStartYear()})`).click()
 
     await expect(prnsPage.detailedView()).toBeVisible()
 
     await page.goto(`${registrationUrl}/reports`)
 
-    expect(await reportsPage.headingText()).toContain('Reports')
+    await reportsPage.expectListFor(currentYear(), 'Reports')
 
     // The last completed period is the one the seed submitted, so it is the
     // only row the Submitted section holds - and the link it keeps names that

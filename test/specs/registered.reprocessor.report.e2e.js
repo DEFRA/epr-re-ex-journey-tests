@@ -35,6 +35,7 @@ import {
 } from '../support/windowtabs.js'
 import { ReportSubmittedPage } from 'page-objects/reports/report.submitted.page.js'
 import { currentYear } from '~/test/support/date.js'
+import { expectPeriodYear } from 'page-objects/reports/report-period.js'
 
 // Submitted via epr-backend's dev endpoint rather than driving the upload
 // UI: these journeys are about the reports wizard, not the upload itself,
@@ -225,7 +226,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       expect(checkHeading).toBe(
         'Check your answers before you create this draft report'
       )
-      await reportCheckAnswersPage.expectPeriodYear(currentYear())
+      await expectPeriodYear(page, currentYear())
 
       // Verify recycling activity values displayed (rendered without formatTonnage, so no trailing zero)
       await checkBodyText(page, '12.5', 10)

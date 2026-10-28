@@ -1,4 +1,3 @@
-import { expect } from '@playwright/test'
 import { Page } from 'page-objects/page'
 
 const ACTIVE_HEADING = 'Action required'
@@ -75,11 +74,12 @@ class ReportsPage extends Page {
     return this.heading().innerText()
   }
 
-  async expectListFor(year) {
-    await expect(this.heading()).toContainText(`Manage reports (${year})`, {
-      timeout: 10000
-    })
-    await expect(this.page).toHaveURL(new RegExp(`/reports/${year}$`))
+  async expectListFor(year, heading = 'Manage reports') {
+    await this.expectYearShown(
+      this.heading(),
+      `${heading} (${year})`,
+      new RegExp(`/reports/${year}$`)
+    )
   }
 
   captionText() {

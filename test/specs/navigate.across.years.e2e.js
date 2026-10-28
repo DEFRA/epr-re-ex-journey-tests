@@ -22,6 +22,7 @@ import {
   summaryLogDatedAt
 } from '~/test/support/seeding/summary-logs.js'
 import { summaryLogContentNumbered } from '~/test/support/spreadsheet/summarylogs-content-generator.js'
+import { expectPeriodYear } from 'page-objects/reports/report-period.js'
 
 /**
  * @param {{ reportingPeriods: { year: number }[] } | undefined} kind
@@ -66,12 +67,7 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       await chooseYearPage.yearOption(yearSelected).check()
       await chooseYearPage.continueButton().click()
 
-      await expect(page).toHaveURL(
-        new RegExp(`/organisations/\\d+/${yearSelected}$`)
-      )
-      await expect(dashboardPage.yearHeading()).toHaveText(
-        `This is ${yearSelected} data`
-      )
+      await dashboardPage.expectYear(yearSelected)
       expect(await dashboardPage.getRegistrationStatus(1, 1)).toBe('Approved')
       expect(await dashboardPage.getAccreditationStatus(1, 1)).toBe(
         'Not accredited'
@@ -177,13 +173,13 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       const tonnesRecycledPage = new TonnesRecycledPage(page)
 
       await reportsPage.selectActiveActionLink(1)
-      await reportDetailPage.expectPeriodYear(year)
+      await expectPeriodYear(page, year)
       await reportDetailPage.cancelAndReturnToReports()
       await reportsPage.expectListFor(year)
 
       await reportsPage.selectActiveActionLink(1)
       await reportDetailPage.useThisData()
-      await tonnesRecycledPage.expectPeriodYear(year)
+      await expectPeriodYear(page, year)
       await tonnesRecycledPage.backLink().click()
       await reportsPage.expectListFor(year)
     })
