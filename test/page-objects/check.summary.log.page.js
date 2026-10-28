@@ -1,6 +1,16 @@
-class CheckSummaryLogPage {
-  constructor(page) {
-    this.page = page
+import { expect } from '@playwright/test'
+import { Page } from 'page-objects/page'
+import { UPLOAD_YEAR } from './summary-log-upload-actions.js'
+
+class CheckSummaryLogPage extends Page {
+  async checkOnCheckPage() {
+    await expect(this.heading()).toContainText(
+      `Upload your summary log (${UPLOAD_YEAR})`,
+      { timeout: 30000 }
+    )
+    await expect(this.page).toHaveTitle(
+      new RegExp(`Upload your summary log \\(${UPLOAD_YEAR}\\)`)
+    )
   }
 
   async allSectionHeadings() {

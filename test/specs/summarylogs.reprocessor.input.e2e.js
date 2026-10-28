@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { DefraIdStubPage } from 'page-objects/defra.id.stub.page.js'
 import { HomePage } from 'page-objects/homepage.js'
 import { UploadSummaryLogPage } from '../page-objects/upload.summary.log.page.js'
+import { CheckSummaryLogPage } from '../page-objects/check.summary.log.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { checkBodyText } from '../support/checks.js'
@@ -108,7 +109,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await new CheckSummaryLogPage(page).checkOnCheckPage()
     await uploadSummaryLogPage.confirmAndCheckDoubleClickPrevented()
 
     await checkBodyText(page, 'Your waste records are being updated', 30)

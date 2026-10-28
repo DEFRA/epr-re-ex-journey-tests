@@ -71,7 +71,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await new CheckSummaryLogPage(page).checkOnCheckPage()
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(
       page,
@@ -108,7 +108,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await new CheckSummaryLogPage(page).checkOnCheckPage()
     await checkBodyText(page, 'Open periods: adjusted loads', 30)
     await checkBodyText(
       page,

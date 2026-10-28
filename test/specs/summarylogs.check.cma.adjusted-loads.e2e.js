@@ -137,7 +137,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await new CheckSummaryLogPage(page).checkOnCheckPage()
     await checkBodyText(page, 'Closed periods: adjusted loads', 30)
     expect(await checkSummaryLogPage.importantBanner().count()).toBe(0)
 
@@ -170,7 +170,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await new CheckSummaryLogPage(page).checkOnCheckPage()
 
     await checkBodyText(page, 'Closed periods: adjusted loads', 30)
     expect(await checkSummaryLogPage.importantBanner().count()).toBe(1)
@@ -315,7 +315,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await new CheckSummaryLogPage(page).checkOnCheckPage()
     await checkBodyText(page, 'Open periods: adjusted loads', 30)
 
     const subStates = (await checkSummaryLogPage.allSubStateHeadings()).join(
@@ -396,7 +396,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', (
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await new CheckSummaryLogPage(page).checkOnCheckPage()
     await checkBodyText(page, 'Open periods: adjusted loads', 30)
 
     await checkSummaryLogPage.expandAllLoadDetails()

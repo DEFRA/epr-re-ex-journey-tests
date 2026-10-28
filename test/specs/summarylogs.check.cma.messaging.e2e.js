@@ -106,7 +106,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await new CheckSummaryLogPage(page).checkOnCheckPage()
 
     // The "Important" banner is shown on the check before you submit page.
     const banner = checkSummaryLogPage.importantBanner()

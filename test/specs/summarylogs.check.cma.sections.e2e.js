@@ -103,7 +103,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await new CheckSummaryLogPage(page).checkOnCheckPage()
 
     await checkBodyText(
       page,
@@ -203,7 +203,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await new CheckSummaryLogPage(page).checkOnCheckPage()
 
     await checkBodyText(page, 'Closed periods:', 30)
     const subStates = (await checkSummaryLogPage.allSubStateHeadings()).join(
@@ -304,7 +304,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await new CheckSummaryLogPage(page).checkOnCheckPage()
 
     await checkBodyText(page, 'Closed periods:', 30)
     const subStates = (await checkSummaryLogPage.allSubStateHeadings()).join(
