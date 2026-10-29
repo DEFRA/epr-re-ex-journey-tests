@@ -18,9 +18,9 @@ import { SystemLogsPage } from 'page-objects/admin/system.logs.page'
 import { UnsubmitConfirmationPage } from 'page-objects/admin/unsubmit.confirmation.page'
 
 // The Reg/Acc Numbers column shows one 'registration - accreditation' line per
-// registration, joined by <br> - which innerText() reads back as a newline. A
-// freshly applied organisation has a number on neither side of either line.
-const UNNUMBERED_REG_ACC_PAIRS = 'None - None\nNone - None'
+// numbered registration, joined by <br> - which innerText() reads back as a
+// newline. A freshly applied organisation has no numbered registration.
+const UNNUMBERED_REG_ACC_PAIRS = ''
 
 test.describe('Organisations page', () => {
   // Each test logs in independently (Playwright gives every test a fresh,
@@ -157,7 +157,7 @@ test.describe('Organisations page', () => {
       {
         header: organisation.companyName,
         orgId: `${linkedOrganisation.orgId}`,
-        regAccNumbers: `${reprocessorNumbers.regNumber} - ${reprocessorNumbers.accNumber}\nNone - None`,
+        regAccNumbers: `${reprocessorNumbers.regNumber} - ${reprocessorNumbers.accNumber}`,
         regulator: 'EA',
         status: 'approved'
       }
