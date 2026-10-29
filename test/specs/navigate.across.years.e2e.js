@@ -8,6 +8,7 @@ import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import {
   reportsLandingHasNoClosedPeriod,
+  seedAccreditationCancelledSinceLastYear,
   seedOrganisationAcrossYears
 } from '~/test/support/seeding/organisation.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
@@ -79,6 +80,35 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       )
       expectReportsOnlyFor(registeredOnly, yearSelected)
       expect(accredited).toBeUndefined()
+    })
+
+    test('A past year shows an accreditation cancelled since as it stood then', async ({
+      page
+    }) => {
+      const dashboardPage = new DashboardPage(page)
+      const chooseYearPage = new ChooseYearPage(page)
+      const wasteRecordsPage = new WasteRecordsPage(page)
+      const { refNo, email } = await seedAccreditationCancelledSinceLastYear()
+      const lastYear = currentYear() - 1
+
+      await createLinkAndLogin(page, refNo, email)
+      await dashboardPage.chooseDifferentYearLink().click()
+      await chooseYearPage.yearOption(lastYear).check()
+      await chooseYearPage.continueButton().click()
+
+      await dashboardPage.expectYear(lastYear)
+      expect(await dashboardPage.getAccreditationStatus(1, 1)).toBe('Approved')
+
+      await dashboardPage.selectTableLink(1, 1)
+
+      await wasteRecordsPage.expectYear(lastYear)
+      await expect(page).toHaveURL(new RegExp(`/accreditations/${lastYear}$`))
+      await expect(wasteRecordsPage.statusBeside('Registration')).toHaveText(
+        'Approved'
+      )
+      await expect(wasteRecordsPage.statusBeside('Accreditation')).toHaveText(
+        'Approved'
+      )
     })
 
     test("This year's reports hold no period from an earlier year, which the early-year report skips rely on", async ({

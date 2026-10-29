@@ -390,6 +390,60 @@ export async function seedOrganisationAcrossYears({
 }
 
 /**
+ * Seeds an organisation whose single reprocessor registration has been
+ * approved since January last year, with an accreditation for last year that
+ * was approved all that year, then suspended and cancelled today.
+ *
+ * @returns {Promise<{refNo: string, email: string, organisationNumber: number}>}
+ */
+export async function seedAccreditationCancelledSinceLastYear() {
+  const thisYear = currentYear()
+  const lastYear = thisYear - 1
+  const createdOn = `${lastYear - 1}-12-31`
+
+  const { orgId, refNo } = await createLinkedOrganisation([
+    { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
+  ])
+
+  const { email } = await approveMigratedRegistration(
+    refNo,
+    { registrationIndex: 0, accreditationIndex: 0 },
+    {
+      ...fillerNumbers(),
+      reprocessingType: 'input',
+      validFrom: `${lastYear}-01-01`,
+      validTo: `${lastYear}-12-31`,
+      submittedToRegulator: 'ea'
+    }
+  )
+  for (const accreditation of ['suspended', 'cancelled']) {
+    await changeMigratedStatus(
+      refNo,
+      { registrationIndex: 0, accreditationIndex: 0 },
+      { accreditation }
+    )
+  }
+
+  const today = new Date().toISOString()
+  await amendMigratedOrganisation(refNo, (data) => {
+    data.registrations[0].statusHistory = [
+      { status: 'created', updatedAt: createdOn },
+      { status: 'approved', updatedAt: `${lastYear}-01-01` }
+    ]
+    data.accreditations[0].statusHistory = [
+      { status: 'created', updatedAt: createdOn },
+      { status: 'approved', updatedAt: `${lastYear}-01-01` },
+      { status: 'suspended', updatedAt: today },
+      { status: 'cancelled', updatedAt: today }
+    ]
+  })
+
+  await assertOrganisationYears(orgId, [thisYear, lastYear])
+
+  return { refNo, email, organisationNumber: orgId }
+}
+
+/**
  * Throws unless the backend reports exactly `expected` as the years the
  * organisation held an approved registration in, so a seed whose backdating
  * did not take fails here rather than passing on the current year alone.

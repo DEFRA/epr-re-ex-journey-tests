@@ -35,6 +35,13 @@ class WasteRecordsPage extends Page {
     return this.page.getByRole('link', { name: 'Manage reports', exact: true })
   }
 
+  // The status tag beside a label such as "Registration" or "Accreditation".
+  statusBeside(label) {
+    return this.page
+      .locator('p', { hasText: `${label}:` })
+      .locator('.govuk-tag')
+  }
+
   async expectYear(year) {
     await this.expectYearShown(
       this.heading(),
