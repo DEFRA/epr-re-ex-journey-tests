@@ -179,7 +179,7 @@ test.describe('Accepting a PRN into an obligation year (RPD) @decWaste @prnOblig
     )
     await checkBodyText(
       page,
-      `can count towards ${accreditationYear + 1} obligations`,
+      `in ${accreditationYear} and can count towards ${accreditationYear + 1} obligations`,
       10
     )
   })
