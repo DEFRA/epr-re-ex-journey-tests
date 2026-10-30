@@ -65,7 +65,7 @@
     "allure-commandline": "2.46.1",
     "allure-playwright": "3.14.0",
     "browserstack-local": "1.5.16",
-    "browserstack-node-sdk": "1.73.4",
+    "browserstack-node-sdk": "1.74.0",
     "chai": "6.3.0",
     "chrome-launcher": "1.2.2",
     "decimal.js": "10.6.0",
