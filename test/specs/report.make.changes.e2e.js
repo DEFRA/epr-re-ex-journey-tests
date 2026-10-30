@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { DefraIdStubPage } from 'page-objects/defra.id.stub.page.js'
 import { HomePage } from 'page-objects/homepage.js'
-import { UploadSummaryLogPage } from '../page-objects/upload.summary.log.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { ReportsPage } from 'page-objects/reports/reports.page.js'
@@ -11,6 +10,7 @@ import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
 import { ResubmissionExplainerPage } from 'page-objects/reports/resubmission.explainer.page.js'
 import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js'
 import { checkBodyText } from '../support/checks.js'
+import { checkOnUploadPage } from '../support/summary-log-checks.js'
 import { checkAccessibility } from '../support/accessibility.js'
 import {
   createAndRegisterDefraIdUser,
@@ -107,7 +107,6 @@ test.describe
   })
 
   test('shows the make changes button on the latest submitted report and lets the operator cancel or upload a new summary log without triggering resubmission @makeChangesCancel @makeChangesUploadNewSummaryLog', async () => {
-    const uploadSummaryLogPage = new UploadSummaryLogPage(page)
     const wasteRecordsPage = new WasteRecordsPage(page)
     const dashboardPage = new DashboardPage(page)
     const reportsPage = new ReportsPage(page)
@@ -128,7 +127,7 @@ test.describe
       'need to resubmit this report'
     )
     await makeChangesPage.uploadNewSummaryLog()
-    await uploadSummaryLogPage.checkOnUploadPage()
+    await checkOnUploadPage(page)
 
     await page.goBack()
     await makeChangesPage.cancel()
