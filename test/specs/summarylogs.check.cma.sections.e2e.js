@@ -8,6 +8,7 @@ import {
   checkBodyText,
   checkBodyTextDoesNotInclude
 } from '../support/checks.js'
+import { checkOnCheckPage } from '../support/summary-log-checks.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
@@ -103,7 +104,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await checkOnCheckPage(page)
 
     await checkBodyText(
       page,
@@ -203,7 +204,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await checkOnCheckPage(page)
 
     await checkBodyText(page, 'Closed periods:', 30)
     const subStates = (await checkSummaryLogPage.allSubStateHeadings()).join(
@@ -304,7 +305,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await checkOnCheckPage(page)
 
     await checkBodyText(page, 'Closed periods:', 30)
     const subStates = (await checkSummaryLogPage.allSubStateHeadings()).join(
