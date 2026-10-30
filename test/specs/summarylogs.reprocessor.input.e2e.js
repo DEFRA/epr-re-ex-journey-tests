@@ -5,6 +5,10 @@ import { UploadSummaryLogPage } from '../page-objects/upload.summary.log.page.js
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { checkBodyText } from '../support/checks.js'
+import {
+  checkOnCheckPage,
+  checkOnUploadPage
+} from '../support/summary-log-checks.js'
 import { createAndRegisterDefraIdUser } from '../support/defra-id-linking.js'
 import {
   createLinkedOrganisation,
@@ -97,7 +101,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
     await checkBodyText(page, numbers.accNumber, 10)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await uploadSummaryLogPage.checkOnUploadPage()
+    await checkOnUploadPage(page)
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered(
         await summaryLogDatedAt('resources/summary-log.xlsx', new Date()),
@@ -108,7 +112,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await checkOnCheckPage(page)
     await uploadSummaryLogPage.confirmAndCheckDoubleClickPrevented()
 
     await checkBodyText(page, 'Your waste records are being updated', 30)

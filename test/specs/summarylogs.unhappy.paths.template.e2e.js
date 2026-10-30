@@ -4,6 +4,7 @@ import { UploadSummaryLogPage } from '../page-objects/upload.summary.log.page.js
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { checkBodyText, checkUploadErrorText } from '../support/checks.js'
+import { checkOnUploadPage } from '../support/summary-log-checks.js'
 import {
   createLinkedOrganisation,
   fillerNumbers,
@@ -118,7 +119,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.continue()
-    await uploadSummaryLogPage.checkOnUploadPage()
+    await checkOnUploadPage(page)
 
     // GOV.UK's Button component debounces preventDoubleClick for 1s from any
     // click on the button — including this one, blocked from submitting by
@@ -178,7 +179,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
 
-    await uploadSummaryLogPage.checkOnUploadPage()
+    await checkOnUploadPage(page)
 
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered('resources/exporter-invalid.xlsx', numbers)
