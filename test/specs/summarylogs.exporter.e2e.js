@@ -8,6 +8,7 @@ import {
   checkBodyText,
   checkBodyTextDoesNotInclude
 } from '../support/checks.js'
+import { checkOnCheckPage } from '../support/summary-log-checks.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
@@ -97,7 +98,7 @@ test.describe('Summary Logs Exporter', () => {
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await checkOnCheckPage(page)
     await checkBodyText(page, 'Open periods: new loads', 30)
 
     // Merged from summarylogs.check.cma.sections.e2e.js's noClosedSection
@@ -164,7 +165,7 @@ test.describe('Summary Logs Exporter', () => {
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await checkOnCheckPage(page)
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(
       page,

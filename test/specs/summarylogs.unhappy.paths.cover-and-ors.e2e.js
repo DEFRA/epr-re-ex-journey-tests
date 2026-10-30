@@ -8,6 +8,7 @@ import {
   checkBodyText,
   checkBodyTextDoesNotInclude
 } from '../support/checks.js'
+import { checkOnUploadPage } from '../support/summary-log-checks.js'
 import {
   createLinkedOrganisation,
   updateMigratedOrganisation,
@@ -63,7 +64,7 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
 
     await wasteRecordsPage.submitSummaryLogLink().click()
 
-    await uploadSummaryLogPage.checkOnUploadPage()
+    await checkOnUploadPage(page)
 
     await uploadSummaryLogPage.uploadFile('resources/cover-invalid.xlsx')
     await uploadSummaryLogPage.continue()
