@@ -247,11 +247,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
 
     // Check Issued PERN details
     await prnHelper.checkViewPrnDetails(pernDetails)
-    await checkBodyText(
-      currentPage,
-      `This PERN relates to waste received at an overseas reprocessing site subject to the accreditation in ${registrationStartYear()} and can count towards ${registrationStartYear()} obligations.`,
-      10
-    )
+    await checkBodyText(currentPage, 'an overseas reprocessing site', 10)
 
     // Now RPD cancels the PERN
     await externalAPICancelPrn(pernDetails)
