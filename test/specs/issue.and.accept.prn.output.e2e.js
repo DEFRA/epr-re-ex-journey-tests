@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test'
+import { CheckBeforeCreatingPRNPage } from 'page-objects/check.before.creating.prn.page.js'
+import { ConfirmDeletePRNPage } from 'page-objects/confirm.delete.prn.page.js'
+import { ConfirmDiscardPRNPage } from 'page-objects/confirm.discard.prn.page.js'
 import { CreatePRNPage } from 'page-objects/create.prn.page.js'
 import { HomePage } from 'page-objects/homepage.js'
 import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
@@ -22,18 +25,30 @@ import {
   submitSummaryLogContent
 } from '../support/seeding/summary-logs.js'
 import { generateSummaryLogContent } from '../support/spreadsheet/summarylogs-content-generator.js'
+import { checkAccessibility } from '../support/accessibility.js'
 import { checkBodyText } from '../support/checks.js'
-import { createPrnDetails } from '../support/fixtures.js'
+import {
+  createPrnDetails,
+  thirdTradingName,
+  tradingName
+} from '../support/fixtures.js'
 import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
 
+// The operator discards two drafts and creates and deletes a PRN before the
+// one that goes through issue and acceptance, and a regulator then reads it:
+// longer than the suite's two-minute default allows.
+const JOURNEY_TIMEOUT_MS = 4 * 60 * 1000
+
 test.describe('Issuing Packing Recycling Notes', () => {
-  test('Should be able to create, issue and accept PRNs for Plastic (Reprocessor Output) @issuePRNOutput @smoketest', async ({
+  test('Should be able to discard, delete, create, issue and accept PRNs for Plastic (Reprocessor Output) @issuePRNOutput @createPRN @delPRNOutput @smoketest', async ({
     page
   }) => {
+    test.setTimeout(JOURNEY_TIMEOUT_MS)
+
     // Reassigned after each switchToNewTabAndClosePreviousTab call, since
     // that closes the tab `page` currently points at - every page object
     // constructed after a reassignment must be bound to the new value.
@@ -44,6 +59,11 @@ test.describe('Issuing Packing Recycling Notes', () => {
     let prnDashboardPage = new PRNDashboardPage(currentPage)
     const dashboardPage = new DashboardPage(currentPage)
     const wasteRecordsPage = new WasteRecordsPage(currentPage)
+    const checkBeforeCreatingPrnPage = new CheckBeforeCreatingPRNPage(
+      currentPage
+    )
+    const confirmDiscardPRNPage = new ConfirmDiscardPRNPage(currentPage)
+    const confirmDeletePRNPage = new ConfirmDeletePRNPage(currentPage)
 
     const { regNumber, accNumber } = generateNumbers({
       wasteProcessingType: 'reprocessor',
@@ -114,6 +134,109 @@ test.describe('Issuing Packing Recycling Notes', () => {
     )
 
     let prnHelper = new PrnHelper(currentPage)
+
+    // --- Discard two drafts ---
+    // Empty issuer notes, so the PRN draft says "Not provided"
+    const discardedPrnDetails = createPrnDetails({
+      tradingName: thirdTradingName,
+      issuerNotes: '',
+      accNumber,
+      organisationDetails
+    })
+    await prnHelper.createAndCheckDraftPrn(discardedPrnDetails)
+
+    // Discard the first attempt (double-click prevented)
+    await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
+    expect(await confirmDiscardPRNPage.headingText()).toBe(
+      'Are you sure you want to discard this PRN?'
+    )
+    await confirmDiscardPRNPage.discardAndCheckDoubleClickPrevented()
+
+    // Second attempt, this time with notes
+    discardedPrnDetails.issuerNotes = 'Testing'
+    await prnHelper.createAndCheckDraftPrn(discardedPrnDetails)
+
+    // The discard page's back link returns to the check page, then discard
+    await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
+    await confirmDiscardPRNPage.backLink().click()
+    await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
+    await confirmDiscardPRNPage.discardAndCheckDoubleClickPrevented()
+
+    // --- Create page validation ---
+    expect(await createPRNPage.headingText()).toBe('Enter PRN details')
+    expect(await createPRNPage.captionText()).toBe('Create PRN')
+    expect(await createPRNPage.materialDetails()).toBe('Material: Plastic')
+
+    // No December waste controls outside the declaration window - CI keeps
+    // the window closed for this pass (see run-journey-tests' december-scope
+    // split), so this pins their absence rather than assuming it.
+    expect(await createPRNPage.decemberWasteVisible()).toBe(false)
+
+    await createPRNPage.submitAndCheckDoubleClickPrevented()
+    expect(await createPRNPage.errorMessages(2)).toEqual([
+      'Enter PRN tonnage as a whole number',
+      'Enter a packaging producer or compliance scheme'
+    ])
+
+    // An over-balance tonnage is refused at the create step itself: the create
+    // page re-renders with the balance error rather than the draft being
+    // created.
+    await createPRNPage.createPrn(9999999, tradingName, 'Testing')
+    expect(await createPRNPage.errorMessages(1)).toEqual([
+      'The tonnage you entered exceeds your available waste balance'
+    ])
+
+    // --- Create a PRN, then delete it ---
+    const deletedPrnDetails = createPrnDetails({
+      accNumber,
+      organisationDetails
+    })
+    await prnHelper.createAndCheckPrnDetails(deletedPrnDetails)
+
+    await prnCreatedPage.returnToRegistrationPage().click()
+    await dashboardPage.selectTableLink(1, 1)
+
+    // The waste balance is deducted on creation
+    expect(await wasteRecordsPage.wasteBalanceAmount()).toBe('797.00')
+
+    await wasteRecordsPage.managePRNsLink().click()
+
+    await prnDashboardPage.issuedTab().click()
+    expect(await prnDashboardPage.getNoIssuedPrnMessage()).toBe(
+      'No PRNs have been issued yet.'
+    )
+
+    await prnDashboardPage.awaitingActionTab().click()
+    await prnDashboardPage.selectAwaitingLink(1)
+
+    // The back link on the delete confirmation page first
+    const prnViewPageForDelete = new PRNViewPage(currentPage)
+    await prnViewPageForDelete.deletePRNButton().click()
+    expect(await confirmDeletePRNPage.headingText()).toBe(
+      'Are you sure you want to delete this PRN?'
+    )
+    await checkAccessibility(currentPage, 'Confirm delete PRN')
+    await confirmDeletePRNPage.backLink().click()
+
+    await prnViewPageForDelete.deletePRNButton().click()
+    expect(await confirmDeletePRNPage.headingText()).toBe(
+      'Are you sure you want to delete this PRN?'
+    )
+    await confirmDeletePRNPage.deletePrnAndCheckDoubleClickPrevented('PRN')
+
+    expect(await prnDashboardPage.getNoCreatedPrnMessage()).toBe(
+      'You have not created any PRNs.'
+    )
+
+    await prnDashboardPage.backLink().click()
+
+    // The deleted PRN's tonnage is returned to the balance
+    expect(await wasteRecordsPage.wasteBalanceAmount()).toBe(
+      originalWasteBalance
+    )
+
+    // --- Create, issue and accept a PRN ---
+    await wasteRecordsPage.createNewPRNLink().click()
 
     const prnDetails = createPrnDetails({ accNumber, organisationDetails })
 
@@ -234,15 +357,18 @@ test.describe('Issuing Packing Recycling Notes', () => {
     ])
 
     // Every movement this journey made, newest first: the summary log opened
-    // the balance, the one PRN drew against it, and then moved through issue
-    // and acceptance without drawing again. The note is given its number when
-    // it is issued, and the ledger states the number against every movement
-    // it caused - so the drawn row carries it too, the same as the two rows
-    // above it.
+    // the balance, the deleted PRN drew against it and gave its tonnage back,
+    // and the kept PRN drew against it and then moved through issue and
+    // acceptance without drawing again. A note is given its number when it is
+    // issued, and the ledger states the number against every movement it
+    // caused - so the kept note's drawn row carries it too, the same as the
+    // two rows above it, while the deleted note never had one.
     expect(ledgerEvents.map((event) => event.get('Event'))).toEqual([
       `PRN accepted\n${prnDetails.prnNumber}`,
       `PRN issued\n${prnDetails.prnNumber}`,
       `PRN created\n${prnDetails.prnNumber}`,
+      'PRN cancelled before issue',
+      'PRN created',
       'Summary log submitted'
     ])
 
@@ -253,13 +379,15 @@ test.describe('Issuing Packing Recycling Notes', () => {
       'N/A',
       'N/A',
       `-${prnDetails.tonnageWordings.integer}.00`,
+      `+${deletedPrnDetails.tonnageWordings.integer}.00`,
+      `-${deletedPrnDetails.tonnageWordings.integer}.00`,
       `+${originalWasteBalance}`
     ])
 
-    // Every PRN row leads to the same note, because there is only one; the
-    // summary log offers its own file.
+    // Every row of the kept note leads to that note; the summary log offers
+    // its own file.
     await expect(ledgerPage.viewNoteLinks(prnDetails.prnNumber)).toHaveCount(3)
-    expect(ledgerEvents[3].get('Actions')).toContain('Download')
+    expect(ledgerEvents[5].get('Actions')).toContain('Download')
 
     // The seed stores no workbook, so the records the service holds for the
     // submission are the download that can be taken.

@@ -37,7 +37,7 @@ const FURTHER_ACTION_PARA_3 =
 // group covers the "Important" banner and "Further action needed" messaging
 // that renders when closed-period adjustments are detected. See
 // summarylogs.check.cma.sections.e2e.js for open/closed section visibility
-// and summarylogs.check.cma.adjusted-loads.e2e.js for adjusted-load sub-state
+// and reports.requires.resubmission.e2e.js for adjusted-load sub-state
 // rendering. The "no closed-period adjustments" control case lives in
 // summarylogs.exporter.e2e.js instead (see comment below).
 test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adjustment Messaging', () => {

@@ -32,7 +32,7 @@ import {
 
 // Split from summarylogs.check.cma.e2e.js (PAE-1405 CI runtime work): this
 // group covers which sections render at all - open vs closed, present vs
-// absent. See summarylogs.check.cma.adjusted-loads.e2e.js for adjusted-load
+// absent. See reports.requires.resubmission.e2e.js for adjusted-load
 // sub-state assertions and summarylogs.check.cma.messaging.e2e.js for the
 // closed-period banner/messaging copy. Splitting lets per-file worker
 // scheduling run these in parallel instead of serially in one ~4 minute file.
