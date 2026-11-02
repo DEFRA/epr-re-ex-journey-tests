@@ -36,6 +36,7 @@ const ADJUSTED_ADDED_HEADING = 'This load has added to your waste balance'
 const ADJUSTED_REDUCED_HEADING = 'This load has reduced your waste balance'
 const MISSING_DATA_HEADING = 'does NOT have all the required summary log data'
 const FURTHER_ACTION_HEADING = 'Further action needed'
+const MULTI_UPLOAD_TEST_TIMEOUT_MS = 4 * 60 * 1000
 
 // Split from summarylogs.check.cma.e2e.js (PAE-1405 CI runtime work): this
 // group covers adjusted-load sub-state rendering (headings, accordions,
@@ -44,8 +45,6 @@ const FURTHER_ACTION_HEADING = 'Further action needed'
 // for the closed-period banner/messaging copy. Splitting lets per-file
 // worker scheduling run these in parallel instead of serially in one
 // ~4 minute file.
-const MULTI_UPLOAD_TEST_TIMEOUT_MS = 4 * 60 * 1000
-
 test.describe('Summary Logs - Check Page with CMA Detection - Adjusted Loads', () => {
   test.describe.configure({ mode: 'parallel' })
 
