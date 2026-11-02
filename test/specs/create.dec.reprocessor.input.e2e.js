@@ -1,0 +1,187 @@
+import { test, expect } from '@playwright/test'
+import { CreatePRNPage } from 'page-objects/create.prn.page.js'
+import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
+import { DashboardPage } from '../page-objects/dashboard.page.js'
+import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
+import {
+  createLinkedOrganisation,
+  updateMigratedOrganisation
+} from '../support/seeding/organisation.js'
+import {
+  registrationStartYear,
+  submitSummaryLogContent
+} from '../support/seeding/summary-logs.js'
+import { generateDecemberFixture } from '../support/spreadsheet/generate-december-fixture.js'
+import { summaryLogContentFromFixture } from '../support/spreadsheet/summarylogs-content-generator.js'
+import { defraIdStub } from '../support/defra-id-stub.js'
+import { createLinkAndLogin } from '../support/login-helper.js'
+import { createPrnDetails } from '../support/fixtures.js'
+import { PrnHelper } from '../support/prn.helper.js'
+import { WASTE_BALANCE_POOL } from '../support/waste-balance-pool.js'
+import { generateNumbers } from '../support/reg-acc-number.js'
+
+test.describe('Choosing a waste balance pool for a PRN (Reprocessor Input)', () => {
+  test('Should show both balance options and move only the chosen pool @decWaste @createDecPRNInput', async ({
+    page
+  }) => {
+    const { regNumber, accNumber } = generateNumbers({
+      wasteProcessingType: 'reprocessor',
+      materialSuffix: 'PA'
+    })
+
+    const createPRNPage = new CreatePRNPage(page)
+    const prnCreatedPage = new PRNCreatedPage(page)
+    const dashboardPage = new DashboardPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const prnHelper = new PrnHelper(page)
+
+    const organisationDetails = await createLinkedOrganisation([
+      { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
+    ])
+
+    const migrationResponse = await updateMigratedOrganisation(
+      organisationDetails.refNo,
+      [
+        {
+          reprocessingType: 'input',
+          regNumber,
+          accNumber,
+          status: 'approved'
+        }
+      ],
+      'sepa'
+    )
+
+    const user = await createLinkAndLogin(
+      page,
+      organisationDetails.refNo,
+      migrationResponse.email
+    )
+
+    // Submitted via epr-backend's dev endpoint rather than a real multipart
+    // upload: this journey is about the December waste balance pool, not
+    // the upload itself, which the dedicated summary-log specs already
+    // cover.
+    const summaryLogContent = await summaryLogContentFromFixture(
+      await generateDecemberFixture(
+        {
+          wasteProcessingType: 'reprocessorInput',
+          materialSuffix: 'PA',
+          accNumber,
+          regNumber,
+          silentLogging: true
+        },
+        registrationStartYear()
+      )
+    )
+    await submitSummaryLogContent(
+      organisationDetails.refNo,
+      migrationResponse.registrationIds[0],
+      defraIdStub.authHeader(user.userId),
+      summaryLogContent,
+      registrationStartYear()
+    )
+
+    await dashboardPage.selectTableLink(1, 1)
+
+    // PAE-1921: in-window the single-balance banner gives way to the
+    // Available waste balance breakdown panel. Its three figures must be
+    // internally consistent and agree with the pool radios read below.
+    const panelBefore = await wasteRecordsPage.decemberBalanceBreakdown()
+    expect(panelBefore.total).toBeCloseTo(
+      panelBefore.december + panelBefore.nonDecember,
+      2
+    )
+
+    await wasteRecordsPage.createNewPRNLink().click()
+
+    await createPRNPage.headingText()
+
+    const options = await createPRNPage.wasteBalanceOptions()
+    createPRNPage.assertWasteBalanceOrder(options)
+
+    const insetText = await createPRNPage.wasteBalanceHint()
+    expect(insetText).toContain('from either waste balance')
+
+    const generalBefore = createPRNPage.wasteBalanceTonnage(
+      options,
+      WASTE_BALANCE_POOL.nonDecember
+    )
+
+    expect(panelBefore.nonDecember).toBeCloseTo(generalBefore, 2)
+
+    // Raise from the non-December pool: proves AC3 (a general raise moves
+    // only the general balance) and AC6 (December stays reserved out of it,
+    // since the option already shown is total minus December).
+    const prnDetails = createPrnDetails({
+      accNumber,
+      organisationDetails,
+      materialDesc: 'Paper and board',
+      process: 'R3',
+      tonnageWordings: { integer: 2, word: 'Two' },
+      wasteBalancePool: WASTE_BALANCE_POOL.nonDecember
+    })
+
+    await prnHelper.createAndCheckPrnDetails(prnDetails)
+
+    const message = await prnCreatedPage.messageText()
+    expect(message).not.toContain('created from December waste')
+
+    const decemberBefore = createPRNPage.wasteBalanceTonnage(
+      options,
+      WASTE_BALANCE_POOL.december
+    )
+
+    expect(panelBefore.december).toBeCloseTo(decemberBefore, 2)
+
+    const { december: decemberAfter, general: generalAfter } =
+      await createPRNPage.reopenAndReadWasteBalances(
+        dashboardPage,
+        wasteRecordsPage,
+        organisationDetails.refNo,
+        false
+      )
+
+    expect(generalAfter).toBeCloseTo(generalBefore - 2, 2)
+    expect(decemberAfter).toBeCloseTo(decemberBefore, 2)
+
+    // Now raise from the other pool: proves the reverse direction too - a
+    // December raise moves only the December figure, leaving the general
+    // figure (already reduced above) untouched by this second raise.
+    const secondPrnDetails = createPrnDetails({
+      accNumber,
+      organisationDetails,
+      materialDesc: 'Paper and board',
+      process: 'R3',
+      tonnageWordings: { integer: 3, word: 'Three' },
+      wasteBalancePool: WASTE_BALANCE_POOL.december
+    })
+
+    await prnHelper.createAndCheckPrnDetails(secondPrnDetails)
+
+    const secondMessage = await prnCreatedPage.messageText()
+    expect(secondMessage).toContain('created from December waste')
+
+    const { december: decemberAfterSecond, general: generalAfterSecond } =
+      await createPRNPage.reopenAndReadWasteBalances(
+        dashboardPage,
+        wasteRecordsPage,
+        organisationDetails.refNo,
+        false
+      )
+
+    expect(decemberAfterSecond).toBeCloseTo(decemberAfter - 3, 2)
+    expect(generalAfterSecond).toBeCloseTo(generalAfter, 2)
+
+    // The panel must move with the raises too: back on the registration
+    // page it shows the same reduced figures the create-page radios do,
+    // with the total down by the five tonnes raised across both pools.
+    await dashboardPage.open(organisationDetails.refNo)
+    await dashboardPage.selectTableLink(1, 1)
+
+    const panelAfter = await wasteRecordsPage.decemberBalanceBreakdown()
+    expect(panelAfter.december).toBeCloseTo(decemberAfterSecond, 2)
+    expect(panelAfter.nonDecember).toBeCloseTo(generalAfterSecond, 2)
+    expect(panelAfter.total).toBeCloseTo(panelBefore.total - 5, 2)
+  })
+})
