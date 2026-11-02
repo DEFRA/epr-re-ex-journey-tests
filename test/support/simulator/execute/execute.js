@@ -12,7 +12,8 @@ import {
   EVENT,
   ISSUE_KIND,
   ISSUE_SEVERITY,
-  UPLOAD_OUTCOME
+  UPLOAD_OUTCOME,
+  uploadYear
 } from '../calendar/events.js'
 import { heldTonnage, rowsForUpload } from '../rows/rows.js'
 import {
@@ -416,13 +417,12 @@ async function uploadSummaryLog(run, event) {
   })
 
   const authHeader = await signedIn(run, operator)
-  const year = new Date(event.at).getUTCFullYear()
   const summaryLog = await run.seeders.submitSummaryLogContent(
     operator.refNo,
     registration.registrationId,
     authHeader,
     content,
-    year
+    uploadYear(event)
   )
   assertAsPlanned(event, expected, summaryLog)
 
