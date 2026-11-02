@@ -13,9 +13,9 @@ class OrganisationOverviewPage extends AdminPage {
 
   async viewRegistrationLink(row) {
     await this.page
-      .locator(
-        `main table tbody tr:nth-child(${row}) td:nth-child(6) a:nth-of-type(1)`
-      )
+      .locator('main table tbody tr')
+      .nth(row - 1)
+      .getByRole('link', { name: 'View', exact: true })
       .click()
   }
 

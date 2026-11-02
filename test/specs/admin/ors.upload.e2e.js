@@ -14,6 +14,7 @@ import {
   validOrsSites
 } from '../../support/ors-spreadsheet.js'
 import { checkAccessibility } from '../../support/accessibility.js'
+import { registrationStartYear } from '../../support/seeding/summary-logs.js'
 import { OrganisationsPage } from 'page-objects/admin/organisations.page'
 import { OrganisationOverviewPage } from 'page-objects/admin/organisation.overview.page'
 import { RegistrationOverviewPage } from 'page-objects/admin/registration.overview.page'
@@ -300,7 +301,7 @@ test.describe('ORS upload flow @orsUpload', () => {
       await organisationsPage.searchFor(organisationName)
       await organisationsPage.viewLink(1)
       await organisationOverviewPage.viewRegistrationLink(1)
-      await registrationOverviewPage.viewLatestAccreditedYear()
+      await registrationOverviewPage.viewYear(registrationStartYear())
       await registrationYearPage.viewORSLink().click()
       let orsOverviewHeader = await orsOverviewPage.getHeaderText()
       expect(orsOverviewHeader).toContain(
@@ -353,7 +354,7 @@ test.describe('ORS upload flow @orsUpload', () => {
       // Return to Organisation Overview Page
       await orsOverviewPage.clickOnBreadcrumbLink(2)
       await organisationOverviewPage.viewRegistrationLink(2)
-      await registrationOverviewPage.viewLatestAccreditedYear()
+      await registrationOverviewPage.viewYear(registrationStartYear())
 
       await registrationYearPage.viewORSLink().click()
       orsOverviewHeader = await orsOverviewPage.getHeaderText()

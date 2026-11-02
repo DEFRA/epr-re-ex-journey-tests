@@ -15,7 +15,7 @@ import {
 import { registerAndLinkDefraIdUser } from '../../support/defra-id-linking.js'
 import { defraIdStub } from '../../support/defra-id-stub.js'
 import { summaryLogContentNumbered } from '../../support/spreadsheet/summarylogs-content-generator.js'
-import { currentYear } from '../../support/date.js'
+import { checkAccessibility } from '../../support/accessibility.js'
 
 // The registration is registered-only for the two years before this one and
 // accredited this year. Last year holds a summary log and a submitted Quarter 1
@@ -34,13 +34,10 @@ test.describe('Registration overview years', () => {
     const registrationYearPage = new RegistrationYearPage(page)
     const reportViewPage = new ReportViewPage(page)
 
-    const thisYear = currentYear()
-    const lastYear = thisYear - 1
-    const firstYear = thisYear - 2
-
     const seeded = await seedOrganisationAcrossYears({
       reprocessingType: 'output'
     })
+    const [thisYear, lastYear, firstYear] = seeded.years
     const user = await registerAndLinkDefraIdUser(seeded.refNo, seeded.email)
     const defraAuthHeader = defraIdStub.authHeader(user.userId)
 
@@ -95,6 +92,7 @@ test.describe('Registration overview years', () => {
 
     await test.step('A registered-only year shows only that year', async () => {
       await registrationOverviewPage.viewYear(lastYear)
+      await checkAccessibility(page, 'Registered-only year')
 
       await expect(page).toHaveURL(new RegExp(`/registered-only/${lastYear}$`))
       expect(await registrationYearPage.getHeaderText()).toEqual(
@@ -103,7 +101,9 @@ test.describe('Registration overview years', () => {
       await expect(registrationYearPage.prnActivityDownloadLink()).toHaveCount(
         0
       )
-      await expect(registrationYearPage.viewORSLink()).toHaveCount(0)
+      await expect(registrationYearPage.wasteBalanceEventsLink()).toHaveCount(
+        0
+      )
 
       const reports = await registrationYearPage.getReportsTableData()
       expect(reports.map((row) => row.period).sort()).toEqual([
@@ -157,6 +157,7 @@ test.describe('Registration overview years', () => {
         heading(thisYear, 'accredited')
       )
       await expect(registrationYearPage.prnActivityDownloadLink()).toBeVisible()
+      await expect(registrationYearPage.wasteBalanceEventsLink()).toBeVisible()
       expect(await registrationYearPage.getSummaryLogsContent()).toContain(
         'No summary logs'
       )

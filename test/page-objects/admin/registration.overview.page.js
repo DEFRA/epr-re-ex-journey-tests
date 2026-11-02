@@ -2,26 +2,17 @@ import { AdminPage } from 'page-objects/admin/page'
 
 class RegistrationOverviewPage extends AdminPage {
   async getYearsTableData() {
-    // .count() below reads the DOM as-is with no auto-wait, so wait for the
-    // table first.
+    // readGovukTableRows counts rows with no auto-wait, so wait for the table
+    // first.
     await this.page
       .locator('#years table')
       .waitFor({ state: 'visible', timeout: 10000 })
 
-    const rows = this.page.locator('#years table tbody tr')
-    const count = await rows.count()
-    const data = []
-
-    for (let i = 0; i < count; i++) {
-      const row = rows.nth(i)
-      data.push({
-        year: await row.locator('td:nth-child(1)').innerText(),
-        accreditationStatus: await row.locator('td:nth-child(2)').innerText(),
-        accreditationNumber: await row.locator('td:nth-child(3)').innerText()
-      })
-    }
-
-    return data
+    return this.readGovukTableRows('#years table', {
+      year: 1,
+      accreditationStatus: 2,
+      accreditationNumber: 3
+    })
   }
 
   // The View link's accessible name carries the year in visually hidden text.
@@ -29,23 +20,6 @@ class RegistrationOverviewPage extends AdminPage {
     await this.page
       .locator('#years')
       .getByRole('link', { name: `View ${year}`, exact: true })
-      .click()
-  }
-
-  async viewLatestYear() {
-    await this.page
-      .locator('#years table tbody tr')
-      .first()
-      .getByRole('link', { name: /^View \d{4}$/ })
-      .click()
-  }
-
-  async viewLatestAccreditedYear() {
-    await this.page
-      .locator('#years table tbody tr')
-      .filter({ hasNotText: 'Not accredited' })
-      .first()
-      .getByRole('link', { name: /^View \d{4}$/ })
       .click()
   }
 }

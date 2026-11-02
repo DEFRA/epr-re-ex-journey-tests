@@ -15,6 +15,7 @@ import {
 import { generateNumbers } from '../../support/reg-acc-number.js'
 import { createSubmittedReport } from '../../support/seeding/reports.js'
 import { checkAccessibility } from '../../support/accessibility.js'
+import { registrationStartYear } from '../../support/seeding/summary-logs.js'
 import { SystemLogsPage } from 'page-objects/admin/system.logs.page'
 import { UnsubmitConfirmationPage } from 'page-objects/admin/unsubmit.confirmation.page'
 
@@ -195,7 +196,7 @@ test.describe('Organisations page', () => {
       `${organisation.companyName} - ${reprocessorNumbers.regNumber}`
     )
 
-    await registrationOverviewPage.viewLatestYear()
+    await registrationOverviewPage.viewYear(registrationStartYear())
 
     await expect(registrationYearPage.reportsTable()).toBeVisible()
 

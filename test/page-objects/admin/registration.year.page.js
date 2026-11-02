@@ -49,6 +49,15 @@ class RegistrationYearPage extends AdminPage {
   }
 
   /** @returns {import('@playwright/test').Locator} */
+  wasteBalanceEventsLink() {
+    return this.page
+      .locator('.govuk-summary-list__row', {
+        has: this.page.locator('dt', { hasText: 'Waste balance events' })
+      })
+      .getByRole('link', { name: 'View', exact: true })
+  }
+
+  /** @returns {import('@playwright/test').Locator} */
   prnActivityDownloadLink() {
     return this.page
       .locator('.govuk-summary-list__row', {
