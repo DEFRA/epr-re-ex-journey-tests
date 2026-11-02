@@ -21,7 +21,7 @@
  *
  * Run: node resources/generate-adjusted-reason-fixture.js
  *
- * Consumed by: summarylogs.check.cma.adjusted-loads.e2e.js.
+ * Consumed by: summarylogs.reprocessor.input.e2e.js.
  */
 import ExcelJS from 'exceljs'
 import path from 'node:path'

@@ -9,12 +9,7 @@ import {
 } from './organisation.js'
 import { createPrn, externalAPICancelPrn, updatePrnStatus } from './prns.js'
 import { seedReportSubmission } from './reports.js'
-import {
-  registrationStartYear,
-  uploadAndSubmitSummaryLog,
-  submitSummaryLogContent,
-  summaryLogNumbered
-} from './summary-logs.js'
+import { submitSummaryLogContent } from './summary-logs.js'
 import { generateSummaryLogContent } from '../spreadsheet/summarylogs-content-generator.js'
 import { waitForWasteBalance } from './waiters.js'
 import { defraIdStub } from '../defra-id-stub.js'
@@ -303,78 +298,5 @@ export async function seedMultiSiteMultiTypeOrganisation() {
     inputRegistrationNumber,
     outputRegistrationNumber,
     exporterRegistrationNumber
-  }
-}
-
-// The registration must match the fixture's shape or validation rejects it.
-const REGISTERED_ONLY_MATERIAL = 'Paper or board (R3)'
-const REGISTERED_ONLY_WASTE_PROCESSING_TYPE = 'Reprocessor'
-const REGISTERED_ONLY_REPROCESSING_TYPE = 'output'
-const REGISTERED_ONLY_FIXTURE_PATH = 'resources/reprocessor-output-regonly.xlsx'
-
-/**
- * One organisation with a single approved, accreditation-free registration,
- * and a summary log submitted against it.
- *
- * The backend files a submission under
- * `summaryLog.accreditationId ?? registration.accreditationId`, so only a
- * registration with no accreditation produces a registered-only ledger event.
- * Hence `withoutAccreditation` on both rows.
- *
- * Returns the submission year, not the registration's start year: the page
- * filters ledger events by `createdAt`.
- * @returns {Promise<{
- *   companyName: string,
- *   refNo: string,
- *   orgId: number,
- *   registrationId: string,
- *   registrationNumber: string,
- *   submissionYear: number
- * }>}
- */
-export async function seedRegisteredOnlySubmittedSummaryLog() {
-  const organisation = await createLinkedOrganisation([
-    {
-      material: REGISTERED_ONLY_MATERIAL,
-      wasteProcessingType: REGISTERED_ONLY_WASTE_PROCESSING_TYPE,
-      withoutAccreditation: true
-    }
-  ])
-
-  const registrationNumber = generateRegNumber({
-    wasteProcessingType: 'reprocessor',
-    materialSuffix: 'PA'
-  })
-  const migrated = await updateMigratedOrganisation(organisation.refNo, [
-    {
-      reprocessingType: REGISTERED_ONLY_REPROCESSING_TYPE,
-      regNumber: registrationNumber,
-      status: 'approved',
-      withoutAccreditation: true
-    }
-  ])
-  const registrationId = migrated.registrationIds[0]
-
-  const user = await createAndRegisterDefraIdUser(migrated.email)
-  await linkDefraIdUser(organisation.refNo, user.userId, migrated.email)
-  const defraAuthHeader = defraIdStub.authHeader(user.userId)
-
-  await uploadAndSubmitSummaryLog(
-    organisation.refNo,
-    registrationId,
-    defraAuthHeader,
-    await summaryLogNumbered(REGISTERED_ONLY_FIXTURE_PATH, {
-      regNumber: registrationNumber
-    }),
-    registrationStartYear()
-  )
-
-  return {
-    companyName: organisation.organisation.companyName,
-    refNo: organisation.refNo,
-    orgId: organisation.orgId,
-    registrationId,
-    registrationNumber,
-    submissionYear: new Date().getUTCFullYear()
   }
 }

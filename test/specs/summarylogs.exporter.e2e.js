@@ -30,9 +30,7 @@ const IMPORTANT_BODY =
 const FURTHER_ACTION_HEADING = 'Further action needed'
 
 // The adjusted-loads accordion's "added" heading, asserted by the stage-2
-// checks merged in from summarylogs.check.cma.adjusted-loads.e2e.js's
-// openAdjusted case below (same org/upload setup, duplicated purely to
-// assert the check page's sub-state/accordion/projection content).
+// open-period adjusted-load checks below.
 const ADJUSTED_ADDED_HEADING = 'This load has added to your waste balance'
 
 test.describe('Summary Logs Exporter', () => {
@@ -179,9 +177,8 @@ test.describe('Summary Logs Exporter', () => {
       30
     )
 
-    // Merged from summarylogs.check.cma.adjusted-loads.e2e.js's openAdjusted
-    // case (same org/upload setup, duplicated purely to assert the check
-    // page's sub-state/accordion content and pre-submit balance projection).
+    // The check page's open-period sub-states, accordion content and
+    // pre-submit balance projection.
     const sections = await checkSummaryLogPage.allSectionHeadings()
     expect(sections).toEqual(
       expect.arrayContaining([

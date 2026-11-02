@@ -7,17 +7,15 @@ class OrganisationOverviewPage extends AdminPage {
       registrationStatus: 2,
       processingType: 3,
       material: 4,
-      site: 5,
-      accreditationNumber: 6,
-      accreditationStatus: 7
+      site: 5
     })
   }
 
   async viewRegistrationLink(row) {
     await this.page
-      .locator(
-        `main table tbody tr:nth-child(${row}) td:nth-child(8) a:nth-of-type(1)`
-      )
+      .locator('main table tbody tr')
+      .nth(row - 1)
+      .getByRole('link', { name: 'View', exact: true })
       .click()
   }
 

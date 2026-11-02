@@ -1,7 +1,11 @@
 import { test, expect } from '@playwright/test'
+import { CheckBeforeCreatingPRNPage } from 'page-objects/check.before.creating.prn.page.js'
 import { ConfirmCancelPRNPage } from 'page-objects/confirm.cancel.prn.page.js'
+import { ConfirmDeletePRNPage } from 'page-objects/confirm.delete.prn.page.js'
+import { ConfirmDiscardPRNPage } from 'page-objects/confirm.discard.prn.page.js'
 import { CreatePRNPage } from 'page-objects/create.prn.page.js'
 import { HomePage } from 'page-objects/homepage.js'
+import { PRNCancelledPage } from 'page-objects/prn.cancelled.page.js'
 import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
 import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
 import { PRNIssuedPage } from 'page-objects/prn.issued.page.js'
@@ -19,8 +23,10 @@ import {
   submitSummaryLogContent
 } from '../support/seeding/summary-logs.js'
 import { generateSummaryLogContent } from '../support/spreadsheet/summarylogs-content-generator.js'
+import { checkAccessibility } from '../support/accessibility.js'
 import { checkBodyText } from '../support/checks.js'
 import {
+  tradingName,
   secondTradingName as newTradingName,
   thirdTradingName as updatedTradingName,
   createPrnDetails
@@ -32,17 +38,56 @@ import { checkWasteBalanceForWindow } from '../support/waste-balance-mode.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
 
+// The exporter discards two drafts, creates and deletes a PERN, then takes
+// three more through issue and cancellation: longer than the suite's
+// two-minute default allows.
+const JOURNEY_TIMEOUT_MS = 4 * 60 * 1000
+
 test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
-  test('Should be able to create, issue and reject PRNs for Wood (Exporter) @issuePRNExp @smoketest', async ({
+  test('Should be able to discard, delete, create, issue and reject PRNs for Wood (Exporter) @issuePRNExp @prnExporter @delPRNExp @smoketest', async ({
     page
   }) => {
+    test.setTimeout(JOURNEY_TIMEOUT_MS)
+
+    // switchToNewTabAndClosePreviousTab() closes the page it's given and
+    // returns the newly opened tab as the one to keep using — every page
+    // object built against the old `page` reference goes stale once that
+    // happens. `currentPage` tracks whichever tab is live, and
+    // rebindPageObjects() re-instantiates every page object against it;
+    // called once up front and again after each tab switch below.
     let currentPage = page
-    const createPRNPage = new CreatePRNPage(currentPage)
-    let prnDashboardPage = new PRNDashboardPage(currentPage)
-    const prnIssuedPage = new PRNIssuedPage(currentPage)
-    let prnViewPage = new PRNViewPage(currentPage)
+
+    let prnHelper = new PrnHelper(currentPage, true)
+    let homePage = new HomePage(currentPage)
     let dashboardPage = new DashboardPage(currentPage)
     let wasteRecordsPage = new WasteRecordsPage(currentPage)
+    let createPRNPage = new CreatePRNPage(currentPage)
+    let checkBeforeCreatingPrnPage = new CheckBeforeCreatingPRNPage(currentPage)
+    let confirmDiscardPRNPage = new ConfirmDiscardPRNPage(currentPage)
+    let confirmDeletePRNPage = new ConfirmDeletePRNPage(currentPage)
+    let prnCreatedPage = new PRNCreatedPage(currentPage)
+    let prnDashboardPage = new PRNDashboardPage(currentPage)
+    let prnViewPage = new PRNViewPage(currentPage)
+    let prnIssuedPage = new PRNIssuedPage(currentPage)
+    let confirmCancelPrnPage = new ConfirmCancelPRNPage(currentPage)
+    let prnCancelledPage = new PRNCancelledPage(currentPage)
+
+    const rebindPageObjects = () => {
+      prnHelper = new PrnHelper(currentPage, true)
+      homePage = new HomePage(currentPage)
+      dashboardPage = new DashboardPage(currentPage)
+      wasteRecordsPage = new WasteRecordsPage(currentPage)
+      createPRNPage = new CreatePRNPage(currentPage)
+      checkBeforeCreatingPrnPage = new CheckBeforeCreatingPRNPage(currentPage)
+      confirmDiscardPRNPage = new ConfirmDiscardPRNPage(currentPage)
+      confirmDeletePRNPage = new ConfirmDeletePRNPage(currentPage)
+      prnCreatedPage = new PRNCreatedPage(currentPage)
+      prnDashboardPage = new PRNDashboardPage(currentPage)
+      prnViewPage = new PRNViewPage(currentPage)
+      prnIssuedPage = new PRNIssuedPage(currentPage)
+      confirmCancelPrnPage = new ConfirmCancelPRNPage(currentPage)
+      prnCancelledPage = new PRNCancelledPage(currentPage)
+    }
 
     const { regNumber, accNumber } = generateNumbers({
       wasteProcessingType: 'exporter',
@@ -109,9 +154,17 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       registrationStartYear()
     )
 
+    await checkAccessibility(currentPage, 'Dashboard')
+
     await dashboardPage.selectTableLink(1, 1)
+    await checkAccessibility(currentPage, 'Waste records (accredited)')
+
+    expect(await wasteRecordsPage.wasteBalanceAmount()).toBe(
+      originalWasteBalance
+    )
 
     await wasteRecordsPage.createNewPERNLink().click()
+    await checkAccessibility(currentPage, 'Create PERN')
 
     const ordinaryPool = await checkWasteBalanceForWindow(
       createPRNPage,
@@ -122,7 +175,124 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       'PERNs'
     )
 
-    let prnHelper = new PrnHelper(currentPage, true)
+    // --- Create a PERN, then delete it ---
+    const deletedPernDetails = createPrnDetails({
+      issuerNotes: 'Testing',
+      materialDesc,
+      accNumber,
+      organisationDetails,
+      wasteBalancePool: ordinaryPool
+    })
+    await prnHelper.createAndCheckPrnDetails(deletedPernDetails)
+
+    await prnCreatedPage.returnToRegistrationPage().click()
+    await dashboardPage.selectTableLink(1, 1)
+
+    // The waste balance is deducted on creation
+    expect(await wasteRecordsPage.wasteBalanceAmount()).toBe(
+      expectedWasteBalance
+    )
+
+    await wasteRecordsPage.managePERNsLink().click()
+
+    await prnDashboardPage.issuedTab().click()
+    expect(await prnDashboardPage.getNoIssuedPrnMessage()).toBe(
+      'No PERNs have been issued yet.'
+    )
+
+    await prnDashboardPage.awaitingActionTab().click()
+    await prnDashboardPage.selectAwaitingLink(1)
+
+    // The back link on the delete confirmation page first
+    await prnViewPage.deletePRNButton().click()
+    expect(await confirmDeletePRNPage.headingText()).toBe(
+      'Are you sure you want to delete this PERN?'
+    )
+    await checkAccessibility(currentPage, 'Confirm delete PERN')
+    await confirmDeletePRNPage.backLink().click()
+
+    await prnViewPage.deletePRNButton().click()
+    expect(await confirmDeletePRNPage.headingText()).toBe(
+      'Are you sure you want to delete this PERN?'
+    )
+    await confirmDeletePRNPage.deletePrnAndCheckDoubleClickPrevented('PERN')
+
+    expect(await prnDashboardPage.getNoCreatedPrnMessage()).toBe(
+      'You have not created any PERNs.'
+    )
+
+    await prnDashboardPage.backLink().click()
+
+    // The deleted PERN's tonnage is returned to the balance
+    expect(await wasteRecordsPage.wasteBalanceAmount()).toBe(
+      originalWasteBalance
+    )
+
+    await wasteRecordsPage.createNewPERNLink().click()
+
+    // --- Discard two drafts ---
+    // Empty issuer notes, so the PERN draft says "Not provided"
+    const discardedPernDetails = createPrnDetails({
+      tradingName: newTradingName,
+      issuerNotes: '',
+      materialDesc,
+      accNumber,
+      organisationDetails,
+      wasteBalancePool: ordinaryPool
+    })
+    await prnHelper.createAndCheckDraftPrn(discardedPernDetails)
+
+    // Discard the first attempt (double-click prevented)
+    await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
+    expect(await confirmDiscardPRNPage.headingText()).toBe(
+      'Are you sure you want to discard this PERN?'
+    )
+    await confirmDiscardPRNPage.discardAndCheckDoubleClickPrevented()
+
+    // Second attempt, this time with notes
+    discardedPernDetails.issuerNotes = 'Testing'
+    await prnHelper.createAndCheckDraftPrn(discardedPernDetails)
+
+    // The discard page's back link returns to the check page, then discard
+    await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
+    await confirmDiscardPRNPage.backLink().click()
+    await checkBeforeCreatingPrnPage.discardAndStartAgainLink().click()
+    await confirmDiscardPRNPage.discardAndCheckDoubleClickPrevented()
+
+    // --- Create page validation ---
+    expect(await createPRNPage.headingText()).toBe('Enter PERN details')
+    expect(await createPRNPage.captionText()).toBe('Create PERN')
+    expect(await createPRNPage.materialDetails()).toBe(
+      `Material: ${materialDesc}`
+    )
+
+    // An exporter sees no December waste controls outside the declaration
+    // window - CI keeps the window closed for this pass (see
+    // run-journey-tests' december-scope split), so this pins their absence
+    // rather than assuming it.
+    expect(await createPRNPage.decemberWasteVisible()).toBe(false)
+
+    await createPRNPage.submitAndCheckDoubleClickPrevented()
+    expect(await createPRNPage.errorMessages(2)).toEqual([
+      'Enter PERN tonnage as a whole number',
+      'Enter a packaging producer or compliance scheme'
+    ])
+
+    // An over-balance tonnage is refused at the create step itself: the create
+    // page re-renders with the balance error rather than the draft being
+    // created.
+    await createPRNPage.createPrn(
+      9999999,
+      tradingName,
+      'Testing',
+      undefined,
+      ordinaryPool
+    )
+    expect(await createPRNPage.errorMessages(1)).toEqual([
+      'The tonnage you entered exceeds your available waste balance'
+    ])
+
+    // --- Create, issue and reject PERNs ---
 
     const pernDetails = createPrnDetails({
       materialDesc,
@@ -131,7 +301,10 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       wasteBalancePool: ordinaryPool
     })
 
-    await prnHelper.createAndCheckPrnDetails(pernDetails)
+    await prnHelper.createAndCheckDraftPrn(pernDetails)
+    await checkAccessibility(currentPage, 'Check before creating PERN')
+    await prnHelper.confirmDraftPrn(pernDetails)
+    await checkAccessibility(currentPage, 'PERN created')
 
     await checkBodyText(
       currentPage,
@@ -161,23 +334,25 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     expect(selectPERNHeadingText).toBe('Select a PERN')
 
     await prnHelper.checkAwaitingRows(pernDetails, 1)
+    await checkAccessibility(
+      currentPage,
+      'PERN dashboard (awaiting authorisation)'
+    )
     // End of PRN Dashboard checks
 
     await prnDashboardPage.selectAwaitingLink(1)
     await prnHelper.checkViewPrnDetails(pernDetails)
+    await checkAccessibility(currentPage, 'PERN view (awaiting authorisation)')
     await prnViewPage.returnToPERNList().click()
 
     // Issue the created PERN
     await prnDashboardPage.selectAwaitingLink(1)
     await prnHelper.issuePrnAndUpdateDetails(pernDetails, 'EX')
+    await checkAccessibility(currentPage, 'PERN issued')
 
     await prnIssuedPage.viewPdfButton().click()
     currentPage = await switchToNewTabAndClosePreviousTab(currentPage)
-    prnHelper = new PrnHelper(currentPage, true)
-    prnViewPage = new PRNViewPage(currentPage)
-    prnDashboardPage = new PRNDashboardPage(currentPage)
-    wasteRecordsPage = new WasteRecordsPage(currentPage)
-    dashboardPage = new DashboardPage(currentPage)
+    rebindPageObjects()
 
     await prnHelper.checkViewPrnDetails(pernDetails)
 
@@ -238,12 +413,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     // Check first Issued PRN details
     await prnDashboardPage.selectIssuedLink(1)
     currentPage = await switchToNewTabAndClosePreviousTab(currentPage)
-    prnHelper = new PrnHelper(currentPage, true)
-    prnViewPage = new PRNViewPage(currentPage)
-    prnDashboardPage = new PRNDashboardPage(currentPage)
-    wasteRecordsPage = new WasteRecordsPage(currentPage)
-    const prnCreatedPage = new PRNCreatedPage(currentPage)
-    const confirmCancelPrnPage = new ConfirmCancelPRNPage(currentPage)
+    rebindPageObjects()
 
     // Check Issued PERN details
     await prnHelper.checkViewPrnDetails(pernDetails)
@@ -257,12 +427,19 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     const tableHeading = await prnDashboardPage.getTableHeading()
     expect(tableHeading).toBe('PERNs awaiting cancellation')
     await prnHelper.checkAwaitingRows(pernDetails, 1)
+    await checkAccessibility(
+      currentPage,
+      'PERN dashboard (awaiting cancellation)'
+    )
 
-    await prnDashboardPage.backLink().click()
+    // The dashboard's own button reaches the create PERN page
+    await prnDashboardPage.createAPrnButton().click()
+    expect(await createPRNPage.headingText()).toBe('Enter PERN details')
+    expect(await createPRNPage.materialDetails()).toBe(
+      `Material: ${materialDesc}`
+    )
 
     // Create another new PERN
-    await wasteRecordsPage.createNewPERNLink().click()
-
     const updatedTonnageWordings = {
       integer: 15,
       word: 'Fifteen'
@@ -298,27 +475,26 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     await prnDashboardPage.selectAwaitingLink(1, 2)
 
     await prnHelper.checkViewPrnDetails(pernDetails)
+    await checkAccessibility(currentPage, 'PERN view (awaiting cancellation)')
 
     // Test back link of cancellation page
     await prnViewPage.cancelPRNButton().click()
 
     const confirmCancelHeading = await confirmCancelPrnPage.headingText()
     expect(confirmCancelHeading).toBe('Confirm cancellation of this PERN')
+    await checkAccessibility(currentPage, 'Confirm cancel PERN')
     await confirmCancelPrnPage.backLink().click()
 
-    // Now cancel the PRN and return to PRN Dashboard page
-    await prnHelper.cancelPRNAndReturnToPRNsDashboard(pernDetails)
+    // Now cancel the PERN and return to PRN Dashboard page
+    await prnHelper.cancelPRN(pernDetails, { checkDoubleClick: true })
+    await checkAccessibility(currentPage, 'PERN cancelled')
+    await prnCancelledPage.pernsPage().click()
 
     await prnDashboardPage.cancelledTab().click()
     await prnHelper.checkCancelledRows(pernDetails, 1)
     await prnDashboardPage.selectCancelledLink(1)
     currentPage = await switchToNewTabAndClosePreviousTab(currentPage)
-    prnHelper = new PrnHelper(currentPage, true)
-    prnViewPage = new PRNViewPage(currentPage)
-    prnDashboardPage = new PRNDashboardPage(currentPage)
-    wasteRecordsPage = new WasteRecordsPage(currentPage)
-    dashboardPage = new DashboardPage(currentPage)
-    const homePage = new HomePage(currentPage)
+    rebindPageObjects()
 
     await prnHelper.checkViewPrnDetails(pernDetails)
     await prnViewPage.returnToPERNList().click()
