@@ -22,7 +22,6 @@ import {
 } from '../support/seeding/organisation.js'
 import { seedSubmittedReport } from '../support/seeding/reports.js'
 import { generateRegNumber } from '../support/reg-acc-number.js'
-import { loginViaHomePage } from '../support/login-helper.js'
 
 async function seedSubmittedRegisteredReprocessor() {
   const organisationDetails = await createLinkedOrganisation([
@@ -71,49 +70,30 @@ async function seedSubmittedRegisteredReprocessor() {
   return { organisationDetails, migrationResponse, regId }
 }
 
-// Both tests below share one continuous login session/report (same pattern as
-// registered.exporter.report.e2e.js): the "cancel" test only backs out of the
-// make-changes flow without mutating the report, so it's safe to run first,
-// then the "use this report's summary log" test mutates it into a
-// resubmission draft second, in the same shared org/login.
-test.describe
-  .serial('Reports - make changes to a submitted report @makeChanges', () => {
-  /** @type {import('@playwright/test').Page} */
-  let page
-  let organisationDetails
-  let migrationResponse
-  let regId
-
-  test.beforeAll(async ({ browser }) => {
-    page = await (await browser.newContext()).newPage()
-
-    ;({ organisationDetails, migrationResponse, regId } =
-      await seedSubmittedRegisteredReprocessor())
-
+test.describe('Reports - make changes to a submitted report @makeChanges @operatorResubmissionExplainer', () => {
+  test('backs out of making changes, then starts them, leaves, and returns through the operator-initiated explainer to create a resubmission draft @makeChangesCancel @makeChangesUploadNewSummaryLog @makeChangesUseSummaryLog @makeChangesOperatorExplainer', async ({
+    page
+  }) => {
     const defraIdStubPage = new DefraIdStubPage(page)
     const homePage = new HomePage(page)
-
-    await homePage.open()
-    await checkAccessibility(page, 'Home page')
-    await homePage.startNowButton().click()
-    await defraIdStubPage.loginViaEmail(migrationResponse.email)
-  })
-
-  test.afterAll(async () => {
-    const homePage = new HomePage(page)
-    await homePage.signOutLink().click()
-    await expect(page).toHaveTitle(/Signed out/)
-    await page.context().close()
-  })
-
-  test('shows the make changes button on the latest submitted report and lets the operator cancel or upload a new summary log without triggering resubmission @makeChangesCancel @makeChangesUploadNewSummaryLog', async () => {
     const wasteRecordsPage = new WasteRecordsPage(page)
     const dashboardPage = new DashboardPage(page)
     const reportsPage = new ReportsPage(page)
     const reportViewPage = new ReportViewPage(page)
     const makeChangesPage = new MakeChangesPage(page)
-    const homePage = new HomePage(page)
+    const reportDetailPage = new ReportDetailPage(page)
+    const resubmissionExplainerPage = new ResubmissionExplainerPage(page)
+    const tonnesRecycledPage = new TonnesRecycledPage(page)
 
+    const { organisationDetails, migrationResponse, regId } =
+      await seedSubmittedRegisteredReprocessor()
+
+    await homePage.open()
+    await checkAccessibility(page, 'Home page')
+    await homePage.startNowButton().click()
+    await defraIdStubPage.loginViaEmail(migrationResponse.email)
+
+    // --- Make changes, then back out without triggering resubmission ---
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.manageReportsLink().click()
 
@@ -137,76 +117,16 @@ test.describe
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.manageReportsLink().click()
     expect(await reportsPage.getSubmittedStatusBadge(1)).toBe('Submitted')
-  })
 
-  test('creates a resubmission draft from the make changes button @makeChangesUseSummaryLog', async () => {
-    const homePage = new HomePage(page)
-    const wasteRecordsPage = new WasteRecordsPage(page)
-    const dashboardPage = new DashboardPage(page)
-    const reportsPage = new ReportsPage(page)
-    const reportViewPage = new ReportViewPage(page)
-    const makeChangesPage = new MakeChangesPage(page)
-    const reportDetailPage = new ReportDetailPage(page)
-    const tonnesRecycledPage = new TonnesRecycledPage(page)
-
-    // The previous test ends on the reports page (not the dashboard), so
-    // reset to a known starting point before selecting the org link.
-    await homePage.homeLink().click()
-    await dashboardPage.selectLink(1)
-    await wasteRecordsPage.manageReportsLink().click()
-
-    await reportsPage.selectSubmittedActionLink(1)
-    await reportViewPage.makeChangesLink().click()
-
-    await makeChangesPage.useThisReportsSummaryLogAndCheckDoubleClickPrevented()
-
-    expect(await reportDetailPage.headingText()).toContain(
-      'Your summary log data'
-    )
-    await reportDetailPage.useThisData()
-
-    expect(await tonnesRecycledPage.headingText()).toBeTruthy()
-
-    await reportViewPage.open(
-      organisationDetails.refNo,
-      regId,
-      2026,
-      'quarterly',
-      1,
-      1
-    )
-    expect(await reportViewPage.headingText()).toContain('Report for')
-    expect(await reportViewPage.hasMakeChangesLink()).toBe(false)
-  })
-})
-
-test.describe('Reports - operator-initiated resubmission explainer @operatorResubmissionExplainer', () => {
-  test('shows the operator-initiated copy on the resubmission explainer when changes were started but not resubmitted @makeChangesOperatorExplainer', async ({
-    page
-  }) => {
-    const homePage = new HomePage(page)
-    const dashboardPage = new DashboardPage(page)
-    const wasteRecordsPage = new WasteRecordsPage(page)
-    const reportsPage = new ReportsPage(page)
-    const reportViewPage = new ReportViewPage(page)
-    const makeChangesPage = new MakeChangesPage(page)
-    const reportDetailPage = new ReportDetailPage(page)
-    const resubmissionExplainerPage = new ResubmissionExplainerPage(page)
-
-    const { migrationResponse } = await seedSubmittedRegisteredReprocessor()
-    await loginViaHomePage(page, migrationResponse.email)
-
-    await dashboardPage.selectLink(1)
-    await wasteRecordsPage.manageReportsLink().click()
-
-    await reportsPage.selectSubmittedActionLink(1)
-    await reportViewPage.makeChangesLink().click()
-
+    // --- Start the changes, then leave without using the data ---
     // "Use this report's summary log" flags the submitted report for
     // resubmission (operator-initiated) and redirects to the new draft's detail
     // page without creating the draft. Leaving without using the data keeps the
     // period in a "Requires resubmission" state with no draft in progress.
-    await makeChangesPage.useThisReportsSummaryLog()
+    await reportsPage.selectSubmittedActionLink(1)
+    await reportViewPage.makeChangesLink().click()
+
+    await makeChangesPage.useThisReportsSummaryLogAndCheckDoubleClickPrevented()
     expect(await reportDetailPage.headingText()).toContain(
       'Your summary log data'
     )
@@ -231,6 +151,29 @@ test.describe('Reports - operator-initiated resubmission explainer @operatorResu
       'You started to make changes to the report, but did not resubmit the new draft.',
       10
     )
+
+    // --- Create the resubmission draft ---
+    await resubmissionExplainerPage.continue()
+
+    expect(await reportDetailPage.headingText()).toContain(
+      'Your summary log data'
+    )
+    await reportDetailPage.useThisData()
+
+    expect(await tonnesRecycledPage.headingText()).toBeTruthy()
+
+    // The submitted report no longer offers to make changes once a
+    // resubmission draft exists.
+    await reportViewPage.open(
+      organisationDetails.refNo,
+      regId,
+      2026,
+      'quarterly',
+      1,
+      1
+    )
+    expect(await reportViewPage.headingText()).toContain('Report for')
+    expect(await reportViewPage.hasMakeChangesLink()).toBe(false)
 
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)

@@ -7,7 +7,6 @@ import { TonnesRecycledPage } from '../page-objects/reports/tonnes.recycled.page
 import { TonnesNotRecycledPage } from '../page-objects/reports/tonnes.not.recycled.page.js'
 import { ReportSupportingInformationPage } from 'page-objects/reports/report.supporting.information.page.js'
 import { ReportCheckAnswersPage } from 'page-objects/reports/report.check.answers.page.js'
-import { ConfirmDeleteReportPage } from '../page-objects/confirm.delete.report.page.js'
 import { MonthlyReportDraftDeclarationPage } from 'page-objects/reports/monthly.report.draft.declaration.page.js'
 import {
   createLinkedOrganisation,
@@ -103,12 +102,6 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
     'the reports landing has no closed quarter yet this year'
   )
 
-  // These 2 tests share one continuous login session/report, the same
-  // pattern used in accredited.reprocessor.report.e2e.js - serial mode + a
-  // manually-created page shares setup instead of re-paying org creation,
-  // login, and summary log upload twice. BackLinks cleans its report back
-  // to "Due" so FullFlow (last, since it ends in a submitted/unsubmitted
-  // state) starts fresh.
   test.describe.serial('registered-only reprocessor with upload', () => {
     /** @type {import('@playwright/test').Page} */
     let page
@@ -133,52 +126,7 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       await page.close()
     })
 
-    test('should navigate back correctly through the registered-only reprocessor flow @registeredOnlyReprocessorBackLinks', async () => {
-      const reportsPage = new ReportsPage(page)
-      const reportDetailPage = new ReportDetailPage(page)
-      const tonnesRecycledPage = new TonnesRecycledPage(page)
-      const tonnesNotRecycledPage = new TonnesNotRecycledPage(page)
-      const reportSupportingInformationPage =
-        new ReportSupportingInformationPage(page)
-      const confirmDeleteReportPage = new ConfirmDeleteReportPage(page)
-
-      await reportsPage.selectActiveActionLink(1)
-      await reportDetailPage.useThisData()
-
-      // On tonnes-recycled — back link goes to reports list
-      await tonnesRecycledPage.backLink().click()
-      await reportsPage.expectListFor(currentYear())
-
-      // Re-enter the wizard — report is in_progress so the action link
-      // routes straight to tonnes-recycled
-      await reportsPage.selectActiveActionLink(1)
-
-      // Continue to tonnes-not-recycled
-      await tonnesRecycledPage.enterTonnage('12.50')
-      await tonnesRecycledPage.continue()
-
-      // On tonnes-not-recycled — back link goes to tonnes-recycled
-      await tonnesNotRecycledPage.backLink().click()
-      const backToTonnesRecycled = await tonnesRecycledPage.headingText()
-      expect(backToTonnesRecycled).toBeTruthy()
-
-      // Continue to supporting-information (skips PRN pages)
-      await tonnesRecycledPage.enterTonnage('12.50')
-      await tonnesRecycledPage.continue()
-      await tonnesNotRecycledPage.enterTonnage('7.50')
-      await tonnesNotRecycledPage.continue()
-
-      // On supporting-information — back link goes to tonnes-not-recycled (not free-prns)
-      await reportSupportingInformationPage.backLink().click()
-      const backToTonnesNotRecycled = await tonnesNotRecycledPage.headingText()
-      expect(backToTonnesNotRecycled).toBeTruthy()
-
-      // Clean up — leave the period "Due" for the next test
-      await tonnesNotRecycledPage.deleteReportLink().click()
-      await confirmDeleteReportPage.confirmDeletion()
-    })
-
-    test('should complete the full registered-only reprocessor report flow through to confirmation @registeredOnlyReprocessorFullFlow', async () => {
+    test('should complete the full registered-only reprocessor report flow through to confirmation @registeredOnlyReprocessorFullFlow @registeredOnlyReprocessorBackLinks', async () => {
       const reportsPage = new ReportsPage(page)
       const reportDetailPage = new ReportDetailPage(page)
       const tonnesRecycledPage = new TonnesRecycledPage(page)
@@ -199,26 +147,40 @@ test.describe('Registered-only reprocessor report flow @registeredOnlyReprocesso
       await checkBodyText(page, setupResponse.regNumber, 10)
       await reportDetailPage.useThisData()
 
-      // --- Tonnes recycled page ---
-      const tonnesRecycledHeading = await tonnesRecycledPage.headingText()
-      expect(tonnesRecycledHeading).toBeTruthy()
+      // --- Tonnes recycled page — back link goes to reports list ---
+      expect(await tonnesRecycledPage.headingText()).toBeTruthy()
+      await tonnesRecycledPage.backLink().click()
+      await reportsPage.expectListFor(currentYear())
+
+      // Re-enter the wizard — report is in_progress so the action link
+      // routes straight to tonnes-recycled
+      await reportsPage.selectActiveActionLink(1)
 
       await tonnesRecycledPage.enterTonnage('12.50')
       await tonnesRecycledPage.continue()
 
-      // --- Tonnes not recycled page ---
-      const tonnesNotRecycledHeading = await tonnesNotRecycledPage.headingText()
-      expect(tonnesNotRecycledHeading).toBeTruthy()
+      // --- Tonnes not recycled page — back link goes to tonnes-recycled ---
+      expect(await tonnesNotRecycledPage.headingText()).toBeTruthy()
+      await tonnesNotRecycledPage.backLink().click()
+      expect(await tonnesRecycledPage.headingText()).toBeTruthy()
 
+      await tonnesRecycledPage.enterTonnage('12.50')
+      await tonnesRecycledPage.continue()
       await tonnesNotRecycledPage.enterTonnage('7.50')
       await tonnesNotRecycledPage.continue()
 
       // --- Supporting information page (no PRN pages for registered-only) ---
+      // Its back link goes to tonnes-not-recycled, not free-prns.
       const supportingInfoHeading =
         await reportSupportingInformationPage.headingText()
       expect(supportingInfoHeading).toBe(
         'Add supporting information for your regulator (optional)'
       )
+      await reportSupportingInformationPage.backLink().click()
+      expect(await tonnesNotRecycledPage.headingText()).toBeTruthy()
+
+      await tonnesNotRecycledPage.enterTonnage('7.50')
+      await tonnesNotRecycledPage.continue()
       await reportSupportingInformationPage.continue()
 
       // --- Check your answers page ---

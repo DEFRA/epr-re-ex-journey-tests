@@ -31,14 +31,17 @@ import { RegisteredOnlyPeriodPage } from 'page-objects/regulator/registered-only
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page.js'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page.js'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page.js'
-import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page.js'
+import {
+  LEDGER_TIMESTAMP,
+  WasteBalanceLedgerPage
+} from 'page-objects/waste.balance.ledger.page.js'
 import {
   createLinkAndLogin,
   loginViaHomePage
 } from '../support/login-helper.js'
 
 test.describe('@registeredOnly', () => {
-  test('should be able to upload Registered Only Reprocessor Summary Logs for registered-only operators and display unaccredited registrations alongside accredited ones @regOnlyReprocessor', async ({
+  test('should be able to upload Registered Only Reprocessor Summary Logs for registered-only operators and display unaccredited registrations alongside accredited ones @regOnlyReprocessor @regOnlyAdjusted @cma @regulatorRegisteredOnlyLedger', async ({
     page
   }) => {
     const dashboardPage = new DashboardPage(page)
@@ -152,6 +155,30 @@ test.describe('@registeredOnly', () => {
     await checkBodyTextDoesNotInclude(page, 'Your updated waste balance', 10)
     await uploadSummaryLogPage.returnToHomePageLink().click()
 
+    // A second upload that amends a load already submitted shows the
+    // registered-only adjusted-loads copy. It is checked and left unconfirmed,
+    // so the ledger read below still holds the one submission.
+    await dashboardPage.selectTableLink(1, 1)
+    await wasteRecordsPage.submitSummaryLogLink().click()
+    await uploadSummaryLogPage.uploadFile(
+      await summaryLogNumbered(
+        'resources/reprocessor-output-regonly-adjustments.xlsx',
+        { regNumber: reprocessorRegNumber }
+      )
+    )
+    await uploadSummaryLogPage.continue()
+
+    await checkBodyText(page, 'Your summary log is being checked', 30)
+    await checkOnCheckPage(page)
+    await checkBodyText(page, 'Open periods: adjusted loads', 30)
+
+    const subStates = (await checkSummaryLogPage.allSubStateHeadings()).join(
+      ' | '
+    )
+    expect(subStates).toContain('1 adjusted load will be recorded')
+    await checkBodyText(page, 'These have been added to your summary log.', 30)
+
+    await homePage.homeLink().click()
     await dashboardPage.exportingTabLink().click()
     const exportRow = await dashboardPage.getTableRow(1, 1)
     expect(exportRow.get('Accreditation')).toBe('Not accredited')
@@ -244,8 +271,36 @@ test.describe('@registeredOnly', () => {
 
     expect(submission.get('Who')).toContain('@')
 
+    // On a ledger whose events span more than one day the time is the only
+    // thing that separates two of them.
+    expect(submission.get('Date')).toMatch(LEDGER_TIMESTAMP)
+
     // A regulator reads and does not write.
     expect(await registeredOnlyPeriodPage.changeControlCount()).toBe(0)
+
+    // Both downloads the submission offers are the regulator's to take: the
+    // workbook the operator uploaded and the records the service holds for it,
+    // each named for the registration it was filed against.
+    expect(submission.get('Actions')).toContain('Download XLSX')
+    expect(submission.get('Actions')).toContain('Download CSV')
+
+    const attachment = await registeredOnlyPeriodPage.download(
+      ledgerPage.downloadLink()
+    )
+    expect(attachment.failure).toBeNull()
+    expect(attachment.byteLength).toBeGreaterThan(0)
+    expect(attachment.filename).toMatch(
+      new RegExp(`^${reprocessorRegNumber}-\\d{4}-\\d{2}-\\d{2}-\\d{6}\\.xlsx$`)
+    )
+
+    const csv = await registeredOnlyPeriodPage.download(
+      ledgerPage.csvDownloadLink()
+    )
+    expect(csv.failure).toBeNull()
+    expect(csv.byteLength).toBeGreaterThan(0)
+    expect(csv.filename).toMatch(
+      new RegExp(`^${reprocessorRegNumber}-\\d{4}-\\d{2}-\\d{2}-\\d{6}\\.csv$`)
+    )
   })
 
   test('should be able to upload Registered Only Exporter Summary Logs for registered-only operator and display unaccredited registrations alongside accredited ones @regOnlyExporter', async ({

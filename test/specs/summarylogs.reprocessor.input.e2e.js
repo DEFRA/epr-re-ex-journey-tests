@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { DefraIdStubPage } from 'page-objects/defra.id.stub.page.js'
 import { HomePage } from 'page-objects/homepage.js'
 import { UploadSummaryLogPage } from '../page-objects/upload.summary.log.page.js'
+import { CheckSummaryLogPage } from '../page-objects/check.summary.log.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { checkBodyText } from '../support/checks.js'
@@ -20,7 +21,7 @@ import {
 } from '../support/seeding/summary-logs.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
 test.describe('Summary Logs Reprocessor Input', () => {
-  test('Should be able to link a user to an organisation and submit a spreadsheet @reproInput', async ({
+  test('Should be able to link a user to an organisation, submit a spreadsheet, and see why an adjusted load reduces the balance @reproInput @adjustedReducedReason @cma', async ({
     page
   }) => {
     const homePage = new HomePage(page)
@@ -28,6 +29,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
     const dashboardPage = new DashboardPage(page)
     const wasteRecordsPage = new WasteRecordsPage(page)
     const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+    const checkSummaryLogPage = new CheckSummaryLogPage(page)
 
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
@@ -102,9 +104,10 @@ test.describe('Summary Logs Reprocessor Input', () => {
 
     await wasteRecordsPage.submitSummaryLogLink().click()
     await checkOnUploadPage(page)
+    const today = new Date()
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered(
-        await summaryLogDatedAt('resources/summary-log.xlsx', new Date()),
+        await summaryLogDatedAt('resources/summary-log.xlsx', today),
         numbers
       )
     )
@@ -130,6 +133,52 @@ test.describe('Summary Logs Reprocessor Input', () => {
     const wasteBalanceAmount = await wasteRecordsPage.wasteBalanceAmount()
 
     expect(wasteBalanceAmount).toBe('391.62')
+
+    // An adjusted load excluded for a reason other than missing data
+    // must show that reason under the "reduced" heading, not sit bare under a
+    // "missing data" one. The per-code reason strings and the PRN->PERN wording
+    // swap are unit-tested (controller.test.js), so one journey through the
+    // canonical PRN case is enough here.
+    //
+    // Re-upload with row 1001's PRN answer flipped to Yes, excluding it — an
+    // open-period adjustment that reverses its earlier 339.99t contribution.
+    await wasteRecordsPage.submitSummaryLogLink().click()
+    await uploadSummaryLogPage.uploadFile(
+      await summaryLogNumbered(
+        await summaryLogDatedAt(
+          'resources/reprocessor-input-prn-issued.xlsx',
+          today
+        ),
+        numbers
+      )
+    )
+    await uploadSummaryLogPage.continue()
+
+    await checkBodyText(page, 'Your summary log is being checked', 30)
+    await checkOnCheckPage(page)
+    await checkBodyText(page, 'Open periods: adjusted loads', 30)
+
+    await checkSummaryLogPage.expandAllLoadDetails()
+
+    const detailsText = await checkSummaryLogPage.loadDetailsText()
+    const rows = await checkSummaryLogPage.loadRowItems()
+    const bodyText = await page.evaluate(() => document.body.innerText)
+
+    // The balance still moves by the excluded load's 339.99t — the ticket is
+    // explicit that the balance was correct and only the reason was hidden, so
+    // guard the value, not just the direction.
+    expect(bodyText).toContain(
+      'The adjusted loads will remove 339.99 tonnes from your waste balance.'
+    )
+    expect(detailsText).toContain('This load has reduced your waste balance')
+    // The reported defect: pre-fix, row 1001 sat bare under the "missing data"
+    // heading. Assert its reason shows and that heading is gone.
+    expect(rows).toContain(
+      'Row ID: 1001. A PRN was already issued for this load'
+    )
+    expect(bodyText).not.toContain(
+      'does NOT have all the required summary log data'
+    )
 
     // PAE-743: Sign out link is visible, hence able to sign out
     await homePage.signOutLink().click()
