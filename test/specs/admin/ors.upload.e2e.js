@@ -14,9 +14,11 @@ import {
   validOrsSites
 } from '../../support/ors-spreadsheet.js'
 import { checkAccessibility } from '../../support/accessibility.js'
+import { registrationStartYear } from '../../support/seeding/summary-logs.js'
 import { OrganisationsPage } from 'page-objects/admin/organisations.page'
 import { OrganisationOverviewPage } from 'page-objects/admin/organisation.overview.page'
 import { RegistrationOverviewPage } from 'page-objects/admin/registration.overview.page'
+import { RegistrationYearPage } from 'page-objects/admin/registration.year.page'
 import { ORSOverviewPage } from 'page-objects/admin/ors.overview.page'
 
 async function uploadWorkbookAndWaitForCompletion(
@@ -292,13 +294,15 @@ test.describe('ORS upload flow @orsUpload', () => {
       const organisationsPage = new OrganisationsPage(page)
       const organisationOverviewPage = new OrganisationOverviewPage(page)
       const registrationOverviewPage = new RegistrationOverviewPage(page)
+      const registrationYearPage = new RegistrationYearPage(page)
       const orsOverviewPage = new ORSOverviewPage(page)
 
       await organisationsPage.open()
       await organisationsPage.searchFor(organisationName)
       await organisationsPage.viewLink(1)
       await organisationOverviewPage.viewRegistrationLink(1)
-      await registrationOverviewPage.viewORSLink().click()
+      await registrationOverviewPage.viewYear(registrationStartYear())
+      await registrationYearPage.viewORSLink().click()
       let orsOverviewHeader = await orsOverviewPage.getHeaderText()
       expect(orsOverviewHeader).toContain(
         organisationName + ' - ' + alphaAccreditationNumber
@@ -350,8 +354,9 @@ test.describe('ORS upload flow @orsUpload', () => {
       // Return to Organisation Overview Page
       await orsOverviewPage.clickOnBreadcrumbLink(2)
       await organisationOverviewPage.viewRegistrationLink(2)
+      await registrationOverviewPage.viewYear(registrationStartYear())
 
-      await registrationOverviewPage.viewORSLink().click()
+      await registrationYearPage.viewORSLink().click()
       orsOverviewHeader = await orsOverviewPage.getHeaderText()
       expect(orsOverviewHeader).toContain(
         organisationName + ' - ' + betaAccreditationNumber
