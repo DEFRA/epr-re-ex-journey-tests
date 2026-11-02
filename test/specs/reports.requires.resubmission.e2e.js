@@ -24,7 +24,6 @@ import {
   seedOverseasSites,
   createLinkedOrganisation,
   fillerNumbers,
-  reportsLandingHasNoClosedPeriod,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import { seedSubmittedReport } from '../support/seeding/reports.js'
@@ -51,11 +50,6 @@ const SEEDED_PRN_REVENUE = 4321
 const RESUBMITTED_PRN_REVENUE = '250.75'
 
 test.describe('Reports - requires resubmission @requiresResubmission', () => {
-  test.skip(
-    reportsLandingHasNoClosedPeriod('monthly'),
-    'the reports landing has no closed month yet this year'
-  )
-
   test('asks for resubmission only once an amended closed-period load changes the reported figures, then creates, reviews and submits the resubmission, ending as Resubmitted on the reports landing @requiresResubmissionStatus @reviewAndSubmit @cmaAdjusted @closedPeriodMessaging @cma', async ({
     page
   }) => {

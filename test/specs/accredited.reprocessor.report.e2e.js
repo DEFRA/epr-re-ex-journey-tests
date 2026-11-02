@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test'
 import { HomePage } from 'page-objects/homepage.js'
-import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
 import { TonnesRecycledPage } from '../page-objects/reports/tonnes.recycled.page.js'
@@ -117,7 +116,6 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
     test.setTimeout(JOURNEY_TIMEOUT_MS)
 
     const homePage = new HomePage(page)
-    const dashboardPage = new DashboardPage(page)
     const reportsPage = new ReportsPage(page)
     const reportDetailPage = new ReportDetailPage(page)
     const tonnesRecycledPage = new TonnesRecycledPage(page)
@@ -203,13 +201,19 @@ test.describe('Accredited reprocessor report flow @accreditedReprocessor', () =>
     await checkBodyText(page, 'Bad request', 10)
     await checkBodyTextDoesNotInclude(page, 'report created', 10)
 
-    await dashboardPage.open(setupResponse.organisationDetails.refNo)
-    await navigateToReports(page)
+    // --- Delete and start again from check your answers ---
+    await page.goto(`${reportUrl}/check-your-answers`)
+    await reportCheckAnswersPage.deleteAndStartAgainLink().click()
+    await confirmDeleteReportPage.confirmDeletion()
+
+    await reportsPage.expectListFor(currentYear())
+    await expectActionRequiredStatus(page, 1)
 
     // --- Back links and save-and-come-back-later through the wizard ---
-    // The report is in_progress, so the action link routes straight to
-    // tonnes-recycled, and its back link goes to the reports list.
+    // Once started, the report is in_progress, so the action link routes
+    // straight to tonnes-recycled, and its back link goes to the reports list.
     await reportsPage.selectActiveActionLink(1)
+    await reportDetailPage.useThisData()
     await tonnesRecycledPage.backLink().click()
     await reportsPage.expectListFor(currentYear())
 
