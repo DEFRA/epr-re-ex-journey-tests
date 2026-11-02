@@ -175,6 +175,61 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       'PERNs'
     )
 
+    // --- Create a PERN, then delete it ---
+    const deletedPernDetails = createPrnDetails({
+      issuerNotes: 'Testing',
+      materialDesc,
+      accNumber,
+      organisationDetails,
+      wasteBalancePool: ordinaryPool
+    })
+    await prnHelper.createAndCheckPrnDetails(deletedPernDetails)
+
+    await prnCreatedPage.returnToRegistrationPage().click()
+    await dashboardPage.selectTableLink(1, 1)
+
+    // The waste balance is deducted on creation
+    expect(await wasteRecordsPage.wasteBalanceAmount()).toBe(
+      expectedWasteBalance
+    )
+
+    await wasteRecordsPage.managePERNsLink().click()
+
+    await prnDashboardPage.issuedTab().click()
+    expect(await prnDashboardPage.getNoIssuedPrnMessage()).toBe(
+      'No PERNs have been issued yet.'
+    )
+
+    await prnDashboardPage.awaitingActionTab().click()
+    await prnDashboardPage.selectAwaitingLink(1)
+
+    // The back link on the delete confirmation page first
+    await prnViewPage.deletePRNButton().click()
+    expect(await confirmDeletePRNPage.headingText()).toBe(
+      'Are you sure you want to delete this PERN?'
+    )
+    await checkAccessibility(currentPage, 'Confirm delete PERN')
+    await confirmDeletePRNPage.backLink().click()
+
+    await prnViewPage.deletePRNButton().click()
+    expect(await confirmDeletePRNPage.headingText()).toBe(
+      'Are you sure you want to delete this PERN?'
+    )
+    await confirmDeletePRNPage.deletePrnAndCheckDoubleClickPrevented('PERN')
+
+    expect(await prnDashboardPage.getNoCreatedPrnMessage()).toBe(
+      'You have not created any PERNs.'
+    )
+
+    await prnDashboardPage.backLink().click()
+
+    // The deleted PERN's tonnage is returned to the balance
+    expect(await wasteRecordsPage.wasteBalanceAmount()).toBe(
+      originalWasteBalance
+    )
+
+    await wasteRecordsPage.createNewPERNLink().click()
+
     // --- Discard two drafts ---
     // Empty issuer notes, so the PERN draft says "Not provided"
     const discardedPernDetails = createPrnDetails({
@@ -237,61 +292,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       'The tonnage you entered exceeds your available waste balance'
     ])
 
-    // --- Create a PERN, then delete it ---
-    const deletedPernDetails = createPrnDetails({
-      issuerNotes: 'Testing',
-      materialDesc,
-      accNumber,
-      organisationDetails,
-      wasteBalancePool: ordinaryPool
-    })
-    await prnHelper.createAndCheckPrnDetails(deletedPernDetails)
-
-    await prnCreatedPage.returnToRegistrationPage().click()
-    await dashboardPage.selectTableLink(1, 1)
-
-    // The waste balance is deducted on creation
-    expect(await wasteRecordsPage.wasteBalanceAmount()).toBe(
-      expectedWasteBalance
-    )
-
-    await wasteRecordsPage.managePERNsLink().click()
-
-    await prnDashboardPage.issuedTab().click()
-    expect(await prnDashboardPage.getNoIssuedPrnMessage()).toBe(
-      'No PERNs have been issued yet.'
-    )
-
-    await prnDashboardPage.awaitingActionTab().click()
-    await prnDashboardPage.selectAwaitingLink(1)
-
-    // The back link on the delete confirmation page first
-    await prnViewPage.deletePRNButton().click()
-    expect(await confirmDeletePRNPage.headingText()).toBe(
-      'Are you sure you want to delete this PERN?'
-    )
-    await checkAccessibility(currentPage, 'Confirm delete PERN')
-    await confirmDeletePRNPage.backLink().click()
-
-    await prnViewPage.deletePRNButton().click()
-    expect(await confirmDeletePRNPage.headingText()).toBe(
-      'Are you sure you want to delete this PERN?'
-    )
-    await confirmDeletePRNPage.deletePrnAndCheckDoubleClickPrevented('PERN')
-
-    expect(await prnDashboardPage.getNoCreatedPrnMessage()).toBe(
-      'You have not created any PERNs.'
-    )
-
-    await prnDashboardPage.backLink().click()
-
-    // The deleted PERN's tonnage is returned to the balance
-    expect(await wasteRecordsPage.wasteBalanceAmount()).toBe(
-      originalWasteBalance
-    )
-
     // --- Create, issue and reject PERNs ---
-    await wasteRecordsPage.createNewPERNLink().click()
 
     const pernDetails = createPrnDetails({
       materialDesc,

@@ -135,6 +135,61 @@ test.describe('Issuing Packing Recycling Notes', () => {
 
     let prnHelper = new PrnHelper(currentPage)
 
+    // --- Create a PRN, then delete it ---
+    const deletedPrnDetails = createPrnDetails({
+      accNumber,
+      organisationDetails
+    })
+    await prnHelper.createAndCheckPrnDetails(deletedPrnDetails)
+
+    await prnCreatedPage.returnToRegistrationPage().click()
+    await dashboardPage.selectTableLink(1, 1)
+
+    // The waste balance is deducted on creation
+    expect(await wasteRecordsPage.wasteBalanceAmount()).toBe('797.00')
+
+    await wasteRecordsPage.managePRNsLink().click()
+
+    await prnDashboardPage.issuedTab().click()
+    expect(await prnDashboardPage.getNoIssuedPrnMessage()).toBe(
+      'No PRNs have been issued yet.'
+    )
+
+    await prnDashboardPage.awaitingActionTab().click()
+    await prnDashboardPage.selectAwaitingLink(1)
+
+    // The back link on the delete confirmation page first
+    const prnViewPageForDelete = new PRNViewPage(currentPage)
+    await prnViewPageForDelete.deletePRNButton().click()
+    expect(await confirmDeletePRNPage.headingText()).toBe(
+      'Are you sure you want to delete this PRN?'
+    )
+    await checkAccessibility(currentPage, 'Confirm delete PRN')
+    await confirmDeletePRNPage.backLink().click()
+
+    await prnViewPageForDelete.deletePRNButton().click()
+    expect(await confirmDeletePRNPage.headingText()).toBe(
+      'Are you sure you want to delete this PRN?'
+    )
+    await confirmDeletePRNPage.deletePrnAndCheckDoubleClickPrevented('PRN')
+
+    expect(await prnDashboardPage.getNoCreatedPrnMessage()).toBe(
+      'You have not created any PRNs.'
+    )
+
+    await prnDashboardPage.backLink().click()
+
+    // The deleted PRN's tonnage is returned to the balance
+    expect(await wasteRecordsPage.wasteBalanceAmount()).toBe(
+      originalWasteBalance
+    )
+
+    // The PRN dashboard's own button reaches the create PRN page
+    await wasteRecordsPage.managePRNsLink().click()
+    await prnDashboardPage.createAPrnButton().click()
+    expect(await createPRNPage.headingText()).toBe('Enter PRN details')
+    expect(await createPRNPage.materialDetails()).toBe('Material: Plastic')
+
     // --- Discard two drafts ---
     // Empty issuer notes, so the PRN draft says "Not provided"
     const discardedPrnDetails = createPrnDetails({
@@ -186,61 +241,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
       'The tonnage you entered exceeds your available waste balance'
     ])
 
-    // --- Create a PRN, then delete it ---
-    const deletedPrnDetails = createPrnDetails({
-      accNumber,
-      organisationDetails
-    })
-    await prnHelper.createAndCheckPrnDetails(deletedPrnDetails)
-
-    await prnCreatedPage.returnToRegistrationPage().click()
-    await dashboardPage.selectTableLink(1, 1)
-
-    // The waste balance is deducted on creation
-    expect(await wasteRecordsPage.wasteBalanceAmount()).toBe('797.00')
-
-    await wasteRecordsPage.managePRNsLink().click()
-
-    await prnDashboardPage.issuedTab().click()
-    expect(await prnDashboardPage.getNoIssuedPrnMessage()).toBe(
-      'No PRNs have been issued yet.'
-    )
-
-    await prnDashboardPage.awaitingActionTab().click()
-    await prnDashboardPage.selectAwaitingLink(1)
-
-    // The back link on the delete confirmation page first
-    const prnViewPageForDelete = new PRNViewPage(currentPage)
-    await prnViewPageForDelete.deletePRNButton().click()
-    expect(await confirmDeletePRNPage.headingText()).toBe(
-      'Are you sure you want to delete this PRN?'
-    )
-    await checkAccessibility(currentPage, 'Confirm delete PRN')
-    await confirmDeletePRNPage.backLink().click()
-
-    await prnViewPageForDelete.deletePRNButton().click()
-    expect(await confirmDeletePRNPage.headingText()).toBe(
-      'Are you sure you want to delete this PRN?'
-    )
-    await confirmDeletePRNPage.deletePrnAndCheckDoubleClickPrevented('PRN')
-
-    expect(await prnDashboardPage.getNoCreatedPrnMessage()).toBe(
-      'You have not created any PRNs.'
-    )
-
-    await prnDashboardPage.backLink().click()
-
-    // The deleted PRN's tonnage is returned to the balance
-    expect(await wasteRecordsPage.wasteBalanceAmount()).toBe(
-      originalWasteBalance
-    )
-
     // --- Create, issue and accept a PRN ---
-    // The PRN dashboard's own button reaches the create PRN page
-    await wasteRecordsPage.managePRNsLink().click()
-    await prnDashboardPage.createAPrnButton().click()
-    expect(await createPRNPage.headingText()).toBe('Enter PRN details')
-    expect(await createPRNPage.materialDetails()).toBe('Material: Plastic')
 
     const prnDetails = createPrnDetails({ accNumber, organisationDetails })
 
