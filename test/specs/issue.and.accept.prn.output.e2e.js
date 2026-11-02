@@ -35,7 +35,7 @@ import {
 import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
-import { showsDecemberWasteControl } from '../support/waste-balance-mode.js'
+import { isDecemberWasteWindowOpen } from '../support/december-waste-window.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
 
@@ -224,11 +224,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
     expect(await createPRNPage.materialDetails()).toBe('Material: Plastic')
 
     expect(await createPRNPage.decemberWasteVisible()).toBe(
-      await showsDecemberWasteControl(
-        organisationDetails.refNo,
-        migrationResponse.registrationIds[0],
-        migrationResponse.accreditationIds[0]
-      )
+      isDecemberWasteWindowOpen()
     )
 
     await createPRNPage.submitAndCheckDoubleClickPrevented()

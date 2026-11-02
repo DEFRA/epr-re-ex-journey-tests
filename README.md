@@ -404,6 +404,10 @@ A run that reaches a real provider without its credentials fails naming the miss
 
 Defra ID still has no mode variable - every spec but the ext-test-only operator smoketest reaches it through the stub regardless of environment, since the suite otherwise holds no real CPDev sign-in path (see above).
 
+### Telling the suite how the December window is set
+
+Some specs expect the December Waste controls only while the declaration window is open. The suite works that out from `DECEMBER_WASTE_WINDOW_START`, the same `MM-DDTHH:mm` value the backend takes, and never asks the backend. Unset, it takes `01-01T00:00`, the default `compose.yml` gives the stack, so the window is open. Give the suite the same value as the backend it runs against: export it before `docker compose up` and the test run locally, and set it in the suite's environment config for a CDP environment.
+
 ## Requirements of CDP Environment Tests
 
 1. Your service builds as a docker container using the `.github/workflows/publish.yml`

@@ -34,10 +34,8 @@ import {
 import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
-import {
-  checkWasteBalanceForWindow,
-  showsDecemberWasteControl
-} from '../support/waste-balance-mode.js'
+import { checkWasteBalanceForWindow } from '../support/waste-balance-mode.js'
+import { isDecemberWasteWindowOpen } from '../support/december-waste-window.js'
 import { WASTE_BALANCE_POOL } from '../support/waste-balance-pool.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
@@ -170,11 +168,11 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     await wasteRecordsPage.createNewPERNLink().click()
     await checkAccessibility(currentPage, 'Create PERN')
 
+    // An exporter accrues a December balance, so it chooses between pools
+    // while the window is open.
     const ordinaryPool = await checkWasteBalanceForWindow(
       createPRNPage,
-      organisationDetails.refNo,
-      migrationResponse.registrationIds[0],
-      migrationResponse.accreditationIds[0],
+      isDecemberWasteWindowOpen(),
       originalWasteBalance,
       'PERNs'
     )
@@ -271,11 +269,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     )
 
     expect(await createPRNPage.decemberWasteVisible()).toBe(
-      await showsDecemberWasteControl(
-        organisationDetails.refNo,
-        migrationResponse.registrationIds[0],
-        migrationResponse.accreditationIds[0]
-      )
+      isDecemberWasteWindowOpen()
     )
 
     await createPRNPage.submitAndCheckDoubleClickPrevented()
