@@ -57,20 +57,20 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     // called once up front and again after each tab switch below.
     let currentPage = page
 
-    let prnHelper,
-      homePage,
-      dashboardPage,
-      wasteRecordsPage,
-      createPRNPage,
-      checkBeforeCreatingPrnPage,
-      confirmDiscardPRNPage,
-      confirmDeletePRNPage,
-      prnCreatedPage,
-      prnDashboardPage,
-      prnViewPage,
-      prnIssuedPage,
-      confirmCancelPrnPage,
-      prnCancelledPage
+    let prnHelper = new PrnHelper(currentPage, true)
+    let homePage = new HomePage(currentPage)
+    let dashboardPage = new DashboardPage(currentPage)
+    let wasteRecordsPage = new WasteRecordsPage(currentPage)
+    let createPRNPage = new CreatePRNPage(currentPage)
+    let checkBeforeCreatingPrnPage = new CheckBeforeCreatingPRNPage(currentPage)
+    let confirmDiscardPRNPage = new ConfirmDiscardPRNPage(currentPage)
+    let confirmDeletePRNPage = new ConfirmDeletePRNPage(currentPage)
+    let prnCreatedPage = new PRNCreatedPage(currentPage)
+    let prnDashboardPage = new PRNDashboardPage(currentPage)
+    let prnViewPage = new PRNViewPage(currentPage)
+    let prnIssuedPage = new PRNIssuedPage(currentPage)
+    let confirmCancelPrnPage = new ConfirmCancelPRNPage(currentPage)
+    let prnCancelledPage = new PRNCancelledPage(currentPage)
 
     const rebindPageObjects = () => {
       prnHelper = new PrnHelper(currentPage, true)
@@ -88,7 +88,6 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       confirmCancelPrnPage = new ConfirmCancelPRNPage(currentPage)
       prnCancelledPage = new PRNCancelledPage(currentPage)
     }
-    rebindPageObjects()
 
     const { regNumber, accNumber } = generateNumbers({
       wasteProcessingType: 'exporter',

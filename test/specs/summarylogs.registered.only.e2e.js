@@ -31,13 +31,14 @@ import { RegisteredOnlyPeriodPage } from 'page-objects/regulator/registered-only
 import { RegistrationDetailsPage } from 'page-objects/regulator/registration.details.page.js'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page.js'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page.js'
-import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page.js'
+import {
+  LEDGER_TIMESTAMP,
+  WasteBalanceLedgerPage
+} from 'page-objects/waste.balance.ledger.page.js'
 import {
   createLinkAndLogin,
   loginViaHomePage
 } from '../support/login-helper.js'
-
-const LEDGER_TIMESTAMP = /^\d{1,2} [A-Z][a-z]+ \d{4}, \d{1,2}:\d{2}(am|pm)$/
 
 test.describe('@registeredOnly', () => {
   test('should be able to upload Registered Only Reprocessor Summary Logs for registered-only operators and display unaccredited registrations alongside accredited ones @regOnlyReprocessor @regOnlyAdjusted @cma @regulatorRegisteredOnlyLedger', async ({

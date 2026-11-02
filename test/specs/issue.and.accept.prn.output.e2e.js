@@ -236,7 +236,11 @@ test.describe('Issuing Packing Recycling Notes', () => {
     )
 
     // --- Create, issue and accept a PRN ---
-    await wasteRecordsPage.createNewPRNLink().click()
+    // The PRN dashboard's own button reaches the create PRN page
+    await wasteRecordsPage.managePRNsLink().click()
+    await prnDashboardPage.createAPrnButton().click()
+    expect(await createPRNPage.headingText()).toBe('Enter PRN details')
+    expect(await createPRNPage.materialDetails()).toBe('Material: Plastic')
 
     const prnDetails = createPrnDetails({ accNumber, organisationDetails })
 

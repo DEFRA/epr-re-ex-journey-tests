@@ -12,7 +12,10 @@ import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { RegulatorOrganisationPage } from 'page-objects/regulator/organisation.page'
 import { ReportsPage } from 'page-objects/reports/reports.page'
-import { WasteBalanceLedgerPage } from 'page-objects/waste.balance.ledger.page'
+import {
+  LEDGER_TIMESTAMP,
+  WasteBalanceLedgerPage
+} from 'page-objects/waste.balance.ledger.page'
 import { checkBodyText } from '../../support/checks.js'
 import { currentYear } from '../../support/date.js'
 import { SEEDED_VALID_FROM } from '../../support/seeding/organisation.js'
@@ -27,9 +30,6 @@ import { registrationStartYear } from '../../support/seeding/summary-logs.js'
  * @returns {number}
  */
 const tonnageOf = (row) => Number((row.get('Tonnage') ?? '').replace(/,/g, ''))
-
-// A ledger Date cell, e.g. "18 August 2026, 5:06pm".
-const LEDGER_TIMESTAMP = /^\d{1,2} [A-Z][a-z]+ \d{4}, \d{1,2}:\d{2}(am|pm)$/
 
 /**
  * The registered-only years the registration page offers. A registration has no
