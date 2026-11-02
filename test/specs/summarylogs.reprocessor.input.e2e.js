@@ -134,7 +134,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
 
     expect(wasteBalanceAmount).toBe('391.62')
 
-    // PAE-1743: an adjusted load excluded for a reason OTHER than missing data
+    // An adjusted load excluded for a reason other than missing data
     // must show that reason under the "reduced" heading, not sit bare under a
     // "missing data" one. The per-code reason strings and the PRN->PERN wording
     // swap are unit-tested (controller.test.js), so one journey through the
