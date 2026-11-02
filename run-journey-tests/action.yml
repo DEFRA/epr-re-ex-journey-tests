@@ -285,6 +285,7 @@ runs:
         PW_SUITE: ${{ inputs.test-suite }}
         PW_DECEMBER: ${{ inputs.december-scope }}
         PW_SHARD: ${{ inputs.shard }}
+        DECEMBER_WASTE_WINDOW_START: ${{ inputs.december-window-start || steps.december-window.outputs.start }}
       run: |
         npm run clean
         npm run test:github:browser

@@ -35,6 +35,7 @@ import {
 import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
+import { isDecemberWasteWindowOpen } from '../support/december-waste-window.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
 
@@ -222,10 +223,9 @@ test.describe('Issuing Packing Recycling Notes', () => {
     expect(await createPRNPage.captionText()).toBe('Create PRN')
     expect(await createPRNPage.materialDetails()).toBe('Material: Plastic')
 
-    // No December waste controls outside the declaration window - CI keeps
-    // the window closed for this pass (see run-journey-tests' december-scope
-    // split), so this pins their absence rather than assuming it.
-    expect(await createPRNPage.decemberWasteVisible()).toBe(false)
+    expect(await createPRNPage.decemberWasteVisible()).toBe(
+      isDecemberWasteWindowOpen()
+    )
 
     await createPRNPage.submitAndCheckDoubleClickPrevented()
     expect(await createPRNPage.errorMessages(2)).toEqual([
