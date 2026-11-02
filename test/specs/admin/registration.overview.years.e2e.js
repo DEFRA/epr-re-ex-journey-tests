@@ -101,9 +101,7 @@ test.describe('Registration overview years', () => {
       await expect(registrationYearPage.prnActivityDownloadLink()).toHaveCount(
         0
       )
-      await expect(registrationYearPage.wasteBalanceEventsLink()).toHaveCount(
-        0
-      )
+      await expect(registrationYearPage.wasteBalanceEventsLink()).toHaveCount(0)
 
       const reports = await registrationYearPage.getReportsTableData()
       expect(reports.map((row) => row.period).sort()).toEqual([
