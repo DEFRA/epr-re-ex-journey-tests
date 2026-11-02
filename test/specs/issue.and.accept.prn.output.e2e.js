@@ -223,9 +223,6 @@ test.describe('Issuing Packing Recycling Notes', () => {
     expect(await createPRNPage.captionText()).toBe('Create PRN')
     expect(await createPRNPage.materialDetails()).toBe('Material: Plastic')
 
-    // The December waste radios show only while the declaration window is
-    // open. Test keeps it open and pull request CI closes it, so ask the
-    // backend which way it is set rather than assume either.
     expect(await createPRNPage.decemberWasteVisible()).toBe(
       await showsDecemberWasteControl(
         organisationDetails.refNo,

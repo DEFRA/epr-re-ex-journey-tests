@@ -38,6 +38,7 @@ import {
   checkWasteBalanceForWindow,
   showsDecemberWasteControl
 } from '../support/waste-balance-mode.js'
+import { WASTE_BALANCE_POOL } from '../support/waste-balance-pool.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
 
@@ -269,9 +270,6 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       `Material: ${materialDesc}`
     )
 
-    // The December waste radios show only while the declaration window is
-    // open. Test keeps it open and pull request CI closes it, so ask the
-    // backend which way it is set rather than assume either.
     expect(await createPRNPage.decemberWasteVisible()).toBe(
       await showsDecemberWasteControl(
         organisationDetails.refNo,
@@ -297,7 +295,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       ordinaryPool
     )
     expect(await createPRNPage.errorMessages(1)).toEqual([
-      ordinaryPool
+      ordinaryPool === WASTE_BALANCE_POOL.nonDecember
         ? 'The tonnage you entered exceeds your available non-December waste balance'
         : 'The tonnage you entered exceeds your available waste balance'
     ])

@@ -38,8 +38,9 @@ export async function showsWasteBalancePoolSplit(
  * self-declared December waste question in manual mode.
  *
  * Mirrors resolveDecemberWasteControl (epr-frontend's
- * resolve-december-waste-choice.js), which renders a control whenever the
- * window is open and the mode is anything but `none`.
+ * resolve-december-waste-choice.js), which renders a control only while the
+ * window is open and the mode is `pool` or `manual`. The window is open in
+ * some environments and closed in others, so a spec asks rather than assumes.
  *
  * @param {string} refNo
  * @param {string} registrationId
@@ -56,7 +57,7 @@ export async function showsDecemberWasteControl(
     registrationId,
     accreditationId
   )
-  return windowOpen && mode !== 'none'
+  return windowOpen && (mode === 'pool' || mode === 'manual')
 }
 
 /**
