@@ -33,6 +33,33 @@ export async function showsWasteBalancePoolSplit(
 }
 
 /**
+ * Whether the create-PRN page shows its December waste radios for this
+ * accreditation right now: the pool-split radios in pool mode, or the
+ * self-declared December waste question in manual mode.
+ *
+ * Mirrors resolveDecemberWasteControl (epr-frontend's
+ * resolve-december-waste-choice.js), which renders a control whenever the
+ * window is open and the mode is anything but `none`.
+ *
+ * @param {string} refNo
+ * @param {string} registrationId
+ * @param {string} accreditationId
+ * @returns {Promise<boolean>}
+ */
+export async function showsDecemberWasteControl(
+  refNo,
+  registrationId,
+  accreditationId
+) {
+  const { mode, windowOpen } = await getDecemberPrnEligibility(
+    refNo,
+    registrationId,
+    accreditationId
+  )
+  return windowOpen && mode !== 'none'
+}
+
+/**
  * Checks the create-PRN page's waste balance display matches whichever shape
  * the December Waste declaration window currently produces for this
  * accreditation, so a smoketest that raises a plain (non-December) PRN

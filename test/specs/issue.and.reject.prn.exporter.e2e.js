@@ -34,7 +34,10 @@ import {
 import { PrnHelper } from '../support/prn.helper.js'
 import { switchToNewTabAndClosePreviousTab } from '../support/windowtabs.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
-import { checkWasteBalanceForWindow } from '../support/waste-balance-mode.js'
+import {
+  checkWasteBalanceForWindow,
+  showsDecemberWasteControl
+} from '../support/waste-balance-mode.js'
 import { defraIdStub } from '../support/defra-id-stub.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
 
@@ -266,11 +269,16 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       `Material: ${materialDesc}`
     )
 
-    // An exporter sees no December waste controls outside the declaration
-    // window - CI keeps the window closed for this pass (see
-    // run-journey-tests' december-scope split), so this pins their absence
-    // rather than assuming it.
-    expect(await createPRNPage.decemberWasteVisible()).toBe(false)
+    // The December waste radios show only while the declaration window is
+    // open. Test keeps it open and pull request CI closes it, so ask the
+    // backend which way it is set rather than assume either.
+    expect(await createPRNPage.decemberWasteVisible()).toBe(
+      await showsDecemberWasteControl(
+        organisationDetails.refNo,
+        migrationResponse.registrationIds[0],
+        migrationResponse.accreditationIds[0]
+      )
+    )
 
     await createPRNPage.submitAndCheckDoubleClickPrevented()
     expect(await createPRNPage.errorMessages(2)).toEqual([
@@ -280,7 +288,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
 
     // An over-balance tonnage is refused at the create step itself: the create
     // page re-renders with the balance error rather than the draft being
-    // created.
+    // created. While the pool split shows, the error names the pool chosen.
     await createPRNPage.createPrn(
       9999999,
       tradingName,
@@ -289,7 +297,9 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       ordinaryPool
     )
     expect(await createPRNPage.errorMessages(1)).toEqual([
-      'The tonnage you entered exceeds your available waste balance'
+      ordinaryPool
+        ? 'The tonnage you entered exceeds your available non-December waste balance'
+        : 'The tonnage you entered exceeds your available waste balance'
     ])
 
     // --- Create, issue and reject PERNs ---
