@@ -440,7 +440,7 @@ Each run of `run-journey-tests` brings up its own stack, so a pull request can r
 
 - `test-scope`: `all` (the default), `frontend` (the specs outside `admin/`) or `admin`.
 - `test-suite`: `all` (the default) or `e2e`, which both run the browser specs.
-- `december-scope`: `all`, `only` (the `@decWaste` specs) or `exclude`.
+- `december-scope`: `all`, `only` (the `@decWaste` specs, plus the smoke journeys tagged `@decWindowOpen` that branch on the open window; `exclude` still runs those, with the window closed) or `exclude`.
 - `shard`: `current/total`, for example `2/3`. It splits the browser specs in scope by file, dealt out round-robin so that the heavy `summarylogs.*` files land in different shards. Playwright's own `--shard` splits contiguously and puts them together. It needs `test-suite: e2e` and a `december-scope` other than `only`. Files are dealt out before the tags are matched, so a selection only a few files carry, such as `@decWaste`, would leave some shards with no test.
 
 `npm run test:github:browser` runs `bin/run-browser-specs.js`, which turns these into Playwright arguments (`test/support/playwright-args.js`, unit tested) and starts Playwright with them; any extra arguments, such as `--list`, are passed on. The generator smoke steps run on one leg only: the first shard, or the unsharded leg that is not December-only.
