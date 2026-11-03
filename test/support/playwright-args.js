@@ -1,6 +1,7 @@
 import { shardFilePatterns, specFilter } from './shard.js'
 
 const DECEMBER_TAG = '@decWaste'
+const DECEMBER_ONLY_PATTERN = `${DECEMBER_TAG}|@decWindowOpen`
 
 /** @type {Record<string, (file: string) => boolean>} */
 const scopes = {
@@ -58,7 +59,7 @@ const grepFlags = (suite, december) => {
   }
 
   return [
-    ...(december === 'only' ? ['--grep', DECEMBER_TAG] : []),
+    ...(december === 'only' ? ['--grep', DECEMBER_ONLY_PATTERN] : []),
     ...(december === 'exclude' ? ['--grep-invert', DECEMBER_TAG] : [])
   ]
 }

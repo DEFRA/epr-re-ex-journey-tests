@@ -46,7 +46,7 @@ import { generateNumbers } from '../support/reg-acc-number.js'
 const JOURNEY_TIMEOUT_MS = 4 * 60 * 1000
 
 test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
-  test('Should be able to discard, delete, create, issue and reject PRNs for Wood (Exporter) @issuePRNExp @prnExporter @delPRNExp @smoketest', async ({
+  test('Should be able to discard, delete, create, issue and reject PRNs for Wood (Exporter) @issuePRNExp @prnExporter @delPRNExp @smoketest @decWindowOpen', async ({
     page
   }) => {
     test.setTimeout(JOURNEY_TIMEOUT_MS)
