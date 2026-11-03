@@ -38,8 +38,8 @@ class DashboardPage extends Page {
   }
 
   yearHeading() {
-    return this.page.locator('#main-content span.govuk-heading-m', {
-      hasText: /^This is \d{4} data$/
+    return this.page.getByRole('heading', {
+      name: /^This is \d{4} data$/
     })
   }
 
