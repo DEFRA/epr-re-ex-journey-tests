@@ -404,6 +404,10 @@ A run that reaches a real provider without its credentials fails naming the miss
 
 Defra ID still has no mode variable - every spec but the ext-test-only operator smoketest reaches it through the stub regardless of environment, since the suite otherwise holds no real CPDev sign-in path (see above).
 
+### Telling the suite how the December window is set
+
+Some specs expect the December Waste controls only while the declaration window is open. The suite works that out from `DECEMBER_WASTE_WINDOW_START`, the same `MM-DDTHH:mm` value the backend takes, and never asks the backend. Unset, it takes `01-01T00:00`, the default `compose.yml` gives the stack, so the window is open. Give the suite the same value as the backend it runs against: export it before `docker compose up` and the test run locally, and set it in the suite's environment config for a CDP environment.
+
 ## Requirements of CDP Environment Tests
 
 1. Your service builds as a docker container using the `.github/workflows/publish.yml`
@@ -436,7 +440,7 @@ Each run of `run-journey-tests` brings up its own stack, so a pull request can r
 
 - `test-scope`: `all` (the default), `frontend` (the specs outside `admin/`) or `admin`.
 - `test-suite`: `all` (the default) or `e2e`, which both run the browser specs.
-- `december-scope`: `all`, `only` (the `@decWaste` specs) or `exclude`.
+- `december-scope`: `all`, `only` (the `@decWaste` specs) or `exclude`. The two smoke journeys that branch on the December window carry `@decWindowOpen`, so `only` runs them with the window open. `exclude` still runs them with it closed.
 - `shard`: `current/total`, for example `2/3`. It splits the browser specs in scope by file, dealt out round-robin so that the heavy `summarylogs.*` files land in different shards. Playwright's own `--shard` splits contiguously and puts them together. It needs `test-suite: e2e` and a `december-scope` other than `only`. Files are dealt out before the tags are matched, so a selection only a few files carry, such as `@decWaste`, would leave some shards with no test.
 
 `npm run test:github:browser` runs `bin/run-browser-specs.js`, which turns these into Playwright arguments (`test/support/playwright-args.js`, unit tested) and starts Playwright with them; any extra arguments, such as `--list`, are passed on. The generator smoke steps run on one leg only: the first shard, or the unsharded leg that is not December-only.

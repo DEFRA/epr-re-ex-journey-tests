@@ -6,7 +6,7 @@ import { AdminPage } from 'page-objects/admin/page'
  *
  * @typedef {{
  *   search?: string,
- *   orgId?: string,
+ *   organisationNumber?: string,
  *   registrationNumber?: string,
  *   accreditationNumber?: string
  * }} SearchCriteria
@@ -19,7 +19,7 @@ import { AdminPage } from 'page-objects/admin/page'
  */
 const SEARCH_FIELD_IDS = [
   'search',
-  'orgId',
+  'organisationNumber',
   'registrationNumber',
   'accreditationNumber'
 ]

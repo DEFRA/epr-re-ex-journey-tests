@@ -1,5 +1,9 @@
 import { Page } from 'page-objects/page'
 
+// A ledger Date cell, e.g. "18 August 2026, 5:06pm".
+export const LEDGER_TIMESTAMP =
+  /^\d{1,2} [A-Z][a-z]+ \d{4}, \d{1,2}:\d{2}(am|pm)$/
+
 const LEDGER_TABLE =
   '#main-content table[data-testid="waste-balance-ledger-table"]'
 

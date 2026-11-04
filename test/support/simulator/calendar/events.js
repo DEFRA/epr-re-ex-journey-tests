@@ -194,3 +194,10 @@ export const CADENCE = { MONTHLY: 'monthly', QUARTERLY: 'quarterly' }
  * @template T
  * @typedef {T extends unknown ? Omit<T, 'at' | 'organisationId'> : never} Drafted
  */
+
+/**
+ * The year an upload is made under, and so the year to list it back under.
+ *
+ * @param {Pick<UploadEvent, 'at'>} upload
+ */
+export const uploadYear = ({ at }) => new Date(at).getUTCFullYear()

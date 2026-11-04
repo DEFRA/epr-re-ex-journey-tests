@@ -8,6 +8,7 @@ import {
   checkBodyText,
   checkBodyTextDoesNotInclude
 } from '../support/checks.js'
+import { checkOnCheckPage } from '../support/summary-log-checks.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
@@ -31,7 +32,7 @@ import {
 
 // Split from summarylogs.check.cma.e2e.js (PAE-1405 CI runtime work): this
 // group covers which sections render at all - open vs closed, present vs
-// absent. See summarylogs.check.cma.adjusted-loads.e2e.js for adjusted-load
+// absent. See reports.requires.resubmission.e2e.js for adjusted-load
 // sub-state assertions and summarylogs.check.cma.messaging.e2e.js for the
 // closed-period banner/messaging copy. Splitting lets per-file worker
 // scheduling run these in parallel instead of serially in one ~4 minute file.
@@ -103,7 +104,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await checkOnCheckPage(page)
 
     await checkBodyText(
       page,
@@ -203,7 +204,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await checkOnCheckPage(page)
 
     await checkBodyText(page, 'Closed periods:', 30)
     const subStates = (await checkSummaryLogPage.allSubStateHeadings()).join(
@@ -304,7 +305,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await checkOnCheckPage(page)
 
     await checkBodyText(page, 'Closed periods:', 30)
     const subStates = (await checkSummaryLogPage.allSubStateHeadings()).join(

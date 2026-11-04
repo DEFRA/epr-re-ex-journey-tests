@@ -6,6 +6,10 @@ import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
 import { checkBodyText } from '../support/checks.js'
 import {
+  checkOnCheckPage,
+  checkOnUploadPage
+} from '../support/summary-log-checks.js'
+import {
   createLinkedOrganisation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
@@ -63,7 +67,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
     await checkBodyText(page, numbers.accNumber, 10)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await uploadSummaryLogPage.checkOnUploadPage()
+    await checkOnUploadPage(page)
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered('resources/reprocessor-output.xlsx', numbers)
     )
@@ -71,7 +75,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await checkOnCheckPage(page)
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(
       page,
@@ -97,7 +101,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
     expect(wasteBalanceAmount).toBe('3.00')
 
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await uploadSummaryLogPage.checkOnUploadPage()
+    await checkOnUploadPage(page)
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered(
         'resources/reprocessor-output-adjustments.xlsx',
@@ -108,7 +112,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkBodyText(page, 'Upload your summary log', 30)
+    await checkOnCheckPage(page)
     await checkBodyText(page, 'Open periods: adjusted loads', 30)
     await checkBodyText(
       page,

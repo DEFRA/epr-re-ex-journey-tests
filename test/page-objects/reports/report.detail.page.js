@@ -1,6 +1,6 @@
 import { Page } from 'page-objects/page'
 import { expect } from '@playwright/test'
-import { UploadSummaryLogPage } from '../upload.summary.log.page.js'
+import { checkOnUploadPage } from '~/test/support/summary-log-checks.js'
 import { ReportsPage } from './reports.page.js'
 import { currentYear } from '~/test/support/date.js'
 
@@ -57,7 +57,7 @@ class ReportDetailPage extends Page {
     })
 
     await this.uploadNewSummaryLog()
-    await new UploadSummaryLogPage(this.page).checkOnUploadPage()
+    await checkOnUploadPage(this.page)
 
     await this.page.goBack()
     await this.cancelAndReturnToReports()

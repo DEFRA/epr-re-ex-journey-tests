@@ -25,17 +25,13 @@ const answers = new Map([
     }
   ],
   [
-    '/organisations/500001/registrations/R26EA1/summary-logs',
+    '/organisations/500001/registrations/R26EA1/summary-logs?year=2026',
     {
       summaryLogs: [
         { uploadedAt: '2026-02-03T10:00:00.000Z', status: 'submitted' },
         { uploadedAt: '2026-02-04T10:00:00.000Z', status: 'invalid' }
       ]
     }
-  ],
-  [
-    '/organisations/500001/registrations/R26EX2/summary-logs',
-    { summaryLogs: [] }
   ],
   [
     '/v1/organisations/reports/submissions',
@@ -106,13 +102,77 @@ const held = [
     refNo: 'org-1',
     orgId: 500001,
     registrations: [
-      { regNumber: 'R26EA1', planned: { id: 'OP-0001-R1' } },
-      { regNumber: 'R26EX2', planned: { id: 'OP-0001-R2' } }
+      {
+        regNumber: 'R26EA1',
+        planned: { id: 'OP-0001-R1' },
+        uploads: [
+          { at: '2026-02-03T10:00:00.000Z' },
+          { at: '2026-02-04T10:00:00.000Z' }
+        ]
+      },
+      { regNumber: 'R26EX2', planned: { id: 'OP-0001-R2' }, uploads: [] }
     ]
   }
 ]
 
 describe('viewThrough', () => {
+  it('lists a registration’s summary logs under each year it uploaded in', async () => {
+    const acrossYears = new Map(answers)
+    acrossYears.set(
+      '/organisations/500001/registrations/R26EX2/summary-logs?year=2025',
+      {
+        summaryLogs: [
+          { uploadedAt: '2025-12-31T10:00:00.000Z', status: 'submitted' }
+        ]
+      }
+    )
+    acrossYears.set(
+      '/organisations/500001/registrations/R26EX2/summary-logs?year=2026',
+      {
+        summaryLogs: [
+          { uploadedAt: '2026-01-01T10:00:00.000Z', status: 'invalid' }
+        ]
+      }
+    )
+
+    const view = await viewThrough(
+      [
+        {
+          refNo: 'org-1',
+          orgId: 500001,
+          registrations: [
+            {
+              regNumber: 'R26EX2',
+              planned: { id: 'OP-0001-R2' },
+              uploads: [
+                { at: '2025-12-31T10:00:00.000Z' },
+                { at: '2026-01-01T10:00:00.000Z' }
+              ]
+            }
+          ]
+        }
+      ],
+      (path) => {
+        const answer = acrossYears.get(path)
+        assert.ok(answer, `unexpected path ${path}`)
+        return Promise.resolve(answer)
+      }
+    )
+
+    assert.deepEqual(view.summaryLogs, [
+      {
+        registrationId: 'OP-0001-R2',
+        uploadedAt: '2025-12-31T10:00:00.000Z',
+        status: 'submitted'
+      },
+      {
+        registrationId: 'OP-0001-R2',
+        uploadedAt: '2026-01-01T10:00:00.000Z',
+        status: 'invalid'
+      }
+    ])
+  })
+
   it('puts what the service holds into the plan’s vocabulary, page by page', async () => {
     const view = await viewThrough(held, get)
     assert.deepEqual(view.organisations, [

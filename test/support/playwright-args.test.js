@@ -15,7 +15,11 @@ describe('playwrightArgs', () => {
   describe('grep', () => {
     const cases = [
       { suite: 'all', december: 'all', expected: [] },
-      { suite: 'all', december: 'only', expected: ['--grep', '@decWaste'] },
+      {
+        suite: 'all',
+        december: 'only',
+        expected: ['--grep', '@decWaste|@decWindowOpen']
+      },
       {
         suite: 'all',
         december: 'exclude',
@@ -29,7 +33,7 @@ describe('playwrightArgs', () => {
       {
         suite: 'e2e',
         december: 'only',
-        expected: ['--grep', '@decWaste']
+        expected: ['--grep', '@decWaste|@decWindowOpen']
       },
       {
         suite: 'e2e',

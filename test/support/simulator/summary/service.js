@@ -7,13 +7,14 @@
 import { BaseAPI } from '../../../apis/base-api.js'
 import { AuthClient } from '../../auth.js'
 import { assertSuccessResponse } from '../../response-assertions.js'
+import { uploadYear } from '../calendar/events.js'
 
 /** @import {Run} from '../execute/execute.js' */
 
 /**
  * The ids the summary needs of an operator the service holds.
  *
- * @typedef {{refNo: string, orgId: number, registrations: Iterable<{regNumber: string, planned: {id: string}}>}} HeldOperator
+ * @typedef {{refNo: string, orgId: number, registrations: Iterable<{regNumber: string, planned: {id: string}, uploads: {at: string}[]}>}} HeldOperator
  */
 
 /**
@@ -143,17 +144,19 @@ export async function viewThrough(operators, get) {
     const organisation = await get(`/v1/organisations/${operator.refNo}`)
     organisations.push(organisationOf(organisation))
     for (const registration of operator.registrations) {
-      /** @type {WireSummaryLogs} */
-      const listed = await get(
-        `/organisations/${encodeURIComponent(operator.orgId)}/registrations/${encodeURIComponent(registration.regNumber)}/summary-logs`
-      )
-      summaryLogs.push(
-        ...listed.summaryLogs.map(({ uploadedAt, status }) => ({
-          registrationId: registration.planned.id,
-          uploadedAt,
-          status
-        }))
-      )
+      for (const year of new Set(registration.uploads.map(uploadYear))) {
+        /** @type {WireSummaryLogs} */
+        const listed = await get(
+          `/organisations/${encodeURIComponent(operator.orgId)}/registrations/${encodeURIComponent(registration.regNumber)}/summary-logs?year=${year}`
+        )
+        summaryLogs.push(
+          ...listed.summaryLogs.map(({ uploadedAt, status }) => ({
+            registrationId: registration.planned.id,
+            uploadedAt,
+            status
+          }))
+        )
+      }
     }
   }
 
