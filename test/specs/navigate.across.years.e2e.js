@@ -7,9 +7,16 @@ import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js'
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import {
+  createLinkedOrganisation,
   reportsLandingHasNoClosedPeriod,
-  seedOrganisationAcrossYears
+  seedOrganisationAcrossYears,
+  updateMigratedOrganisation
 } from '~/test/support/seeding/organisation.js'
+import {
+  removeStubAccreditation,
+  seedStubAccreditation
+} from '~/test/support/seeding/stub-accreditations.js'
+import { generateNumbers } from '~/test/support/reg-acc-number.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
 import { currentYear } from '~/test/support/date.js'
 import { defraIdStub } from '~/test/support/defra-id-stub.js'
@@ -106,6 +113,96 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
         ),
         removeTheSkips
       ).toStrictEqual([])
+    })
+  })
+
+  test.describe('a later year', () => {
+    const nextYear = currentYear() + 1
+
+    /** @type {string | undefined} */
+    let stubbedRegistrationNumber
+
+    test.afterEach(async () => {
+      if (stubbedRegistrationNumber) {
+        await removeStubAccreditation(stubbedRegistrationNumber, nextYear)
+        stubbedRegistrationNumber = undefined
+      }
+    })
+
+    /** @param {DashboardPage} dashboardPage */
+    const accreditationByMaterial = async (dashboardPage) =>
+      Object.fromEntries(
+        await Promise.all(
+          [1, 2].map(async (row) => [
+            await dashboardPage.getMaterial(1, row),
+            await dashboardPage.getAccreditationStatus(1, row)
+          ])
+        )
+      )
+
+    test('Choosing next year shows its stub accreditation, and the other registration as not accredited', async ({
+      page
+    }) => {
+      const dashboardPage = new DashboardPage(page)
+      const chooseYearPage = new ChooseYearPage(page)
+      const paper = generateNumbers({
+        wasteProcessingType: 'reprocessor',
+        materialSuffix: 'PA'
+      })
+      const steel = generateNumbers({
+        wasteProcessingType: 'reprocessor',
+        materialSuffix: 'ST'
+      })
+      const site = { street: 'one site street', postcode: 'SW1A 1AA' }
+      const { refNo } = await createLinkedOrganisation([
+        {
+          material: 'Paper or board (R3)',
+          wasteProcessingType: 'Reprocessor',
+          ...site
+        },
+        { material: 'Steel (R4)', wasteProcessingType: 'Reprocessor', ...site }
+      ])
+      const { email } = await updateMigratedOrganisation(refNo, [
+        { reprocessingType: 'input', ...paper, status: 'approved' },
+        { reprocessingType: 'input', ...steel, status: 'approved' }
+      ])
+      await seedStubAccreditation(paper.regNumber, nextYear)
+      stubbedRegistrationNumber = paper.regNumber
+
+      await createLinkAndLogin(page, refNo, email)
+      await dashboardPage.chooseDifferentYearLink().click()
+      await chooseYearPage.yearOption(nextYear).check()
+      await chooseYearPage.continueButton().click()
+
+      await dashboardPage.expectYear(nextYear)
+      expect(await accreditationByMaterial(dashboardPage)).toStrictEqual({
+        'Paper and board': 'Approved',
+        Steel: 'Not accredited'
+      })
+
+      await dashboardPage.chooseDifferentYearLink().click()
+      await chooseYearPage.yearOption(currentYear()).check()
+      await chooseYearPage.continueButton().click()
+
+      await dashboardPage.expectYear(currentYear())
+      expect(await accreditationByMaterial(dashboardPage)).toStrictEqual({
+        'Paper and board': 'Approved',
+        Steel: 'Approved'
+      })
+    })
+
+    test('An organisation with no accreditation for next year is not offered it', async ({
+      page
+    }) => {
+      const dashboardPage = new DashboardPage(page)
+      const chooseYearPage = new ChooseYearPage(page)
+      const { refNo, email } = await seedOrganisationAcrossYears()
+
+      await createLinkAndLogin(page, refNo, email)
+      await dashboardPage.chooseDifferentYearLink().click()
+
+      await expect(chooseYearPage.yearOption(currentYear())).toBeVisible()
+      await expect(chooseYearPage.yearOption(nextYear)).toHaveCount(0)
     })
   })
 
