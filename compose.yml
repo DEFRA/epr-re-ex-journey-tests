@@ -148,7 +148,9 @@ services:
 
   # Simulates Defra ID sign-in for waste-operator users (epr-frontend journeys).
   defra-id-stub:
-    image: defradigital/epr-re-ex-defra-id-stub:0.7.0@sha256:f9a4187929353c8b82840a6ac937a07ee538e1ca8506d8b83b425fa33bce48fe
+    build:
+      context: https://github.com/DEFRA/epr-re-ex-defra-id-stub.git#PAE-2206-upgrade-hapi-bell
+      target: production
     networks:
       - cdp-tenant
     ports:
