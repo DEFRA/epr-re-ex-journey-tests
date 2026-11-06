@@ -55,7 +55,7 @@ export async function getDefraUserToken(email, orgId = randomUUID()) {
     // eslint-disable-next-line camelcase
     redirect_uri: 'http://0.0.0.0:3001/health',
     state: 'state',
-    scope: 'email'
+    scope: 'openid'
   }
   const locationHeader = await defraIdStub.authorise(authParams)
   const sessionId = locationHeader.split('sessionId=')[1]
@@ -72,7 +72,7 @@ export async function getDefraUserToken(email, orgId = randomUUID()) {
     }),
     userId
   )
-  return tokenData.access_token
+  return tokenData.id_token
 }
 
 export async function createAndRegisterDefraIdUser(email) {
