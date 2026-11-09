@@ -75,7 +75,7 @@
     "jszip": "3.10.2",
     "lighthouse": "13.6.0",
     "pino": "10.4.0",
-    "undici": "8.12.3"
+    "undici": "8.12.4"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
