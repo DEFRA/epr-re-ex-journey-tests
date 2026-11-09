@@ -65,7 +65,7 @@
     "allure-commandline": "2.46.1",
     "allure-playwright": "3.14.0",
     "browserstack-local": "1.5.16",
-    "browserstack-node-sdk": "1.76.1",
+    "browserstack-node-sdk": "1.76.2",
     "chai": "6.3.0",
     "chrome-launcher": "1.2.2",
     "decimal.js": "10.6.0",
@@ -75,12 +75,12 @@
     "jszip": "3.10.2",
     "lighthouse": "13.6.0",
     "pino": "10.4.0",
-    "undici": "8.12.3"
+    "undici": "8.12.4"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/express": "5.0.6",
-    "eslint": "10.13.0",
+    "eslint": "10.14.0",
     "eslint-plugin-import-x": "4.17.1",
     "husky": "9.1.7",
     "lint-staged": "17.6.0",
