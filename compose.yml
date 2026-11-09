@@ -89,7 +89,7 @@ services:
       retries: 5
 
   cdp-uploader:
-    image: defradigital/cdp-uploader:1.28.0@sha256:c2ad7db7c7141a02d1dfd621ace5bf628bd71d156bbe6bd7dbd976f0468f9845
+    image: defradigital/cdp-uploader:1.30.0@sha256:7153c026c9b97afb5e370801c252cb66075faad2cd455c5505a030570a428b90
     networks:
       - cdp-tenant
     ports:
@@ -148,7 +148,7 @@ services:
 
   # Simulates Defra ID sign-in for waste-operator users (epr-frontend journeys).
   defra-id-stub:
-    image: defradigital/epr-re-ex-defra-id-stub:0.7.0@sha256:f9a4187929353c8b82840a6ac937a07ee538e1ca8506d8b83b425fa33bce48fe
+    image: defradigital/epr-re-ex-defra-id-stub:0.18.0@sha256:25b0182b609ab1d4760ffa13e7932d5f8a7d1510c0dba8abc62e5b60ea6f781d
     networks:
       - cdp-tenant
     ports:
@@ -177,7 +177,7 @@ services:
   # Simulates Entra ID (Microsoft) sign-in: used for epr-backend's
   # service-to-service auth and for epr-re-ex-admin-frontend's browser login.
   entra-stub:
-    image: defradigital/epr-re-ex-entra-stub:0.168.0@sha256:0c2a4abaef97b1b491e9a097471f645c49142906d79a1669f06571e0caaa6d9f
+    image: defradigital/epr-re-ex-entra-stub:0.169.0@sha256:a6075d133cc694e02a67dbbbf5cb6c25753797569e54e7a2eaf780751391e98e
     networks:
       - cdp-tenant
     ports:
