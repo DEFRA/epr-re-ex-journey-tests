@@ -38,9 +38,10 @@ test.describe('Regulator login @regulator @smoketest', () => {
     await expect(page).toHaveTitle(signOutTitle)
 
     // Attempting to access the landing page again should result in a redirection
-    // to signed out page.
+    // to the regulators' start page, as the operators' home does to theirs.
     await page.goto(landingPageUrl)
     expect(page.url()).not.toBe(landingPageUrl)
-    await expect(page).toHaveTitle(/Signed out/)
+    await expect(page).toHaveURL(/\/regulators\/start$/)
+    await expect(startPage.startNowButton()).toBeVisible()
   })
 })
