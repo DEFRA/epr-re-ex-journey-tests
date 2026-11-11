@@ -7,7 +7,7 @@ import { AuthClient } from '../auth.js'
 import { trackCreatedOrgId } from '../cleanup-tracker.js'
 import { currentYear, latestOpenYear } from '../date.js'
 import { MATERIALS } from '../materials.js'
-import { generateNumbers } from '../reg-acc-number.js'
+import { generateAccNumber, generateNumbers } from '../reg-acc-number.js'
 import { accreditationPath } from './natural-key-paths.js'
 import {
   assertSuccessResponse,
@@ -415,6 +415,40 @@ async function assertOrganisationYears(organisationNumber, expected) {
   )
 
   expect(years).to.deep.equal(expected)
+}
+
+/**
+ * Seeds an approved accreditation for a year through the backend's stand-in
+ * for the registration service, the source of accreditations from 2027.
+ *
+ * @param {string} registrationNumber
+ * @param {number} year
+ * @returns {Promise<{accreditationNumber: string}>}
+ */
+export async function seedExternalAccreditation(registrationNumber, year) {
+  const accreditationNumber = generateAccNumber({
+    wasteProcessingType: 'reprocessor',
+    materialSuffix: 'PA',
+    year: String(year).slice(-2)
+  })
+  const approvedAt = `${year}-01-01T00:00:00.000Z`
+  const path = `/v1/dev/external-accreditations/${registrationNumber}/${year}`
+
+  const response = await new BaseAPI().put(
+    path,
+    JSON.stringify({
+      accreditationNumber,
+      prnIssuance: { tonnageBand: 'up_to_500' },
+      status: {
+        timeline: [
+          { status: 'approved', at: approvedAt, updatedAt: approvedAt }
+        ]
+      }
+    })
+  )
+  await assertSuccessResponse(response, `PUT ${path}`)
+
+  return { accreditationNumber }
 }
 
 /**
