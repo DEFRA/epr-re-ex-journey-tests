@@ -5,7 +5,7 @@ import { expect } from 'chai'
 import { BaseAPI } from '../../apis/base-api.js'
 import { AuthClient } from '../auth.js'
 import { trackCreatedOrgId } from '../cleanup-tracker.js'
-import { currentYear } from '../date.js'
+import { currentYear, latestOpenYear } from '../date.js'
 import { MATERIALS } from '../materials.js'
 import { generateNumbers } from '../reg-acc-number.js'
 import { accreditationPath } from './natural-key-paths.js'
@@ -331,7 +331,8 @@ export function approveMigratedRegistration(
 /**
  * Seeds an organisation whose single reprocessor registration has been
  * approved since January two years ago, with an accreditation that only
- * starts this year: the organisation spans three years, newest first.
+ * starts this year: the organisation spans from two years ago to the latest
+ * open year, newest first.
  *
  * Approval and backdating take a PUT each. The service dates a status change
  * today and discards the status history sent with it, so the history is only
@@ -376,7 +377,7 @@ export async function seedOrganisationAcrossYears({
     ]
   })
 
-  const years = [thisYear, thisYear - 1, firstYear]
+  const years = [latestOpenYear(), thisYear, thisYear - 1, firstYear]
   await assertOrganisationYears(orgId, years)
 
   return {
