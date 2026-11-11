@@ -37,7 +37,7 @@ test.describe('Registration overview years', () => {
     const seeded = await seedOrganisationAcrossYears({
       reprocessingType: 'output'
     })
-    const [thisYear, lastYear, firstYear] = seeded.years
+    const [nextYear, thisYear, lastYear, firstYear] = seeded.years
     const user = await registerAndLinkDefraIdUser(seeded.refNo, seeded.email)
     const defraAuthHeader = defraIdStub.authHeader(user.userId)
 
@@ -72,6 +72,11 @@ test.describe('Registration overview years', () => {
       await organisationOverviewPage.viewRegistrationLink(1)
 
       expect(await registrationOverviewPage.getYearsTableData()).toEqual([
+        {
+          year: `${nextYear}`,
+          accreditationStatus: 'Not accredited',
+          accreditationNumber: '-'
+        },
         {
           year: `${thisYear}`,
           accreditationStatus: 'approved',

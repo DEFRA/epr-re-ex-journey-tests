@@ -8,10 +8,11 @@ import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import {
   reportsLandingHasNoClosedPeriod,
+  seedExternalAccreditation,
   seedOrganisationAcrossYears
 } from '~/test/support/seeding/organisation.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
-import { currentYear } from '~/test/support/date.js'
+import { currentYear, latestOpenYear } from '~/test/support/date.js'
 import { defraIdStub } from '~/test/support/defra-id-stub.js'
 import {
   fetchYearCalendar,
@@ -79,6 +80,25 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       )
       expectReportsOnlyFor(registeredOnly, yearSelected)
       expect(accredited).toBeUndefined()
+    })
+
+    test('Choosing next year shows the accreditation its source holds for that year', async ({
+      page
+    }) => {
+      const dashboardPage = new DashboardPage(page)
+      const chooseYearPage = new ChooseYearPage(page)
+      const { refNo, email, registrationNumber } =
+        await seedOrganisationAcrossYears()
+      await seedExternalAccreditation(registrationNumber, latestOpenYear())
+
+      await createLinkAndLogin(page, refNo, email)
+      await dashboardPage.chooseDifferentYearLink().click()
+      await chooseYearPage.yearOption(latestOpenYear()).check()
+      await chooseYearPage.continueButton().click()
+
+      await dashboardPage.expectYear(latestOpenYear())
+      expect(await dashboardPage.getRegistrationStatus(1, 1)).toBe('Approved')
+      expect(await dashboardPage.getAccreditationStatus(1, 1)).toBe('Approved')
     })
 
     test("This year's reports hold no period from an earlier year, which the early-year report skips rely on", async ({
