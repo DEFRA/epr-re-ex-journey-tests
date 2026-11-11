@@ -17,7 +17,7 @@ import {
   WasteBalanceLedgerPage
 } from 'page-objects/waste.balance.ledger.page'
 import { checkBodyText } from '../../support/checks.js'
-import { currentYear } from '../../support/date.js'
+import { currentYear, latestOpenYear } from '../../support/date.js'
 import { SEEDED_VALID_FROM } from '../../support/seeding/organisation.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
 import { registrationStartYear } from '../../support/seeding/summary-logs.js'
@@ -33,14 +33,15 @@ const tonnageOf = (row) => Number((row.get('Tonnage') ?? '').replace(/,/g, ''))
 
 /**
  * The registered-only years the registration page offers. A registration has no
- * end date, so the set runs from the year the seed starts in to the current one
- * and grows every January - which is why it is derived rather than written down.
+ * end date, so the set runs from the year the seed starts in to the latest open
+ * year and grows every January - which is why it is derived rather than written
+ * down.
  * @returns {string[]}
  */
 const seededRegisteredOnlyYears = () => {
   const firstYear = new Date(SEEDED_VALID_FROM).getUTCFullYear()
 
-  return Array.from({ length: currentYear() - firstYear + 1 }, (_, offset) =>
+  return Array.from({ length: latestOpenYear() - firstYear + 1 }, (_, offset) =>
     String(firstYear + offset)
   )
 }

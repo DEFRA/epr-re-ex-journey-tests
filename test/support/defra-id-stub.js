@@ -2,11 +2,19 @@ import config from '../config/config.js'
 import { request } from 'undici'
 import { readLoggedInUserIds, trackLoggedInUserId } from './cleanup-tracker.js'
 
+/**
+ * Token endpoint response, narrowed to what the tests read. Real Defra ID
+ * issues no access token for our scopes, so the id token is the bearer token.
+ * @typedef {{
+ *   id_token: string
+ * }} DefraIdTokenResponse
+ */
+
 export class DefraIdStub {
   constructor(baseUrl = config.defraIdUri) {
     this.baseUrl = baseUrl
     this.defaultHeaders = config.apiHeaders
-    this.accessTokens = new Map()
+    this.idTokens = new Map()
   }
 
   async register(payload) {
@@ -74,16 +82,10 @@ export class DefraIdStub {
         dispatcher: config.undiciAgent
       }
     )
-    /**
-     * @typedef {Object} AuthResponse
-     * @property {string} access_token
-     * @property {string} token_type
-     * @property {number} expires_in
-     */
-    const responseJson = /** @type {AuthResponse} */ (
+    const responseJson = /** @type {DefraIdTokenResponse} */ (
       await response.body.json()
     )
-    this.accessTokens.set(userId, responseJson.access_token)
+    this.idTokens.set(userId, responseJson.id_token)
     // Recorded to a shared file, not just the in-memory map: this method runs
     // in whichever worker process happened to run this test, but
     // expireAllUsers() runs once in globalTeardown's own separate process.
@@ -92,8 +94,8 @@ export class DefraIdStub {
   }
 
   authHeader(userId) {
-    if (this.accessTokens.has(userId)) {
-      return { Authorization: 'Bearer ' + this.accessTokens.get(userId) }
+    if (this.idTokens.has(userId)) {
+      return { Authorization: 'Bearer ' + this.idTokens.get(userId) }
     } else {
       return {}
     }
@@ -101,13 +103,10 @@ export class DefraIdStub {
 
   async expireAllUsers() {
     const instanceHeaders = { ...this.defaultHeaders }
-    // Read from the shared tracker file, not just this.accessTokens: this
+    // Read from the shared tracker file, not just this.idTokens: this
     // runs in globalTeardown's own process, which never sees tokens
     // generated in the worker processes that actually ran the tests.
-    const userIds = new Set([
-      ...readLoggedInUserIds(),
-      ...this.accessTokens.keys()
-    ])
+    const userIds = new Set([...readLoggedInUserIds(), ...this.idTokens.keys()])
     for (const userId of userIds) {
       await request(
         `${this.baseUrl}/epr-re-ex-defra-id-stub/API/register/${userId}/expire`,

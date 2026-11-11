@@ -32,7 +32,7 @@ class Users {
       // eslint-disable-next-line camelcase
       redirect_uri: 'http://0.0.0.0:3001/health',
       state: 'state',
-      scope: 'email'
+      scope: 'openid'
     }
   }
 
