@@ -15,7 +15,7 @@ const cleanupFilePath = resolve(
 )
 
 // Playwright Test runs spec files in separate worker processes, so an
-// in-memory Map (like defraIdStub.accessTokens) populated during a test only
+// in-memory Map (like defraIdStub.idTokens) populated during a test only
 // exists in that worker - it's invisible to globalTeardown, which runs in a
 // different process. Tracking to a shared file (like created-org-ids.txt
 // already does for orgIds) is the only way teardown can see IDs recorded
