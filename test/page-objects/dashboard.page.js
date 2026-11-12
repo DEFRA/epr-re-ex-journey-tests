@@ -1,4 +1,5 @@
 import { Page } from 'page-objects/page'
+import { ChooseYearPage } from 'page-objects/choose.year.page.js'
 
 class DashboardPage extends Page {
   open(orgId) {
@@ -56,6 +57,14 @@ class DashboardPage extends Page {
       name: 'Choose a different year',
       exact: true
     })
+  }
+
+  async chooseYear(year) {
+    const chooseYearPage = new ChooseYearPage(this.page)
+    await this.chooseDifferentYearLink().click()
+    await chooseYearPage.yearOption(year).check()
+    await chooseYearPage.continueButton().click()
+    await this.expectYear(year)
   }
 
   // This ".govuk-tabs" block renders without data-module="govuk-tabs" (see

@@ -86,17 +86,13 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       page
     }) => {
       const dashboardPage = new DashboardPage(page)
-      const chooseYearPage = new ChooseYearPage(page)
       const { refNo, email, registrationNumber } =
         await seedOrganisationAcrossYears()
       await seedExternalAccreditation(registrationNumber, latestOpenYear())
 
       await createLinkAndLogin(page, refNo, email)
-      await dashboardPage.chooseDifferentYearLink().click()
-      await chooseYearPage.yearOption(latestOpenYear()).check()
-      await chooseYearPage.continueButton().click()
+      await dashboardPage.chooseYear(latestOpenYear())
 
-      await dashboardPage.expectYear(latestOpenYear())
       expect(await dashboardPage.getRegistrationStatus(1, 1)).toBe('Approved')
       expect(await dashboardPage.getAccreditationStatus(1, 1)).toBe('Approved')
     })
@@ -168,14 +164,10 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
 
     test('Manage reports carries the year chosen on home', async () => {
       const dashboardPage = new DashboardPage(page)
-      const chooseYearPage = new ChooseYearPage(page)
       const wasteRecordsPage = new WasteRecordsPage(page)
       const reportsPage = new ReportsPage(page)
 
-      await dashboardPage.chooseDifferentYearLink().click()
-      await chooseYearPage.yearOption(year).check()
-      await chooseYearPage.continueButton().click()
-      await dashboardPage.expectYear(year)
+      await dashboardPage.chooseYear(year)
 
       await dashboardPage.selectTableLink(1, 1)
       await wasteRecordsPage.expectYear(year)
@@ -211,14 +203,10 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
 
     test('Changing year from home moves the reports with it', async () => {
       const dashboardPage = new DashboardPage(page)
-      const chooseYearPage = new ChooseYearPage(page)
       const wasteRecordsPage = new WasteRecordsPage(page)
 
       await dashboardPage.open(organisationNumber)
-      await dashboardPage.chooseDifferentYearLink().click()
-      await chooseYearPage.yearOption(currentYear()).check()
-      await chooseYearPage.continueButton().click()
-      await dashboardPage.expectYear(currentYear())
+      await dashboardPage.chooseYear(currentYear())
 
       await dashboardPage.selectTableLink(1, 1)
       await wasteRecordsPage.expectYear(currentYear())

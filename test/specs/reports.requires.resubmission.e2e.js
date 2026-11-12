@@ -47,6 +47,10 @@ const JOURNEY_TIMEOUT_MS = 4 * 60 * 1000
 // resubmitted report says the view shows the resubmission and not the report
 // it superseded.
 const SEEDED_PRN_REVENUE = 4321
+
+// The year the exporter fixtures date their loads in. A month is closed by its
+// submitted report, not by the calendar, so the journey stays in this year.
+const FIXTURE_YEAR = 2026
 const RESUBMITTED_PRN_REVENUE = '250.75'
 
 test.describe('Reports - requires resubmission @requiresResubmission', () => {
@@ -94,10 +98,11 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
         },
         {
           ...exporterNumbers,
-          status: 'approved',
-          validFrom: '2026-01-01'
+          status: 'approved'
         }
-      ]
+      ],
+      undefined,
+      `${FIXTURE_YEAR}-01-01`
     )
     await seedOverseasSites(
       organisationDetails.refNo,
@@ -111,14 +116,19 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
       migrationResponse.email
     )
 
-    const navigateToExporterReports = async () => {
+    // Home opens on the latest year, so each visit chooses the fixtures' year.
+    const openExporterWasteRecords = async () => {
+      await dashboardPage.chooseYear(FIXTURE_YEAR)
       await dashboardPage.exportingTabLink().click()
       await dashboardPage.selectLink(1)
+    }
+
+    const navigateToExporterReports = async () => {
+      await openExporterWasteRecords()
       await wasteRecordsPage.manageReportsLink().click()
     }
 
-    await dashboardPage.exportingTabLink().click()
-    await dashboardPage.selectLink(1)
+    await openExporterWasteRecords()
 
     const exporterSummaryLog = await summaryLogNumbered(
       'resources/exporter.xlsx',
@@ -135,7 +145,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
       organisationDetails.refNo,
       exporterRegId,
       user.userId,
-      2026,
+      FIXTURE_YEAR,
       'monthly',
       1,
       1,
@@ -152,8 +162,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
       value: 'AB12 CDE'
     }
 
-    await dashboardPage.exportingTabLink().click()
-    await dashboardPage.selectLink(1)
+    await openExporterWasteRecords()
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
       await summaryLogWithCellChanged(
@@ -181,8 +190,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
     // --- An amendment that changes the reported figures ---
     // Carrying the same edit isolates the real amendments from it.
     await homePage.homeLink().click()
-    await dashboardPage.exportingTabLink().click()
-    await dashboardPage.selectLink(1)
+    await openExporterWasteRecords()
     await wasteRecordsPage.submitSummaryLogLink().click()
     await uploadSummaryLogPage.uploadFile(
       await summaryLogWithCellChanged(
