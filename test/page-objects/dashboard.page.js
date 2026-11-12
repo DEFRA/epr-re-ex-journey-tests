@@ -68,6 +68,19 @@ class DashboardPage extends Page {
     await this.expectYear(year)
   }
 
+  /**
+   * The home page offers another year only when the organisation has one and
+   * the frontend lets organisations move between years.
+   *
+   * @param {number} year
+   */
+  async chooseYearIfOffered(year) {
+    await this.page.waitForLoadState()
+    if (await this.chooseDifferentYearLink().isVisible()) {
+      await this.chooseYear(year)
+    }
+  }
+
   // This ".govuk-tabs" block renders without data-module="govuk-tabs" (see
   // organisations/index.njk), so the GOV.UK tabs JS never enhances it and the
   // "Exporting"/"Reprocessing" items stay plain links, not role="tab".

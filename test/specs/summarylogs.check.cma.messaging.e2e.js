@@ -113,7 +113,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
 
     await loginViaHomePage(page, migrationResponse.email)
 
-    await dashboardPage.chooseYear(FIXTURE_YEAR)
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.selectLink(1)
 
     await wasteRecordsPage.submitSummaryLogLink().click()

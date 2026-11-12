@@ -118,7 +118,7 @@ test.describe('Reports - requires resubmission @requiresResubmission', () => {
 
     // Home opens on the latest year, so each visit chooses the fixtures' year.
     const openExporterWasteRecords = async () => {
-      await dashboardPage.chooseYear(FIXTURE_YEAR)
+      await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
       await dashboardPage.exportingTabLink().click()
       await dashboardPage.selectLink(1)
     }
