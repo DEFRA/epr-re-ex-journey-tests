@@ -220,16 +220,6 @@ export const seededCreatedOn = (validFrom) => {
   return createdOn.toISOString().slice(0, 10)
 }
 
-/**
- * An accreditation sits within a single compliance year, so it ends with the
- * year it starts in.
- *
- * @param {string} validFrom - ISO date
- * @returns {string} ISO date
- */
-export const seededAccreditationValidTo = (validFrom) =>
-  `${new Date(validFrom).getUTCFullYear() + 1}-01-01`
-
 export const SEEDED_CREATED_ON = seededCreatedOn(SEEDED_VALID_FROM)
 
 // Migration lands a moment after the migrate call returns, so the first read
@@ -574,7 +564,7 @@ export async function updateMigratedOrganisation(
       data.registrations[i].accreditationId = data.accreditations[j].id
       data.accreditations[j].status = accStatus
       data.accreditations[j].validFrom = rowValidFrom
-      data.accreditations[j].validTo = seededAccreditationValidTo(rowValidFrom)
+      data.accreditations[j].validTo = `${currentYear() + 1}-01-01`
       data.accreditations[j].statusHistory =
         accStatus === 'created'
           ? data.accreditations[j].statusHistory || []

@@ -76,31 +76,21 @@ describe('the reports landing having no closed period', () => {
   }
 })
 
-/**
- * @param {'seededCreatedOn' | 'seededAccreditationValidTo'} name
- * @param {string} validFrom
- */
-const seededDateFor = (name, validFrom) =>
+/** @param {string} validFrom */
+const seededCreatedOnFor = (validFrom) =>
   evaluateUnderClock(
     '2027-06-15T10:00:00Z',
-    `const { ${name} } = await import('${module}')
-     console.log(${name}('${validFrom}'))`
+    `const { seededCreatedOn } = await import('${module}')
+     console.log(seededCreatedOn('${validFrom}'))`
   )
 
-describe('the dates seeded around a valid-from date, whatever the year now', () => {
-  for (const { validFrom, createdOn, validTo } of [
-    { validFrom: '2026-01-01', createdOn: '2025-12-31', validTo: '2027-01-01' },
-    { validFrom: '2027-01-01', createdOn: '2026-12-31', validTo: '2028-01-01' }
+describe('the creation date seeded before a valid-from date, whatever the year now', () => {
+  for (const { validFrom, createdOn } of [
+    { validFrom: '2026-01-01', createdOn: '2025-12-31' },
+    { validFrom: '2027-01-01', createdOn: '2026-12-31' }
   ]) {
     it(`should create a record starting ${validFrom} on ${createdOn}`, () => {
-      assert.equal(seededDateFor('seededCreatedOn', validFrom), createdOn)
-    })
-
-    it(`should end an accreditation starting ${validFrom} on ${validTo}`, () => {
-      assert.equal(
-        seededDateFor('seededAccreditationValidTo', validFrom),
-        validTo
-      )
+      assert.equal(seededCreatedOnFor(validFrom), createdOn)
     })
   }
 })
