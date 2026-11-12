@@ -47,11 +47,11 @@ const JOURNEY_TIMEOUT_MS = 4 * 60 * 1000
 // resubmitted report says the view shows the resubmission and not the report
 // it superseded.
 const SEEDED_PRN_REVENUE = 4321
+const RESUBMITTED_PRN_REVENUE = '250.75'
 
 // The year the exporter fixtures date their loads in. A month is closed by its
 // submitted report, not by the calendar, so the journey stays in this year.
 const FIXTURE_YEAR = 2026
-const RESUBMITTED_PRN_REVENUE = '250.75'
 
 test.describe('Reports - requires resubmission @requiresResubmission', () => {
   test('asks for resubmission only once an amended closed-period load changes the reported figures, then creates, reviews and submits the resubmission, ending as Resubmitted on the reports landing @requiresResubmissionStatus @reviewAndSubmit @cmaAdjusted @closedPeriodMessaging @cma', async ({
