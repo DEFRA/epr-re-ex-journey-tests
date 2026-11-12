@@ -59,6 +59,7 @@ class DashboardPage extends Page {
     })
   }
 
+  /** @param {number} year */
   async chooseYear(year) {
     const chooseYearPage = new ChooseYearPage(this.page)
     await this.chooseDifferentYearLink().click()
