@@ -33,7 +33,6 @@ import { generateNumbers } from '../support/reg-acc-number.js'
 // service can answer is whether the service agrees.
 
 const MATERIAL_SUFFIX = 'PA'
-const VALID_FROM = '2025-02-02'
 
 /** @typedef {{ wasteProcessingType: 'Exporter' | 'Reprocessor', reprocessingType?: string, withoutAccreditation?: boolean }} Stream */
 
@@ -85,7 +84,6 @@ async function seedRegistration(stream) {
         : {}),
       ...numbers,
       status: 'approved',
-      validFrom: VALID_FROM,
       withoutAccreditation
     }
   ])
@@ -96,7 +94,7 @@ async function seedRegistration(stream) {
   return {
     refNo: org.refNo,
     registrationId,
-    year: registrationStartYear(VALID_FROM),
+    year: registrationStartYear(),
     authHeader: defraIdStub.authHeader(user.userId),
     numbers
   }
