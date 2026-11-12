@@ -75,3 +75,22 @@ describe('the reports landing having no closed period', () => {
     })
   }
 })
+
+/** @param {string} validFrom */
+const seededCreatedOnFor = (validFrom) =>
+  evaluateUnderClock(
+    '2027-06-15T10:00:00Z',
+    `const { seededCreatedOn } = await import('${module}')
+     console.log(seededCreatedOn('${validFrom}'))`
+  )
+
+describe('the creation date seeded before a valid-from date, whatever the year now', () => {
+  for (const { validFrom, createdOn } of [
+    { validFrom: '2026-01-01', createdOn: '2025-12-31' },
+    { validFrom: '2027-01-01', createdOn: '2026-12-31' }
+  ]) {
+    it(`should create a record starting ${validFrom} on ${createdOn}`, () => {
+      assert.equal(seededCreatedOnFor(validFrom), createdOn)
+    })
+  }
+})

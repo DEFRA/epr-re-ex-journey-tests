@@ -1,4 +1,5 @@
 import { Page } from 'page-objects/page'
+import { ChooseYearPage } from 'page-objects/choose.year.page.js'
 
 class DashboardPage extends Page {
   open(orgId) {
@@ -56,6 +57,28 @@ class DashboardPage extends Page {
       name: 'Choose a different year',
       exact: true
     })
+  }
+
+  /** @param {number} year */
+  async chooseYear(year) {
+    const chooseYearPage = new ChooseYearPage(this.page)
+    await this.chooseDifferentYearLink().click()
+    await chooseYearPage.yearOption(year).check()
+    await chooseYearPage.continueButton().click()
+    await this.expectYear(year)
+  }
+
+  /**
+   * The home page offers another year only when the organisation has one and
+   * the frontend lets organisations move between years.
+   *
+   * @param {number} year
+   */
+  async chooseYearIfOffered(year) {
+    await this.page.waitForLoadState()
+    if (await this.chooseDifferentYearLink().isVisible()) {
+      await this.chooseYear(year)
+    }
   }
 
   // This ".govuk-tabs" block renders without data-module="govuk-tabs" (see

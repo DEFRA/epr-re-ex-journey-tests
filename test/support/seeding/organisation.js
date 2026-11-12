@@ -207,7 +207,20 @@ export async function createLinkedOrganisation(dataRows) {
 // write it down.
 export const SEEDED_VALID_FROM = `${currentYear()}-01-01`
 
-export const SEEDED_CREATED_ON = `${currentYear() - 1}-12-31`
+/**
+ * The day before a seeded record starts, so that its creation comes before its
+ * approval in the history the backend sorts by date.
+ *
+ * @param {string} validFrom - ISO date
+ * @returns {string} ISO date
+ */
+export const seededCreatedOn = (validFrom) => {
+  const createdOn = new Date(validFrom)
+  createdOn.setUTCDate(createdOn.getUTCDate() - 1)
+  return createdOn.toISOString().slice(0, 10)
+}
+
+export const SEEDED_CREATED_ON = seededCreatedOn(SEEDED_VALID_FROM)
 
 // Migration lands a moment after the migrate call returns, so the first read
 // of a freshly migrated organisation can miss it.
@@ -503,14 +516,15 @@ export async function updateMigratedOrganisation(
 
   for (let i = 0; i < updateDataRows.length; i++) {
     const orgUpdateData = updateDataRows[i]
+    const rowValidFrom = orgUpdateData.validFrom?.trim() || validFrom
     data.registrations[i].status = orgUpdateData.status
-    data.registrations[i].validFrom = validFrom
+    data.registrations[i].validFrom = rowValidFrom
     data.registrations[i].registrationNumber = orgUpdateData.regNumber
     data.registrations[i].statusHistory = [
       ...(data.registrations[i].statusHistory || []),
       {
         status: orgUpdateData.status,
-        updatedAt: data.registrations[i].validFrom
+        updatedAt: rowValidFrom
       }
     ]
     data.registrations[i].statusHistory = (
@@ -519,14 +533,11 @@ export async function updateMigratedOrganisation(
       if (entry.status === 'created') {
         return {
           ...entry,
-          updatedAt: SEEDED_CREATED_ON
+          updatedAt: seededCreatedOn(rowValidFrom)
         }
       }
       return entry
     })
-    if (orgUpdateData.validFrom?.trim()) {
-      data.registrations[i].validFrom = orgUpdateData.validFrom
-    }
     if (orgUpdateData.reprocessingType?.trim()) {
       data.registrations[i].reprocessingType = orgUpdateData.reprocessingType
     }
@@ -552,7 +563,7 @@ export async function updateMigratedOrganisation(
       const accStatus = orgUpdateData.accStatus ?? orgUpdateData.status
       data.registrations[i].accreditationId = data.accreditations[j].id
       data.accreditations[j].status = accStatus
-      data.accreditations[j].validFrom = validFrom
+      data.accreditations[j].validFrom = rowValidFrom
       data.accreditations[j].validTo = `${currentYear() + 1}-01-01`
       data.accreditations[j].statusHistory =
         accStatus === 'created'
@@ -561,7 +572,7 @@ export async function updateMigratedOrganisation(
               ...(data.accreditations[j].statusHistory || []),
               {
                 status: accStatus,
-                updatedAt: data.accreditations[j].validFrom
+                updatedAt: rowValidFrom
               }
             ]
       data.accreditations[j].statusHistory = (
@@ -570,14 +581,11 @@ export async function updateMigratedOrganisation(
         if (entry.status === 'created') {
           return {
             ...entry,
-            updatedAt: SEEDED_CREATED_ON
+            updatedAt: seededCreatedOn(rowValidFrom)
           }
         }
         return entry
       })
-      if (orgUpdateData.validFrom?.trim()) {
-        data.accreditations[j].validFrom = orgUpdateData.validFrom
-      }
       if (orgUpdateData.reprocessingType?.trim()) {
         data.accreditations[j].reprocessingType = orgUpdateData.reprocessingType
       }
