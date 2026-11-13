@@ -6,6 +6,7 @@ import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
 import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js'
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
+import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import {
   reportsLandingHasNoClosedPeriod,
   seedExternalAccreditation,
@@ -23,6 +24,9 @@ import {
   summaryLogDatedAt
 } from '~/test/support/seeding/summary-logs.js'
 import { summaryLogContentNumbered } from '~/test/support/spreadsheet/summarylogs-content-generator.js'
+import { generateSpreadsheetData } from '~/test/support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
+import { checkBodyText } from '~/test/support/checks.js'
+import { checkOnUploadPage } from '~/test/support/summary-log-checks.js'
 import { expectPeriodYear } from 'page-objects/reports/report-period.js'
 
 /**
@@ -101,6 +105,89 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       expect(await dashboardPage.getAccreditationStatus(1, 1)).toBe('Approved')
     })
 
+    test("Each year takes a summary log from its own year's template @summaryLogsAcrossYears", async ({
+      page
+    }) => {
+      const dashboardPage = new DashboardPage(page)
+      const chooseYearPage = new ChooseYearPage(page)
+      const wasteRecordsPage = new WasteRecordsPage(page)
+      const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+      const { refNo, email, registrationNumber, accreditationNumber } =
+        await seedOrganisationAcrossYears()
+      // 2027 is registered-only: accredited uploads are not yet accepted
+      // against the external accreditations that hold years from 2027.
+      const summaryLogFor = (wasteProcessingType, year) =>
+        generateSpreadsheetData({
+          wasteProcessingType,
+          materialSuffix: 'PA',
+          regNumber: registrationNumber,
+          accNumber: accreditationNumber,
+          numberOfRows: 3,
+          year,
+          silentLogging: true
+        })
+      const log2026 = await summaryLogFor('reprocessorInput', 2026)
+      const registeredOnlyLog2026 = await summaryLogFor(
+        'regOnlyReprocessor',
+        2026
+      )
+      const log2027 = await summaryLogDatedAt(
+        await summaryLogFor('regOnlyReprocessor', 2027),
+        new Date(Date.UTC(2027, 0, 1, 12))
+      )
+      const openUploadFor = async (year) => {
+        await dashboardPage.chooseDifferentYearLink().click()
+        await chooseYearPage.yearOption(year).check()
+        await chooseYearPage.continueButton().click()
+        await dashboardPage.expectYear(year)
+        await dashboardPage.selectTableLink(1, 1)
+        await wasteRecordsPage.expectYear(year)
+        await wasteRecordsPage.submitSummaryLogLink().click()
+        await checkOnUploadPage(page, year)
+      }
+
+      await createLinkAndLogin(page, refNo, email)
+      await openUploadFor(2026)
+      await uploadSummaryLogPage.performUploadAndReturnToHomepage(log2026, 2026)
+
+      await openUploadFor(2027)
+      await uploadSummaryLogPage.uploadFile(registeredOnlyLog2026)
+      await uploadSummaryLogPage.continue()
+      await checkBodyText(
+        page,
+        'The file you selected is your 2026 summary log.',
+        30
+      )
+      await checkBodyText(
+        page,
+        'You need to update and upload your 2027 summary log.',
+        30
+      )
+
+      await uploadSummaryLogPage.performUploadAndReturnToHomepage(log2027, 2027)
+    })
+
+    test('A 2025 summary log is refused, since 2025 has no templates', async ({
+      page
+    }) => {
+      const { refNo, email, registrationId, registrationNumber } =
+        await seedOrganisationAcrossYears()
+      const user = await createLinkAndLogin(page, refNo, email)
+
+      await expect(
+        submitSummaryLogContent(
+          refNo,
+          registrationId,
+          defraIdStub.authHeader(user.userId),
+          await summaryLogContentNumbered(
+            'resources/reprocessor-output-regonly.xlsx',
+            { regNumber: registrationNumber }
+          ),
+          2025
+        )
+      ).rejects.toThrow('There are no summary log templates for 2025')
+    })
+
     test("This year's reports hold no period from an earlier year, which the early-year report skips rely on", async ({
       page
     }) => {
@@ -129,8 +216,8 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
     })
   })
 
-  // The previous year is registered-only, with Quarter 1 holding loads; this
-  // year is accredited.
+  // The previous year is registered-only and this year is accredited. The
+  // previous year holds no summary log: it has no templates to submit against.
   test.describe.serial('reports for a chosen year', () => {
     const year = currentYear() - 1
 
@@ -145,20 +232,7 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       })
       organisationNumber = seeded.organisationNumber
 
-      const user = await createLinkAndLogin(page, seeded.refNo, seeded.email)
-      await submitSummaryLogContent(
-        seeded.refNo,
-        seeded.registrationId,
-        defraIdStub.authHeader(user.userId),
-        await summaryLogContentNumbered(
-          await summaryLogDatedAt(
-            'resources/reprocessor-output-regonly.xlsx',
-            new Date(Date.UTC(year, 1, 15, 12))
-          ),
-          { regNumber: seeded.registrationNumber }
-        ),
-        year
-      )
+      await createLinkAndLogin(page, seeded.refNo, seeded.email)
     })
 
     test.afterAll(async () => {

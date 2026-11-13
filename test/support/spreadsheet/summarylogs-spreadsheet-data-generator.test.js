@@ -280,6 +280,50 @@ describe('summary log spreadsheet generator', () => {
     assert.equal(markers[0], markers[1])
   })
 
+  describe('given a year', () => {
+    it('fills the 2026 template by default', async () => {
+      const cover = await renderSheet({ numberOfRows: 1 }, 'Cover')
+
+      assert.equal(valueOf(cover.getCell('F2')), 5.1)
+    })
+
+    it('fills the 2027 template, keeping the 2026 columns where they were', async () => {
+      const workbook = await render({ numberOfRows: 1, year: 2027 })
+      const cover = workbook.getWorksheet('Cover')
+      const sheet = workbook.getWorksheet(RECEIVED)
+      assert.ok(cover && sheet)
+
+      assert.equal(valueOf(cover.getCell('F2')), 2027.01)
+      assert.equal(columnOf(sheet, 'DWT_SUPPLY_ID'), 'AM')
+      assert.equal(valueOf(sheet.getCell('B4')), '1000')
+      assert.ok(field(sheet, 'EWC_CODE', 4))
+    })
+
+    it('writes each year to its own file', async () => {
+      const options = {
+        ...baseOptions,
+        numberOfRows: 1,
+        regNumber: 'R1',
+        accNumber: 'A1'
+      }
+
+      const thisYears = await generateSpreadsheetData(options)
+      const nextYears = await generateSpreadsheetData({
+        ...options,
+        year: 2027
+      })
+
+      assert.notEqual(thisYears, nextYears)
+    })
+
+    it('rejects a year it holds no template for', async () => {
+      await assert.rejects(
+        render({ numberOfRows: 1, year: 2028 }),
+        /No summary log template for 2028/
+      )
+    })
+  })
+
   describe('given no row list', () => {
     it('invents the requested number of rows, numbered from the sheet base', async () => {
       const sheet = await renderSheet({ numberOfRows: 3 })

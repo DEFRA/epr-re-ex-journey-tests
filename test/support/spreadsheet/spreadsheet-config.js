@@ -137,3 +137,25 @@ export const PROCESSING_TYPE_CONFIG = {
     ]
   }
 }
+
+/**
+ * The template a summary log for the given year is filled from. The 2027
+ * templates add columns to the 2026 ones without moving any, so every
+ * worksheet's row generator fills either.
+ *
+ * @param {string} templateFile - the processing type's 2026 template
+ * @param {number} [year]
+ * @returns {string}
+ */
+export function templateFileFor(templateFile, year = 2026) {
+  if (year === 2026) {
+    return templateFile
+  }
+  if (year === 2027) {
+    return templateFile.replace(
+      'resources/templates/',
+      'resources/templates/2027/'
+    )
+  }
+  throw new Error(`No summary log template for ${year}`)
+}
