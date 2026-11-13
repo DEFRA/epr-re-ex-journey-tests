@@ -18,10 +18,9 @@ import { summaryLogContentNumbered } from '../../support/spreadsheet/summarylogs
 import { checkAccessibility } from '../../support/accessibility.js'
 
 // The registration is registered-only for the two years before this one and
-// accredited this year. Last year holds a summary log and a submitted Quarter 1
-// report, both in periods that have ended whatever today's date. The dev
-// endpoint stamps the log with this year's accreditation, so it lands invalid;
-// the journey only needs it listed under its own year.
+// accredited this year. Last year holds a submitted Quarter 1 report, in a
+// period that has ended whatever today's date, and no summary log: it has no
+// templates to submit against. This year holds a summary log.
 test.describe('Registration overview years', () => {
   test.describe.configure({ timeout: 3 * 60 * 1000 })
 
@@ -47,12 +46,15 @@ test.describe('Registration overview years', () => {
       defraAuthHeader,
       await summaryLogContentNumbered(
         await summaryLogDatedAt(
-          'resources/reprocessor-output-regonly.xlsx',
-          new Date(Date.UTC(lastYear, 1, 15, 12))
+          'resources/reprocessor-output.xlsx',
+          new Date(Date.UTC(thisYear, 1, 15, 12))
         ),
-        { regNumber: seeded.registrationNumber }
+        {
+          regNumber: seeded.registrationNumber,
+          accNumber: seeded.accreditationNumber
+        }
       ),
-      lastYear
+      thisYear
     )
     await seedReportSubmission(
       seeded.refNo,
@@ -122,11 +124,9 @@ test.describe('Registration overview years', () => {
         status: 'Submitted'
       })
 
-      expect(
-        (await registrationYearPage.getSummaryLogActionLinks(1)).map(
-          (link) => link.text
-        )
-      ).toEqual(['View data', 'Download'])
+      expect(await registrationYearPage.getSummaryLogsContent()).toContain(
+        'No summary logs'
+      )
     })
 
     await test.step('A report opens and returns to its year', async () => {
@@ -151,7 +151,7 @@ test.describe('Registration overview years', () => {
       )
     })
 
-    await test.step('The accredited year shows its accreditation and none of last year', async () => {
+    await test.step('The accredited year shows its accreditation and its own summary log', async () => {
       await registrationYearPage.crumbLink('Registration overview').click()
       await registrationOverviewPage.viewYear(thisYear)
 
@@ -161,9 +161,11 @@ test.describe('Registration overview years', () => {
       )
       await expect(registrationYearPage.prnActivityDownloadLink()).toBeVisible()
       await expect(registrationYearPage.wasteBalanceEventsLink()).toBeVisible()
-      expect(await registrationYearPage.getSummaryLogsContent()).toContain(
-        'No summary logs'
-      )
+      expect(
+        (await registrationYearPage.getSummaryLogActionLinks(1)).map(
+          (link) => link.text
+        )
+      ).toEqual(['View data', 'Download'])
     })
 
     await test.step('A year opened as the wrong kind is not found', async () => {

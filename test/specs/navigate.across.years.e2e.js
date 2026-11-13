@@ -167,6 +167,27 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       await uploadSummaryLogPage.performUploadAndReturnToHomepage(log2027, 2027)
     })
 
+    test('A 2025 summary log is refused, since 2025 has no templates', async ({
+      page
+    }) => {
+      const { refNo, email, registrationId, registrationNumber } =
+        await seedOrganisationAcrossYears()
+      const user = await createLinkAndLogin(page, refNo, email)
+
+      await expect(
+        submitSummaryLogContent(
+          refNo,
+          registrationId,
+          defraIdStub.authHeader(user.userId),
+          await summaryLogContentNumbered(
+            'resources/reprocessor-output-regonly.xlsx',
+            { regNumber: registrationNumber }
+          ),
+          2025
+        )
+      ).rejects.toThrow('There are no summary log templates for 2025')
+    })
+
     test("This year's reports hold no period from an earlier year, which the early-year report skips rely on", async ({
       page
     }) => {
@@ -195,8 +216,8 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
     })
   })
 
-  // The previous year is registered-only, with Quarter 1 holding loads; this
-  // year is accredited.
+  // The previous year is registered-only and this year is accredited. The
+  // previous year holds no summary log: it has no templates to submit against.
   test.describe.serial('reports for a chosen year', () => {
     const year = currentYear() - 1
 
@@ -211,20 +232,7 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       })
       organisationNumber = seeded.organisationNumber
 
-      const user = await createLinkAndLogin(page, seeded.refNo, seeded.email)
-      await submitSummaryLogContent(
-        seeded.refNo,
-        seeded.registrationId,
-        defraIdStub.authHeader(user.userId),
-        await summaryLogContentNumbered(
-          await summaryLogDatedAt(
-            'resources/reprocessor-output-regonly.xlsx',
-            new Date(Date.UTC(year, 1, 15, 12))
-          ),
-          { regNumber: seeded.registrationNumber }
-        ),
-        year
-      )
+      await createLinkAndLogin(page, seeded.refNo, seeded.email)
     })
 
     test.afterAll(async () => {
