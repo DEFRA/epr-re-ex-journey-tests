@@ -86,6 +86,38 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       expect(accredited).toBeUndefined()
     })
 
+    test('Choosing a different year from the Exporting tab keeps the Exporting tab', async ({
+      page
+    }) => {
+      const dashboardPage = new DashboardPage(page)
+      const chooseYearPage = new ChooseYearPage(page)
+      const { refNo, email } = await seedOrganisationAcrossYears({
+        exporting: true
+      })
+      const yearSelected = currentYear() - 1
+
+      await createLinkAndLogin(page, refNo, email)
+      await dashboardPage.exportingTabLink().click()
+      await expect(dashboardPage.currentTab()).toHaveText('Exporting')
+
+      await dashboardPage.chooseDifferentYearLink().click()
+      await chooseYearPage.backLink().click()
+      await expect(page).toHaveURL(
+        new RegExp(`/organisations/\\d+/${currentYear()}/exporting$`)
+      )
+      await expect(dashboardPage.currentTab()).toHaveText('Exporting')
+
+      await dashboardPage.chooseDifferentYearLink().click()
+      await chooseYearPage.yearOption(yearSelected).check()
+      await chooseYearPage.continueButton().click()
+
+      await expect(page).toHaveURL(
+        new RegExp(`/organisations/\\d+/${yearSelected}/exporting$`)
+      )
+      await dashboardPage.expectYear(yearSelected)
+      await expect(dashboardPage.currentTab()).toHaveText('Exporting')
+    })
+
     test('Choosing next year shows the accreditation its source holds for that year', async ({
       page
     }) => {
