@@ -10,13 +10,13 @@ class WasteRecordsExportPage extends AdminPage {
   }
 
   /** @returns {import('@playwright/test').Locator} */
-  yearSelect() {
+  yearDropdown() {
     return this.page.getByLabel('Year', { exact: true })
   }
 
   /** @returns {Promise<string[]>} */
-  async yearOptions() {
-    return this.yearSelect().locator('option').allInnerTexts()
+  async availableYears() {
+    return this.yearDropdown().locator('option').allInnerTexts()
   }
 
   /** @returns {import('@playwright/test').Locator} */
