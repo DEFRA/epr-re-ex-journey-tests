@@ -112,11 +112,9 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       const chooseYearPage = new ChooseYearPage(page)
       const wasteRecordsPage = new WasteRecordsPage(page)
       const uploadSummaryLogPage = new UploadSummaryLogPage(page)
-      const thisYear = currentYear()
-      const nextYear = latestOpenYear()
       const { refNo, email, registrationNumber, accreditationNumber } =
         await seedOrganisationAcrossYears()
-      // Next year is registered-only: accredited uploads are not yet accepted
+      // 2027 is registered-only: accredited uploads are not yet accepted
       // against the external accreditations that hold years from 2027.
       const summaryLogFor = (wasteProcessingType, year) =>
         generateSpreadsheetData({
@@ -128,51 +126,45 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
           year,
           silentLogging: true
         })
-      const thisYearsLog = await summaryLogFor('reprocessorInput', thisYear)
-      const thisYearsRegisteredOnlyLog = await summaryLogFor(
+      const log2026 = await summaryLogFor('reprocessorInput', 2026)
+      const registeredOnlyLog2026 = await summaryLogFor(
         'regOnlyReprocessor',
-        thisYear
+        2026
       )
-      const nextYearsLog = await summaryLogDatedAt(
-        await summaryLogFor('regOnlyReprocessor', nextYear),
-        new Date(Date.UTC(nextYear, 0, 1, 12))
+      const log2027 = await summaryLogDatedAt(
+        await summaryLogFor('regOnlyReprocessor', 2027),
+        new Date(Date.UTC(2027, 0, 1, 12))
       )
+      const openUploadFor = async (year) => {
+        await dashboardPage.chooseDifferentYearLink().click()
+        await chooseYearPage.yearOption(year).check()
+        await chooseYearPage.continueButton().click()
+        await dashboardPage.expectYear(year)
+        await dashboardPage.selectTableLink(1, 1)
+        await wasteRecordsPage.expectYear(year)
+        await wasteRecordsPage.submitSummaryLogLink().click()
+        await checkOnUploadPage(page, year)
+      }
 
       await createLinkAndLogin(page, refNo, email)
-      await dashboardPage.selectTableLink(1, 1)
-      await wasteRecordsPage.expectYear(thisYear)
-      await wasteRecordsPage.submitSummaryLogLink().click()
-      await uploadSummaryLogPage.performUploadAndReturnToHomepage(
-        thisYearsLog,
-        thisYear
-      )
+      await openUploadFor(2026)
+      await uploadSummaryLogPage.performUploadAndReturnToHomepage(log2026, 2026)
 
-      await dashboardPage.chooseDifferentYearLink().click()
-      await chooseYearPage.yearOption(nextYear).check()
-      await chooseYearPage.continueButton().click()
-      await dashboardPage.expectYear(nextYear)
-      await dashboardPage.selectTableLink(1, 1)
-      await wasteRecordsPage.expectYear(nextYear)
-      await wasteRecordsPage.submitSummaryLogLink().click()
-      await checkOnUploadPage(page, nextYear)
-
-      await uploadSummaryLogPage.uploadFile(thisYearsRegisteredOnlyLog)
+      await openUploadFor(2027)
+      await uploadSummaryLogPage.uploadFile(registeredOnlyLog2026)
       await uploadSummaryLogPage.continue()
       await checkBodyText(
         page,
-        `The file you selected is your ${thisYear} summary log.`,
+        'The file you selected is your 2026 summary log.',
         30
       )
       await checkBodyText(
         page,
-        `You need to update and upload your ${nextYear} summary log.`,
+        'You need to update and upload your 2027 summary log.',
         30
       )
 
-      await uploadSummaryLogPage.performUploadAndReturnToHomepage(
-        nextYearsLog,
-        nextYear
-      )
+      await uploadSummaryLogPage.performUploadAndReturnToHomepage(log2027, 2027)
     })
 
     test("This year's reports hold no period from an earlier year, which the early-year report skips rely on", async ({
