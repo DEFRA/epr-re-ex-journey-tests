@@ -20,13 +20,13 @@ test.describe('Waste records export page', () => {
     await navigation.clickOnLink('Waste records export')
     await checkAccessibility(page, 'Waste records export')
 
-    const years = await wasteRecordsExportPage.yearOptions()
+    const years = await wasteRecordsExportPage.availableYears()
     expect(years[0]).toEqual('2026')
     expect(years.map(Number)).toEqual(years.map((_, i) => 2026 + i))
     const latestYear = /** @type {string} */ (years.at(-1))
-    await expect(wasteRecordsExportPage.yearSelect()).toHaveValue(latestYear)
+    await expect(wasteRecordsExportPage.yearDropdown()).toHaveValue(latestYear)
 
-    await wasteRecordsExportPage.yearSelect().selectOption('2026')
+    await wasteRecordsExportPage.yearDropdown().selectOption('2026')
     const csv = await wasteRecordsExportPage.download(
       wasteRecordsExportPage.downloadCsvButton()
     )
