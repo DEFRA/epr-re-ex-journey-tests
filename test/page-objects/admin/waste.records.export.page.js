@@ -8,6 +8,21 @@ class WasteRecordsExportPage extends AdminPage {
   async fetchCsv() {
     return super.fetchCsv('/waste-records-export')
   }
+
+  /** @returns {import('@playwright/test').Locator} */
+  yearSelect() {
+    return this.page.getByLabel('Year', { exact: true })
+  }
+
+  /** @returns {Promise<string[]>} */
+  async yearOptions() {
+    return this.yearSelect().locator('option').allInnerTexts()
+  }
+
+  /** @returns {import('@playwright/test').Locator} */
+  downloadCsvButton() {
+    return this.page.getByRole('button', { name: 'Download CSV', exact: true })
+  }
 }
 
 export { WasteRecordsExportPage }

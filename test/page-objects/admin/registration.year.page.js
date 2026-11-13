@@ -66,6 +66,15 @@ class RegistrationYearPage extends AdminPage {
       .getByRole('link', { name: 'Download', exact: true })
   }
 
+  /** @returns {import('@playwright/test').Locator} */
+  wasteRecordsDownloadLink() {
+    return this.page
+      .locator('.govuk-summary-list__row', {
+        has: this.page.locator('dt', { hasText: 'Waste records' })
+      })
+      .getByRole('link', { name: 'Download', exact: true })
+  }
+
   // The actions cell renders <a>View</a><br><a>Unsubmit</a>, so the nth-child
   // indices below count the <br>: View is child 1 and Unsubmit is child 3.
   async clickOnViewReportLink(row) {
