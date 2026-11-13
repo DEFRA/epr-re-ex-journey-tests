@@ -6,6 +6,7 @@ import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
 import { ReportsPage } from 'page-objects/reports/reports.page.js'
 import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js'
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
+import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import {
   reportsLandingHasNoClosedPeriod,
   seedExternalAccreditation,
@@ -23,6 +24,9 @@ import {
   summaryLogDatedAt
 } from '~/test/support/seeding/summary-logs.js'
 import { summaryLogContentNumbered } from '~/test/support/spreadsheet/summarylogs-content-generator.js'
+import { generateSpreadsheetData } from '~/test/support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
+import { checkBodyText } from '~/test/support/checks.js'
+import { checkOnUploadPage } from '~/test/support/summary-log-checks.js'
 import { expectPeriodYear } from 'page-objects/reports/report-period.js'
 
 /**
@@ -99,6 +103,76 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       await dashboardPage.expectYear(latestOpenYear())
       expect(await dashboardPage.getRegistrationStatus(1, 1)).toBe('Approved')
       expect(await dashboardPage.getAccreditationStatus(1, 1)).toBe('Approved')
+    })
+
+    test("Each year takes a summary log from its own year's template @summaryLogsAcrossYears", async ({
+      page
+    }) => {
+      const dashboardPage = new DashboardPage(page)
+      const chooseYearPage = new ChooseYearPage(page)
+      const wasteRecordsPage = new WasteRecordsPage(page)
+      const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+      const thisYear = currentYear()
+      const nextYear = latestOpenYear()
+      const { refNo, email, registrationNumber, accreditationNumber } =
+        await seedOrganisationAcrossYears()
+      // Next year is registered-only: accredited uploads are not yet accepted
+      // against the external accreditations that hold years from 2027.
+      const summaryLogFor = (wasteProcessingType, year) =>
+        generateSpreadsheetData({
+          wasteProcessingType,
+          materialSuffix: 'PA',
+          regNumber: registrationNumber,
+          accNumber: accreditationNumber,
+          numberOfRows: 3,
+          year,
+          silentLogging: true
+        })
+      const thisYearsLog = await summaryLogFor('reprocessorInput', thisYear)
+      const thisYearsRegisteredOnlyLog = await summaryLogFor(
+        'regOnlyReprocessor',
+        thisYear
+      )
+      const nextYearsLog = await summaryLogDatedAt(
+        await summaryLogFor('regOnlyReprocessor', nextYear),
+        new Date(Date.UTC(nextYear, 0, 1, 12))
+      )
+
+      await createLinkAndLogin(page, refNo, email)
+      await dashboardPage.selectTableLink(1, 1)
+      await wasteRecordsPage.expectYear(thisYear)
+      await wasteRecordsPage.submitSummaryLogLink().click()
+      await uploadSummaryLogPage.performUploadAndReturnToHomepage(
+        thisYearsLog,
+        thisYear
+      )
+
+      await dashboardPage.chooseDifferentYearLink().click()
+      await chooseYearPage.yearOption(nextYear).check()
+      await chooseYearPage.continueButton().click()
+      await dashboardPage.expectYear(nextYear)
+      await dashboardPage.selectTableLink(1, 1)
+      await wasteRecordsPage.expectYear(nextYear)
+      await wasteRecordsPage.submitSummaryLogLink().click()
+      await checkOnUploadPage(page, nextYear)
+
+      await uploadSummaryLogPage.uploadFile(thisYearsRegisteredOnlyLog)
+      await uploadSummaryLogPage.continue()
+      await checkBodyText(
+        page,
+        `The file you selected is your ${thisYear} summary log.`,
+        30
+      )
+      await checkBodyText(
+        page,
+        `You need to update and upload your ${nextYear} summary log.`,
+        30
+      )
+
+      await uploadSummaryLogPage.performUploadAndReturnToHomepage(
+        nextYearsLog,
+        nextYear
+      )
     })
 
     test("This year's reports hold no period from an earlier year, which the early-year report skips rely on", async ({

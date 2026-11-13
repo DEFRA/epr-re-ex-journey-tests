@@ -3,7 +3,8 @@ import { fakerEN_GB as faker } from '@faker-js/faker'
 import { MATERIALS } from './shared-spreadsheet-values.js'
 import {
   PROCESSING_TYPE_CONFIG,
-  WORKSHEET_CONFIG
+  WORKSHEET_CONFIG,
+  templateFileFor
 } from './spreadsheet-config.js'
 import {
   generateRegNumber as buildRegNumber,
@@ -241,6 +242,7 @@ function generateAccNumber(wasteProcessingType, suffix, nation, orgId) {
  *   render, keyed by worksheet name. A worksheet the plan omits gets none.
  * @param {boolean} [options.unreadable] - render a workbook the service
  *   rejects wholesale rather than validates.
+ * @param {number} [options.year] - the year whose template to fill.
  * @param {boolean} [options.silentLogging]
  * @returns {Promise<string>} the path the workbook was written to
  */
@@ -258,6 +260,7 @@ export async function generateSpreadsheetData(options = {}) {
     rowOffset = 0,
     rows = null,
     unreadable = false,
+    year = 2026,
     silentLogging = false
   } = options
 
@@ -287,11 +290,8 @@ export async function generateSpreadsheetData(options = {}) {
     }
     const config = PROCESSING_TYPE_CONFIG[wasteProcessingType]
 
-    let { templateFile, worksheets } = config
-
-    if (filename !== null) {
-      templateFile = filename
-    }
+    const { worksheets } = config
+    const templateFile = filename ?? templateFileFor(config.templateFile, year)
 
     if (rows !== null) {
       const renderable = worksheets
@@ -426,12 +426,14 @@ export async function generateSpreadsheetData(options = {}) {
     const safeReg = sanitiseFilenameComponent(registrationNumber)
 
     const sheetsSuffix = sheets !== null ? `_sheets${sheets.join('-')}` : ''
+    // Keeps a log for another year from overwriting this year's.
+    const yearSuffix = year === 2026 ? '' : `_${year}`
 
     let outputFile
     if (!wasteProcessingType.startsWith('regOnly')) {
-      outputFile = `data/${safeType}_${safeAcc}_${safeReg}${sheetsSuffix}.xlsx`
+      outputFile = `data/${safeType}_${safeAcc}_${safeReg}${sheetsSuffix}${yearSuffix}.xlsx`
     } else {
-      outputFile = `data/${safeType}_${safeReg}${sheetsSuffix}.xlsx`
+      outputFile = `data/${safeType}_${safeReg}${sheetsSuffix}${yearSuffix}.xlsx`
     }
     // data/ is gitignored, so it is absent in a fresh clone or worktree.
     await mkdir(dirname(outputFile), { recursive: true })
