@@ -16,11 +16,13 @@ import { registerAndLinkDefraIdUser } from '../../support/defra-id-linking.js'
 import { defraIdStub } from '../../support/defra-id-stub.js'
 import { summaryLogContentNumbered } from '../../support/spreadsheet/summarylogs-content-generator.js'
 import { checkAccessibility } from '../../support/accessibility.js'
+import { parseCsvBody } from '../../support/csv.js'
 
 // The registration is registered-only for the two years before this one and
 // accredited this year. Last year holds a submitted Quarter 1 report, in a
 // period that has ended whatever today's date, and no summary log: it has no
-// templates to submit against. This year holds a summary log.
+// templates to submit against. This year holds a summary log. Each year page
+// downloads that year's waste records; the overview offers none.
 test.describe('Registration overview years', () => {
   test.describe.configure({ timeout: 3 * 60 * 1000 })
 
@@ -95,6 +97,9 @@ test.describe('Registration overview years', () => {
           accreditationNumber: '-'
         }
       ])
+      await expect(
+        page.locator('.govuk-summary-list dt', { hasText: 'Waste records' })
+      ).toHaveCount(0)
     })
 
     await test.step('A registered-only year shows only that year', async () => {
@@ -127,6 +132,17 @@ test.describe('Registration overview years', () => {
       expect(await registrationYearPage.getSummaryLogsContent()).toContain(
         'No summary logs'
       )
+
+      const csv = await registrationYearPage.download(
+        registrationYearPage.wasteRecordsDownloadLink()
+      )
+      expect(csv.failure).toBeNull()
+      expect(csv.filename).toMatch(
+        new RegExp(`^${seeded.registrationNumber}-${lastYear}-.+\\.csv$`)
+      )
+      const [header, ...rows] = parseCsvBody(csv.body.toString('utf8'))
+      expect(header).toContain('Registration Number')
+      expect(rows.filter((row) => row.some((cell) => cell !== ''))).toEqual([])
     })
 
     await test.step('A report opens and returns to its year', async () => {
@@ -166,6 +182,21 @@ test.describe('Registration overview years', () => {
           (link) => link.text
         )
       ).toEqual(['View data', 'Download'])
+
+      const csv = await registrationYearPage.download(
+        registrationYearPage.wasteRecordsDownloadLink()
+      )
+      expect(csv.failure).toBeNull()
+      expect(csv.filename).toMatch(
+        new RegExp(`^${seeded.registrationNumber}-${thisYear}-.+\\.csv$`)
+      )
+      const [header, ...rows] = parseCsvBody(csv.body.toString('utf8'))
+      const records = rows.filter((row) => row.some((cell) => cell !== ''))
+      expect(records.length).toBeGreaterThan(0)
+      const registrationColumn = header.indexOf('Registration Number')
+      expect(new Set(records.map((row) => row[registrationColumn]))).toEqual(
+        new Set([seeded.registrationNumber])
+      )
     })
 
     await test.step('A year opened as the wrong kind is not found', async () => {
