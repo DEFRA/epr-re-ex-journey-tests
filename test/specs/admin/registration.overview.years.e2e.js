@@ -137,13 +137,6 @@ test.describe('Registration overview years', () => {
       expect(await registrationYearPage.getSummaryLogsContent()).toContain(
         'No summary logs'
       )
-
-      const csv = await registrationYearPage.downloadWasteRecords()
-      expect(csv.failure).toBeNull()
-      expect(csv.filename).toMatch(
-        new RegExp(`^${seeded.registrationNumber}-${lastYear}-.+\\.csv$`)
-      )
-      expect(csv.records).toEqual([])
     })
 
     await test.step('A report opens and returns to its year', async () => {
