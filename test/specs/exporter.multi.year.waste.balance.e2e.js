@@ -20,6 +20,7 @@ import { generateNumbers } from '~/test/support/reg-acc-number.js'
 import { checkWasteBalanceForWindow } from '~/test/support/waste-balance-mode.js'
 import { isDecemberWasteWindowOpen } from '~/test/support/december-waste-window.js'
 import { checkOnUploadPage } from '~/test/support/summary-log-checks.js'
+import { currentYear } from '~/test/support/date.js'
 
 const JOURNEY_TIMEOUT_MS = 4 * 60 * 1000
 const OPENING_BALANCE_2026 = '1,000.00'
@@ -95,6 +96,7 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
     )
 
     const openAccreditationFor = async (year) => {
+      await dashboardPage.open(organisationDetails.refNo)
       await dashboardPage.chooseDifferentYearLink().click()
       await chooseYearPage.yearOption(year).check()
       await chooseYearPage.continueButton().click()
@@ -123,7 +125,8 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
       await wasteRecordsPage.createNewPERNLink().click()
       const wasteBalancePool = await checkWasteBalanceForWindow(
         createPRNPage,
-        isDecemberWasteWindowOpen(),
+        // The backend opens the window within the accreditation's own year.
+        year === currentYear() && isDecemberWasteWindowOpen(),
         balance,
         'PERNs'
       )
