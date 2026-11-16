@@ -22,6 +22,7 @@ import { isDecemberWasteWindowOpen } from '~/test/support/december-waste-window.
 import { checkOnUploadPage } from '~/test/support/summary-log-checks.js'
 
 const JOURNEY_TIMEOUT_MS = 4 * 60 * 1000
+const OPENING_BALANCE_2026 = '1,000.00'
 
 const exportedTonnes = (tonnage) => ({
   'Exported (sections 1, 2 and 3)': [
@@ -150,7 +151,7 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
       await uploadSummaryLogPage.performUploadAndReturnToHomepage(log, year)
     }
 
-    await expectWasteBalances({ 2026: '1,000.00', 2027: '400.00' })
+    await expectWasteBalances({ 2026: OPENING_BALANCE_2026, 2027: '400.00' })
 
     await createPern({
       year: 2027,
@@ -158,12 +159,12 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
       balance: '400.00',
       tonnageWordings: { integer: 40, word: 'Forty' }
     })
-    await expectWasteBalances({ 2027: '360.00', 2026: '1,000.00' })
+    await expectWasteBalances({ 2027: '360.00', 2026: OPENING_BALANCE_2026 })
 
     await createPern({
       year: 2026,
       accNumber: accNumber2026,
-      balance: '1,000.00',
+      balance: OPENING_BALANCE_2026,
       tonnageWordings: { integer: 100, word: 'One hundred' }
     })
     await expectWasteBalances({ 2026: '900.00', 2027: '360.00' })
