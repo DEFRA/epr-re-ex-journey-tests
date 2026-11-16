@@ -23,7 +23,7 @@ const baseOptions = {
   accNumber: 'A26EPA500001-1'
 }
 
-/** @param {Partial<typeof baseOptions> & {rows: Record<string, PlannedRow[]>}} options */
+/** @param {Partial<typeof baseOptions> & {rows: Record<string, PlannedRow[]>, year?: number}} options */
 const generate = (options) =>
   generateSummaryLogContent({ ...baseOptions, ...options })
 
@@ -151,6 +151,16 @@ describe('summary log content generator', () => {
       'REGISTRATION_NUMBER'
     ])
     assert.deepEqual(Object.keys(content.data), [RECEIVED_TABLE])
+  })
+
+  it("lays the content out as the year's template does", async () => {
+    const headersIn = async (year) =>
+      (await generate({ year, rows: { [RECEIVED]: [{ rowId: 1000 }] } })).data[
+        RECEIVED_TABLE
+      ].headers
+
+    assert.ok(!(await headersIn(2026)).includes('DWT_SUPPLY_ID'))
+    assert.ok((await headersIn(2027)).includes('DWT_SUPPLY_ID'))
   })
 
   it('rejects a field the template does not carry', async () => {

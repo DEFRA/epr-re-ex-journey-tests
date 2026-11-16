@@ -356,7 +356,7 @@ export function approveMigratedRegistration(
  * honoured in a PUT that leaves the statuses as they are.
  *
  * @param {{reprocessingType?: 'input' | 'output', exporting?: boolean}} [options]
- * @returns {Promise<{refNo: string, email: string, companyName: string, years: number[], organisationNumber: number, registrationNumber: string, accreditationNumber: string, registrationId: string}>}
+ * @returns {Promise<{refNo: string, email: string, companyName: string, years: number[], organisationNumber: number, registrationNumber: string, accreditationNumber: string, registrationId: string, exporter?: {registrationNumber: string, registrationId: string}}>}
  */
 export async function seedOrganisationAcrossYears({
   reprocessingType = 'input',
@@ -396,20 +396,26 @@ export async function seedOrganisationAcrossYears({
     }
   )
 
-  if (exporting) {
-    await approveMigratedRegistration(
-      refNo,
-      { registrationIndex: 1 },
-      {
-        ...generateNumbers({
-          wasteProcessingType: 'exporter',
-          materialSuffix: 'PA'
-        }),
-        validFrom: `${firstYear}-01-01`,
-        submittedToRegulator: 'ea'
+  const exporterNumbers = generateNumbers({
+    wasteProcessingType: 'exporter',
+    materialSuffix: 'PA'
+  })
+  const exporter = exporting
+    ? {
+        registrationNumber: exporterNumbers.regNumber,
+        registrationId: (
+          await approveMigratedRegistration(
+            refNo,
+            { registrationIndex: 1 },
+            {
+              ...exporterNumbers,
+              validFrom: `${firstYear}-01-01`,
+              submittedToRegulator: 'ea'
+            }
+          )
+        ).registrationId
       }
-    )
-  }
+    : undefined
 
   await amendMigratedOrganisation(refNo, (data) => {
     data.registrations.forEach((registration) => {
@@ -433,7 +439,8 @@ export async function seedOrganisationAcrossYears({
     organisationNumber: orgId,
     registrationNumber: numbers.regNumber,
     accreditationNumber: numbers.accNumber,
-    registrationId
+    registrationId,
+    ...(exporter && { exporter })
   }
 }
 
