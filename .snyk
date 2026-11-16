@@ -5,27 +5,6 @@ ignore:
     - '*':
         reason: 'Transitively pulled in by ExcelJS, via archiver > archiver-utils > glob and via unzipper > fstream > rimraf > glob, and by eslint > file-entry-cache > flat-cache > rimraf > glob. Test-only tooling that runs briefly and exits on controlled, local/test inputs; memory-leak impact is not exploitable in this context and there is no upstream fix.'
         expires: '2028-01-01T00:00:00.000Z'
-  # http-cache-semantics 4.2.0 is the latest published release and is itself the
-  # flagged version; only unreleased prereleases carry a fix, so there is no
-  # stable upstream patch. It reaches us only through browserstack-node-sdk's
-  # HTTP client (got > cacheable-request), which runs only during BrowserStack
-  # test execution against BrowserStack's own endpoints, not a production path.
-  'SNYK-JS-HTTPCACHESEMANTICS-19964064':
-    - '*':
-        reason: >-
-          Origin validation error in http-cache-semantics; no stable upstream
-          patch (4.2.0 is latest and is the flagged version). Reached only via
-          browserstack-node-sdk > got > cacheable-request during BrowserStack
-          test runs. Test-only tooling, not a production path.
-        expires: 2027-03-21T00:00:00.000Z
-  'SNYK-JS-HTTPCACHESEMANTICS-19964068':
-    - '*':
-        reason: >-
-          Improper authorization in http-cache-semantics; same path
-          (browserstack-node-sdk > got > cacheable-request) and no stable
-          upstream patch (4.2.0 is latest and is the flagged version).
-          Test-only BrowserStack tooling, not a production path.
-        expires: 2027-03-21T00:00:00.000Z
   # Zip Slip in unzipper. Triggers only when extracting archive entries to disk.
   # unzipper reaches us via exceljs, used by the test data/spreadsheet
   # generators, which read xlsx zips in memory (unzipper.Open.buffer) and never
@@ -53,3 +32,30 @@ ignore:
           PAC file. Fix is basic-ftp 6.x but get-uri pins ^5 in every release.
           Test-only BrowserStack tooling, not a production path.
         expires: 2027-04-26T00:00:00.000Z
+  'SNYK-JS-MINIMATCH-22111072':
+    - 'exceljs > *':
+        reason: >-
+          Pattern amplification in minimatch 3.x under glob 7, reached only
+          through exceljs (archiver-utils and unzipper > fstream > rimraf).
+          The fix is minimatch 11, which glob 7 cannot use, and exceljs has no
+          release off glob 7. The globs are never fed attacker-controlled
+          patterns. Test-only spreadsheet generators, not a production path.
+        expires: 2027-02-16T00:00:00.000Z
+  'SNYK-JS-BASICFTP-22549670':
+    - '*':
+        reason: >-
+          Prototype pollution via a __proto__ fact name in a basic-ftp server
+          response, reached only when pac-proxy-agent fetches a PAC file over
+          ftp://. The suite uses a plain HTTP_PROXY, no PAC file. Fix is
+          basic-ftp 6.x but get-uri (8.0.1, latest) still pins ^5.
+          Test-only BrowserStack tooling, not a production path.
+        expires: 2027-02-16T00:00:00.000Z
+  'SNYK-JS-BASICFTP-22549672':
+    - '*':
+        reason: >-
+          Crash on CR/LF in an FTP password, reached only when pac-proxy-agent
+          fetches a PAC file over ftp://. The suite uses a plain HTTP_PROXY, no
+          PAC file, and passes no FTP credentials. Fix is basic-ftp 6.x but
+          get-uri (8.0.1, latest) still pins ^5. Test-only BrowserStack
+          tooling, not a production path.
+        expires: 2027-02-16T00:00:00.000Z
