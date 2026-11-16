@@ -65,6 +65,12 @@ class DashboardPage extends Page {
     return this.page.getByRole('link', { name: 'Exporting', exact: true })
   }
 
+  // The selected tab carries aria-current="page", which is what a screen
+  // reader announces; Playwright's getByRole has no option for it.
+  currentTab() {
+    return this.page.locator('.govuk-tabs a[aria-current="page"]')
+  }
+
   async getTableCell(tableIndex, rowIndex, cellIndex) {
     return this.page
       .locator(

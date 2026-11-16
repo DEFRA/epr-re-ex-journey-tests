@@ -334,22 +334,40 @@ export function approveMigratedRegistration(
  * starts this year: the organisation spans from two years ago to the latest
  * open year, newest first.
  *
+ * With `exporting`, a registered-only exporter registration is approved over
+ * the same years, so every year shows both the Reprocessing and Exporting
+ * tabs.
+ *
  * Approval and backdating take a PUT each. The service dates a status change
  * today and discards the status history sent with it, so the history is only
  * honoured in a PUT that leaves the statuses as they are.
  *
- * @param {{reprocessingType?: 'input' | 'output'}} [options]
+ * @param {{reprocessingType?: 'input' | 'output', exporting?: boolean}} [options]
  * @returns {Promise<{refNo: string, email: string, companyName: string, years: number[], organisationNumber: number, registrationNumber: string, accreditationNumber: string, registrationId: string}>}
  */
 export async function seedOrganisationAcrossYears({
-  reprocessingType = 'input'
+  reprocessingType = 'input',
+  exporting = false
 } = {}) {
   const thisYear = currentYear()
   const firstYear = thisYear - 2
   const createdOn = `${firstYear - 1}-12-31`
+  const approvedSinceFirstYear = [
+    { status: 'created', updatedAt: createdOn },
+    { status: 'approved', updatedAt: `${firstYear}-01-01` }
+  ]
 
   const { orgId, refNo, organisation } = await createLinkedOrganisation([
-    { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' }
+    { material: 'Paper or board (R3)', wasteProcessingType: 'Reprocessor' },
+    ...(exporting
+      ? [
+          {
+            material: 'Paper or board (R3)',
+            wasteProcessingType: 'Exporter',
+            withoutAccreditation: true
+          }
+        ]
+      : [])
   ])
 
   const numbers = fillerNumbers()
@@ -365,11 +383,25 @@ export async function seedOrganisationAcrossYears({
     }
   )
 
+  if (exporting) {
+    await approveMigratedRegistration(
+      refNo,
+      { registrationIndex: 1 },
+      {
+        ...generateNumbers({
+          wasteProcessingType: 'exporter',
+          materialSuffix: 'PA'
+        }),
+        validFrom: `${firstYear}-01-01`,
+        submittedToRegulator: 'ea'
+      }
+    )
+  }
+
   await amendMigratedOrganisation(refNo, (data) => {
-    data.registrations[0].statusHistory = [
-      { status: 'created', updatedAt: createdOn },
-      { status: 'approved', updatedAt: `${firstYear}-01-01` }
-    ]
+    data.registrations.forEach((registration) => {
+      registration.statusHistory = approvedSinceFirstYear
+    })
     data.accreditations[0].validFrom = `${thisYear}-01-01`
     data.accreditations[0].statusHistory = [
       { status: 'created', updatedAt: createdOn },
