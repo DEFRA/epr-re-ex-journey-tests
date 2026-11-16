@@ -1,20 +1,23 @@
 import { checkBodyText } from '../support/checks.js'
 import { checkOnCheckPage } from '../support/summary-log-checks.js'
-import { SummaryLogUploadActions } from './summary-log-upload-actions.js'
+import {
+  SummaryLogUploadActions,
+  UPLOAD_YEAR
+} from './summary-log-upload-actions.js'
 import { CheckSummaryLogPage } from './check.summary.log.page.js'
 
 class UploadSummaryLogPage extends SummaryLogUploadActions {
-  async performUploadAndReturnToHomepage(filePath) {
+  async performUploadAndReturnToHomepage(filePath, year = UPLOAD_YEAR) {
     await this.uploadFile(filePath)
     await this.continue()
 
     await checkBodyText(this.page, 'Your summary log is being checked', 30)
-    await checkOnCheckPage(this.page)
+    await checkOnCheckPage(this.page, year)
 
     await new CheckSummaryLogPage(this.page).uploadButton().click()
 
     await checkBodyText(this.page, 'Your waste records are being updated', 30)
-    await this.checkUploaded()
+    await this.checkUploaded(year)
     await this.returnToHomePageLink().click()
   }
 
