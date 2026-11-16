@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs'
 import {
   PROCESSING_TYPE_CONFIG,
+  templateFileFor,
   WORKSHEET_CONFIG
 } from './spreadsheet-config.js'
 import {
@@ -114,6 +115,7 @@ function parsedValue(value) {
  * @param {string} options.regNumber
  * @param {string} [options.accNumber] - absent for a registered-only template
  * @param {Record<string, PlannedRow[]>} options.rows - by worksheet name; a worksheet given none is left out
+ * @param {number} [options.year] - the year whose template lays the content out
  * @returns {Promise<SummaryLogContent>}
  */
 export async function generateSummaryLogContent({
@@ -121,14 +123,17 @@ export async function generateSummaryLogContent({
   materialSuffix,
   regNumber,
   accNumber,
-  rows
+  rows,
+  year
 }) {
   const config = PROCESSING_TYPE_CONFIG[wasteProcessingType]
   if (!config) {
     throw new Error(`Unknown wasteProcessingType: ${wasteProcessingType}`)
   }
   const material = materialWithSuffix(materialSuffix)
-  const layout = await templateLayout(config.templateFile)
+  const layout = await templateLayout(
+    templateFileFor(config.templateFile, year)
+  )
 
   /** @type {Record<string, TableContent>} */
   const data = {}

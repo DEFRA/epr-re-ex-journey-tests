@@ -5,10 +5,6 @@ class WasteRecordsExportPage extends AdminPage {
     return super.open('/waste-records-export')
   }
 
-  async fetchCsv() {
-    return super.fetchCsv('/waste-records-export')
-  }
-
   /** @returns {import('@playwright/test').Locator} */
   yearDropdown() {
     return this.page.getByLabel('Year', { exact: true })

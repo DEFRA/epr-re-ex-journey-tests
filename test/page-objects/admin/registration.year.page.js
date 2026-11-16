@@ -1,4 +1,5 @@
 import { AdminPage } from 'page-objects/admin/page'
+import { parseCsvRows } from '../../support/csv.js'
 
 class RegistrationYearPage extends AdminPage {
   reportsTable() {
@@ -40,39 +41,48 @@ class RegistrationYearPage extends AdminPage {
     return data
   }
 
-  viewORSLink() {
+  /**
+   * @param {string} key
+   * @param {string} linkName
+   * @returns {import('@playwright/test').Locator}
+   */
+  #summaryRowLink(key, linkName) {
     return this.page
       .locator('.govuk-summary-list__row', {
-        has: this.page.locator('dt', { hasText: 'Overseas sites' })
+        has: this.page.locator('dt', { hasText: key })
       })
-      .getByRole('link', { name: 'View', exact: true })
+      .getByRole('link', { name: linkName, exact: true })
+  }
+
+  viewORSLink() {
+    return this.#summaryRowLink('Overseas sites', 'View')
   }
 
   /** @returns {import('@playwright/test').Locator} */
   wasteBalanceEventsLink() {
-    return this.page
-      .locator('.govuk-summary-list__row', {
-        has: this.page.locator('dt', { hasText: 'Waste balance events' })
-      })
-      .getByRole('link', { name: 'View', exact: true })
+    return this.#summaryRowLink('Waste balance events', 'View')
   }
 
   /** @returns {import('@playwright/test').Locator} */
   prnActivityDownloadLink() {
-    return this.page
-      .locator('.govuk-summary-list__row', {
-        has: this.page.locator('dt', { hasText: 'PRN activity' })
-      })
-      .getByRole('link', { name: 'Download', exact: true })
+    return this.#summaryRowLink('PRN activity', 'Download')
   }
 
   /** @returns {import('@playwright/test').Locator} */
   wasteRecordsDownloadLink() {
-    return this.page
-      .locator('.govuk-summary-list__row', {
-        has: this.page.locator('dt', { hasText: 'Waste records' })
-      })
-      .getByRole('link', { name: 'Download', exact: true })
+    return this.#summaryRowLink('Waste records', 'Download')
+  }
+
+  /**
+   * Downloads the year's waste records, one record per row keyed by column.
+   *
+   * @returns {Promise<{ failure: string | null, filename: string, records: Record<string, string>[] }>}
+   */
+  async downloadWasteRecords() {
+    const { failure, filename, body } = await this.download(
+      this.wasteRecordsDownloadLink()
+    )
+    return { failure, filename, records: parseCsvRows(body.toString('utf8')) }
   }
 
   // The actions cell renders <a>View</a><br><a>Unsubmit</a>, so the nth-child

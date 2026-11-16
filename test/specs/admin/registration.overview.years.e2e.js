@@ -13,13 +13,11 @@ import { registerAndLinkDefraIdUser } from '../../support/defra-id-linking.js'
 import { defraIdStub } from '../../support/defra-id-stub.js'
 import { generateSummaryLogContent } from '../../support/spreadsheet/summarylogs-content-generator.js'
 import { checkAccessibility } from '../../support/accessibility.js'
-import { parseCsvBody } from '../../support/csv.js'
 
 // The registration is registered-only for the two years before this one and
 // accredited this year. Last year holds a submitted Quarter 1 report, in a
 // period that has ended whatever today's date, and no summary log: it has no
-// templates to submit against. This year holds a summary log. Each year page
-// downloads that year's waste records; the overview offers none.
+// templates to submit against. This year holds a summary log.
 test.describe('Registration overview years', () => {
   test.describe.configure({ timeout: 3 * 60 * 1000 })
 
@@ -140,16 +138,12 @@ test.describe('Registration overview years', () => {
         'No summary logs'
       )
 
-      const csv = await registrationYearPage.download(
-        registrationYearPage.wasteRecordsDownloadLink()
-      )
+      const csv = await registrationYearPage.downloadWasteRecords()
       expect(csv.failure).toBeNull()
       expect(csv.filename).toMatch(
         new RegExp(`^${seeded.registrationNumber}-${lastYear}-.+\\.csv$`)
       )
-      const [header, ...rows] = parseCsvBody(csv.body.toString('utf8'))
-      expect(header).toContain('Registration Number')
-      expect(rows.filter((row) => row.some((cell) => cell !== ''))).toEqual([])
+      expect(csv.records).toEqual([])
     })
 
     await test.step('A report opens and returns to its year', async () => {
@@ -190,20 +184,17 @@ test.describe('Registration overview years', () => {
         )
       ).toEqual(['View data', 'Download'])
 
-      const csv = await registrationYearPage.download(
-        registrationYearPage.wasteRecordsDownloadLink()
-      )
+      const csv = await registrationYearPage.downloadWasteRecords()
       expect(csv.failure).toBeNull()
       expect(csv.filename).toMatch(
         new RegExp(`^${seeded.registrationNumber}-${thisYear}-.+\\.csv$`)
       )
-      const [header, ...rows] = parseCsvBody(csv.body.toString('utf8'))
-      const records = rows.filter((row) => row.some((cell) => cell !== ''))
-      expect(records.length).toBeGreaterThan(0)
-      const registrationColumn = header.indexOf('Registration Number')
-      expect(new Set(records.map((row) => row[registrationColumn]))).toEqual(
-        new Set([seeded.registrationNumber])
-      )
+      expect(
+        csv.records.map((record) => [
+          record['Registration Number'],
+          record['Row ID']
+        ])
+      ).toEqual([[seeded.registrationNumber, '9001']])
     })
 
     await test.step('A year opened as the wrong kind is not found', async () => {
@@ -214,5 +205,62 @@ test.describe('Registration overview years', () => {
       )
       expect(response?.status()).toBe(404)
     })
+  })
+  test("A registered-only registration's year pages each download that year's waste records @organisations", async ({
+    page
+  }) => {
+    const registrationYearPage = new RegistrationYearPage(page)
+
+    const seeded = await seedOrganisationAcrossYears({ exporting: true })
+    const [nextYear, thisYear] = seeded.years
+    if (!seeded.exporter) {
+      throw new Error('The organisation was seeded with no exporter')
+    }
+    const { registrationNumber, registrationId } = seeded.exporter
+    const user = await registerAndLinkDefraIdUser(seeded.refNo, seeded.email)
+    const defraAuthHeader = defraIdStub.authHeader(user.userId)
+
+    const rowIdByYear = { [thisYear]: '1001', [nextYear]: '1002' }
+    for (const year of [thisYear, nextYear]) {
+      const submitted = await submitSummaryLogContent(
+        seeded.refNo,
+        registrationId,
+        defraAuthHeader,
+        await generateSummaryLogContent({
+          wasteProcessingType: 'regOnlyExporter',
+          materialSuffix: 'PA',
+          regNumber: registrationNumber,
+          year,
+          rows: {
+            'Received (section 1)': [
+              {
+                rowId: Number(rowIdByYear[year]),
+                fields: { MONTH_RECEIVED_FOR_EXPORT: `01/01/${year}` }
+              }
+            ]
+          }
+        }),
+        year
+      )
+      expect(submitted.status).toBe('submitted')
+    }
+
+    await new AdminLoginPage(page).loginAsServiceMaintainer()
+
+    for (const year of [thisYear, nextYear]) {
+      await registrationYearPage.open(
+        `/organisations/${seeded.organisationNumber}/registrations/${encodeURIComponent(registrationNumber)}/years/${year}`
+      )
+      await expect(page).toHaveURL(new RegExp(`/registered-only/${year}$`))
+
+      const csv = await registrationYearPage.downloadWasteRecords()
+      expect(csv.failure).toBeNull()
+      expect(csv.filename).toMatch(
+        new RegExp(`^${registrationNumber}-${year}-.+\\.csv$`)
+      )
+      expect(csv.records.map((record) => record['Row ID'])).toEqual([
+        rowIdByYear[year]
+      ])
+    }
   })
 })
