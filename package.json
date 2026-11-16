@@ -10,7 +10,10 @@
   "license": "OGL-UK-3.0",
   "overrides": {
     "undici": "$undici",
-    "uuid": "14.0.0"
+    "uuid": "14.0.0",
+    "qs": "6.16.2",
+    "glob@>=9.0.0 <14.0.2": "14.0.4",
+    "minimatch@>=5.0.0 <11.0.1": "11.0.5"
   },
   "aliases": {
     "~": ".",
@@ -81,7 +84,7 @@
     "@eslint/js": "10.0.1",
     "@types/express": "5.0.6",
     "eslint": "10.14.0",
-    "eslint-plugin-import-x": "4.17.1",
+    "eslint-plugin-import-x": "4.18.1",
     "husky": "9.1.7",
     "lint-staged": "17.6.0",
     "neostandard": "0.14.1",
