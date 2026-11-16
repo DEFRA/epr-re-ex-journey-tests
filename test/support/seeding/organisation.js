@@ -463,15 +463,17 @@ async function assertOrganisationYears(organisationNumber, expected) {
  * @param {{organisationNumber: number, registrationNumber: string}} holder -
  *   the organisation and its registration the accreditation is for
  * @param {number} year
+ * @param {{wasteProcessingType?: import('../reg-acc-number.js').ProcessingType, materialSuffix?: string}} [numbering] - the registration's own, so the number reads as its accreditation's
  * @returns {Promise<{accreditationNumber: string}>}
  */
 export async function seedExternalAccreditation(
   { organisationNumber, registrationNumber },
-  year
+  year,
+  { wasteProcessingType = 'reprocessor', materialSuffix = 'PA' } = {}
 ) {
   const accreditationNumber = generateAccNumber({
-    wasteProcessingType: 'reprocessor',
-    materialSuffix: 'PA',
+    wasteProcessingType,
+    materialSuffix,
     year: String(year).slice(-2)
   })
   const approvedAt = `${year}-01-01T00:00:00.000Z`
