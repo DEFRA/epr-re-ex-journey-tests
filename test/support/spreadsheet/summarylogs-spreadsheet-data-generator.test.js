@@ -299,6 +299,21 @@ describe('summary log spreadsheet generator', () => {
       assert.ok(field(sheet, 'EWC_CODE', 4))
     })
 
+    it('fills the 2027 exporter template, whose row ID formula is shared across two columns', async () => {
+      const sheet = await renderSheet(
+        {
+          wasteProcessingType: 'exporter',
+          materialSuffix: 'WO',
+          sheets: null,
+          numberOfRows: 1,
+          year: 2027
+        },
+        'Exported (sections 1, 2 and 3)'
+      )
+
+      assert.equal(valueOf(sheet.getCell('B4')), '1000')
+    })
+
     it('writes each year to its own file', async () => {
       const options = {
         ...baseOptions,

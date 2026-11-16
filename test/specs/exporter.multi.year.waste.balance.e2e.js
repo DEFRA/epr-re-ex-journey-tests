@@ -11,7 +11,6 @@ import {
   seedOverseasSites,
   updateMigratedOrganisation
 } from '~/test/support/seeding/organisation.js'
-import { summaryLogDatedAt } from '~/test/support/seeding/summary-logs.js'
 import { generateSpreadsheetData } from '~/test/support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
 import { createPrnDetails } from '~/test/support/fixtures.js'
@@ -25,7 +24,7 @@ import { currentYear } from '~/test/support/date.js'
 const JOURNEY_TIMEOUT_MS = 4 * 60 * 1000
 const OPENING_BALANCE_2026 = '1,000.00'
 
-const exportedTonnes = (tonnage) => ({
+const exportedTonnes = (tonnage, datedOn) => ({
   'Exported (sections 1, 2 and 3)': [
     {
       fields: {
@@ -34,7 +33,13 @@ const exportedTonnes = (tonnage) => ({
         WAS_THE_WASTE_REFUSED: 'No',
         WAS_THE_WASTE_STOPPED: 'No',
         OSR_ID: 100,
-        TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED: tonnage
+        TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED: tonnage,
+        ...(datedOn && {
+          DATE_RECEIVED_FOR_EXPORT: datedOn,
+          DATE_OF_EXPORT: datedOn,
+          DATE_RECEIVED_BY_OSR: datedOn,
+          DATE_THE_REFUSED_STOPPED_WASTE_REPATRIATED: datedOn
+        })
       }
     }
   ]
@@ -79,21 +84,18 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
         numbering
       )
 
-    const summaryLogFor = (year, accNumber, tonnage) =>
+    const summaryLogFor = (year, accNumber, tonnage, datedOn) =>
       generateSpreadsheetData({
         wasteProcessingType: 'exporter',
         materialSuffix: 'WO',
         regNumber,
         accNumber,
-        rows: exportedTonnes(tonnage),
+        rows: exportedTonnes(tonnage, datedOn),
         year,
         silentLogging: true
       })
     const log2026 = await summaryLogFor(2026, accNumber2026, 1000)
-    const log2027 = await summaryLogDatedAt(
-      await summaryLogFor(2027, accNumber2027, 400),
-      new Date(Date.UTC(2027, 0, 1, 12))
-    )
+    const log2027 = await summaryLogFor(2027, accNumber2027, 400, '01/01/2027')
 
     const openAccreditationFor = async (year) => {
       await dashboardPage.open(organisationDetails.refNo)
