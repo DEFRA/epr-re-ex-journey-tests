@@ -122,9 +122,12 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       page
     }) => {
       const dashboardPage = new DashboardPage(page)
-      const { refNo, email, registrationNumber } =
+      const { refNo, email, organisationNumber, registrationNumber } =
         await seedOrganisationAcrossYears()
-      await seedExternalAccreditation(registrationNumber, latestOpenYear())
+      await seedExternalAccreditation(
+        { organisationNumber, registrationNumber },
+        latestOpenYear()
+      )
 
       await createLinkAndLogin(page, refNo, email)
       await dashboardPage.chooseYear(latestOpenYear())

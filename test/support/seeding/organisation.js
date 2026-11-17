@@ -473,11 +473,15 @@ async function assertOrganisationYears(organisationNumber, expected) {
  * Seeds an approved accreditation for a year through the backend's stand-in
  * for the registration service, the source of accreditations from 2027.
  *
- * @param {string} registrationNumber
+ * @param {{organisationNumber: number, registrationNumber: string}} holder -
+ *   the organisation and its registration the accreditation is for
  * @param {number} year
  * @returns {Promise<{accreditationNumber: string}>}
  */
-export async function seedExternalAccreditation(registrationNumber, year) {
+export async function seedExternalAccreditation(
+  { organisationNumber, registrationNumber },
+  year
+) {
   const accreditationNumber = generateAccNumber({
     wasteProcessingType: 'reprocessor',
     materialSuffix: 'PA',
@@ -489,6 +493,7 @@ export async function seedExternalAccreditation(registrationNumber, year) {
   const response = await new BaseAPI().put(
     path,
     JSON.stringify({
+      organisationNumber: String(organisationNumber),
       accreditationNumber,
       prnIssuance: { tonnageBand: 'up_to_500' },
       status: {
