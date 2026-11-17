@@ -2,8 +2,16 @@ import { Page } from 'page-objects/page'
 import { ChooseYearPage } from 'page-objects/choose.year.page.js'
 
 class DashboardPage extends Page {
-  open(orgId) {
-    return this.page.goto(`/organisations/${orgId}`)
+  /**
+   * @param {string | number} orgId
+   * @param {number} [year] - a given year's home, rather than the one home opens on
+   */
+  open(orgId, year) {
+    return this.page.goto(
+      year === undefined
+        ? `/organisations/${orgId}`
+        : `/organisations/${orgId}/${year}`
+    )
   }
 
   async selectLink(index) {

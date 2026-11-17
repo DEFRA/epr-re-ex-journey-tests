@@ -110,6 +110,11 @@ test.describe('Report tonnage reconciles with the waste balance — exporter @re
     const wasteRecordsPage = new WasteRecordsPage(page)
     const reportDetailPage = new ReportDetailPage(page)
 
+    // Home opens on this year, but the accreditation is the reported period's,
+    // which in January is last year's.
+    await dashboardPage.open(organisationDetails.orgId, YEAR)
+    await dashboardPage.expectYear(YEAR)
+
     await dashboardPage.selectTableLink(1, 1)
     const balanceText = await wasteRecordsPage.wasteBalanceAmount()
 
