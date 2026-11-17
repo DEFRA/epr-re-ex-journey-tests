@@ -137,6 +137,9 @@ test.describe('Registration overview years', () => {
       expect(await registrationYearPage.getSummaryLogsContent()).toContain(
         'No summary logs'
       )
+      await expect(registrationYearPage.wasteRecordsDownloadLink()).toHaveCount(
+        0
+      )
     })
 
     await test.step('A report opens and returns to its year', async () => {
