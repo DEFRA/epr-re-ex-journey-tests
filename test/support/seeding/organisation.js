@@ -484,9 +484,8 @@ export async function seedExternalAccreditation(
       accreditationNumber,
       prnIssuance: { tonnageBand: 'up_to_500' },
       status: {
-        timeline: [
-          { status: 'approved', at: approvedAt, updatedAt: approvedAt }
-        ]
+        lastUpdatedAt: approvedAt,
+        timeline: [{ status: 'approved', at: approvedAt }]
       }
     })
   )
