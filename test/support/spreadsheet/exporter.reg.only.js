@@ -9,14 +9,13 @@ import {
 
 // Generate a single row for "Received" section
 export function generateRegOnlyReceivedRow() {
-  const date = new Date()
-  const month = String(date.getMonth()).padStart(2, '0') // getMonth() is 0-indexed, so no +1 needed
-  const year =
-    date.getMonth() === 0 ? date.getFullYear() - 1 : date.getFullYear() // handle January → previous year
+  const now = new Date()
+  // Month 0 less one is December of the year before.
+  const firstOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
 
   return {
     // Section 1
-    G: `01/${month}/${year}`, // Column G: Date received for export
+    G: firstOfLastMonth.toLocaleDateString('en-GB'), // Column G: Date received for export
     H: faker.company.name(), // Column H: Supplier name
     I: faker.location.streetAddress(), // Column I: First line of supplier address
     J: faker.location.zipCode(), // Column J: Supplier postcode
