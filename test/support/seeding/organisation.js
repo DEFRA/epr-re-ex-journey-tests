@@ -565,7 +565,7 @@ export async function updateMigratedOrganisation(
       if (entry.status === 'created') {
         return {
           ...entry,
-          updatedAt: SEEDED_CREATED_ON
+          updatedAt: orgUpdateData.createdOn ?? SEEDED_CREATED_ON
         }
       }
       return entry
@@ -599,7 +599,8 @@ export async function updateMigratedOrganisation(
       data.registrations[i].accreditationId = data.accreditations[j].id
       data.accreditations[j].status = accStatus
       data.accreditations[j].validFrom = validFrom
-      data.accreditations[j].validTo = `${currentYear() + 1}-01-01`
+      data.accreditations[j].validTo =
+        orgUpdateData.validTo ?? `${currentYear() + 1}-01-01`
       data.accreditations[j].statusHistory =
         accStatus === 'created'
           ? data.accreditations[j].statusHistory || []
@@ -616,7 +617,7 @@ export async function updateMigratedOrganisation(
         if (entry.status === 'created') {
           return {
             ...entry,
-            updatedAt: SEEDED_CREATED_ON
+            updatedAt: orgUpdateData.createdOn ?? SEEDED_CREATED_ON
           }
         }
         return entry

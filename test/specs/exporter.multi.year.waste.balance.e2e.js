@@ -17,9 +17,8 @@ import { createPrnDetails } from '~/test/support/fixtures.js'
 import { PrnHelper } from '~/test/support/prn.helper.js'
 import { generateNumbers } from '~/test/support/reg-acc-number.js'
 import { checkWasteBalanceForWindow } from '~/test/support/waste-balance-mode.js'
-import { isDecemberWasteWindowOpen } from '~/test/support/december-waste-window.js'
+import { isDecemberWasteWindowOpenFor } from '~/test/support/december-waste-window.js'
 import { checkOnUploadPage } from '~/test/support/summary-log-checks.js'
-import { currentYear } from '~/test/support/date.js'
 
 const JOURNEY_TIMEOUT_MS = 4 * 60 * 1000
 const OPENING_BALANCE_2026 = '1,000.00'
@@ -63,13 +62,24 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
       wasteProcessingType: 'exporter',
       materialSuffix: 'WO'
     })
-    const { regNumber, accNumber: accNumber2026 } = generateNumbers(numbering)
+    const { regNumber, accNumber: accNumber2026 } = generateNumbers({
+      ...numbering,
+      year: '26'
+    })
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Wood (R3)', wasteProcessingType: 'Exporter' }
     ])
     const { email } = await updateMigratedOrganisation(
       organisationDetails.refNo,
-      [{ regNumber, accNumber: accNumber2026, status: 'approved' }],
+      [
+        {
+          regNumber,
+          accNumber: accNumber2026,
+          status: 'approved',
+          validTo: '2027-01-01',
+          createdOn: '2025-12-31'
+        }
+      ],
       undefined,
       '2026-01-01'
     )
@@ -94,7 +104,7 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
         year,
         silentLogging: true
       })
-    const log2026 = await summaryLogFor(2026, accNumber2026, 1000)
+    const log2026 = await summaryLogFor(2026, accNumber2026, 1000, '01/06/2026')
     const log2027 = await summaryLogFor(2027, accNumber2027, 400, '01/01/2027')
 
     const openAccreditationFor = async (year) => {
@@ -127,8 +137,7 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
       await wasteRecordsPage.createNewPERNLink().click()
       const wasteBalancePool = await checkWasteBalanceForWindow(
         createPRNPage,
-        // The backend opens the window within the accreditation's own year.
-        year === currentYear() && isDecemberWasteWindowOpen(),
+        isDecemberWasteWindowOpenFor(year),
         balance,
         'PERNs'
       )
