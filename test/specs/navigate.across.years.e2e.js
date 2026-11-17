@@ -122,17 +122,16 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       page
     }) => {
       const dashboardPage = new DashboardPage(page)
-      const chooseYearPage = new ChooseYearPage(page)
-      const { refNo, email, registrationNumber } =
+      const { refNo, email, organisationNumber, registrationNumber } =
         await seedOrganisationAcrossYears()
-      await seedExternalAccreditation(registrationNumber, latestOpenYear())
+      await seedExternalAccreditation(
+        { organisationNumber, registrationNumber },
+        latestOpenYear()
+      )
 
       await createLinkAndLogin(page, refNo, email)
-      await dashboardPage.chooseDifferentYearLink().click()
-      await chooseYearPage.yearOption(latestOpenYear()).check()
-      await chooseYearPage.continueButton().click()
+      await dashboardPage.chooseYear(latestOpenYear())
 
-      await dashboardPage.expectYear(latestOpenYear())
       expect(await dashboardPage.getRegistrationStatus(1, 1)).toBe('Approved')
       expect(await dashboardPage.getAccreditationStatus(1, 1)).toBe('Approved')
     })
@@ -144,27 +143,31 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       const chooseYearPage = new ChooseYearPage(page)
       const wasteRecordsPage = new WasteRecordsPage(page)
       const uploadSummaryLogPage = new UploadSummaryLogPage(page)
-      const { refNo, email, registrationNumber, accreditationNumber } =
-        await seedOrganisationAcrossYears()
-      // 2027 is registered-only: accredited uploads are not yet accepted
-      // against the external accreditations that hold years from 2027.
-      const summaryLogFor = (wasteProcessingType, year) =>
+      const {
+        refNo,
+        email,
+        organisationNumber,
+        registrationNumber,
+        accreditationNumber
+      } = await seedOrganisationAcrossYears()
+      const { accreditationNumber: accreditationNumber2027 } =
+        await seedExternalAccreditation(
+          { organisationNumber, registrationNumber },
+          2027
+        )
+      const summaryLogFor = (year, accNumber) =>
         generateSpreadsheetData({
-          wasteProcessingType,
+          wasteProcessingType: 'reprocessorInput',
           materialSuffix: 'PA',
           regNumber: registrationNumber,
-          accNumber: accreditationNumber,
+          accNumber,
           numberOfRows: 3,
           year,
           silentLogging: true
         })
-      const log2026 = await summaryLogFor('reprocessorInput', 2026)
-      const registeredOnlyLog2026 = await summaryLogFor(
-        'regOnlyReprocessor',
-        2026
-      )
+      const log2026 = await summaryLogFor(2026, accreditationNumber)
       const log2027 = await summaryLogDatedAt(
-        await summaryLogFor('regOnlyReprocessor', 2027),
+        await summaryLogFor(2027, accreditationNumber2027),
         new Date(Date.UTC(2027, 0, 1, 12))
       )
       const openUploadFor = async (year) => {
@@ -183,7 +186,7 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       await uploadSummaryLogPage.performUploadAndReturnToHomepage(log2026, 2026)
 
       await openUploadFor(2027)
-      await uploadSummaryLogPage.uploadFile(registeredOnlyLog2026)
+      await uploadSummaryLogPage.uploadFile(log2026)
       await uploadSummaryLogPage.continue()
       await checkBodyText(
         page,
@@ -274,14 +277,10 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
 
     test('Manage reports carries the year chosen on home', async () => {
       const dashboardPage = new DashboardPage(page)
-      const chooseYearPage = new ChooseYearPage(page)
       const wasteRecordsPage = new WasteRecordsPage(page)
       const reportsPage = new ReportsPage(page)
 
-      await dashboardPage.chooseDifferentYearLink().click()
-      await chooseYearPage.yearOption(year).check()
-      await chooseYearPage.continueButton().click()
-      await dashboardPage.expectYear(year)
+      await dashboardPage.chooseYear(year)
 
       await dashboardPage.selectTableLink(1, 1)
       await wasteRecordsPage.expectYear(year)
@@ -317,14 +316,10 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
 
     test('Changing year from home moves the reports with it', async () => {
       const dashboardPage = new DashboardPage(page)
-      const chooseYearPage = new ChooseYearPage(page)
       const wasteRecordsPage = new WasteRecordsPage(page)
 
       await dashboardPage.open(organisationNumber)
-      await dashboardPage.chooseDifferentYearLink().click()
-      await chooseYearPage.yearOption(currentYear()).check()
-      await chooseYearPage.continueButton().click()
-      await dashboardPage.expectYear(currentYear())
+      await dashboardPage.chooseYear(currentYear())
 
       await dashboardPage.selectTableLink(1, 1)
       await wasteRecordsPage.expectYear(currentYear())

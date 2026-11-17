@@ -48,6 +48,32 @@ import pino from 'pino'
  *   the clock under a seed, so a row that must hold still pins its dates too.
  */
 
+/**
+ * @param {string} address - e.g. C15007
+ * @returns {string} e.g. C
+ */
+const columnLetterOf = (address) => address.replace(/\d+$/, '')
+
+/**
+ * Whether a cell clones a shared formula whose master sits in one of the
+ * columns being flattened. Flattening the master alone leaves the clone
+ * pointing at nothing, and ExcelJS then refuses to write the workbook. The
+ * 2027 exporter template's ROW_ID formula is shared across columns B and C.
+ *
+ * @param {import('exceljs').Cell} cell
+ * @param {string[]} columns
+ * @returns {boolean}
+ */
+function sharesFormulaFrom(cell, columns) {
+  const { value } = cell
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'sharedFormula' in value &&
+    columns.includes(columnLetterOf(value.sharedFormula))
+  )
+}
+
 /** The worksheet row carrying the template's field markers. */
 export const MARKER_ROW = 1
 
@@ -358,9 +384,12 @@ export async function generateSpreadsheetData(options = {}) {
         }
         workbook.eachSheet((sheet) => {
           sheet.eachRow((row) => {
-            targetCols.forEach((col) => {
-              const cell = row.getCell(col)
-              if (cell.type === ExcelJS.ValueType.Formula) {
+            row.eachCell((cell) => {
+              if (
+                cell.type === ExcelJS.ValueType.Formula &&
+                (targetCols.includes(columnLetterOf(cell.address)) ||
+                  sharesFormulaFrom(cell, targetCols))
+              ) {
                 cell.value = cell.result ?? null
               }
             })

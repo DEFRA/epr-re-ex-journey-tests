@@ -207,7 +207,20 @@ export async function createLinkedOrganisation(dataRows) {
 // write it down.
 export const SEEDED_VALID_FROM = `${currentYear()}-01-01`
 
-export const SEEDED_CREATED_ON = `${currentYear() - 1}-12-31`
+/**
+ * The day before a seeded record starts, so that its creation comes before its
+ * approval in the history the backend sorts by date.
+ *
+ * @param {string} validFrom - ISO date
+ * @returns {string} ISO date
+ */
+export const seededCreatedOn = (validFrom) => {
+  const createdOn = new Date(validFrom)
+  createdOn.setUTCDate(createdOn.getUTCDate() - 1)
+  return createdOn.toISOString().slice(0, 10)
+}
+
+export const SEEDED_CREATED_ON = seededCreatedOn(SEEDED_VALID_FROM)
 
 // Migration lands a moment after the migrate call returns, so the first read
 // of a freshly migrated organisation can miss it.
@@ -460,14 +473,20 @@ async function assertOrganisationYears(organisationNumber, expected) {
  * Seeds an approved accreditation for a year through the backend's stand-in
  * for the registration service, the source of accreditations from 2027.
  *
- * @param {string} registrationNumber
+ * @param {{organisationNumber: number, registrationNumber: string}} holder -
+ *   the organisation and its registration the accreditation is for
  * @param {number} year
+ * @param {{wasteProcessingType?: import('../reg-acc-number.js').ProcessingType, materialSuffix?: string}} [numbering] - the registration's own, so the number reads as its accreditation's
  * @returns {Promise<{accreditationNumber: string}>}
  */
-export async function seedExternalAccreditation(registrationNumber, year) {
+export async function seedExternalAccreditation(
+  { organisationNumber, registrationNumber },
+  year,
+  { wasteProcessingType = 'reprocessor', materialSuffix = 'PA' } = {}
+) {
   const accreditationNumber = generateAccNumber({
-    wasteProcessingType: 'reprocessor',
-    materialSuffix: 'PA',
+    wasteProcessingType,
+    materialSuffix,
     year: String(year).slice(-2)
   })
   const approvedAt = `${year}-01-01T00:00:00.000Z`
@@ -476,6 +495,7 @@ export async function seedExternalAccreditation(registrationNumber, year) {
   const response = await new BaseAPI().put(
     path,
     JSON.stringify({
+      organisationNumber: String(organisationNumber),
       accreditationNumber,
       prnIssuance: { tonnageBand: 'up_to_500' },
       status: {
@@ -542,14 +562,15 @@ export async function updateMigratedOrganisation(
 
   for (let i = 0; i < updateDataRows.length; i++) {
     const orgUpdateData = updateDataRows[i]
+    const rowValidFrom = orgUpdateData.validFrom?.trim() || validFrom
     data.registrations[i].status = orgUpdateData.status
-    data.registrations[i].validFrom = validFrom
+    data.registrations[i].validFrom = rowValidFrom
     data.registrations[i].registrationNumber = orgUpdateData.regNumber
     data.registrations[i].statusHistory = [
       ...(data.registrations[i].statusHistory || []),
       {
         status: orgUpdateData.status,
-        updatedAt: data.registrations[i].validFrom
+        updatedAt: rowValidFrom
       }
     ]
     data.registrations[i].statusHistory = (
@@ -558,14 +579,11 @@ export async function updateMigratedOrganisation(
       if (entry.status === 'created') {
         return {
           ...entry,
-          updatedAt: SEEDED_CREATED_ON
+          updatedAt: orgUpdateData.createdOn ?? seededCreatedOn(rowValidFrom)
         }
       }
       return entry
     })
-    if (orgUpdateData.validFrom?.trim()) {
-      data.registrations[i].validFrom = orgUpdateData.validFrom
-    }
     if (orgUpdateData.reprocessingType?.trim()) {
       data.registrations[i].reprocessingType = orgUpdateData.reprocessingType
     }
@@ -591,8 +609,9 @@ export async function updateMigratedOrganisation(
       const accStatus = orgUpdateData.accStatus ?? orgUpdateData.status
       data.registrations[i].accreditationId = data.accreditations[j].id
       data.accreditations[j].status = accStatus
-      data.accreditations[j].validFrom = validFrom
-      data.accreditations[j].validTo = `${currentYear() + 1}-01-01`
+      data.accreditations[j].validFrom = rowValidFrom
+      data.accreditations[j].validTo =
+        orgUpdateData.validTo ?? `${currentYear() + 1}-01-01`
       data.accreditations[j].statusHistory =
         accStatus === 'created'
           ? data.accreditations[j].statusHistory || []
@@ -600,7 +619,7 @@ export async function updateMigratedOrganisation(
               ...(data.accreditations[j].statusHistory || []),
               {
                 status: accStatus,
-                updatedAt: data.accreditations[j].validFrom
+                updatedAt: rowValidFrom
               }
             ]
       data.accreditations[j].statusHistory = (
@@ -609,14 +628,11 @@ export async function updateMigratedOrganisation(
         if (entry.status === 'created') {
           return {
             ...entry,
-            updatedAt: SEEDED_CREATED_ON
+            updatedAt: orgUpdateData.createdOn ?? seededCreatedOn(rowValidFrom)
           }
         }
         return entry
       })
-      if (orgUpdateData.validFrom?.trim()) {
-        data.accreditations[j].validFrom = orgUpdateData.validFrom
-      }
       if (orgUpdateData.reprocessingType?.trim()) {
         data.accreditations[j].reprocessingType = orgUpdateData.reprocessingType
       }
