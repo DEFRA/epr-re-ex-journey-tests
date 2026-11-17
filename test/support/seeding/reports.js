@@ -158,6 +158,12 @@ export async function createSubmittedReport(refNo, registrationIndex = 0) {
   const periodStartMonth = cadence === 'monthly' ? period : (period - 1) * 3 + 1
   orgData.registrations[registrationIndex].validFrom =
     `${year}-${String(periodStartMonth).padStart(2, '0')}-01`
+  // An accreditation's year is its validFrom's, so in January, when the period
+  // is last December, the accreditation has to be last year's too.
+  if (linkedAccreditation) {
+    linkedAccreditation.validFrom = `${year}-01-01`
+    linkedAccreditation.validTo = `${year + 1}-01-01`
+  }
 
   // When the accreditation isn't approved the CSV generator treats this as quarterly,
   // but the backend uses accreditationId presence to enforce monthly cadence.
