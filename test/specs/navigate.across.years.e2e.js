@@ -147,10 +147,18 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       const chooseYearPage = new ChooseYearPage(page)
       const wasteRecordsPage = new WasteRecordsPage(page)
       const uploadSummaryLogPage = new UploadSummaryLogPage(page)
-      const { refNo, email, registrationNumber, accreditationNumber } =
-        await seedOrganisationAcrossYears()
+      const {
+        refNo,
+        email,
+        organisationNumber,
+        registrationNumber,
+        accreditationNumber
+      } = await seedOrganisationAcrossYears()
       const { accreditationNumber: accreditationNumber2027 } =
-        await seedExternalAccreditation(registrationNumber, 2027)
+        await seedExternalAccreditation(
+          { organisationNumber, registrationNumber },
+          2027
+        )
       const summaryLogFor = (year, accNumber) =>
         generateSpreadsheetData({
           wasteProcessingType: 'reprocessorInput',
