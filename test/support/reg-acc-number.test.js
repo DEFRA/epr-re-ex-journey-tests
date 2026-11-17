@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url'
 import {
   generateAccNumber,
   generateNumbers,
-  generateRegNumber
+  generateRegNumber,
+  isExporterNumber
 } from './reg-acc-number.js'
 import { evaluateUnderClock } from './simulator/clock/under-clock.js'
 import { PROCESSING_TYPE_CONFIG } from './spreadsheet/spreadsheet-config.js'
@@ -69,6 +70,23 @@ describe('registration and accreditation numbers', () => {
     for (const [stream, letter] of Object.entries(STREAM_LETTERS)) {
       assert.equal(processingLetter(stream), letter, stream)
     }
+  })
+
+  it("tell an exporter's number from a reprocessor's", () => {
+    for (const wasteProcessingType of ['exporter', 'regOnlyExporter']) {
+      const { regNumber, accNumber } = generateNumbers({
+        ...options,
+        wasteProcessingType
+      })
+      assert.equal(isExporterNumber(regNumber), true, regNumber)
+      assert.equal(isExporterNumber(accNumber), true, accNumber)
+    }
+    assert.equal(
+      isExporterNumber(
+        generateRegNumber({ ...options, wasteProcessingType: 'reprocessor' })
+      ),
+      false
+    )
   })
 
   it('refuse a processing type the register does not letter', () => {

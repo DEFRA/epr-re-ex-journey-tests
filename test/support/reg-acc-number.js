@@ -83,3 +83,14 @@ export function generateNumbers(options) {
     accNumber: generateAccNumber(shared)
   }
 }
+
+/**
+ * Whether a registration or accreditation number is an exporter's, read from
+ * its processing type letter.
+ *
+ * @param {string} number
+ * @returns {boolean}
+ */
+export function isExporterNumber(number) {
+  return number[4] === PROCESSING_TYPE_LETTERS.exporter
+}

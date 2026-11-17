@@ -7,7 +7,11 @@ import { AuthClient } from '../auth.js'
 import { trackCreatedOrgId } from '../cleanup-tracker.js'
 import { currentYear, latestOpenYear } from '../date.js'
 import { MATERIALS } from '../materials.js'
-import { generateAccNumber, generateNumbers } from '../reg-acc-number.js'
+import {
+  generateAccNumber,
+  generateNumbers,
+  isExporterNumber
+} from '../reg-acc-number.js'
 import { accreditationPath } from './natural-key-paths.js'
 import {
   assertSuccessResponse,
@@ -471,7 +475,8 @@ async function assertOrganisationYears(organisationNumber, expected) {
 
 /**
  * Seeds an approved accreditation for a year through the backend's stand-in
- * for the registration service, the source of accreditations from 2027.
+ * for the registration service, the source of accreditations from 2027. An
+ * exporter's holds no overseas sites, which the backend requires it to say.
  *
  * @param {{organisationNumber: number, registrationNumber: string}} holder -
  *   the organisation and its registration the accreditation is for
@@ -501,7 +506,8 @@ export async function seedExternalAccreditation(
       status: {
         lastUpdatedAt: approvedAt,
         timeline: [{ status: 'approved', at: approvedAt }]
-      }
+      },
+      ...(isExporterNumber(registrationNumber) && { overseasSites: {} })
     })
   )
   await assertSuccessResponse(response, `PUT ${path}`)
