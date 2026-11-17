@@ -31,7 +31,11 @@ import {
   registerAndLinkDefraIdUser,
   loginViaHomePage
 } from '../support/login-helper.js'
-import { currentYear } from '~/test/support/date.js'
+
+// The year reprocessor-output-regonly-cma.xlsx dates its loads in. A quarter is
+// closed by its submitted report, not by the calendar, so the journey stays in
+// this year.
+const FIXTURE_YEAR = 2026
 
 // PAE-1648 closed-period adjustment messaging copy (en.json
 // summary-log:closedPeriodAdjustments), asserted verbatim by the closed-period
@@ -84,7 +88,9 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
           status: 'approved',
           withoutAccreditation: true
         }
-      ]
+      ],
+      undefined,
+      `${FIXTURE_YEAR}-01-01`
     )
 
     const user = await registerAndLinkDefraIdUser(
@@ -98,7 +104,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
       organisationDetails.refNo,
       regId,
       user.userId,
-      2026,
+      FIXTURE_YEAR,
       'quarterly',
       1,
       1,
@@ -107,6 +113,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
 
     await loginViaHomePage(page, migrationResponse.email)
 
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.selectLink(1)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
@@ -159,7 +166,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Closed-period Adju
     // The caption names the material of the one registration this operator
     // holds, so it is that registration's reports and not just a reports page.
     const reportsPage = new ReportsPage(page)
-    await reportsPage.expectListFor(currentYear())
+    await reportsPage.expectListFor(FIXTURE_YEAR)
     expect(await reportsPage.captionText()).toBe('Paper and board')
 
     // --- The restated quarter asks for resubmission ---
