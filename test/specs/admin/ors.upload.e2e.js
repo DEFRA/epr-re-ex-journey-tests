@@ -206,13 +206,19 @@ test.describe('ORS upload flow @orsUpload', () => {
 
       organisationName = organisation.companyName
 
+      // Same org id, ascending serials: the overview lists registrations by
+      // number, and later tests open the first row expecting alpha.
       const alpha = generateNumbers({
         wasteProcessingType: 'exporter',
-        materialSuffix: 'PA'
+        materialSuffix: 'PA',
+        orgId: String(orgId),
+        serial: '0001'
       })
       const beta = generateNumbers({
         wasteProcessingType: 'exporter',
-        materialSuffix: 'ST'
+        materialSuffix: 'ST',
+        orgId: String(orgId),
+        serial: '0002'
       })
       alphaRegistrationNumber = alpha.regNumber
       alphaAccreditationNumber = alpha.accNumber
