@@ -147,27 +147,31 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       const chooseYearPage = new ChooseYearPage(page)
       const wasteRecordsPage = new WasteRecordsPage(page)
       const uploadSummaryLogPage = new UploadSummaryLogPage(page)
-      const { refNo, email, registrationNumber, accreditationNumber } =
-        await seedOrganisationAcrossYears()
-      // 2027 is registered-only: accredited uploads are not yet accepted
-      // against the external accreditations that hold years from 2027.
-      const summaryLogFor = (wasteProcessingType, year) =>
+      const {
+        refNo,
+        email,
+        organisationNumber,
+        registrationNumber,
+        accreditationNumber
+      } = await seedOrganisationAcrossYears()
+      const { accreditationNumber: accreditationNumber2027 } =
+        await seedExternalAccreditation(
+          { organisationNumber, registrationNumber },
+          2027
+        )
+      const summaryLogFor = (year, accNumber) =>
         generateSpreadsheetData({
-          wasteProcessingType,
+          wasteProcessingType: 'reprocessorInput',
           materialSuffix: 'PA',
           regNumber: registrationNumber,
-          accNumber: accreditationNumber,
+          accNumber,
           numberOfRows: 3,
           year,
           silentLogging: true
         })
-      const log2026 = await summaryLogFor('reprocessorInput', 2026)
-      const registeredOnlyLog2026 = await summaryLogFor(
-        'regOnlyReprocessor',
-        2026
-      )
+      const log2026 = await summaryLogFor(2026, accreditationNumber)
       const log2027 = await summaryLogDatedAt(
-        await summaryLogFor('regOnlyReprocessor', 2027),
+        await summaryLogFor(2027, accreditationNumber2027),
         new Date(Date.UTC(2027, 0, 1, 12))
       )
       const openUploadFor = async (year) => {
@@ -186,7 +190,7 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       await uploadSummaryLogPage.performUploadAndReturnToHomepage(log2026, 2026)
 
       await openUploadFor(2027)
-      await uploadSummaryLogPage.uploadFile(registeredOnlyLog2026)
+      await uploadSummaryLogPage.uploadFile(log2026)
       await uploadSummaryLogPage.continue()
       await checkBodyText(
         page,
