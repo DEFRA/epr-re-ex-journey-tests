@@ -476,18 +476,22 @@ async function assertOrganisationYears(organisationNumber, expected) {
 /**
  * Seeds an approved accreditation for a year through the backend's stand-in
  * for the registration service, the source of accreditations from 2027. An
- * exporter's holds no overseas sites, which the backend requires it to say.
+ * exporter's accreditation lists only its own overseas sites, not its
+ * registration's, so it holds none unless given them.
  *
  * @param {{organisationNumber: number, registrationNumber: string}} holder -
  *   the organisation and its registration the accreditation is for
  * @param {number} year
  * @param {{wasteProcessingType?: import('../reg-acc-number.js').ProcessingType, materialSuffix?: string}} [numbering] - the registration's own, so the number reads as its accreditation's
+ * @param {{overseasSites?: Record<string, {status: string, approvedOn?: string}>}} [sites] -
+ *   an exporter's overseas sites, keyed by OSR id
  * @returns {Promise<{accreditationNumber: string}>}
  */
 export async function seedExternalAccreditation(
   { organisationNumber, registrationNumber },
   year,
-  { wasteProcessingType = 'reprocessor', materialSuffix = 'PA' } = {}
+  { wasteProcessingType = 'reprocessor', materialSuffix = 'PA' } = {},
+  { overseasSites = {} } = {}
 ) {
   const accreditationNumber = generateAccNumber({
     wasteProcessingType,
@@ -507,7 +511,7 @@ export async function seedExternalAccreditation(
         lastUpdatedAt: approvedAt,
         timeline: [{ status: 'approved', at: approvedAt }]
       },
-      ...(isExporterNumber(registrationNumber) && { overseasSites: {} })
+      ...(isExporterNumber(registrationNumber) && { overseasSites })
     })
   )
   await assertSuccessResponse(response, `PUT ${path}`)

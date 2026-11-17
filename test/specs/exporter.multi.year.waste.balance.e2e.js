@@ -22,6 +22,9 @@ import { checkOnUploadPage } from '~/test/support/summary-log-checks.js'
 
 const JOURNEY_TIMEOUT_MS = 4 * 60 * 1000
 const OPENING_BALANCE_2026 = '1,000.00'
+// The overseas site each year's waste is exported to, approved for both the
+// registration (2026) and the 2027 accreditation
+const OSR_ID = 100
 
 const exportedTonnes = (tonnage, datedOn) => ({
   'Exported (sections 1, 2 and 3)': [
@@ -31,7 +34,7 @@ const exportedTonnes = (tonnage, datedOn) => ({
         DID_WASTE_PASS_THROUGH_AN_INTERIM_SITE: 'No',
         WAS_THE_WASTE_REFUSED: 'No',
         WAS_THE_WASTE_STOPPED: 'No',
-        OSR_ID: 100,
+        OSR_ID,
         TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED: tonnage,
         ...(datedOn && {
           DATE_RECEIVED_FOR_EXPORT: datedOn,
@@ -91,7 +94,12 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
           registrationNumber: regNumber
         },
         2027,
-        numbering
+        numbering,
+        {
+          overseasSites: {
+            [OSR_ID]: { status: 'approved', approvedOn: '2027-01-01' }
+          }
+        }
       )
 
     const summaryLogFor = (year, accNumber, tonnage, datedOn) =>
