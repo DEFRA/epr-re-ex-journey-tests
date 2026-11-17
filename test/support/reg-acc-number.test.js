@@ -73,7 +73,10 @@ describe('registration and accreditation numbers', () => {
   })
 
   it("tell an exporter's number from a reprocessor's", () => {
-    for (const wasteProcessingType of ['exporter', 'regOnlyExporter']) {
+    for (const wasteProcessingType of /** @type {const} */ ([
+      'exporter',
+      'regOnlyExporter'
+    ])) {
       const { regNumber, accNumber } = generateNumbers({
         ...options,
         wasteProcessingType
