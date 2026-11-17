@@ -476,15 +476,17 @@ async function assertOrganisationYears(organisationNumber, expected) {
  * @param {{organisationNumber: number, registrationNumber: string}} holder -
  *   the organisation and its registration the accreditation is for
  * @param {number} year
+ * @param {{wasteProcessingType?: import('../reg-acc-number.js').ProcessingType, materialSuffix?: string}} [numbering] - the registration's own, so the number reads as its accreditation's
  * @returns {Promise<{accreditationNumber: string}>}
  */
 export async function seedExternalAccreditation(
   { organisationNumber, registrationNumber },
-  year
+  year,
+  { wasteProcessingType = 'reprocessor', materialSuffix = 'PA' } = {}
 ) {
   const accreditationNumber = generateAccNumber({
-    wasteProcessingType: 'reprocessor',
-    materialSuffix: 'PA',
+    wasteProcessingType,
+    materialSuffix,
     year: String(year).slice(-2)
   })
   const approvedAt = `${year}-01-01T00:00:00.000Z`
@@ -577,7 +579,7 @@ export async function updateMigratedOrganisation(
       if (entry.status === 'created') {
         return {
           ...entry,
-          updatedAt: seededCreatedOn(rowValidFrom)
+          updatedAt: orgUpdateData.createdOn ?? seededCreatedOn(rowValidFrom)
         }
       }
       return entry
@@ -608,7 +610,8 @@ export async function updateMigratedOrganisation(
       data.registrations[i].accreditationId = data.accreditations[j].id
       data.accreditations[j].status = accStatus
       data.accreditations[j].validFrom = rowValidFrom
-      data.accreditations[j].validTo = `${currentYear() + 1}-01-01`
+      data.accreditations[j].validTo =
+        orgUpdateData.validTo ?? `${currentYear() + 1}-01-01`
       data.accreditations[j].statusHistory =
         accStatus === 'created'
           ? data.accreditations[j].statusHistory || []
@@ -625,7 +628,7 @@ export async function updateMigratedOrganisation(
         if (entry.status === 'created') {
           return {
             ...entry,
-            updatedAt: seededCreatedOn(rowValidFrom)
+            updatedAt: orgUpdateData.createdOn ?? seededCreatedOn(rowValidFrom)
           }
         }
         return entry

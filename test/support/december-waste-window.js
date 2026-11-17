@@ -22,8 +22,40 @@ export function isDecemberWasteWindowOpen(
   now = new Date(),
   windowStart = process.env.DECEMBER_WASTE_WINDOW_START
 ) {
-  // sv-SE formats as YYYY-MM-DD HH:mm, which sorts chronologically.
-  const stamp = now
+  const stamp = ukStamp(now)
+  const year = stamp.slice(0, 4)
+  return stamp >= `${year}-${windowStart || STACK_DEFAULT_WINDOW_START}`
+}
+
+/**
+ * Whether the December Waste declaration window is open for an accreditation
+ * of `relevantYear`. As the backend does, the window runs from the configured
+ * start in that year through 31 January of the next, so in January the
+ * previous year's window is still open.
+ *
+ * @param {number} relevantYear
+ * @param {Date} [now]
+ * @param {string} [windowStart] - MM-DDTHH:mm
+ * @returns {boolean}
+ */
+export function isDecemberWasteWindowOpenFor(
+  relevantYear,
+  now = new Date(),
+  windowStart = process.env.DECEMBER_WASTE_WINDOW_START
+) {
+  const stamp = ukStamp(now)
+  return (
+    stamp >= `${relevantYear}-${windowStart || STACK_DEFAULT_WINDOW_START}` &&
+    stamp < `${relevantYear + 1}-02-01T00:00`
+  )
+}
+
+/**
+ * @param {Date} now
+ * @returns {string} YYYY-MM-DDTHH:mm in UK time, which sorts chronologically
+ */
+function ukStamp(now) {
+  return now
     .toLocaleString('sv-SE', {
       timeZone: 'Europe/London',
       year: 'numeric',
@@ -33,6 +65,4 @@ export function isDecemberWasteWindowOpen(
       minute: '2-digit'
     })
     .replace(' ', 'T')
-  const year = stamp.slice(0, 4)
-  return stamp >= `${year}-${windowStart || STACK_DEFAULT_WINDOW_START}`
 }
