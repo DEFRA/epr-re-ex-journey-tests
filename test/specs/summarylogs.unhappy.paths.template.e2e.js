@@ -453,6 +453,9 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
               DATE_THE_REFUSED_STOPPED_WASTE_REPATRIATED: '20/01/2027'
             }
           }
+        ],
+        'Sent on (sections 4 and 5)': [
+          { rowId: 4000, fields: { DATE_LOAD_LEFT_SITE: '05/02/2029' } }
         ]
       }
     })
@@ -482,7 +485,20 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
         ),
         dataEntered: '03/01/2028',
         errorMessage:
-          'The year you entered is in a later year than 2027. Check the date.'
+          'Year cannot be later than 2027. If it’s a 2028 load, record it in your 2028 summary log instead. If it was received for export in 2027, use the ‘Previous year Row ID’ to link your 2 summary logs.'
+      },
+      {
+        rowId: '4000',
+        section: 'Sent on (sections 4 and 5)',
+        columnHeader: 'Date load left site',
+        cell: await firstDataRowCell(
+          log2027,
+          'Sent on (sections 4 and 5)',
+          'DATE_LOAD_LEFT_SITE'
+        ),
+        dataEntered: '05/02/2029',
+        errorMessage:
+          'Year cannot be later than 2027. If it’s a 2029 load, record it in your 2029 summary log instead.'
       }
     ])
   })
