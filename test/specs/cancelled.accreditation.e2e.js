@@ -55,9 +55,9 @@ test.describe('Cancelled accreditation @cancelledAccreditation', () => {
     ).toBe(true)
 
     await wasteRecordsPage.managePERNsLink().click()
-    expect(await prnDashboardPage.getNoPrnMessage()).toBe(
-      'No PRNs or PERNs have been created yet.'
-    )
+    await expect(
+      page.getByRole('heading', { name: 'Select a PERN' })
+    ).toBeVisible()
     const pernListAddress = page.url()
     await prnDashboardPage.backLink().click()
 
