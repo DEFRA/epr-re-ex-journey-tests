@@ -3,7 +3,6 @@ import { HomePage } from 'page-objects/homepage.js'
 import { UploadSummaryLogPage } from '../page-objects/upload.summary.log.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
-import { ChooseYearPage } from '../page-objects/choose.year.page.js'
 import { checkBodyText, checkUploadErrorText } from '../support/checks.js'
 import { checkOnUploadPage } from '../support/summary-log-checks.js'
 import {
@@ -12,7 +11,10 @@ import {
   seedExternalAccreditation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import { generateSpreadsheetData } from '../support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
+import {
+  firstDataRowCell,
+  generateSpreadsheetData
+} from '../support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
 import { summaryLogNumbered } from '../support/seeding/summary-logs.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -400,7 +402,6 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     page
   }) => {
     const dashboardPage = new DashboardPage(page)
-    const chooseYearPage = new ChooseYearPage(page)
     const wasteRecordsPage = new WasteRecordsPage(page)
     const uploadSummaryLogPage = new UploadSummaryLogPage(page)
 
@@ -448,7 +449,8 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
               TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED: 10,
               DATE_RECEIVED_FOR_EXPORT: '15/01/2027',
               DATE_RECEIVED_BY_OSR: '18/01/2027',
-              DATE_OF_EXPORT: '03/01/2028'
+              DATE_OF_EXPORT: '03/01/2028',
+              DATE_THE_REFUSED_STOPPED_WASTE_REPATRIATED: '20/01/2027'
             }
           }
         ]
@@ -458,10 +460,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
     await createLinkAndLogin(page, organisationDetails.refNo, email)
 
     await dashboardPage.open(organisationDetails.refNo)
-    await dashboardPage.chooseDifferentYearLink().click()
-    await chooseYearPage.yearOption(2027).check()
-    await chooseYearPage.continueButton().click()
-    await dashboardPage.expectYear(2027)
+    await dashboardPage.chooseYear(2027)
     await dashboardPage.selectTableLink(1, 1)
     await wasteRecordsPage.submitSummaryLogLink().click()
     await checkOnUploadPage(page, 2027)
@@ -476,7 +475,11 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
         rowId: '1000',
         section: 'Exported (sections 1, 2 and 3)',
         columnHeader: 'Date of export',
-        cell: expect.stringMatching(/^[A-Z]+\d+$/),
+        cell: await firstDataRowCell(
+          log2027,
+          'Exported (sections 1, 2 and 3)',
+          'DATE_OF_EXPORT'
+        ),
         dataEntered: '03/01/2028',
         errorMessage:
           'The year you entered is in a later year than 2027. Check the date.'

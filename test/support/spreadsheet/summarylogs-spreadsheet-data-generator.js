@@ -80,6 +80,25 @@ export const MARKER_ROW = 1
 /** The first row of a worksheet that holds data rather than headings. */
 export const FIRST_DATA_ROW = 4
 
+/**
+ * The reference of a field's cell in the first data row of a generated
+ * workbook, e.g. "U4".
+ *
+ * @param {string} workbookPath
+ * @param {string} worksheetName
+ * @param {string} field - the field's template marker
+ * @returns {Promise<string>}
+ */
+export async function firstDataRowCell(workbookPath, worksheetName, field) {
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.readFile(workbookPath)
+  const sheet = workbook.getWorksheet(worksheetName)
+  if (!sheet) {
+    throw new Error(`No worksheet named '${worksheetName}' in ${workbookPath}`)
+  }
+  return `${fieldColumns(sheet)[field]}${FIRST_DATA_ROW}`
+}
+
 const UK_DATE = /^(\d{2})\/(\d{2})\/(\d{4})$/
 
 /**
