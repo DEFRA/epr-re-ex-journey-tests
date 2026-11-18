@@ -9,16 +9,14 @@ import { FreePrnsPage } from '../page-objects/reports/free.prns.page.js'
 import { ReportSupportingInformationPage } from 'page-objects/reports/report.supporting.information.page.js'
 import { ReportCheckAnswersPage } from 'page-objects/reports/report.check.answers.page.js'
 import { ReportStaleErrorPage } from 'page-objects/reports/report.stale.error.page.js'
+import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { checkBodyText } from '../support/checks.js'
 import {
   createLinkedOrganisation,
   seedOverseasSites,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
-import {
-  registrationStartYear,
-  submitSummaryLogContent
-} from '../support/seeding/summary-logs.js'
+import { submitSummaryLogContent } from '../support/seeding/summary-logs.js'
 import {
   generateNumbers,
   generateRegNumber
@@ -28,12 +26,24 @@ import { defraIdStub } from '../support/defra-id-stub.js'
 import { expectActionRequiredStatus } from '../support/report-status.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 import { navigateToReports } from '../support/report-navigation.js'
-import { currentYear } from '~/test/support/date.js'
 
 const PL_FILE =
   'resources/sanity/reprocessorOutput_A26ER5000000001PL_R26ER5000000001PL.xlsx'
 
 const REG_ONLY_FILE = 'resources/exporter-regonly.xlsx'
+
+// The year the fixtures' templates are for, so the journeys report on it. Its
+// periods have ended whatever the year now.
+const FIXTURE_YEAR = 2026
+
+/**
+ * Opens the reports page for the fixtures' year.
+ * @param {import('@playwright/test').Page} page
+ */
+async function navigateToFixtureYearReports(page) {
+  await new DashboardPage(page).chooseYearIfOffered(FIXTURE_YEAR)
+  await navigateToReports(page)
+}
 
 async function navigateReprocessorToSupportingInfo(page) {
   const tonnesRecycledPage = new TonnesRecycledPage(page)
@@ -61,14 +71,19 @@ async function setupAccreditedReprocessor(
     { material, wasteProcessingType: 'Reprocessor' }
   ])
 
-  const migrationResponse = await updateMigratedOrganisation(orgDetails.refNo, [
-    {
-      reprocessingType: 'output',
-      regNumber,
-      accNumber,
-      status: 'approved'
-    }
-  ])
+  const migrationResponse = await updateMigratedOrganisation(
+    orgDetails.refNo,
+    [
+      {
+        reprocessingType: 'output',
+        regNumber,
+        accNumber,
+        status: 'approved'
+      }
+    ],
+    undefined,
+    `${FIXTURE_YEAR}-01-01`
+  )
 
   const user = await createLinkAndLogin(
     page,
@@ -121,9 +136,9 @@ async function setupAndCreateReport(
     migrationResponse.registrationIds[0],
     defraIdStub.authHeader(user.userId),
     summaryLogContent,
-    registrationStartYear()
+    FIXTURE_YEAR
   )
-  await navigateToReports(page)
+  await navigateToFixtureYearReports(page)
 
   await createDraftReportFromCurrentReportsPage(page)
 
@@ -152,7 +167,9 @@ async function setupRegisteredOnlyExporter(page) {
         status: 'approved',
         withoutAccreditation: true
       }
-    ]
+    ],
+    undefined,
+    `${FIXTURE_YEAR}-01-01`
   )
 
   const user = await createLinkAndLogin(
@@ -192,7 +209,7 @@ test.describe('Stale report @staleReport', () => {
       migrationResponse.registrationIds[0],
       defraIdStub.authHeader(user.userId),
       summaryLogContent,
-      registrationStartYear()
+      FIXTURE_YEAR
     )
 
     // Navigating to the report now triggers the stale error page
@@ -205,7 +222,7 @@ test.describe('Stale report @staleReport', () => {
 
     // "Return to reports" navigates back to the reports list without deleting
     await reportStaleErrorPage.returnToReports().click()
-    await reportsPage.expectListFor(currentYear())
+    await reportsPage.expectListFor(FIXTURE_YEAR)
 
     // Report is still present — navigating again shows the error page
     await reportsPage.selectActiveActionLink(1)
@@ -216,7 +233,7 @@ test.describe('Stale report @staleReport', () => {
     // "Delete and start again" deletes the report and returns to reports with
     // its un-started action-required status (Due, or Overdue if past due date)
     await reportStaleErrorPage.deleteAndStartAgain()
-    await reportsPage.expectListFor(currentYear())
+    await reportsPage.expectListFor(FIXTURE_YEAR)
     await expectActionRequiredStatus(page, 1)
 
     await homePage.signOutLink().click()
@@ -242,7 +259,6 @@ test.describe('Stale report @staleReport', () => {
     )
 
     const regId = migrationResponse.registrationIds[0]
-    const year = registrationStartYear()
     const authHeader = defraIdStub.authHeader(user.userId)
 
     const summaryLogContent = await summaryLogContentNumbered(REG_ONLY_FILE, {
@@ -253,9 +269,9 @@ test.describe('Stale report @staleReport', () => {
       regId,
       authHeader,
       summaryLogContent,
-      year
+      FIXTURE_YEAR
     )
-    await navigateToReports(page)
+    await navigateToFixtureYearReports(page)
 
     await reportsPage.selectActiveActionLink(1)
     await reportDetailPage.useThisData()
@@ -268,7 +284,7 @@ test.describe('Stale report @staleReport', () => {
       regId,
       authHeader,
       summaryLogContent,
-      year
+      FIXTURE_YEAR
     )
 
     // Navigating to the report now triggers the stale error page
@@ -282,7 +298,7 @@ test.describe('Stale report @staleReport', () => {
     // "Delete and start again" deletes the report and returns to reports with
     // its un-started action-required status (Due, or Overdue if past due date)
     await reportStaleErrorPage.deleteAndStartAgain()
-    await reportsPage.expectListFor(currentYear())
+    await reportsPage.expectListFor(FIXTURE_YEAR)
     await expectActionRequiredStatus(page, 1)
 
     await homePage.signOutLink().click()
