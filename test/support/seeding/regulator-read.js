@@ -122,6 +122,7 @@ export async function seedAwaitingPrnAndSubmittedReport() {
     materialSuffix: 'PA',
     regNumber,
     accNumber,
+    year,
     rows: {
       'Received (sections 1, 2 and 3)': [
         {
