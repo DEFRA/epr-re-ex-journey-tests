@@ -14,6 +14,9 @@ import { summaryLogNumbered } from '../support/seeding/summary-logs.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
+// The year the fixtures' templates are for, so the journeys upload into it.
+const FIXTURE_YEAR = 2026
+
 // Split from summarylogs.unhappy.paths.e2e.js (PAE-1405 CI runtime work) so
 // per-file worker scheduling can run these in parallel with
 // summarylogs.unhappy.paths.cover-and-ors.e2e.js instead of serially in one
@@ -106,7 +109,9 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
           ...fillerNumbers(),
           status: 'approved'
         }
-      ]
+      ],
+      undefined,
+      `${FIXTURE_YEAR}-01-01`
     )
 
     await createLinkAndLogin(
@@ -115,11 +120,12 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
       migrationResponse.email
     )
 
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.continue()
-    await checkOnUploadPage(page)
+    await checkOnUploadPage(page, FIXTURE_YEAR)
 
     // GOV.UK's Button component debounces preventDoubleClick for 1s from any
     // click on the button — including this one, blocked from submitting by
@@ -167,7 +173,9 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
           ...numbers,
           status: 'approved'
         }
-      ]
+      ],
+      undefined,
+      `${FIXTURE_YEAR}-01-01`
     )
 
     await createLinkAndLogin(
@@ -176,10 +184,11 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
       migrationResponse.email
     )
 
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
 
-    await checkOnUploadPage(page)
+    await checkOnUploadPage(page, FIXTURE_YEAR)
 
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered('resources/exporter-invalid.xlsx', numbers)

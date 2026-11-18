@@ -40,6 +40,9 @@ import {
   loginViaHomePage
 } from '../support/login-helper.js'
 
+// The year the fixtures' templates are for, so the journeys upload into it.
+const FIXTURE_YEAR = 2026
+
 test.describe('@registeredOnly', () => {
   test('should be able to upload Registered Only Reprocessor Summary Logs for registered-only operators and display unaccredited registrations alongside accredited ones @regOnlyReprocessor @regOnlyAdjusted @cma @regulatorRegisteredOnlyLedger', async ({
     page
@@ -108,13 +111,16 @@ test.describe('@registeredOnly', () => {
           }),
           status: 'approved'
         }
-      ]
+      ],
+      undefined,
+      `${FIXTURE_YEAR}-01-01`
     )
     await createLinkAndLogin(
       page,
       organisationDetails.refNo,
       migrationResponse.email
     )
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
 
     const row = await dashboardPage.getTableRow(1, 1)
     expect(row.get('Accreditation')).toBe('Not accredited')
@@ -135,7 +141,7 @@ test.describe('@registeredOnly', () => {
     await checkBodyTextDoesNotInclude(page, 'PRNs', 5)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await checkOnUploadPage(page)
+    await checkOnUploadPage(page, FIXTURE_YEAR)
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered('resources/reprocessor-output-regonly.xlsx', {
         regNumber: reprocessorRegNumber
@@ -145,13 +151,13 @@ test.describe('@registeredOnly', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkOnCheckPage(page)
+    await checkOnCheckPage(page, FIXTURE_YEAR)
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(page, 'new loads will be recorded', 30)
     await checkBodyText(page, 'These have been added to your summary log.', 30)
     await checkSummaryLogPage.uploadButton().click()
 
-    await uploadSummaryLogPage.checkUploaded()
+    await uploadSummaryLogPage.checkUploaded(FIXTURE_YEAR)
     await checkBodyTextDoesNotInclude(page, 'Your updated waste balance', 10)
     await uploadSummaryLogPage.returnToHomePageLink().click()
 
@@ -169,7 +175,7 @@ test.describe('@registeredOnly', () => {
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkOnCheckPage(page)
+    await checkOnCheckPage(page, FIXTURE_YEAR)
     await checkBodyText(page, 'Open periods: adjusted loads', 30)
 
     const subStates = (await checkSummaryLogPage.allSubStateHeadings()).join(
@@ -222,8 +228,8 @@ test.describe('@registeredOnly', () => {
       'Registration details'
     )
 
-    // The page filters events by createdAt, so open the submission year.
-    const submissionYear = new Date().getUTCFullYear()
+    // The submission sits in the period of the year it was uploaded for.
+    const submissionYear = FIXTURE_YEAR
     const periods = await registrationDetailsPage.registeredOnlyPeriods()
     const submittedRow =
       periods.findIndex((row) => row.get('Period') === String(submissionYear)) +
@@ -332,7 +338,9 @@ test.describe('@registeredOnly', () => {
           status: 'approved',
           withoutAccreditation: true
         }
-      ]
+      ],
+      undefined,
+      `${FIXTURE_YEAR}-01-01`
     )
     const user = await createAndRegisterDefraIdUser(migrationResponse.email)
 
@@ -349,6 +357,7 @@ test.describe('@registeredOnly', () => {
     )
 
     await loginViaHomePage(page, migrationResponse.email)
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await checkAccessibility(page, 'Dashboard (registered-only)')
 
     await dashboardPage.selectTableLink(1, 1)
@@ -356,7 +365,7 @@ test.describe('@registeredOnly', () => {
     await checkAccessibility(page, 'Waste records (registered-only)')
 
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await checkOnUploadPage(page)
+    await checkOnUploadPage(page, FIXTURE_YEAR)
     await checkAccessibility(page, 'Upload summary log')
 
     await uploadSummaryLogPage.uploadFile(
@@ -368,14 +377,14 @@ test.describe('@registeredOnly', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkOnCheckPage(page)
+    await checkOnCheckPage(page, FIXTURE_YEAR)
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(page, 'new loads will be recorded', 30)
     await checkBodyText(page, 'These have been added to your summary log.', 30)
     await checkAccessibility(page, 'Check summary log')
     await checkSummaryLogPage.uploadButton().click()
 
-    await uploadSummaryLogPage.checkUploaded()
+    await uploadSummaryLogPage.checkUploaded(FIXTURE_YEAR)
     await checkBodyTextDoesNotInclude(page, 'Your updated waste balance', 10)
     await checkAccessibility(page, 'Summary log uploaded (confirmation)')
     await uploadSummaryLogPage.returnToHomePageLink().click()
