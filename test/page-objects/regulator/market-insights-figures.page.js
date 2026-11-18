@@ -12,7 +12,9 @@ import { Page } from 'page-objects/page'
 const STATES_A_YEAR = /\d{4}$/
 
 // How a page of figures stamps the moment they were taken.
-const DATA_TAKEN_AT = /^Data (taken|aggregated) at /
+// Unanchored, because an inset text opens with whitespace that a regular
+// expression sees.
+const DATA_TAKEN_AT = /Data (taken|aggregated) at /
 
 /**
  * The figure a cell states. A figure few operators contributed to is followed
