@@ -289,13 +289,21 @@ export async function seedRestatedClosedPeriod({ tonnageRecycled = 100 } = {}) {
     wasteProcessingType: 'reprocessor',
     materialSuffix: 'PA'
   })
-  const migrated = await updateMigratedOrganisation(refNo, [
-    {
-      regNumber,
-      status: 'approved',
-      reprocessingType: 'output'
-    }
-  ])
+  // Registered from the restated period's year, so that period needs a report
+  // whatever the year now.
+  const validFrom = `${RESTATED_PERIOD.year}-01-01`
+  const migrated = await updateMigratedOrganisation(
+    refNo,
+    [
+      {
+        regNumber,
+        status: 'approved',
+        reprocessingType: 'output'
+      }
+    ],
+    undefined,
+    validFrom
+  )
   // updateMigratedOrganisation here returns { email, registrationIds,
   // accreditationIds } (this repo's merged version), not the raw org record
   // upstream's simpler version returns - use the id array it actually gives.
@@ -320,7 +328,7 @@ export async function seedRestatedClosedPeriod({ tonnageRecycled = 100 } = {}) {
     registrationId,
     defraAuthHeader,
     await summaryLogContentNumbered(RESTATED_CMA_FIXTURE, { regNumber }),
-    registrationStartYear()
+    registrationStartYear(validFrom)
   )
   if (status !== 'submitted') {
     throw new Error(
