@@ -1,5 +1,6 @@
 import { fakerEN_GB as faker } from '@faker-js/faker'
 import EWC_CODES from './ewc-codes.js'
+import { recentDateThisYear } from './recent-date.js'
 import {
   RECYCLABLE_PROPORTION_METHODS,
   YES_NO,
@@ -8,7 +9,7 @@ import {
 
 // Generate a single row for "Received" sections
 export function generateInputReceivedRow(material) {
-  const date = faker.date.recent({ days: 20 })
+  const date = recentDateThisYear(20)
 
   return {
     // Section 1
@@ -43,7 +44,7 @@ export function generateInputReceivedRow(material) {
 
 // Generate a single row for "Reprocessed" sections
 export function generateInputReprocessedRow() {
-  const date = faker.date.recent({ days: 20 })
+  const date = recentDateThisYear(20)
 
   return {
     // Section 4
@@ -61,7 +62,7 @@ export function generateInputReprocessedRow() {
 
 // Generate a single row for "Sent On" sections
 export function generateInputSentOnRow(material) {
-  const date = faker.date.recent({ days: 20 })
+  const date = recentDateThisYear(20)
 
   return {
     // Section 5

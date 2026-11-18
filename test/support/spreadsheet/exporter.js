@@ -1,5 +1,6 @@
 import { fakerEN_GB as faker } from '@faker-js/faker'
 import EWC_CODES from './ewc-codes.js'
+import { recentDateThisYear } from './recent-date.js'
 import BASEL_CODES from './basel-codes.js'
 import {
   RECYCLABLE_PROPORTION_METHODS,
@@ -11,8 +12,8 @@ import {
 
 // Generate a single row for "Exported" sections
 export function generateExportedRow(material) {
-  const date = faker.date.recent({ days: 20 })
-  const dateOfExport = faker.date.recent({ days: 5 })
+  const date = recentDateThisYear(20)
+  const dateOfExport = recentDateThisYear(5)
   const interimSite = faker.helpers.arrayElement(YES_NO)
 
   const reprocessorCountry = faker.helpers.arrayElement(countryList)
@@ -47,7 +48,7 @@ export function generateExportedRow(material) {
     X:
       faker.string.alpha({ length: 4, casing: 'upper' }) +
       faker.number.int({ min: 1000000, max: 10000000 }), // Container or trailer number / IMO vessel if bulk shipment
-    Y: faker.date.recent({ days: 2 }).toLocaleDateString('en-GB'), // Date received by approved overseas reprocessor
+    Y: recentDateThisYear(2).toLocaleDateString('en-GB'), // Date received by approved overseas reprocessor
     Z: 100, // Approved overseas reprocessor's ID
     AA: interimSite, // Did you export the waste through an interim site? (If yes, provide information for AB and AC)
     AB: interimSiteId, // Interim Site ID (If applicable)
@@ -62,7 +63,7 @@ export function generateExportedRow(material) {
     AM: faker.helpers.arrayElement(ACTIVITIES), // Column AM: Activities carried out by supplier on the packaging waste (For example, sorting)
     AN: faker.helpers.arrayElement(YES_NO), // Column AN: Was the waste refused by the recipient destination?
     AO: faker.helpers.arrayElement(YES_NO), // Column AO: Was the waste stopped during the course of export?
-    AP: faker.date.recent({ days: 30 }).toLocaleDateString('en-GB'), // Column AP: Date that the stopped or refused waste was repatriated
+    AP: recentDateThisYear(30).toLocaleDateString('en-GB'), // Column AP: Date that the stopped or refused waste was repatriated
 
     // Section 3
     AU: `W${faker.number.int({ min: 100000, max: 999999 })}`, // Your reference
@@ -99,7 +100,7 @@ export function generateExportedRow(material) {
 
 // Generate a single row for "Sent On" sections
 export function generateSentOnRow(material) {
-  const date = faker.date.recent({ days: 20 })
+  const date = recentDateThisYear(20)
 
   return {
     // Section 4
