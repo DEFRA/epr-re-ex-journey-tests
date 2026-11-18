@@ -3,13 +3,16 @@ import { HomePage } from 'page-objects/homepage.js'
 import { UploadSummaryLogPage } from '../page-objects/upload.summary.log.page.js'
 import { WasteRecordsPage } from '../page-objects/waste.records.page.js'
 import { DashboardPage } from '../page-objects/dashboard.page.js'
+import { ChooseYearPage } from '../page-objects/choose.year.page.js'
 import { checkBodyText, checkUploadErrorText } from '../support/checks.js'
 import { checkOnUploadPage } from '../support/summary-log-checks.js'
 import {
   createLinkedOrganisation,
   fillerNumbers,
+  seedExternalAccreditation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
+import { generateSpreadsheetData } from '../support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
 import { summaryLogNumbered } from '../support/seeding/summary-logs.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -391,5 +394,93 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
 
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
+  })
+
+  test('Should reject a 2027 summary log with a date from a later year @summLogsLaterYearDate', async ({
+    page
+  }) => {
+    const dashboardPage = new DashboardPage(page)
+    const chooseYearPage = new ChooseYearPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+
+    const numbering = /** @type {const} */ ({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'WO'
+    })
+    const { regNumber, accNumber } = generateNumbers({
+      ...numbering,
+      year: '26'
+    })
+    const organisationDetails = await createLinkedOrganisation([
+      { material: 'Wood (R3)', wasteProcessingType: 'Exporter' }
+    ])
+    const { email } = await updateMigratedOrganisation(
+      organisationDetails.refNo,
+      [{ regNumber, accNumber, status: 'approved' }]
+    )
+    const { accreditationNumber: accNumber2027 } =
+      await seedExternalAccreditation(
+        {
+          organisationNumber: organisationDetails.orgId,
+          registrationNumber: regNumber
+        },
+        2027,
+        numbering
+      )
+
+    const log2027 = await generateSpreadsheetData({
+      ...numbering,
+      regNumber,
+      accNumber: accNumber2027,
+      year: 2027,
+      silentLogging: true,
+      rows: {
+        'Exported (sections 1, 2 and 3)': [
+          {
+            rowId: 1000,
+            fields: {
+              WERE_PRN_OR_PERN_ISSUED_ON_THIS_WASTE: 'No',
+              DID_WASTE_PASS_THROUGH_AN_INTERIM_SITE: 'No',
+              WAS_THE_WASTE_REFUSED: 'No',
+              WAS_THE_WASTE_STOPPED: 'No',
+              OSR_ID: 100,
+              TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED: 10,
+              DATE_RECEIVED_FOR_EXPORT: '15/01/2027',
+              DATE_RECEIVED_BY_OSR: '18/01/2027',
+              DATE_OF_EXPORT: '03/01/2028'
+            }
+          }
+        ]
+      }
+    })
+
+    await createLinkAndLogin(page, organisationDetails.refNo, email)
+
+    await dashboardPage.open(organisationDetails.refNo)
+    await dashboardPage.chooseDifferentYearLink().click()
+    await chooseYearPage.yearOption(2027).check()
+    await chooseYearPage.continueButton().click()
+    await dashboardPage.expectYear(2027)
+    await dashboardPage.selectTableLink(1, 1)
+    await wasteRecordsPage.submitSummaryLogLink().click()
+    await checkOnUploadPage(page, 2027)
+
+    await uploadSummaryLogPage.uploadFile(log2027)
+    await uploadSummaryLogPage.continue()
+
+    await checkBodyText(page, 'Your summary log cannot be uploaded', 30)
+
+    expect(await uploadSummaryLogPage.getValidationErrors()).toStrictEqual([
+      {
+        rowId: '1000',
+        section: 'Exported (sections 1, 2 and 3)',
+        columnHeader: 'Date of export',
+        cell: expect.stringMatching(/^[A-Z]+\d+$/),
+        dataEntered: '03/01/2028',
+        errorMessage:
+          'The year you entered is in a later year than 2027. Check the date.'
+      }
+    ])
   })
 })
