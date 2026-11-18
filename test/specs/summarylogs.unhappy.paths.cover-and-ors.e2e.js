@@ -18,6 +18,9 @@ import { summaryLogNumbered } from '../support/seeding/summary-logs.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
+// The year the fixtures' templates are for, so the journeys upload into it.
+const FIXTURE_YEAR = 2026
+
 // Split from summarylogs.unhappy.paths.e2e.js (PAE-1405 CI runtime work) so
 // wdio's per-file worker scheduling can run these in parallel with
 // summarylogs.unhappy.paths.template.e2e.js instead of serially in one file.
@@ -46,7 +49,9 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
           ...numbers,
           status: 'approved'
         }
-      ]
+      ],
+      undefined,
+      `${FIXTURE_YEAR}-01-01`
     )
 
     await createLinkAndLogin(
@@ -55,6 +60,7 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
       migrationResponse.email
     )
 
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.selectLink(1)
 
     // Single-registration orgs skip the selection list, so the reg/acc
@@ -64,7 +70,7 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
 
     await wasteRecordsPage.submitSummaryLogLink().click()
 
-    await checkOnUploadPage(page)
+    await checkOnUploadPage(page, FIXTURE_YEAR)
 
     await uploadSummaryLogPage.uploadFile('resources/cover-invalid.xlsx')
     await uploadSummaryLogPage.continue()
@@ -120,9 +126,9 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
         {
           ...numbers,
           status: 'approved',
-          // The file's 2026 rows fall inside the accreditation period and reach
-          // the ORS check (rather than being ignored as OUTSIDE_ACCREDITATION_PERIOD).
-          validFrom: '2026-01-01'
+          // The file's rows fall inside the accreditation period and reach the
+          // ORS check (rather than being ignored as OUTSIDE_ACCREDITATION_PERIOD).
+          validFrom: `${FIXTURE_YEAR}-01-01`
         }
       ]
     )
@@ -138,6 +144,7 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
       migrationResponse.email
     )
 
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
 
@@ -167,7 +174,7 @@ test.describe('Summary Logs - Unhappy paths - Cover sheet and ORS @unhappyPaths'
 
     await checkSummaryLogPage.uploadButton().click()
     await checkBodyText(page, 'Your waste records are being updated', 30)
-    await uploadSummaryLogPage.checkUploaded()
+    await uploadSummaryLogPage.checkUploaded(FIXTURE_YEAR)
 
     await uploadSummaryLogPage.returnToHomePageLink().click()
     // No load reached the balance
