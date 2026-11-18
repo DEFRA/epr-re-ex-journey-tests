@@ -82,8 +82,8 @@ test.describe('Cancelled accreditation @cancelledAccreditation', () => {
     ).toBe(false)
 
     // The PERN list that opened while suspended is now not found
-    await page.goto(pernListAddress)
-    await checkBodyText(page, '404', 10)
+    const response = await page.goto(pernListAddress)
+    expect(response?.status()).toBe(404)
     await checkBodyText(page, 'Page not found', 10)
   })
 })
