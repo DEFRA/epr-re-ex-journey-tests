@@ -4,6 +4,8 @@ import {
   updateStatus
 } from '~/test/support/seeding/organisation.js'
 import { DashboardPage } from 'page-objects/dashboard.page.js'
+import { PRNDashboardPage } from 'page-objects/prn.dashboard.page.js'
+import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import { test, expect } from '@playwright/test'
 import { checkBodyText } from '~/test/support/checks.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
@@ -14,6 +16,8 @@ test.describe('Cancelled accreditation @cancelledAccreditation', () => {
     page
   }) => {
     const dashboardPage = new DashboardPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const prnDashboardPage = new PRNDashboardPage(page)
 
     const { regNumber, accNumber } = generateNumbers({
       wasteProcessingType: 'exporter',
@@ -33,9 +37,6 @@ test.describe('Cancelled accreditation @cancelledAccreditation', () => {
       }
     ])
 
-    const registrationId = migrationResponse.registrationIds[0]
-    const accreditationId = migrationResponse.accreditationIds[0]
-
     await updateStatus(orgId, 'suspended')
 
     await createLinkAndLogin(page, orgId, migrationResponse.email)
@@ -52,9 +53,13 @@ test.describe('Cancelled accreditation @cancelledAccreditation', () => {
     expect(
       (await page.locator('a', { hasText: 'Create new PERN' }).count()) > 0
     ).toBe(true)
-    expect(
-      (await page.locator('a', { hasText: 'Manage PERNs' }).count()) > 0
-    ).toBe(true)
+
+    await wasteRecordsPage.managePERNsLink().click()
+    expect(await prnDashboardPage.getNoPrnMessage()).toBe(
+      'No PRNs or PERNs have been created yet.'
+    )
+    const pernListAddress = page.url()
+    await prnDashboardPage.backLink().click()
 
     // now we cancel the accreditation, PERN links should be gone
     await updateStatus(orgId, 'cancelled')
@@ -76,10 +81,8 @@ test.describe('Cancelled accreditation @cancelledAccreditation', () => {
       (await page.locator('a', { hasText: 'Manage PERNs' }).count()) > 0
     ).toBe(false)
 
-    // Try to access pern directly -- should get a 404
-    await page.goto(
-      `/organisations/${orgId}/registrations/${registrationId}/accreditations/${accreditationId}/packaging-recycling-notes`
-    )
+    // The PERN list that opened while suspended is now not found
+    await page.goto(pernListAddress)
     await checkBodyText(page, '404', 10)
     await checkBodyText(page, 'Page not found', 10)
   })
