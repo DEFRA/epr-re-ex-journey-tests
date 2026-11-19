@@ -11,12 +11,13 @@ const here = dirname(fileURLToPath(import.meta.url))
  * @param {string} instant
  * @param {string} module
  * @param {string} name
+ * @param {number} year - the summary log's year
  */
-const receivedDateAt = (instant, module, name) =>
+const receivedDateAt = (instant, module, name, year) =>
   evaluateUnderClock(
     instant,
     `const m = await import('${join(here, module)}')
-     console.log(m['${name}']().G)`
+     console.log(m['${name}'](undefined, ${year}).G)`
   )
 
 const generators = [
@@ -28,15 +29,17 @@ const generators = [
 ]
 
 const instants = [
-  { instant: '2026-06-15T12:00:00Z', received: '01/05/2026' },
-  { instant: '2027-01-15T12:00:00Z', received: '01/12/2026' }
+  { instant: '2026-06-15T12:00:00Z', year: 2026, received: '01/05/2026' },
+  { instant: '2027-01-15T12:00:00Z', year: 2027, received: '01/12/2026' },
+  // Last month is in a later year than the log, which the service rejects.
+  { instant: '2027-10-15T12:00:00Z', year: 2026, received: '01/12/2026' }
 ]
 
 describe('a registered-only received row', () => {
   for (const { module, name } of generators) {
-    for (const { instant, received } of instants) {
-      it(`${name} is dated the first of last month, ${received}, at ${instant}`, () => {
-        assert.equal(receivedDateAt(instant, module, name), received)
+    for (const { instant, year, received } of instants) {
+      it(`${name} for a ${year} log is dated ${received} at ${instant}`, () => {
+        assert.equal(receivedDateAt(instant, module, name, year), received)
       })
     }
   }

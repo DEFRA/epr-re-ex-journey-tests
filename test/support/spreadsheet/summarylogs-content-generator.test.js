@@ -1,5 +1,7 @@
 import { describe, it, before } from 'node:test'
 import assert from 'node:assert/strict'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import ExcelJS from 'exceljs'
 import {
   generateSummaryLogContent,
@@ -8,6 +10,7 @@ import {
 } from './summarylogs-content-generator.js'
 import { PROCESSING_TYPE_CONFIG } from './spreadsheet-config.js'
 import { generateSpreadsheetData } from './summarylogs-spreadsheet-data-generator.js'
+import { evaluateUnderClock } from '../simulator/clock/under-clock.js'
 
 /** @import {Cell, SummaryLogContent, TableContent} from './summarylogs-content-generator.js' */
 /** @import {PlannedRow} from './summarylogs-spreadsheet-data-generator.js' */
@@ -26,6 +29,45 @@ const baseOptions = {
 /** @param {Partial<typeof baseOptions> & {rows: Record<string, PlannedRow[]>, year?: number}} options */
 const generate = (options) =>
   generateSummaryLogContent({ ...baseOptions, ...options })
+
+const here = dirname(fileURLToPath(import.meta.url))
+
+/**
+ * The years of every date in twenty drawn rows of each stream's worksheets,
+ * generated for a log of `year` at `instant`.
+ *
+ * @param {string} instant
+ * @param {number} year
+ * @returns {string[]}
+ */
+const dateYearsAt = (instant, year) =>
+  JSON.parse(
+    evaluateUnderClock(
+      instant,
+      `const { generateSummaryLogContent } = await import('${join(here, 'summarylogs-content-generator.js')}')
+       const { PROCESSING_TYPE_CONFIG } = await import('${join(here, 'spreadsheet-config.js')}')
+       const years = new Set()
+       for (const [wasteProcessingType, { worksheets }] of Object.entries(PROCESSING_TYPE_CONFIG)) {
+         const content = await generateSummaryLogContent({
+           wasteProcessingType,
+           materialSuffix: 'PA',
+           regNumber: 'R1',
+           year: ${year},
+           rows: Object.fromEntries(
+             worksheets.map(({ name }) => [name, Array.from({ length: 20 }, () => ({}))])
+           )
+         })
+         for (const { rows } of Object.values(content.data)) {
+           for (const value of rows.flat()) {
+             if (/^\\d{4}-\\d{2}-\\d{2}$/.test(String(value))) {
+               years.add(String(value).slice(0, 4))
+             }
+           }
+         }
+       }
+       console.log(JSON.stringify([...years].sort()))`
+    )
+  )
 
 /**
  * The value a row carries under a header.
@@ -177,6 +219,15 @@ describe('summary log content generator', () => {
       generate({ rows: { 'Received (sections 1 and 2)': [{ rowId: 1000 }] } }),
       /Received \(sections 1 and 2\)/
     )
+  })
+
+  describe("given last year's log", () => {
+    // The service rejects a log holding a date in a later year than its own.
+    for (const instant of ['2027-01-05T12:00:00Z', '2027-03-15T12:00:00Z']) {
+      it(`dates every stream's drawn rows in that year at ${instant}`, () => {
+        assert.deepEqual(dateYearsAt(instant, 2026), ['2026'])
+      })
+    }
   })
 
   describe('given a seeded plan', () => {
