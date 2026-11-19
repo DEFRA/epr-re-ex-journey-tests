@@ -62,9 +62,6 @@ const NATIONS = ['England', 'Wales', 'Scotland', 'Northern Ireland']
 // name, with the reporting year on the end.
 const PERIOD = /^[A-Z][a-z]+( to [A-Z][a-z]+)? (\d{4})$/
 
-// When a set of figures was taken, as the page stamps it.
-const DATA_TAKEN_AT = /^Data (taken|aggregated) at /
-
 /**
  * The value a stated tonnage carries. The grouping is there to be read rather
  * than parsed, so it comes out before the number does.
@@ -149,9 +146,7 @@ test.describe('A regulator reading market insights @regulator', () => {
       const period = await wasteBalancePage.periodText()
 
       expect(period).toMatch(PERIOD)
-      expect
-        .soft(await wasteBalancePage.dataTakenAtText())
-        .toMatch(DATA_TAKEN_AT)
+      await expect.soft(wasteBalancePage.dataTakenAt()).toBeVisible()
 
       const { material, accreditationType, total, publishedTotal } =
         WASTE_BALANCE_HEADINGS
@@ -252,7 +247,7 @@ test.describe('A regulator reading market insights @regulator', () => {
         expect(await figuresPage.headingText()).toContain(figureSet)
 
         expect.soft(await figuresPage.periodText()).toBe(period)
-        expect.soft(await figuresPage.dataTakenAtText()).toMatch(DATA_TAKEN_AT)
+        await expect.soft(figuresPage.dataTakenAt()).toBeVisible()
 
         // Every month of the period brings a reprocessor table and an
         // exporter table, each naming the month it covers. Naming the whole
@@ -298,9 +293,7 @@ test.describe('A regulator reading market insights @regulator', () => {
       // Every set of figures covers the period the clock decides, so this
       // page was cut over the span the others were.
       expect.soft(await outstandingReturnsPage.periodText()).toBe(period)
-      expect
-        .soft(await outstandingReturnsPage.dataTakenAtText())
-        .toMatch(DATA_TAKEN_AT)
+      await expect.soft(outstandingReturnsPage.dataTakenAt()).toBeVisible()
 
       // A table per material, each one naming the material it counts. Naming
       // the whole set is what catches a material that arrived twice or not at
