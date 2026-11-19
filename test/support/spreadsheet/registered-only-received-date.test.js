@@ -30,7 +30,8 @@ const generators = [
 
 const instants = [
   { instant: '2026-06-15T12:00:00Z', year: 2026, received: '01/05/2026' },
-  { instant: '2027-01-15T12:00:00Z', year: 2027, received: '01/12/2026' },
+  // Last month is in an earlier year than the log.
+  { instant: '2027-01-15T12:00:00Z', year: 2027, received: '01/01/2027' },
   // Last month is in a later year than the log, which the service rejects.
   { instant: '2027-10-15T12:00:00Z', year: 2026, received: '01/12/2026' }
 ]

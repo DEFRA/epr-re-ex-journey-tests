@@ -76,22 +76,30 @@ describe('a recent load date', () => {
     assert.ok(latest <= '2026-01-05T12:00:00.000Z', `latest draw ${latest}`)
   })
 
-  it("keeps this year's dates for next year's log", () => {
+  it("falls on the same days of next year for next year's log", () => {
     const { earliest, latest } = drawsAt('2026-06-15T12:00:00Z', 2027, 20)
 
     assert.ok(
-      earliest >= '2026-05-26T12:00:00.000Z',
+      earliest >= '2027-05-26T12:00:00.000Z',
       `earliest draw ${earliest}`
     )
-    assert.ok(latest <= '2026-06-15T12:00:00.000Z', `latest draw ${latest}`)
+    assert.ok(latest <= '2027-06-15T12:00:00.000Z', `latest draw ${latest}`)
+  })
+
+  it("stays in next year for next year's log in early January", () => {
+    const { earliest, latest } = drawsAt('2026-01-05T12:00:00Z', 2027, 20)
+
+    assert.ok(earliest >= '2027-01-01', `earliest draw ${earliest}`)
+    assert.ok(latest <= '2027-01-05T12:00:00.000Z', `latest draw ${latest}`)
   })
 })
 
 describe('the first of last month', () => {
   for (const { instant, year, expected } of [
     { instant: '2026-06-15T12:00:00Z', year: 2026, expected: '01/05/2026' },
-    { instant: '2027-01-15T12:00:00Z', year: 2027, expected: '01/12/2026' },
-    { instant: '2027-10-15T12:00:00Z', year: 2026, expected: '01/12/2026' }
+    { instant: '2027-01-15T12:00:00Z', year: 2027, expected: '01/01/2027' },
+    { instant: '2027-10-15T12:00:00Z', year: 2026, expected: '01/12/2026' },
+    { instant: '2026-11-19T12:00:00Z', year: 2027, expected: '01/01/2027' }
   ]) {
     it(`is ${expected} for a ${year} log at ${instant}`, () => {
       assert.equal(firstOfLastMonthAt(instant, year), expected)

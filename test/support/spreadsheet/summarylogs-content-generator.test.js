@@ -221,11 +221,17 @@ describe('summary log content generator', () => {
     )
   })
 
-  describe("given last year's log", () => {
-    // The service rejects a log holding a date in a later year than its own.
-    for (const instant of ['2027-01-05T12:00:00Z', '2027-03-15T12:00:00Z']) {
-      it(`dates every stream's drawn rows in that year at ${instant}`, () => {
-        assert.deepEqual(dateYearsAt(instant, 2026), ['2026'])
+  describe('given a log for any year', () => {
+    // The service rejects a log holding a date in a later year than its own,
+    // and an earlier year's date belongs in that year's log.
+    for (const { instant, year } of [
+      { instant: '2027-01-05T12:00:00Z', year: 2026 },
+      { instant: '2027-03-15T12:00:00Z', year: 2026 },
+      { instant: '2027-01-05T12:00:00Z', year: 2027 },
+      { instant: '2026-11-19T12:00:00Z', year: 2027 }
+    ]) {
+      it(`dates every stream's drawn rows in ${year} at ${instant}`, () => {
+        assert.deepEqual(dateYearsAt(instant, year), [String(year)])
       })
     }
   })
