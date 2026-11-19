@@ -73,7 +73,7 @@ export function generateAccNumber(options) {
  * A registration number and its accreditation number, sharing one org id and
  * serial.
  *
- * @param {{wasteProcessingType: ProcessingType, materialSuffix: string, nation?: string, year?: string}} options
+ * @param {{wasteProcessingType: ProcessingType, materialSuffix: string, nation?: string, year?: string, orgId?: string, serial?: string}} options
  * @returns {SeededNumbers}
  */
 export function generateNumbers(options) {

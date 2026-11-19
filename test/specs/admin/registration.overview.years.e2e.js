@@ -8,20 +8,16 @@ import { RegistrationYearPage } from 'page-objects/admin/registration.year.page'
 import { ReportViewPage } from 'page-objects/admin/report.view.page'
 import { seedOrganisationAcrossYears } from '../../support/seeding/organisation.js'
 import { seedReportSubmission } from '../../support/seeding/reports.js'
-import {
-  submitSummaryLogContent,
-  summaryLogDatedAt
-} from '../../support/seeding/summary-logs.js'
+import { submitSummaryLogContent } from '../../support/seeding/summary-logs.js'
 import { registerAndLinkDefraIdUser } from '../../support/defra-id-linking.js'
 import { defraIdStub } from '../../support/defra-id-stub.js'
-import { summaryLogContentNumbered } from '../../support/spreadsheet/summarylogs-content-generator.js'
+import { generateSummaryLogContent } from '../../support/spreadsheet/summarylogs-content-generator.js'
 import { checkAccessibility } from '../../support/accessibility.js'
 
 // The registration is registered-only for the two years before this one and
-// accredited this year. Last year holds a summary log and a submitted Quarter 1
-// report, both in periods that have ended whatever today's date. The dev
-// endpoint stamps the log with this year's accreditation, so it lands invalid;
-// the journey only needs it listed under its own year.
+// accredited this year. Last year holds a submitted Quarter 1 report, in a
+// period that has ended whatever today's date, and no summary log: it has no
+// templates to submit against. This year holds a summary log.
 test.describe('Registration overview years', () => {
   test.describe.configure({ timeout: 3 * 60 * 1000 })
 
@@ -41,19 +37,32 @@ test.describe('Registration overview years', () => {
     const user = await registerAndLinkDefraIdUser(seeded.refNo, seeded.email)
     const defraAuthHeader = defraIdStub.authHeader(user.userId)
 
-    await submitSummaryLogContent(
+    const submitted = await submitSummaryLogContent(
       seeded.refNo,
       seeded.registrationId,
       defraAuthHeader,
-      await summaryLogContentNumbered(
-        await summaryLogDatedAt(
-          'resources/reprocessor-output-regonly.xlsx',
-          new Date(Date.UTC(lastYear, 1, 15, 12))
-        ),
-        { regNumber: seeded.registrationNumber }
-      ),
-      lastYear
+      await generateSummaryLogContent({
+        wasteProcessingType: 'reprocessorOutput',
+        materialSuffix: 'PA',
+        regNumber: seeded.registrationNumber,
+        accNumber: seeded.accreditationNumber,
+        rows: {
+          'Reprocessed (sections 3 and 4)': [
+            {
+              rowId: 9001,
+              fields: {
+                PRODUCT_TONNAGE: 10,
+                UK_PACKAGING_WEIGHT_PERCENTAGE: 1,
+                PRODUCT_UK_PACKAGING_WEIGHT_PROPORTION: 10,
+                ADD_PRODUCT_WEIGHT: 'Yes'
+              }
+            }
+          ]
+        }
+      }),
+      thisYear
     )
+    expect(submitted.status).toBe('submitted')
     await seedReportSubmission(
       seeded.refNo,
       seeded.registrationId,
@@ -93,6 +102,9 @@ test.describe('Registration overview years', () => {
           accreditationNumber: '-'
         }
       ])
+      await expect(
+        page.locator('.govuk-summary-list dt', { hasText: 'Waste records' })
+      ).toHaveCount(0)
     })
 
     await test.step('A registered-only year shows only that year', async () => {
@@ -122,11 +134,12 @@ test.describe('Registration overview years', () => {
         status: 'Submitted'
       })
 
-      expect(
-        (await registrationYearPage.getSummaryLogActionLinks(1)).map(
-          (link) => link.text
-        )
-      ).toEqual(['View data', 'Download'])
+      expect(await registrationYearPage.getSummaryLogsContent()).toContain(
+        'No summary logs'
+      )
+      await expect(registrationYearPage.wasteRecordsDownloadLink()).toHaveCount(
+        0
+      )
     })
 
     await test.step('A report opens and returns to its year', async () => {
@@ -151,7 +164,7 @@ test.describe('Registration overview years', () => {
       )
     })
 
-    await test.step('The accredited year shows its accreditation and none of last year', async () => {
+    await test.step('The accredited year shows its accreditation and its own summary log', async () => {
       await registrationYearPage.crumbLink('Registration overview').click()
       await registrationOverviewPage.viewYear(thisYear)
 
@@ -161,9 +174,23 @@ test.describe('Registration overview years', () => {
       )
       await expect(registrationYearPage.prnActivityDownloadLink()).toBeVisible()
       await expect(registrationYearPage.wasteBalanceEventsLink()).toBeVisible()
-      expect(await registrationYearPage.getSummaryLogsContent()).toContain(
-        'No summary logs'
+      expect(
+        (await registrationYearPage.getSummaryLogActionLinks(1)).map(
+          (link) => link.text
+        )
+      ).toEqual(['View data', 'Download'])
+
+      const csv = await registrationYearPage.downloadWasteRecords()
+      expect(csv.failure).toBeNull()
+      expect(csv.filename).toMatch(
+        new RegExp(`^${seeded.registrationNumber}-${thisYear}-.+\\.csv$`)
       )
+      expect(
+        csv.records.map((record) => [
+          record['Registration Number'],
+          record['Row ID']
+        ])
+      ).toEqual([[seeded.registrationNumber, '9001']])
     })
 
     await test.step('A year opened as the wrong kind is not found', async () => {
@@ -174,5 +201,62 @@ test.describe('Registration overview years', () => {
       )
       expect(response?.status()).toBe(404)
     })
+  })
+  test("A registered-only registration's year pages each download that year's waste records @organisations", async ({
+    page
+  }) => {
+    const registrationYearPage = new RegistrationYearPage(page)
+
+    const seeded = await seedOrganisationAcrossYears({ exporting: true })
+    const [nextYear, thisYear] = seeded.years
+    if (!seeded.exporter) {
+      throw new Error('The organisation was seeded with no exporter')
+    }
+    const { registrationNumber, registrationId } = seeded.exporter
+    const user = await registerAndLinkDefraIdUser(seeded.refNo, seeded.email)
+    const defraAuthHeader = defraIdStub.authHeader(user.userId)
+
+    const rowIdByYear = { [thisYear]: '1001', [nextYear]: '1002' }
+    for (const year of [thisYear, nextYear]) {
+      const submitted = await submitSummaryLogContent(
+        seeded.refNo,
+        registrationId,
+        defraAuthHeader,
+        await generateSummaryLogContent({
+          wasteProcessingType: 'regOnlyExporter',
+          materialSuffix: 'PA',
+          regNumber: registrationNumber,
+          year,
+          rows: {
+            'Received (section 1)': [
+              {
+                rowId: Number(rowIdByYear[year]),
+                fields: { MONTH_RECEIVED_FOR_EXPORT: `01/01/${year}` }
+              }
+            ]
+          }
+        }),
+        year
+      )
+      expect(submitted.status).toBe('submitted')
+    }
+
+    await new AdminLoginPage(page).loginAsServiceMaintainer()
+
+    for (const year of [thisYear, nextYear]) {
+      await registrationYearPage.open(
+        `/organisations/${seeded.organisationNumber}/registrations/${encodeURIComponent(registrationNumber)}/years/${year}`
+      )
+      await expect(page).toHaveURL(new RegExp(`/registered-only/${year}$`))
+
+      const csv = await registrationYearPage.downloadWasteRecords()
+      expect(csv.failure).toBeNull()
+      expect(csv.filename).toMatch(
+        new RegExp(`^${registrationNumber}-${year}-.+\\.csv$`)
+      )
+      expect(csv.records.map((record) => record['Row ID'])).toEqual([
+        rowIdByYear[year]
+      ])
+    }
   })
 })

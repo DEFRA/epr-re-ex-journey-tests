@@ -15,6 +15,7 @@ import {
 } from '../../support/ors-spreadsheet.js'
 import { checkAccessibility } from '../../support/accessibility.js'
 import { registrationStartYear } from '../../support/seeding/summary-logs.js'
+import { generateNumbers } from '../../support/reg-acc-number.js'
 import { OrganisationsPage } from 'page-objects/admin/organisations.page'
 import { OrganisationOverviewPage } from 'page-objects/admin/organisation.overview.page'
 import { RegistrationOverviewPage } from 'page-objects/admin/registration.overview.page'
@@ -49,8 +50,8 @@ test.describe('ORS upload flow @orsUpload', () => {
       { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
     ])
 
-    const registrationNumber = `FAKE/REG${orgId}/TEST`
-    const accreditationNumber = `FAKE/ACC${orgId}/TEST`
+    const { regNumber: registrationNumber, accNumber: accreditationNumber } =
+      generateNumbers({ wasteProcessingType: 'exporter', materialSuffix: 'PA' })
 
     await updateMigratedOrganisation(refNo, [
       {
@@ -205,10 +206,24 @@ test.describe('ORS upload flow @orsUpload', () => {
 
       organisationName = organisation.companyName
 
-      alphaRegistrationNumber = `FAKE/REG${orgId}/ALPHA`
-      betaRegistrationNumber = `FAKE/REG${orgId}/BETA`
-      alphaAccreditationNumber = `FAKE/ACC${orgId}/ALPHA`
-      betaAccreditationNumber = `FAKE/ACC${orgId}/BETA`
+      // Same org id, ascending serials: the overview lists registrations by
+      // number, and later tests open the first row expecting alpha.
+      const alpha = generateNumbers({
+        wasteProcessingType: 'exporter',
+        materialSuffix: 'PA',
+        orgId: String(orgId),
+        serial: '0001'
+      })
+      const beta = generateNumbers({
+        wasteProcessingType: 'exporter',
+        materialSuffix: 'ST',
+        orgId: String(orgId),
+        serial: '0002'
+      })
+      alphaRegistrationNumber = alpha.regNumber
+      alphaAccreditationNumber = alpha.accNumber
+      betaRegistrationNumber = beta.regNumber
+      betaAccreditationNumber = beta.accNumber
 
       await updateMigratedOrganisation(refNo, [
         {

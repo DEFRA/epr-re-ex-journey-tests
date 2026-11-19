@@ -1,4 +1,5 @@
 import { Page } from 'page-objects/page'
+import { ChooseYearPage } from 'page-objects/choose.year.page.js'
 
 class DashboardPage extends Page {
   open(orgId) {
@@ -58,11 +59,39 @@ class DashboardPage extends Page {
     })
   }
 
+  /** @param {number} year */
+  async chooseYear(year) {
+    const chooseYearPage = new ChooseYearPage(this.page)
+    await this.chooseDifferentYearLink().click()
+    await chooseYearPage.yearOption(year).check()
+    await chooseYearPage.continueButton().click()
+    await this.expectYear(year)
+  }
+
+  /**
+   * The home page offers another year only when the organisation has one and
+   * the frontend lets organisations move between years.
+   *
+   * @param {number} year
+   */
+  async chooseYearIfOffered(year) {
+    await this.page.waitForLoadState()
+    if (await this.chooseDifferentYearLink().isVisible()) {
+      await this.chooseYear(year)
+    }
+  }
+
   // This ".govuk-tabs" block renders without data-module="govuk-tabs" (see
   // organisations/index.njk), so the GOV.UK tabs JS never enhances it and the
   // "Exporting"/"Reprocessing" items stay plain links, not role="tab".
   exportingTabLink() {
     return this.page.getByRole('link', { name: 'Exporting', exact: true })
+  }
+
+  // The selected tab carries aria-current="page", which is what a screen
+  // reader announces; Playwright's getByRole has no option for it.
+  currentTab() {
+    return this.page.locator('.govuk-tabs a[aria-current="page"]')
   }
 
   async getTableCell(tableIndex, rowIndex, cellIndex) {

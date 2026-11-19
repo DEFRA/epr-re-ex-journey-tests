@@ -123,7 +123,7 @@ services:
 
   # Copies cognito seed files into a volume so cognito-stub has its own copies
   cognito-stub-init:
-    image: alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
+    image: alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
     networks:
       - cdp-tenant
     volumes:
@@ -148,7 +148,7 @@ services:
 
   # Simulates Defra ID sign-in for waste-operator users (epr-frontend journeys).
   defra-id-stub:
-    image: defradigital/epr-re-ex-defra-id-stub:0.21.0@sha256:31aa8b52028671f636d7886f947983cf694583373449ff15a635bb6959eeebf9
+    image: defradigital/epr-re-ex-defra-id-stub:0.39.0@sha256:60d5af290fd9f8ac804c73c59e3081ab6938077eab6516c677ceca5026d7529e
     networks:
       - cdp-tenant
     ports:
@@ -177,7 +177,7 @@ services:
   # Simulates Entra ID (Microsoft) sign-in: used for epr-backend's
   # service-to-service auth and for epr-re-ex-admin-frontend's browser login.
   entra-stub:
-    image: defradigital/epr-re-ex-entra-stub:0.173.0@sha256:f45e21c5c1965ab1a2fe88a87715b9ad5479bfa19464875bd9b1c53f0196ad51
+    image: defradigital/epr-re-ex-entra-stub:0.183.0@sha256:be0367999e08407fd306919d418a4d1064883f05f5771546217366d9b6d3bbae
     networks:
       - cdp-tenant
     ports:
@@ -255,8 +255,6 @@ services:
       DEFRA_ID_CLIENT_ID: 63983fc2-cfff-45bb-8ec2-959e21062b9a
       DEFRA_ID_OIDC_WELL_KNOWN_URL: http://defra-id-stub:3200/epr-re-ex-defra-id-stub/.well-known/openid-configuration
       ENTRA_OIDC_WELL_KNOWN_URL: http://entra-stub:3010/.well-known/openid-configuration
-      # deprecated, remove once every app reads the name above
-      ENTRA_OIDC_WELL_KNOWN_CONFIGURATION_URL: http://entra-stub:3010/.well-known/openid-configuration
       FEATURE_FLAG_DEV_ENDPOINTS: true
       FEATURE_FLAG_PRN_ADMIN_CANCELLATION: true
       FEATURE_FLAG_REPORT_DATA_VALIDATION: true
@@ -306,21 +304,16 @@ services:
       DEFRA_ID_CLIENT_ID: 63983fc2-cfff-45bb-8ec2-959e21062b9a
       DEFRA_ID_CLIENT_SECRET: test_value
       DEFRA_ID_OIDC_WELL_KNOWN_URL: http://defra-id-stub:3200/epr-re-ex-defra-id-stub/.well-known/openid-configuration
-      # deprecated, remove once every app reads the name above
-      DEFRA_ID_OIDC_CONFIGURATION_URL: http://defra-id-stub:3200/epr-re-ex-defra-id-stub/.well-known/openid-configuration
       DEFRA_ID_SERVICE_ID: d7d72b79-9c62-ee11-8df0-000d3adf7047
       ENTRA_TENANT_ID: tenantId
       ENTRA_CLIENT_ID: clientId
       ENTRA_CLIENT_SECRET: test
       ENTRA_OIDC_WELL_KNOWN_URL: http://entra-stub:3010/.well-known/openid-configuration
-      # deprecated, remove once every app reads the name above
-      ENTRA_OIDC_WELL_KNOWN_CONFIGURATION_URL: http://entra-stub:3010/.well-known/openid-configuration
       EPR_BACKEND_URL: http://epr-backend:3001
       ANALYTICS_CONTAINER_ID: GTM-TEST0000
       ANALYTICS_ENABLED: true
       ANALYTICS_MEASUREMENT_ID: G-TEST000000
       FEATURE_FLAG_MARKET_INSIGHTS: true
-      FEATURE_FLAG_NAVIGATE_ACROSS_YEARS: true
       FEATURE_FLAG_REGULATOR_ACCESS: true
       FEATURE_FLAG_WASTE_RECORDS_DOWNLOAD: true
       NODE_ENV: development
@@ -369,8 +362,6 @@ services:
       ENTRA_CLIENT_SECRET: test
       FEATURE_FLAG_PRN_ADMIN_CANCELLATION: true
       ENTRA_OIDC_WELL_KNOWN_URL: http://entra-stub:3010/.well-known/openid-configuration
-      # deprecated, remove once every app reads the name above
-      OIDC_WELL_KNOWN_CONFIGURATION_URL: http://entra-stub:3010/.well-known/openid-configuration
       USE_SINGLE_INSTANCE_CACHE: true
       # Unlike epr-frontend above, the admin UI redirects the browser straight
       # to cdp-uploader rather than proxying uploads server-side, so this must

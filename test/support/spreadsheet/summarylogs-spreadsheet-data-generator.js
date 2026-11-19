@@ -3,7 +3,8 @@ import { fakerEN_GB as faker } from '@faker-js/faker'
 import { MATERIALS } from './shared-spreadsheet-values.js'
 import {
   PROCESSING_TYPE_CONFIG,
-  WORKSHEET_CONFIG
+  WORKSHEET_CONFIG,
+  templateFileFor
 } from './spreadsheet-config.js'
 import {
   generateRegNumber as buildRegNumber,
@@ -46,6 +47,32 @@ import pino from 'pino'
  *   identical but for the field the plan changed. Date fields still move with
  *   the clock under a seed, so a row that must hold still pins its dates too.
  */
+
+/**
+ * @param {string} address - e.g. C15007
+ * @returns {string} e.g. C
+ */
+const columnLetterOf = (address) => address.replace(/\d+$/, '')
+
+/**
+ * Whether a cell clones a shared formula whose master sits in one of the
+ * columns being flattened. Flattening the master alone leaves the clone
+ * pointing at nothing, and ExcelJS then refuses to write the workbook. The
+ * 2027 exporter template's ROW_ID formula is shared across columns B and C.
+ *
+ * @param {import('exceljs').Cell} cell
+ * @param {string[]} columns
+ * @returns {boolean}
+ */
+function sharesFormulaFrom(cell, columns) {
+  const { value } = cell
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'sharedFormula' in value &&
+    columns.includes(columnLetterOf(value.sharedFormula))
+  )
+}
 
 /** The worksheet row carrying the template's field markers. */
 export const MARKER_ROW = 1
@@ -241,6 +268,7 @@ function generateAccNumber(wasteProcessingType, suffix, nation, orgId) {
  *   render, keyed by worksheet name. A worksheet the plan omits gets none.
  * @param {boolean} [options.unreadable] - render a workbook the service
  *   rejects wholesale rather than validates.
+ * @param {number} [options.year] - the year whose template to fill.
  * @param {boolean} [options.silentLogging]
  * @returns {Promise<string>} the path the workbook was written to
  */
@@ -258,6 +286,7 @@ export async function generateSpreadsheetData(options = {}) {
     rowOffset = 0,
     rows = null,
     unreadable = false,
+    year = 2026,
     silentLogging = false
   } = options
 
@@ -287,11 +316,8 @@ export async function generateSpreadsheetData(options = {}) {
     }
     const config = PROCESSING_TYPE_CONFIG[wasteProcessingType]
 
-    let { templateFile, worksheets } = config
-
-    if (filename !== null) {
-      templateFile = filename
-    }
+    const { worksheets } = config
+    const templateFile = filename ?? templateFileFor(config.templateFile, year)
 
     if (rows !== null) {
       const renderable = worksheets
@@ -358,9 +384,12 @@ export async function generateSpreadsheetData(options = {}) {
         }
         workbook.eachSheet((sheet) => {
           sheet.eachRow((row) => {
-            targetCols.forEach((col) => {
-              const cell = row.getCell(col)
-              if (cell.type === ExcelJS.ValueType.Formula) {
+            row.eachCell((cell) => {
+              if (
+                cell.type === ExcelJS.ValueType.Formula &&
+                (targetCols.includes(columnLetterOf(cell.address)) ||
+                  sharesFormulaFrom(cell, targetCols))
+              ) {
                 cell.value = cell.result ?? null
               }
             })
@@ -426,12 +455,14 @@ export async function generateSpreadsheetData(options = {}) {
     const safeReg = sanitiseFilenameComponent(registrationNumber)
 
     const sheetsSuffix = sheets !== null ? `_sheets${sheets.join('-')}` : ''
+    // Keeps a log for another year from overwriting this year's.
+    const yearSuffix = year === 2026 ? '' : `_${year}`
 
     let outputFile
     if (!wasteProcessingType.startsWith('regOnly')) {
-      outputFile = `data/${safeType}_${safeAcc}_${safeReg}${sheetsSuffix}.xlsx`
+      outputFile = `data/${safeType}_${safeAcc}_${safeReg}${sheetsSuffix}${yearSuffix}.xlsx`
     } else {
-      outputFile = `data/${safeType}_${safeReg}${sheetsSuffix}.xlsx`
+      outputFile = `data/${safeType}_${safeReg}${sheetsSuffix}${yearSuffix}.xlsx`
     }
     // data/ is gitignored, so it is absent in a fresh clone or worktree.
     await mkdir(dirname(outputFile), { recursive: true })
