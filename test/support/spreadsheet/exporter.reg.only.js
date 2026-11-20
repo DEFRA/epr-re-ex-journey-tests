@@ -1,5 +1,6 @@
 import { fakerEN_GB as faker } from '@faker-js/faker'
 import BASEL_CODES from './basel-codes.js'
+import { firstOfLastMonthIn, recentDateIn } from './recent-date.js'
 import {
   RECYCLABLE_PROPORTION_METHODS,
   YES_NO,
@@ -8,15 +9,10 @@ import {
 } from './shared-spreadsheet-values.js'
 
 // Generate a single row for "Received" section
-export function generateRegOnlyReceivedRow() {
-  const date = new Date()
-  const month = String(date.getMonth()).padStart(2, '0') // getMonth() is 0-indexed, so no +1 needed
-  const year =
-    date.getMonth() === 0 ? date.getFullYear() - 1 : date.getFullYear() // handle January → previous year
-
+export function generateRegOnlyReceivedRow(material, year) {
   return {
     // Section 1
-    G: `01/${month}/${year}`, // Column G: Date received for export
+    G: firstOfLastMonthIn(year).toLocaleDateString('en-GB'), // Column G: Date received for export
     H: faker.company.name(), // Column H: Supplier name
     I: faker.location.streetAddress(), // Column I: First line of supplier address
     J: faker.location.zipCode(), // Column J: Supplier postcode
@@ -30,9 +26,9 @@ export function generateRegOnlyReceivedRow() {
 }
 
 // Generate a single row for "Exported (sections 2 and 3)"
-export function generateRegOnlyExportedRow() {
-  const date = faker.date.recent({ days: 20 })
-  const repatriatedDate = faker.date.recent({ days: 120 })
+export function generateRegOnlyExportedRow(material, year) {
+  const date = recentDateIn(year, 20)
+  const repatriatedDate = recentDateIn(year, 120)
   const reprocessorCountry = faker.helpers.arrayElement(countryList)
 
   return {
@@ -56,8 +52,8 @@ export function generateRegOnlyExportedRow() {
 }
 
 // Generate a single row for "Sent on (section 4)"
-export function generateRegOnlySentOnRow() {
-  const date = faker.date.recent({ days: 20 })
+export function generateRegOnlySentOnRow(material, year) {
+  const date = recentDateIn(year, 20)
 
   return {
     // Section 4

@@ -1,19 +1,15 @@
 import { fakerEN_GB as faker } from '@faker-js/faker'
+import { firstOfLastMonthIn, recentDateIn } from './recent-date.js'
 import {
   RECYCLABLE_PROPORTION_METHODS,
   ACTIVITIES
 } from './shared-spreadsheet-values.js'
 
 // Generate a single row for "Received" sections
-export function generateRegOnlyReprocessorReceivedRow() {
-  const date = new Date()
-  const month = String(date.getMonth()).padStart(2, '0') // getMonth() is 0-indexed, so no +1 needed
-  const year =
-    date.getMonth() === 0 ? date.getFullYear() - 1 : date.getFullYear() // handle January → previous year
-
+export function generateRegOnlyReprocessorReceivedRow(material, year) {
   return {
     // Section 1
-    G: `01/${month}/${year}`, // Month received
+    G: firstOfLastMonthIn(year).toLocaleDateString('en-GB'), // Month received
     H: parseFloat(faker.number.float({ min: 20, max: 50 }).toFixed(2)), // Net weight
     I: faker.helpers.arrayElement(RECYCLABLE_PROPORTION_METHODS), // How did you calculate the recyclable proportion?
     J: parseFloat(faker.number.float({ min: 0.05, max: 0.8 }).toFixed(2)), // Recyclable Proportion (Percentage)
@@ -26,8 +22,8 @@ export function generateRegOnlyReprocessorReceivedRow() {
   }
 }
 
-export function generateRegOnlyReprocessorSentOnRow() {
-  const date = faker.date.recent({ days: 20 })
+export function generateRegOnlyReprocessorSentOnRow(material, year) {
+  const date = recentDateIn(year, 20)
 
   return {
     // Section 2

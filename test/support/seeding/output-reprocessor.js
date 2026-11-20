@@ -52,7 +52,9 @@ export async function seedAccreditedOutputReprocessor() {
   const authHeader = defraIdStub.authHeader(user.userId)
 
   // One pinned row: the generated rows draw "add product weight" at random.
+  const year = registrationStartYear()
   const content = await generateSummaryLogContent({
+    year,
     wasteProcessingType: 'reprocessorOutput',
     materialSuffix: 'ST',
     regNumber,
@@ -77,7 +79,7 @@ export async function seedAccreditedOutputReprocessor() {
     registrationId,
     authHeader,
     content,
-    registrationStartYear()
+    year
   )
   await waitForWasteBalance(org.refNo, accreditationId, authHeader)
 

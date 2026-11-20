@@ -127,7 +127,9 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
     const expectedWasteBalance = '797.00'
     const originalWasteBalance = '1,000.00'
 
+    const year = registrationStartYear()
     const summaryLogContent = await generateSummaryLogContent({
+      year,
       wasteProcessingType: 'exporter',
       materialSuffix: 'WO',
       regNumber,
@@ -153,7 +155,7 @@ test.describe('Issuing Packing Recycling Notes (Exporter)', () => {
       migrationResponse.registrationIds[0],
       defraIdStub.authHeader(user.userId),
       summaryLogContent,
-      registrationStartYear()
+      year
     )
 
     await checkAccessibility(currentPage, 'Dashboard')

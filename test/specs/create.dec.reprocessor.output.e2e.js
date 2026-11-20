@@ -75,12 +75,14 @@ test.describe('Marking a PRN as December Waste (Reprocessor Output)', () => {
     // upload: this journey is about the December Waste question on a PRN,
     // not the upload itself, which the dedicated summary-log specs already
     // cover.
+    const year = registrationStartYear()
     const summaryLogContent = await summaryLogContentFromFixture(
       await generateSpreadsheetData({
         wasteProcessingType: 'reprocessorOutput',
         materialSuffix: 'ST',
         accNumber,
         regNumber,
+        year,
         silentLogging: true
       })
     )
@@ -89,7 +91,7 @@ test.describe('Marking a PRN as December Waste (Reprocessor Output)', () => {
       migrationResponse.registrationIds[0],
       defraIdStub.authHeader(user.userId),
       summaryLogContent,
-      registrationStartYear()
+      year
     )
 
     await dashboardPage.selectTableLink(1, 1)
