@@ -1,5 +1,7 @@
 import { describe, it, before } from 'node:test'
 import assert from 'node:assert/strict'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import ExcelJS from 'exceljs'
 import {
   generateSummaryLogContent,
@@ -8,6 +10,7 @@ import {
 } from './summarylogs-content-generator.js'
 import { PROCESSING_TYPE_CONFIG } from './spreadsheet-config.js'
 import { generateSpreadsheetData } from './summarylogs-spreadsheet-data-generator.js'
+import { evaluateUnderClock } from '../simulator/clock/under-clock.js'
 
 /** @import {Cell, SummaryLogContent, TableContent} from './summarylogs-content-generator.js' */
 /** @import {PlannedRow} from './summarylogs-spreadsheet-data-generator.js' */
@@ -26,6 +29,57 @@ const baseOptions = {
 /** @param {Partial<typeof baseOptions> & {rows: Record<string, PlannedRow[]>, year?: number}} options */
 const generate = (options) =>
   generateSummaryLogContent({ ...baseOptions, ...options })
+
+const here = dirname(fileURLToPath(import.meta.url))
+
+/**
+ * The years of every date and month cell in twenty drawn rows of each
+ * stream's worksheets, generated for a log of `year` at `instant`, with any
+ * cell that isn't a calendar date and any stream that drew no dates at all.
+ *
+ * @param {string} instant
+ * @param {number} year
+ * @returns {{ years: string[], notDates: string[], streamsWithoutDates: string[] }}
+ */
+const drawnDatesAt = (instant, year) =>
+  JSON.parse(
+    evaluateUnderClock(
+      instant,
+      `const { generateSummaryLogContent } = await import('${join(here, 'summarylogs-content-generator.js')}')
+       const { PROCESSING_TYPE_CONFIG } = await import('${join(here, 'spreadsheet-config.js')}')
+       const years = new Set()
+       const notDates = []
+       const streamsWithoutDates = []
+       for (const [wasteProcessingType, { worksheets }] of Object.entries(PROCESSING_TYPE_CONFIG)) {
+         const content = await generateSummaryLogContent({
+           wasteProcessingType,
+           materialSuffix: 'PA',
+           regNumber: 'R1',
+           year: ${year},
+           rows: Object.fromEntries(
+             worksheets.map(({ name }) => [name, Array.from({ length: 20 }, () => ({}))])
+           )
+         })
+         let dates = 0
+         for (const [table, { headers, rows }] of Object.entries(content.data)) {
+           const dateColumns = headers.flatMap((header, i) => /DATE|MONTH/.test(header) ? [i] : [])
+           for (const row of rows) {
+             for (const i of dateColumns) {
+               const value = row[i]
+               if (/^\\d{4}-\\d{2}-\\d{2}$/.test(String(value))) {
+                 years.add(String(value).slice(0, 4))
+                 dates++
+               } else {
+                 notDates.push(table + '.' + headers[i] + '=' + value)
+               }
+             }
+           }
+         }
+         if (dates === 0) streamsWithoutDates.push(wasteProcessingType)
+       }
+       console.log(JSON.stringify({ years: [...years].sort(), notDates, streamsWithoutDates }))`
+    )
+  )
 
 /**
  * The value a row carries under a header.
@@ -177,6 +231,25 @@ describe('summary log content generator', () => {
       generate({ rows: { 'Received (sections 1 and 2)': [{ rowId: 1000 }] } }),
       /Received \(sections 1 and 2\)/
     )
+  })
+
+  describe('given a log for any year', () => {
+    // The service rejects a log holding a date in a later year than its own,
+    // and an earlier year's date belongs in that year's log.
+    for (const { instant, year } of [
+      { instant: '2027-01-05T12:00:00Z', year: 2026 },
+      { instant: '2027-03-15T12:00:00Z', year: 2026 },
+      { instant: '2027-01-05T12:00:00Z', year: 2027 },
+      { instant: '2026-11-19T12:00:00Z', year: 2027 }
+    ]) {
+      it(`dates every stream's drawn rows in ${year} at ${instant}`, () => {
+        assert.deepEqual(drawnDatesAt(instant, year), {
+          years: [String(year)],
+          notDates: [],
+          streamsWithoutDates: []
+        })
+      })
+    }
   })
 
   describe('given a seeded plan', () => {
