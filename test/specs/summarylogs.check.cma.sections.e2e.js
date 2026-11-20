@@ -174,7 +174,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
           regNumber,
           status: 'approved',
           withoutAccreditation: true,
-          validFrom: '2025-01-01'
+          validFrom: `${FIXTURE_YEAR}-01-01`
         }
       ]
     )
@@ -206,10 +206,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
 
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered(
-        await summaryLogDatedAt(
-          'resources/reprocessor-output-regonly-cma-2025.xlsx',
-          new Date(Date.UTC(FIXTURE_YEAR, 0, 1))
-        ),
+        'resources/reprocessor-output-regonly-cma.xlsx',
         { regNumber }
       )
     )
