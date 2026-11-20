@@ -6,7 +6,7 @@ import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
 import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import {
-  seedAccreditedIn2026And2027,
+  seedAccreditedInConsecutiveYears,
   seedOverseasSites
 } from '~/test/support/seeding/organisation.js'
 import { generateSpreadsheetData } from '~/test/support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
@@ -19,7 +19,24 @@ import { isDecemberWasteWindowOpenFor } from '~/test/support/december-waste-wind
 import { checkOnUploadPage } from '~/test/support/summary-log-checks.js'
 
 const JOURNEY_TIMEOUT_MS = 4 * 60 * 1000
-const YEARS = [2026, 2027]
+const FIRST_YEAR = 2026
+const YEARS = [FIRST_YEAR, FIRST_YEAR + 1]
+const [EARLIER, LATER] = YEARS
+
+const EXPORTS = [
+  {
+    year: EARLIER,
+    tonnage: 1000,
+    datedOn: `01/06/${EARLIER}`,
+    pern: { integer: 100, word: 'One hundred' }
+  },
+  {
+    year: LATER,
+    tonnage: 400,
+    datedOn: `01/01/${LATER}`,
+    pern: { integer: 40, word: 'Forty' }
+  }
+]
 
 const tonnes = (amount) =>
   amount.toLocaleString('en-GB', {
@@ -55,7 +72,7 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
     test.setTimeout(JOURNEY_TIMEOUT_MS)
     expect(
       YEARS.some((year) => isRelevantYearOpen(year)),
-      'PERNs can no longer be raised for 2026 or 2027: move this journey on to the next two years with summary log templates'
+      `PERNs can no longer be raised for ${EARLIER} or ${LATER}: move FIRST_YEAR on, to a year with summary log templates for it and the next`
     ).toBe(true)
 
     const dashboardPage = new DashboardPage(page)
@@ -71,35 +88,23 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
       materialSuffix: 'WO'
     })
     const { organisationDetails, email, regNumber, accNumbers } =
-      await seedAccreditedIn2026And2027({
+      await seedAccreditedInConsecutiveYears(FIRST_YEAR, {
         material: 'Wood (R3)',
         wasteProcessingType: 'Exporter',
         numbering
       })
     await seedOverseasSites(organisationDetails.refNo)
 
-    const summaryLogFor = (year, accNumber, tonnage, datedOn) =>
+    const summaryLogFor = ({ year, tonnage, datedOn }) =>
       generateSpreadsheetData({
         wasteProcessingType: 'exporter',
         materialSuffix: 'WO',
         regNumber,
-        accNumber,
+        accNumber: accNumbers[year],
         rows: exportedTonnes(tonnage, datedOn),
         year,
         silentLogging: true
       })
-    const log2026 = await summaryLogFor(
-      2026,
-      accNumbers[2026],
-      1000,
-      '01/06/2026'
-    )
-    const log2027 = await summaryLogFor(
-      2027,
-      accNumbers[2027],
-      400,
-      '01/01/2027'
-    )
 
     const openAccreditationFor = async (year) => {
       await dashboardPage.open(organisationDetails.refNo)
@@ -157,31 +162,31 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
 
     await createLinkAndLogin(page, organisationDetails.refNo, email)
 
-    for (const { year, log } of [
-      { year: 2026, log: log2026 },
-      { year: 2027, log: log2027 }
-    ]) {
-      await openAccreditationFor(year)
+    for (const exported of EXPORTS) {
+      const log = await summaryLogFor(exported)
+      await openAccreditationFor(exported.year)
       await wasteRecordsPage.submitSummaryLogLink().click()
-      await checkOnUploadPage(page, year)
-      await uploadSummaryLogPage.performUploadAndReturnToHomepage(log, year)
+      await checkOnUploadPage(page, exported.year)
+      await uploadSummaryLogPage.performUploadAndReturnToHomepage(
+        log,
+        exported.year
+      )
     }
 
-    const balances = { 2026: 1000, 2027: 400 }
+    const balances = Object.fromEntries(
+      EXPORTS.map(({ year, tonnage }) => [year, tonnage])
+    )
     await expectWasteBalances(balances)
 
-    for (const { year, tonnageWordings } of [
-      { year: 2027, tonnageWordings: { integer: 40, word: 'Forty' } },
-      { year: 2026, tonnageWordings: { integer: 100, word: 'One hundred' } }
-    ]) {
+    for (const { year, pern } of EXPORTS.toReversed()) {
       if (isRelevantYearOpen(year)) {
         await createPern({
           year,
           accNumber: accNumbers[year],
           balance: tonnes(balances[year]),
-          tonnageWordings
+          tonnageWordings: pern
         })
-        balances[year] -= tonnageWordings.integer
+        balances[year] -= pern.integer
       } else {
         await expectPernRefused(year)
       }

@@ -509,12 +509,16 @@ export async function seedExternalAccreditation(
   return { accreditationNumber }
 }
 
+const FIRST_EXTERNAL_ACCREDITATION_YEAR = 2027
+
 /**
- * Seeds an organisation with one registration, approved from 2026 and
- * accredited in 2026 by its stored accreditation and in 2027 by an external
- * one. Pinned to the years the suite has templates for, rather than to the
- * clock, so a journey across both keeps its years as the clock moves on.
+ * Seeds an organisation with one registration, approved from `firstYear` and
+ * accredited in it and the year after. A year before 2027 is accredited by the
+ * registration's stored accreditation, and a later one by the registration
+ * service. Pinned to the years given, rather than to the clock, so a journey
+ * across both keeps its years as the clock moves on.
  *
+ * @param {number} firstYear
  * @param {{
  *   material: string,
  *   wasteProcessingType: 'Reprocessor' | 'Exporter',
@@ -522,15 +526,16 @@ export async function seedExternalAccreditation(
  *   reprocessingType?: 'input' | 'output'
  * }} registration
  */
-export async function seedAccreditedIn2026And2027({
-  material,
-  wasteProcessingType,
-  numbering,
-  reprocessingType
-}) {
+export async function seedAccreditedInConsecutiveYears(
+  firstYear,
+  { material, wasteProcessingType, numbering, reprocessingType }
+) {
+  const years = [firstYear, firstYear + 1]
+  const storedYear =
+    firstYear < FIRST_EXTERNAL_ACCREDITATION_YEAR ? firstYear : undefined
   const { regNumber, accNumber } = generateNumbers({
     ...numbering,
-    year: '26'
+    year: String(firstYear).slice(-2)
   })
   const organisationDetails = await createLinkedOrganisation([
     { material, wasteProcessingType }
@@ -542,29 +547,29 @@ export async function seedAccreditedIn2026And2027({
         regNumber,
         accNumber,
         status: 'approved',
-        validTo: '2027-01-01',
-        createdOn: '2025-12-31',
+        withoutAccreditation: storedYear === undefined,
         ...(reprocessingType && { reprocessingType })
       }
     ],
     undefined,
-    '2026-01-01'
-  )
-  const { accreditationNumber } = await seedExternalAccreditation(
-    {
-      organisationNumber: organisationDetails.orgId,
-      registrationNumber: regNumber
-    },
-    2027,
-    numbering
+    `${firstYear}-01-01`
   )
 
-  return {
-    organisationDetails,
-    email,
-    regNumber,
-    accNumbers: { 2026: accNumber, 2027: accreditationNumber }
+  /** @type {Record<number, string>} */
+  const accNumbers = storedYear === undefined ? {} : { [storedYear]: accNumber }
+  for (const year of years.filter((y) => y !== storedYear)) {
+    const { accreditationNumber } = await seedExternalAccreditation(
+      {
+        organisationNumber: organisationDetails.orgId,
+        registrationNumber: regNumber
+      },
+      year,
+      numbering
+    )
+    accNumbers[year] = accreditationNumber
   }
+
+  return { organisationDetails, email, regNumber, years, accNumbers }
 }
 
 /**
