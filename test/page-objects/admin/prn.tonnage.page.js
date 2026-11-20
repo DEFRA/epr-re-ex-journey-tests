@@ -20,14 +20,12 @@ class PrnTonnagePage extends AdminPage {
     const headers = (await table.locator('thead th').allInnerTexts()).map(
       (header) => header.trim()
     )
-    const row = table
-      .locator('tbody tr')
-      .filter({
-        has: this.page.getByRole('cell', {
-          name: accreditationNumber,
-          exact: true
-        })
+    const row = table.locator('tbody tr').filter({
+      has: this.page.getByRole('cell', {
+        name: accreditationNumber,
+        exact: true
       })
+    })
     if ((await row.count()) === 0) {
       throw new Error(`${accreditationNumber} not found in PRN tonnage`)
     }
