@@ -9,6 +9,24 @@ class TonnageMonitoringPage extends AdminPage {
     return this.page.getByRole('button', { name: 'Download CSV', exact: true })
   }
 
+  /** @returns {import('@playwright/test').Locator} */
+  yearDropdown() {
+    return this.page.getByLabel('Year', { exact: true })
+  }
+
+  /** @returns {Promise<string[]>} */
+  async availableYears() {
+    return this.yearDropdown().locator('option').allInnerTexts()
+  }
+
+  /** @param {string} year */
+  async showYear(year) {
+    await this.yearDropdown().selectOption(year)
+    await this.page
+      .getByRole('button', { name: 'Show year', exact: true })
+      .click()
+  }
+
   async tonnageMaterialTableData() {
     // .count() below reads the DOM as-is with no auto-wait (unlike actions
     // such as .click()), so without this the table can be read before it's
