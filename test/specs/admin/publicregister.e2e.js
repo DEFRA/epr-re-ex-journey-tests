@@ -31,6 +31,12 @@ const MONTH_ABBR = [
 ]
 
 test.describe('Public Register page', () => {
+  // The register's report columns are this year's ended periods only.
+  test.skip(
+    reportsLandingHasNoClosedPeriod('monthly'),
+    'the public register has no closed month yet this year'
+  )
+
   /** @type {import('../../support/reg-acc-number.js').SeededNumbers} */
   let numbers
   let orgId
@@ -62,12 +68,6 @@ test.describe('Public Register page', () => {
   test('Should be able to view Public Register if logged in @publicRegister', async ({
     page
   }) => {
-    // The register's report columns are this year's ended periods only.
-    test.skip(
-      reportsLandingHasNoClosedPeriod('monthly'),
-      'the public register has no closed month yet this year'
-    )
-
     const loginPage = new AdminLoginPage(page)
     const navigation = new Navigation(page)
     const publicRegisterPage = new PublicRegisterPage(page)

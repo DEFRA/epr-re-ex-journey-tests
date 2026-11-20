@@ -185,6 +185,7 @@ test.describe('@registeredOnly', () => {
     await checkBodyText(page, 'These have been added to your summary log.', 30)
 
     await homePage.homeLink().click()
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.exportingTabLink().click()
     const exportRow = await dashboardPage.getTableRow(1, 1)
     expect(exportRow.get('Accreditation')).toBe('Not accredited')
