@@ -17,10 +17,8 @@ import {
   WasteBalanceLedgerPage
 } from 'page-objects/waste.balance.ledger.page'
 import { checkBodyText } from '../../support/checks.js'
-import { currentYear, latestOpenYear } from '../../support/date.js'
-import { SEEDED_VALID_FROM } from '../../support/seeding/organisation.js'
+import { latestOpenYear } from '../../support/date.js'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
-import { registrationStartYear } from '../../support/seeding/summary-logs.js'
 
 /**
  * The tonnage a row reads, as a number. Whether a table formats it to two
@@ -36,11 +34,10 @@ const tonnageOf = (row) => Number((row.get('Tonnage') ?? '').replace(/,/g, ''))
  * end date, so the set runs from the year the seed starts in to the latest open
  * year and grows every January - which is why it is derived rather than written
  * down.
+ * @param {number} firstYear the year the seed starts in
  * @returns {string[]}
  */
-const seededRegisteredOnlyYears = () => {
-  const firstYear = new Date(SEEDED_VALID_FROM).getUTCFullYear()
-
+const seededRegisteredOnlyYears = (firstYear) => {
   return Array.from({ length: latestOpenYear() - firstYear + 1 }, (_, offset) =>
     String(firstYear + offset)
   )
@@ -138,7 +135,7 @@ test.describe('A regulator reading a registration @regulator', () => {
         ['Registration status', 'Approved'],
         ['Material', 'Paper and board'],
         ['Regulator', 'EA'],
-        ['Accreditation', `${SEEDED_VALID_FROM.slice(0, 4)}: Approved`],
+        ['Accreditation', `${seeded.startYear}: Approved`],
         ['Actions', `View ${seeded.registrationNumber}`]
       ])
     ])
@@ -213,7 +210,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     expect(await detailsPage.offeredLinks()).toEqual(
       [
         `View ${seeded.accreditationNumber}`,
-        ...seededRegisteredOnlyYears().map(
+        ...seededRegisteredOnlyYears(seeded.startYear).map(
           (year) => `View reg-only period ${year}`
         )
       ].sort()
@@ -361,8 +358,9 @@ test.describe('A regulator reading a registration @regulator', () => {
     await expect(accreditationPage.reportsDetailedViewLink()).toBeVisible()
     await accreditationPage.reportsDetailedViewLink().click()
 
+    // An accreditation's reports open on the accreditation's own year.
     await expect(reportsPage.detailedView()).toBeVisible()
-    await reportsPage.expectYear(currentYear())
+    await reportsPage.expectYear(seeded.startYear)
 
     const reportsCaption = await reportsPage.captionText()
     expect(reportsCaption).toContain(seeded.companyName)
@@ -374,7 +372,7 @@ test.describe('A regulator reading a registration @regulator', () => {
       seeded.companyName,
       'Registration details',
       'Accreditation details',
-      `Reports (${currentYear()})`
+      `Reports (${seeded.startYear})`
     ])
 
     // The same table as the summary's, so the same columns.
@@ -459,7 +457,7 @@ test.describe('A regulator reading a registration @regulator', () => {
       seeded.companyName,
       'Registration details',
       'Accreditation details',
-      `PRNs (${registrationStartYear()})`
+      `PRNs (${seeded.startYear})`
     ])
 
     const awaitingLink = prnsPage.awaitingLink(1)
@@ -490,7 +488,7 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     await cancellationLink.click()
     await checkBodyText(page, seeded.cancellationPrnNumber, 10)
-    await prnViewPage.crumbLink(`PRNs (${registrationStartYear()})`).click()
+    await prnViewPage.crumbLink(`PRNs (${seeded.startYear})`).click()
 
     await awaitingLink.click()
 
@@ -516,11 +514,11 @@ test.describe('A regulator reading a registration @regulator', () => {
       seeded.companyName,
       'Registration details',
       'Accreditation details',
-      `PRNs (${registrationStartYear()})`,
+      `PRNs (${seeded.startYear})`,
       seeded.prnId
     ])
 
-    await prnViewPage.crumbLink(`PRNs (${registrationStartYear()})`).click()
+    await prnViewPage.crumbLink(`PRNs (${seeded.startYear})`).click()
     await expect(prnsPage.detailedView()).toBeVisible()
 
     expect(await prnsPage.backLink().count()).toBe(0)
@@ -528,9 +526,10 @@ test.describe('A regulator reading a registration @regulator', () => {
     await prnsPage.crumbLink('Accreditation details').click()
     await expectOnAccreditation()
 
-    await page.goto(`${registrationUrl}/reports`)
+    // The seeded report's year, which in January is last year.
+    await page.goto(`${registrationUrl}/reports/${year}`)
 
-    await operatorReportsPage.expectListFor(currentYear(), 'Reports')
+    await operatorReportsPage.expectListFor(year, 'Reports')
 
     // The last completed period is the one the seed submitted, so it is the
     // only row the Submitted section holds.
@@ -669,7 +668,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     // A registration has no end date, so the list runs to the current year and
     // grows every January. The row the journey opens is the seeded start year,
     // found rather than assumed to be first.
-    const seededYear = new Date(SEEDED_VALID_FROM).getUTCFullYear()
+    const seededYear = seeded.startYear
     const seededRow =
       registeredOnly.findIndex(
         (row) => row.get('Period') === String(seededYear)

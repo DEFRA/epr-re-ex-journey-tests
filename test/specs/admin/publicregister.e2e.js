@@ -5,6 +5,7 @@ import { Navigation } from 'page-objects/admin/navigation.page'
 import { PublicRegisterPage } from 'page-objects/admin/public.register.page'
 import {
   createLinkedOrganisation,
+  reportsLandingHasNoClosedPeriod,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
 import { generateNumbers } from '../../support/reg-acc-number.js'
@@ -30,6 +31,12 @@ const MONTH_ABBR = [
 ]
 
 test.describe('Public Register page', () => {
+  // The register's report columns are this year's ended periods only.
+  test.skip(
+    reportsLandingHasNoClosedPeriod('monthly'),
+    'the public register has no closed month yet this year'
+  )
+
   /** @type {import('../../support/reg-acc-number.js').SeededNumbers} */
   let numbers
   let orgId

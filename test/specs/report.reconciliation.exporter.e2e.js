@@ -6,12 +6,9 @@ import { ReportDetailPage } from 'page-objects/reports/report.detail.page.js'
 import {
   seedOverseasSites,
   createLinkedOrganisation,
-  lastCompletedPeriod,
-  updateMigratedOrganisation,
-  validFromWithClosedPeriod
+  updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import {
-  registrationStartYear,
   submitSummaryLogContent,
   summaryLogDatedAt
 } from '../support/seeding/summary-logs.js'
@@ -41,8 +38,11 @@ import { createLinkAndLogin } from '../support/login-helper.js'
 const EXPECTED_RECONCILED_TONNAGE = 8.03
 const CADENCE = 'monthly'
 
-const { year: YEAR, period: PERIOD } = lastCompletedPeriod(CADENCE)
-const VALID_FROM = validFromWithClosedPeriod(CADENCE)
+// The year the fixture's template is for, so the journey reports on it. Its
+// January has ended whatever the year now.
+const YEAR = 2026
+const PERIOD = 1
+const VALID_FROM = `${YEAR}-01-01`
 
 test.describe('Report tonnage reconciles with the waste balance — exporter @reconciliation', () => {
   let organisationDetails
@@ -93,7 +93,7 @@ test.describe('Report tonnage reconciles with the waste balance — exporter @re
       migrationResponse.registrationIds[0],
       defraIdStub.authHeader(user.userId),
       summaryLogContent,
-      registrationStartYear(VALID_FROM)
+      YEAR
     )
   })
 
@@ -109,6 +109,9 @@ test.describe('Report tonnage reconciles with the waste balance — exporter @re
     const dashboardPage = new DashboardPage(page)
     const wasteRecordsPage = new WasteRecordsPage(page)
     const reportDetailPage = new ReportDetailPage(page)
+
+    await dashboardPage.chooseYearIfOffered(YEAR)
+    await dashboardPage.expectYear(YEAR)
 
     await dashboardPage.selectTableLink(1, 1)
     const balanceText = await wasteRecordsPage.wasteBalanceAmount()
