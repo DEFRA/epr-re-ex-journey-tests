@@ -33,20 +33,23 @@ const generate = (options) =>
 const here = dirname(fileURLToPath(import.meta.url))
 
 /**
- * The years of every date in twenty drawn rows of each stream's worksheets,
- * generated for a log of `year` at `instant`.
+ * The years of every date and month cell in twenty drawn rows of each
+ * stream's worksheets, generated for a log of `year` at `instant`, with any
+ * cell that isn't a calendar date and any stream that drew no dates at all.
  *
  * @param {string} instant
  * @param {number} year
- * @returns {string[]}
+ * @returns {{ years: string[], notDates: string[], streamsWithoutDates: string[] }}
  */
-const dateYearsAt = (instant, year) =>
+const drawnDatesAt = (instant, year) =>
   JSON.parse(
     evaluateUnderClock(
       instant,
       `const { generateSummaryLogContent } = await import('${join(here, 'summarylogs-content-generator.js')}')
        const { PROCESSING_TYPE_CONFIG } = await import('${join(here, 'spreadsheet-config.js')}')
        const years = new Set()
+       const notDates = []
+       const streamsWithoutDates = []
        for (const [wasteProcessingType, { worksheets }] of Object.entries(PROCESSING_TYPE_CONFIG)) {
          const content = await generateSummaryLogContent({
            wasteProcessingType,
@@ -57,15 +60,24 @@ const dateYearsAt = (instant, year) =>
              worksheets.map(({ name }) => [name, Array.from({ length: 20 }, () => ({}))])
            )
          })
-         for (const { rows } of Object.values(content.data)) {
-           for (const value of rows.flat()) {
-             if (/^\\d{4}-\\d{2}-\\d{2}$/.test(String(value))) {
-               years.add(String(value).slice(0, 4))
+         let dates = 0
+         for (const [table, { headers, rows }] of Object.entries(content.data)) {
+           const dateColumns = headers.flatMap((header, i) => /DATE|MONTH/.test(header) ? [i] : [])
+           for (const row of rows) {
+             for (const i of dateColumns) {
+               const value = row[i]
+               if (/^\\d{4}-\\d{2}-\\d{2}$/.test(String(value))) {
+                 years.add(String(value).slice(0, 4))
+                 dates++
+               } else {
+                 notDates.push(table + '.' + headers[i] + '=' + value)
+               }
              }
            }
          }
+         if (dates === 0) streamsWithoutDates.push(wasteProcessingType)
        }
-       console.log(JSON.stringify([...years].sort()))`
+       console.log(JSON.stringify({ years: [...years].sort(), notDates, streamsWithoutDates }))`
     )
   )
 
@@ -231,7 +243,11 @@ describe('summary log content generator', () => {
       { instant: '2026-11-19T12:00:00Z', year: 2027 }
     ]) {
       it(`dates every stream's drawn rows in ${year} at ${instant}`, () => {
-        assert.deepEqual(dateYearsAt(instant, year), [String(year)])
+        assert.deepEqual(drawnDatesAt(instant, year), {
+          years: [String(year)],
+          notDates: [],
+          streamsWithoutDates: []
+        })
       })
     }
   })
