@@ -159,8 +159,12 @@ export async function createSubmittedReport(refNo, registrationIndex = 0) {
   orgData.registrations[registrationIndex].validFrom =
     `${year}-${String(periodStartMonth).padStart(2, '0')}-01`
   // An accreditation's year is its validFrom's, so in January, when the period
-  // is last December, the accreditation has to be last year's too.
-  if (linkedAccreditation) {
+  // is last December, the accreditation has to be last year's too. Any other
+  // month it already is the period's, and keeps the dates it was seeded with.
+  if (
+    linkedAccreditation &&
+    new Date(linkedAccreditation.validFrom).getUTCFullYear() !== year
+  ) {
     linkedAccreditation.validFrom = `${year}-01-01`
     linkedAccreditation.validTo = `${year + 1}-01-01`
   }
