@@ -29,10 +29,6 @@ import { checkBodyText } from '~/test/support/checks.js'
 import { checkOnUploadPage } from '~/test/support/summary-log-checks.js'
 import { expectPeriodYear } from 'page-objects/reports/report-period.js'
 
-/**
- * @param {{ reportingPeriods: { year: number }[] } | undefined} kind
- * @param {number} year
- */
 const REPROCESSOR_INPUT_PAPER = /** @type {const} */ ({
   material: 'Paper or board (R3)',
   wasteProcessingType: 'Reprocessor',
@@ -40,6 +36,10 @@ const REPROCESSOR_INPUT_PAPER = /** @type {const} */ ({
   reprocessingType: 'input'
 })
 
+/**
+ * @param {{ reportingPeriods: { year: number }[] } | undefined} kind
+ * @param {number} year
+ */
 const expectReportsOnlyFor = (kind, year) =>
   expect(
     new Set(kind?.reportingPeriods.map((period) => period.year))
