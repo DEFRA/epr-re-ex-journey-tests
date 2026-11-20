@@ -20,6 +20,10 @@ import {
   summaryLogNumbered
 } from '../support/seeding/summary-logs.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
+
+// The year the fixtures' templates are for, so the journey uploads into it.
+const FIXTURE_YEAR = 2026
+
 test.describe('Summary Logs Reprocessor Input', () => {
   test('Should be able to link a user to an organisation, submit a spreadsheet, and see why an adjusted load reduces the balance @reproInput @adjustedReducedReason @cma', async ({
     page
@@ -47,7 +51,9 @@ test.describe('Summary Logs Reprocessor Input', () => {
           ...numbers,
           status: 'approved'
         }
-      ]
+      ],
+      undefined,
+      `${FIXTURE_YEAR}-01-01`
     )
 
     await createAndRegisterDefraIdUser(migrationResponse.email)
@@ -95,6 +101,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
       organisationDetails.organisation.companyName
     )
 
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.selectLink(1)
 
     // Single-registration orgs skip the selection list, so the reg/acc
@@ -103,11 +110,12 @@ test.describe('Summary Logs Reprocessor Input', () => {
     await checkBodyText(page, numbers.accNumber, 10)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await checkOnUploadPage(page)
-    const today = new Date()
+    await checkOnUploadPage(page, FIXTURE_YEAR)
+    // Inside the accreditation's year, so the loads count towards its balance
+    const loadDay = new Date(Date.UTC(FIXTURE_YEAR, 0, 15))
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered(
-        await summaryLogDatedAt('resources/summary-log.xlsx', today),
+        await summaryLogDatedAt('resources/summary-log.xlsx', loadDay),
         numbers
       )
     )
@@ -115,12 +123,12 @@ test.describe('Summary Logs Reprocessor Input', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkOnCheckPage(page)
+    await checkOnCheckPage(page, FIXTURE_YEAR)
     await uploadSummaryLogPage.confirmAndCheckDoubleClickPrevented()
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
 
-    await uploadSummaryLogPage.checkUploaded()
+    await uploadSummaryLogPage.checkUploaded(FIXTURE_YEAR)
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '391.62 tonnes', 10)
 
@@ -147,7 +155,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
       await summaryLogNumbered(
         await summaryLogDatedAt(
           'resources/reprocessor-input-prn-issued.xlsx',
-          today
+          loadDay
         ),
         numbers
       )
@@ -155,7 +163,7 @@ test.describe('Summary Logs Reprocessor Input', () => {
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkOnCheckPage(page)
+    await checkOnCheckPage(page, FIXTURE_YEAR)
     await checkBodyText(page, 'Open periods: adjusted loads', 30)
 
     await checkSummaryLogPage.expandAllLoadDetails()

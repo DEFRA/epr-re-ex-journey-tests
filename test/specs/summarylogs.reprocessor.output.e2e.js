@@ -17,6 +17,10 @@ import { summaryLogNumbered } from '../support/seeding/summary-logs.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
 
+// The year reprocessor-output.xlsx's template is for, so the journey uploads
+// into it.
+const FIXTURE_YEAR = 2026
+
 test.describe('Summary Logs Reprocessor Output', () => {
   test('Should be able to submit a (Steel) Reprocessor Output Summary Log spreadsheet (6 rows total, but only 1 added for waste balance) @reproOutput', async ({
     page
@@ -42,7 +46,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
           reprocessingType: 'output',
           ...numbers,
           status: 'approved',
-          validFrom: '2026-01-01'
+          validFrom: `${FIXTURE_YEAR}-01-01`
         }
       ]
     )
@@ -59,6 +63,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
       organisationDetails.organisation.companyName
     )
 
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.selectLink(1)
 
     // Single-registration orgs skip the selection list, so the reg/acc
@@ -67,7 +72,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
     await checkBodyText(page, numbers.accNumber, 10)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await checkOnUploadPage(page)
+    await checkOnUploadPage(page, FIXTURE_YEAR)
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered('resources/reprocessor-output.xlsx', numbers)
     )
@@ -75,7 +80,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkOnCheckPage(page)
+    await checkOnCheckPage(page, FIXTURE_YEAR)
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(
       page,
@@ -86,7 +91,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
 
-    await uploadSummaryLogPage.checkUploaded()
+    await uploadSummaryLogPage.checkUploaded(FIXTURE_YEAR)
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '3.00 tonnes', 10)
 
@@ -101,7 +106,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
     expect(wasteBalanceAmount).toBe('3.00')
 
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await checkOnUploadPage(page)
+    await checkOnUploadPage(page, FIXTURE_YEAR)
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered(
         'resources/reprocessor-output-adjustments.xlsx',
@@ -112,7 +117,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
 
-    await checkOnCheckPage(page)
+    await checkOnCheckPage(page, FIXTURE_YEAR)
     await checkBodyText(page, 'Open periods: adjusted loads', 30)
     await checkBodyText(
       page,
@@ -123,7 +128,7 @@ test.describe('Summary Logs Reprocessor Output', () => {
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
 
-    await uploadSummaryLogPage.checkUploaded()
+    await uploadSummaryLogPage.checkUploaded(FIXTURE_YEAR)
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '9.25 tonnes', 10)
 

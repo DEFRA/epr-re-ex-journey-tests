@@ -609,8 +609,11 @@ export async function updateMigratedOrganisation(
       data.registrations[i].accreditationId = data.accreditations[j].id
       data.accreditations[j].status = accStatus
       data.accreditations[j].validFrom = rowValidFrom
+      // One scheme year from its start, so one seeded from an earlier year
+      // doesn't run on through this one.
       data.accreditations[j].validTo =
-        orgUpdateData.validTo ?? `${currentYear() + 1}-01-01`
+        orgUpdateData.validTo ??
+        `${new Date(rowValidFrom).getUTCFullYear() + 1}-01-01`
       data.accreditations[j].statusHistory =
         accStatus === 'created'
           ? data.accreditations[j].statusHistory || []

@@ -71,11 +71,13 @@ export async function seedAdminActivityData({ acceptPrn = true } = {}) {
   await linkDefraIdUser(org.refNo, user.userId, migrated.email)
   const authHeader = defraIdStub.authHeader(user.userId)
 
+  const accreditationYear = registrationStartYear()
   const content = await generateSummaryLogContent({
     wasteProcessingType: 'reprocessorInput',
     materialSuffix: 'PA',
     regNumber: registrationNumber,
     accNumber: accreditationNumber,
+    year: accreditationYear,
     rows: {
       'Received (sections 1, 2 and 3)': [
         {
@@ -93,7 +95,6 @@ export async function seedAdminActivityData({ acceptPrn = true } = {}) {
       ]
     }
   })
-  const accreditationYear = registrationStartYear()
   await submitSummaryLogContent(
     org.refNo,
     registrationId,

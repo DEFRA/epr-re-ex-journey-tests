@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict'
 import { rm } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import { describe, it } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import ExcelJS from 'exceljs'
 
+import { evaluateUnderClock } from '../simulator/clock/under-clock.js'
 import {
   registrationStartYear,
   submitSummaryLogContent,
@@ -43,10 +46,27 @@ function answering(statusCode, body) {
   }
 }
 
+const summaryLogs = join(
+  dirname(fileURLToPath(import.meta.url)),
+  'summary-logs.js'
+)
+
 describe('registrationStartYear', () => {
-  it('defaults to the year seeded organisations start from', () => {
-    assert.equal(registrationStartYear(), 2026)
-  })
+  for (const { instant, expected } of [
+    { instant: '2026-06-15T12:00:00Z', expected: '2026' },
+    { instant: '2027-03-15T12:00:00Z', expected: '2027' }
+  ]) {
+    it(`defaults to the year seeded organisations start from, ${expected} at ${instant}`, () => {
+      assert.equal(
+        evaluateUnderClock(
+          instant,
+          `const { registrationStartYear } = await import('${summaryLogs}')
+           console.log(String(registrationStartYear()))`
+        ),
+        expected
+      )
+    })
+  }
 
   it('reads the year from a given validFrom', () => {
     assert.equal(registrationStartYear('2025-02-02'), 2025)
