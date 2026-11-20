@@ -9,11 +9,11 @@ import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import {
   reportsLandingHasNoClosedPeriod,
-  seedExternalAccreditation,
+  seedAccreditedInConsecutiveYears,
   seedOrganisationAcrossYears
 } from '~/test/support/seeding/organisation.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
-import { currentYear, latestOpenYear } from '~/test/support/date.js'
+import { currentYear } from '~/test/support/date.js'
 import { defraIdStub } from '~/test/support/defra-id-stub.js'
 import {
   fetchYearCalendar,
@@ -28,6 +28,13 @@ import { generateSpreadsheetData } from '~/test/support/spreadsheet/summarylogs-
 import { checkBodyText } from '~/test/support/checks.js'
 import { checkOnUploadPage } from '~/test/support/summary-log-checks.js'
 import { expectPeriodYear } from 'page-objects/reports/report-period.js'
+
+const REPROCESSOR_INPUT_PAPER = /** @type {const} */ ({
+  material: 'Paper or board (R3)',
+  wasteProcessingType: 'Reprocessor',
+  numbering: { wasteProcessingType: 'reprocessor', materialSuffix: 'PA' },
+  reprocessingType: 'input'
+})
 
 /**
  * @param {{ reportingPeriods: { year: number }[] } | undefined} kind
@@ -118,19 +125,16 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       await expect(dashboardPage.currentTab()).toHaveText('Exporting')
     })
 
-    test('Choosing next year shows the accreditation its source holds for that year', async ({
+    // The registration service is the source of accreditations for 2027 only.
+    test('Choosing 2027 shows the accreditation the registration service holds for it', async ({
       page
     }) => {
       const dashboardPage = new DashboardPage(page)
-      const { refNo, email, organisationNumber, registrationNumber } =
-        await seedOrganisationAcrossYears()
-      await seedExternalAccreditation(
-        { organisationNumber, registrationNumber },
-        latestOpenYear()
-      )
+      const { organisationDetails, email } =
+        await seedAccreditedInConsecutiveYears(2026, REPROCESSOR_INPUT_PAPER)
 
-      await createLinkAndLogin(page, refNo, email)
-      await dashboardPage.chooseYear(latestOpenYear())
+      await createLinkAndLogin(page, organisationDetails.refNo, email)
+      await dashboardPage.chooseYear(2027)
 
       expect(await dashboardPage.getRegistrationStatus(1, 1)).toBe('Approved')
       expect(await dashboardPage.getAccreditationStatus(1, 1)).toBe('Approved')
@@ -144,31 +148,26 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       const wasteRecordsPage = new WasteRecordsPage(page)
       const uploadSummaryLogPage = new UploadSummaryLogPage(page)
       const {
-        refNo,
+        organisationDetails,
         email,
-        organisationNumber,
-        registrationNumber,
-        accreditationNumber
-      } = await seedOrganisationAcrossYears()
-      const { accreditationNumber: accreditationNumber2027 } =
-        await seedExternalAccreditation(
-          { organisationNumber, registrationNumber },
-          2027
-        )
-      const summaryLogFor = (year, accNumber) =>
+        regNumber,
+        years: [earlier, later],
+        accNumbers
+      } = await seedAccreditedInConsecutiveYears(2026, REPROCESSOR_INPUT_PAPER)
+      const summaryLogFor = (year) =>
         generateSpreadsheetData({
           wasteProcessingType: 'reprocessorInput',
           materialSuffix: 'PA',
-          regNumber: registrationNumber,
-          accNumber,
+          regNumber,
+          accNumber: accNumbers[year],
           numberOfRows: 3,
           year,
           silentLogging: true
         })
-      const log2026 = await summaryLogFor(2026, accreditationNumber)
-      const log2027 = await summaryLogDatedAt(
-        await summaryLogFor(2027, accreditationNumber2027),
-        new Date(Date.UTC(2027, 0, 1, 12))
+      const earlierLog = await summaryLogFor(earlier)
+      const laterLog = await summaryLogDatedAt(
+        await summaryLogFor(later),
+        new Date(Date.UTC(later, 0, 1, 12))
       )
       const openUploadFor = async (year) => {
         await dashboardPage.chooseDifferentYearLink().click()
@@ -181,25 +180,31 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
         await checkOnUploadPage(page, year)
       }
 
-      await createLinkAndLogin(page, refNo, email)
-      await openUploadFor(2026)
-      await uploadSummaryLogPage.performUploadAndReturnToHomepage(log2026, 2026)
+      await createLinkAndLogin(page, organisationDetails.refNo, email)
+      await openUploadFor(earlier)
+      await uploadSummaryLogPage.performUploadAndReturnToHomepage(
+        earlierLog,
+        earlier
+      )
 
-      await openUploadFor(2027)
-      await uploadSummaryLogPage.uploadFile(log2026)
+      await openUploadFor(later)
+      await uploadSummaryLogPage.uploadFile(earlierLog)
       await uploadSummaryLogPage.continue()
       await checkBodyText(
         page,
-        'The file you selected is your 2026 summary log.',
+        `The file you selected is your ${earlier} summary log.`,
         30
       )
       await checkBodyText(
         page,
-        'You need to update and upload your 2027 summary log.',
+        `You need to update and upload your ${later} summary log.`,
         30
       )
 
-      await uploadSummaryLogPage.performUploadAndReturnToHomepage(log2027, 2027)
+      await uploadSummaryLogPage.performUploadAndReturnToHomepage(
+        laterLog,
+        later
+      )
     })
 
     test('A 2025 summary log is refused, since 2025 has no templates', async ({
