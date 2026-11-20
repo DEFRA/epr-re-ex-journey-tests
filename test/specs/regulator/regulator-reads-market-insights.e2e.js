@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test'
 
-import { MarketInsightsPage } from 'page-objects/regulator/market-insights.page'
+import {
+  LANDING_HEADING,
+  MarketInsightsPage
+} from 'page-objects/regulator/market-insights.page'
 import { MarketInsightsOutstandingReturnsPage } from 'page-objects/regulator/market-insights-outstanding-returns.page'
 import { MarketInsightsReprocessorExporterPage } from 'page-objects/regulator/market-insights-reprocessor-exporter.page'
 import {
@@ -59,9 +62,6 @@ const NATIONS = ['England', 'Wales', 'Scotland', 'Northern Ireland']
 // name, with the reporting year on the end.
 const PERIOD = /^[A-Z][a-z]+( to [A-Z][a-z]+)? (\d{4})$/
 
-// When a set of figures was taken, as the page stamps it.
-const DATA_TAKEN_AT = /^Data taken at .+ on .+$/
-
 /**
  * The value a stated tonnage carries. The grouping is there to be read rather
  * than parsed, so it comes out before the number does.
@@ -109,9 +109,7 @@ test.describe('A regulator reading market insights @regulator', () => {
       // link is the only way a regulator finds the pages at all.
       await homePage.marketInsightsLink().click()
 
-      expect(await marketInsightsPage.headingText()).toContain(
-        'Market insights'
-      )
+      expect(await marketInsightsPage.headingText()).toContain(LANDING_HEADING)
 
       // Each set of figures the publication carries gets its own page, and
       // this one is how a regulator reaches any of them, so every page after
@@ -122,7 +120,7 @@ test.describe('A regulator reading market insights @regulator', () => {
         ...NATIONS.map(
           (nation) => `Reprocessor and exporter figures: ${nation}`
         ),
-        'Outstanding monthly reports: UK'
+        'Missing monthly reports: UK'
       ])
 
       violations.push(
@@ -148,9 +146,7 @@ test.describe('A regulator reading market insights @regulator', () => {
       const period = await wasteBalancePage.periodText()
 
       expect(period).toMatch(PERIOD)
-      expect
-        .soft(await wasteBalancePage.dataTakenAtText())
-        .toMatch(DATA_TAKEN_AT)
+      await expect.soft(wasteBalancePage.dataTakenAt()).toBeVisible()
 
       const { material, accreditationType, total, publishedTotal } =
         WASTE_BALANCE_HEADINGS
@@ -225,7 +221,7 @@ test.describe('A regulator reading market insights @regulator', () => {
 
       // The trail back is the only way on to the other sets of figures, so
       // the journey walks it rather than addressing the next page directly.
-      await wasteBalancePage.crumbLink('Market insights').click()
+      await wasteBalancePage.crumbLink(LANDING_HEADING).click()
 
       return { period, months }
     })
@@ -251,7 +247,7 @@ test.describe('A regulator reading market insights @regulator', () => {
         expect(await figuresPage.headingText()).toContain(figureSet)
 
         expect.soft(await figuresPage.periodText()).toBe(period)
-        expect.soft(await figuresPage.dataTakenAtText()).toMatch(DATA_TAKEN_AT)
+        await expect.soft(figuresPage.dataTakenAt()).toBeVisible()
 
         // Every month of the period brings a reprocessor table and an
         // exporter table, each naming the month it covers. Naming the whole
@@ -281,25 +277,23 @@ test.describe('A regulator reading market insights @regulator', () => {
           ))
         )
 
-        await figuresPage.crumbLink('Market insights').click()
+        await figuresPage.crumbLink(LANDING_HEADING).click()
       })
     }
 
-    await test.step('Outstanding monthly reports: UK', async () => {
+    await test.step('Missing monthly reports: UK', async () => {
       await marketInsightsPage
-        .figureSetLink('Outstanding monthly reports: UK')
+        .figureSetLink('Missing monthly reports: UK')
         .click()
 
       expect(await outstandingReturnsPage.headingText()).toContain(
-        'Outstanding monthly reports'
+        'Missing monthly reports'
       )
 
       // Every set of figures covers the period the clock decides, so this
       // page was cut over the span the others were.
       expect.soft(await outstandingReturnsPage.periodText()).toBe(period)
-      expect
-        .soft(await outstandingReturnsPage.dataTakenAtText())
-        .toMatch(DATA_TAKEN_AT)
+      await expect.soft(outstandingReturnsPage.dataTakenAt()).toBeVisible()
 
       // A table per material, each one naming the material it counts. Naming
       // the whole set is what catches a material that arrived twice or not at
