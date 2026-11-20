@@ -33,6 +33,9 @@ const FURTHER_ACTION_HEADING = 'Further action needed'
 // open-period adjusted-load checks below.
 const ADJUSTED_ADDED_HEADING = 'This load has added to your waste balance'
 
+// The year exporter.xlsx's template is for, so the journey uploads into it.
+const FIXTURE_YEAR = 2026
+
 test.describe('Summary Logs Exporter', () => {
   test('Should be able to submit a Exporter Summary Log spreadsheet, with no closed-period messaging @exporter @closedPeriodMessaging', async ({
     page
@@ -52,7 +55,8 @@ test.describe('Summary Logs Exporter', () => {
       materialSuffix: 'PA'
     })
 
-    // A 2026 accreditation: the fixture's 2025 load falls before it
+    // Both registrations start in the fixture's year, so its home has both
+    // tabs; the fixture's 2025 load falls before the accreditation.
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
       [
@@ -63,10 +67,11 @@ test.describe('Summary Logs Exporter', () => {
         },
         {
           ...exporterNumbers,
-          status: 'approved',
-          validFrom: '2026-01-01'
+          status: 'approved'
         }
-      ]
+      ],
+      undefined,
+      `${FIXTURE_YEAR}-01-01`
     )
     await seedOverseasSites(
       organisationDetails.refNo,
@@ -80,6 +85,7 @@ test.describe('Summary Logs Exporter', () => {
       migrationResponse.email
     )
 
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
 
@@ -96,7 +102,7 @@ test.describe('Summary Logs Exporter', () => {
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkOnCheckPage(page)
+    await checkOnCheckPage(page, FIXTURE_YEAR)
     await checkBodyText(page, 'Open periods: new loads', 30)
 
     // Merged from summarylogs.check.cma.sections.e2e.js's noClosedSection
@@ -129,7 +135,7 @@ test.describe('Summary Logs Exporter', () => {
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
 
-    await uploadSummaryLogPage.checkUploaded()
+    await uploadSummaryLogPage.checkUploaded(FIXTURE_YEAR)
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '30.00 tonnes', 10)
 
@@ -163,7 +169,7 @@ test.describe('Summary Logs Exporter', () => {
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkOnCheckPage(page)
+    await checkOnCheckPage(page, FIXTURE_YEAR)
     await checkBodyText(page, 'Open periods: new loads', 30)
     await checkBodyText(
       page,
@@ -224,7 +230,7 @@ test.describe('Summary Logs Exporter', () => {
 
     await checkBodyText(page, 'Your waste records are being updated', 30)
 
-    await uploadSummaryLogPage.checkUploaded()
+    await uploadSummaryLogPage.checkUploaded(FIXTURE_YEAR)
     await checkBodyText(page, 'Your updated waste balance', 10)
     await checkBodyText(page, '139.00 tonnes', 10)
 

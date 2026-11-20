@@ -97,7 +97,9 @@ test.describe('Issuing Packing Recycling Notes', () => {
     // Submitted via epr-backend's dev endpoint rather than driving the
     // upload UI: this journey is about PRN issuance, not the upload itself,
     // which the dedicated summary-log specs already cover.
+    const year = registrationStartYear()
     const summaryLogContent = await generateSummaryLogContent({
+      year,
       wasteProcessingType: 'reprocessorOutput',
       materialSuffix: 'PL',
       regNumber,
@@ -121,7 +123,7 @@ test.describe('Issuing Packing Recycling Notes', () => {
       migrationResponse.registrationIds[0],
       defraIdStub.authHeader(user.userId),
       summaryLogContent,
-      registrationStartYear()
+      year
     )
 
     await dashboardPage.selectTableLink(1, 1)

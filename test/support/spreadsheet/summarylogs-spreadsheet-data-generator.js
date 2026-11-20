@@ -80,6 +80,25 @@ export const MARKER_ROW = 1
 /** The first row of a worksheet that holds data rather than headings. */
 export const FIRST_DATA_ROW = 4
 
+/**
+ * The reference of a field's cell in the first data row of a generated
+ * workbook, e.g. "U4".
+ *
+ * @param {string} workbookPath
+ * @param {string} worksheetName
+ * @param {string} field - the field's template marker
+ * @returns {Promise<string>}
+ */
+export async function firstDataRowCell(workbookPath, worksheetName, field) {
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.readFile(workbookPath)
+  const sheet = workbook.getWorksheet(worksheetName)
+  if (!sheet) {
+    throw new Error(`No worksheet named '${worksheetName}' in ${workbookPath}`)
+  }
+  return `${fieldColumns(sheet)[field]}${FIRST_DATA_ROW}`
+}
+
 const UK_DATE = /^(\d{2})\/(\d{2})\/(\d{4})$/
 
 /**
@@ -180,16 +199,17 @@ export function materialWithSuffix(suffix) {
  *
  * @param {PlannedRow[]} plannedRows
  * @param {object} options
- * @param {{name: string, fn: (material: (typeof MATERIALS)[number]) => Record<string, string | number>}} options.worksheet
+ * @param {{name: string, fn: (material: (typeof MATERIALS)[number], year: number) => Record<string, string | number>}} options.worksheet
  * @param {{rowId: number, tonnage?: (rowData: Record<string, string | number>, pinned: Record<string, string | number>) => void}} options.worksheetConfig
  * @param {Record<string, string>} options.columns - column letters by template marker
  * @param {(typeof MATERIALS)[number]} options.material
+ * @param {number} options.year - the summary log's year, which every drawn date stays in
  * @param {number} [options.rowOffset] - rows already in the worksheet's series
  * @returns {Record<string, string | number>[]}
  */
 export function fillRows(
   plannedRows,
-  { worksheet, worksheetConfig, columns, material, rowOffset = 0 }
+  { worksheet, worksheetConfig, columns, material, year, rowOffset = 0 }
 ) {
   let seededAnyRow = false
   try {
@@ -198,7 +218,7 @@ export function fillRows(
         faker.seed(plannedRow.seed)
         seededAnyRow = true
       }
-      const rowData = worksheet.fn(material)
+      const rowData = worksheet.fn(material, year)
       const plannedCells = cellsForFields(
         plannedRow.fields ?? {},
         columns,
@@ -268,7 +288,8 @@ function generateAccNumber(wasteProcessingType, suffix, nation, orgId) {
  *   render, keyed by worksheet name. A worksheet the plan omits gets none.
  * @param {boolean} [options.unreadable] - render a workbook the service
  *   rejects wholesale rather than validates.
- * @param {number} [options.year] - the year whose template to fill.
+ * @param {number} [options.year] - the year whose template to fill, and which
+ *   its drawn dates stay in.
  * @param {boolean} [options.silentLogging]
  * @returns {Promise<string>} the path the workbook was written to
  */
@@ -408,6 +429,7 @@ export async function generateSpreadsheetData(options = {}) {
           worksheetConfig,
           columns: fieldColumns(sheet),
           material,
+          year,
           rowOffset
         })
 

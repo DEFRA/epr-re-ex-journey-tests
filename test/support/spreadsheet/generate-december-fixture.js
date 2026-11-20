@@ -110,7 +110,9 @@ const FIRST_ROW = 4
  * @returns {Promise<string>} the generated file path
  */
 export async function generateDecemberFixture(options, accreditationYear) {
+  // Filled from that year's template, which an upload for it requires.
   const filename = await generateSpreadsheetData({
+    year: accreditationYear,
     ...options,
     numberOfRows: DECEMBER_ROWS + NON_DECEMBER_ROWS
   })
