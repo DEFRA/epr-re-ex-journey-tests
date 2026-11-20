@@ -8,8 +8,13 @@ import { checkOnUploadPage } from '../support/summary-log-checks.js'
 import {
   createLinkedOrganisation,
   fillerNumbers,
+  seedExternalAccreditation,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
+import {
+  firstDataRowCell,
+  generateSpreadsheetData
+} from '../support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
 import { summaryLogNumbered } from '../support/seeding/summary-logs.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
@@ -400,5 +405,110 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
 
     await homePage.signOutLink().click()
     await expect(page).toHaveTitle(/Signed out/)
+  })
+
+  test('Should reject a 2027 summary log with a date from a later year @summLogsLaterYearDate', async ({
+    page
+  }) => {
+    const dashboardPage = new DashboardPage(page)
+    const wasteRecordsPage = new WasteRecordsPage(page)
+    const uploadSummaryLogPage = new UploadSummaryLogPage(page)
+
+    const numbering = /** @type {const} */ ({
+      wasteProcessingType: 'exporter',
+      materialSuffix: 'WO'
+    })
+    const { regNumber, accNumber } = generateNumbers({
+      ...numbering,
+      year: '26'
+    })
+    const organisationDetails = await createLinkedOrganisation([
+      { material: 'Wood (R3)', wasteProcessingType: 'Exporter' }
+    ])
+    const { email } = await updateMigratedOrganisation(
+      organisationDetails.refNo,
+      [{ regNumber, accNumber, status: 'approved' }]
+    )
+    const { accreditationNumber: accNumber2027 } =
+      await seedExternalAccreditation(
+        {
+          organisationNumber: organisationDetails.orgId,
+          registrationNumber: regNumber
+        },
+        2027,
+        numbering
+      )
+
+    const log2027 = await generateSpreadsheetData({
+      ...numbering,
+      regNumber,
+      accNumber: accNumber2027,
+      year: 2027,
+      silentLogging: true,
+      rows: {
+        'Exported (sections 1, 2 and 3)': [
+          {
+            rowId: 1000,
+            fields: {
+              WERE_PRN_OR_PERN_ISSUED_ON_THIS_WASTE: 'No',
+              DID_WASTE_PASS_THROUGH_AN_INTERIM_SITE: 'No',
+              WAS_THE_WASTE_REFUSED: 'No',
+              WAS_THE_WASTE_STOPPED: 'No',
+              OSR_ID: 100,
+              TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED: 10,
+              DATE_RECEIVED_FOR_EXPORT: '15/01/2027',
+              DATE_RECEIVED_BY_OSR: '18/01/2027',
+              DATE_OF_EXPORT: '03/01/2028',
+              DATE_THE_REFUSED_STOPPED_WASTE_REPATRIATED: '20/01/2027'
+            }
+          }
+        ],
+        'Sent on (sections 4 and 5)': [
+          { rowId: 4000, fields: { DATE_LOAD_LEFT_SITE: '05/02/2029' } }
+        ]
+      }
+    })
+
+    await createLinkAndLogin(page, organisationDetails.refNo, email)
+
+    await dashboardPage.open(organisationDetails.refNo)
+    await dashboardPage.chooseYear(2027)
+    await dashboardPage.selectTableLink(1, 1)
+    await wasteRecordsPage.submitSummaryLogLink().click()
+    await checkOnUploadPage(page, 2027)
+
+    await uploadSummaryLogPage.uploadFile(log2027)
+    await uploadSummaryLogPage.continue()
+
+    await checkBodyText(page, 'Your summary log cannot be uploaded', 30)
+
+    expect(await uploadSummaryLogPage.getValidationErrors()).toStrictEqual([
+      {
+        rowId: '1000',
+        section: 'Exported (sections 1, 2 and 3)',
+        columnHeader: 'Date of export',
+        cell: await firstDataRowCell(
+          log2027,
+          'Exported (sections 1, 2 and 3)',
+          'DATE_OF_EXPORT'
+        ),
+        dataEntered: '03/01/2028',
+        errorMessage:
+          'Year cannot be later than 2027. If it’s a 2028 load, record it in your 2028 summary log instead. If it was received for export in 2027, use the ‘Previous year Row ID’ to link your 2 summary logs.'
+      },
+      {
+        rowId: '4000',
+        section: 'Sent on (sections 4 and 5)',
+        columnHeader: 'Date load left site',
+        cell: await firstDataRowCell(
+          log2027,
+          'Sent on (sections 4 and 5)',
+          'DATE_LOAD_LEFT_SITE'
+        ),
+        dataEntered: '05/02/2029',
+        errorMessage:
+          'Year cannot be later than 2027. If it’s a 2029 load, record it in your 2029 summary log instead.'
+      }
+    ])
   })
 })
