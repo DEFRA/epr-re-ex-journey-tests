@@ -6,22 +6,26 @@ import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
 import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import {
-  createLinkedOrganisation,
-  seedExternalAccreditation,
-  seedOverseasSites,
-  updateMigratedOrganisation
+  seedAccreditedIn2026And2027,
+  seedOverseasSites
 } from '~/test/support/seeding/organisation.js'
 import { generateSpreadsheetData } from '~/test/support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
 import { createPrnDetails } from '~/test/support/fixtures.js'
 import { PrnHelper } from '~/test/support/prn.helper.js'
-import { generateNumbers } from '~/test/support/reg-acc-number.js'
+import { isRelevantYearOpen } from '~/test/support/date.js'
 import { checkWasteBalanceForWindow } from '~/test/support/waste-balance-mode.js'
 import { isDecemberWasteWindowOpenFor } from '~/test/support/december-waste-window.js'
 import { checkOnUploadPage } from '~/test/support/summary-log-checks.js'
 
 const JOURNEY_TIMEOUT_MS = 4 * 60 * 1000
-const OPENING_BALANCE_2026 = '1,000.00'
+const YEARS = [2026, 2027]
+
+const tonnes = (amount) =>
+  amount.toLocaleString('en-GB', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
 
 const exportedTonnes = (tonnage, datedOn) => ({
   'Exported (sections 1, 2 and 3)': [
@@ -49,6 +53,10 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
     page
   }) => {
     test.setTimeout(JOURNEY_TIMEOUT_MS)
+    expect(
+      YEARS.some((year) => isRelevantYearOpen(year)),
+      'PERNs can no longer be raised for 2026 or 2027: move this journey on to the next two years with summary log templates'
+    ).toBe(true)
 
     const dashboardPage = new DashboardPage(page)
     const chooseYearPage = new ChooseYearPage(page)
@@ -62,37 +70,13 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
       wasteProcessingType: 'exporter',
       materialSuffix: 'WO'
     })
-    const { regNumber, accNumber: accNumber2026 } = generateNumbers({
-      ...numbering,
-      year: '26'
-    })
-    const organisationDetails = await createLinkedOrganisation([
-      { material: 'Wood (R3)', wasteProcessingType: 'Exporter' }
-    ])
-    const { email } = await updateMigratedOrganisation(
-      organisationDetails.refNo,
-      [
-        {
-          regNumber,
-          accNumber: accNumber2026,
-          status: 'approved',
-          validTo: '2027-01-01',
-          createdOn: '2025-12-31'
-        }
-      ],
-      undefined,
-      '2026-01-01'
-    )
-    await seedOverseasSites(organisationDetails.refNo)
-    const { accreditationNumber: accNumber2027 } =
-      await seedExternalAccreditation(
-        {
-          organisationNumber: organisationDetails.orgId,
-          registrationNumber: regNumber
-        },
-        2027,
+    const { organisationDetails, email, regNumber, accNumbers } =
+      await seedAccreditedIn2026And2027({
+        material: 'Wood (R3)',
+        wasteProcessingType: 'Exporter',
         numbering
-      )
+      })
+    await seedOverseasSites(organisationDetails.refNo)
 
     const summaryLogFor = (year, accNumber, tonnage, datedOn) =>
       generateSpreadsheetData({
@@ -104,8 +88,18 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
         year,
         silentLogging: true
       })
-    const log2026 = await summaryLogFor(2026, accNumber2026, 1000, '01/06/2026')
-    const log2027 = await summaryLogFor(2027, accNumber2027, 400, '01/01/2027')
+    const log2026 = await summaryLogFor(
+      2026,
+      accNumbers[2026],
+      1000,
+      '01/06/2026'
+    )
+    const log2027 = await summaryLogFor(
+      2027,
+      accNumbers[2027],
+      400,
+      '01/01/2027'
+    )
 
     const openAccreditationFor = async (year) => {
       await dashboardPage.open(organisationDetails.refNo)
@@ -123,8 +117,16 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
         expect(
           await wasteRecordsPage.wasteBalanceAmount(),
           `${year} waste balance`
-        ).toBe(balance)
+        ).toBe(tonnes(balance))
       }
+    }
+
+    const expectPernRefused = async (year) => {
+      await openAccreditationFor(year)
+      await wasteRecordsPage.createNewPERNLink().click()
+      await expect(page).toHaveURL(
+        new RegExp(`/accreditations/${year}/packaging-recycling-notes$`)
+      )
     }
 
     const createPern = async ({
@@ -165,22 +167,25 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
       await uploadSummaryLogPage.performUploadAndReturnToHomepage(log, year)
     }
 
-    await expectWasteBalances({ 2026: OPENING_BALANCE_2026, 2027: '400.00' })
+    const balances = { 2026: 1000, 2027: 400 }
+    await expectWasteBalances(balances)
 
-    await createPern({
-      year: 2027,
-      accNumber: accNumber2027,
-      balance: '400.00',
-      tonnageWordings: { integer: 40, word: 'Forty' }
-    })
-    await expectWasteBalances({ 2027: '360.00', 2026: OPENING_BALANCE_2026 })
-
-    await createPern({
-      year: 2026,
-      accNumber: accNumber2026,
-      balance: OPENING_BALANCE_2026,
-      tonnageWordings: { integer: 100, word: 'One hundred' }
-    })
-    await expectWasteBalances({ 2026: '900.00', 2027: '360.00' })
+    for (const { year, tonnageWordings } of [
+      { year: 2027, tonnageWordings: { integer: 40, word: 'Forty' } },
+      { year: 2026, tonnageWordings: { integer: 100, word: 'One hundred' } }
+    ]) {
+      if (isRelevantYearOpen(year)) {
+        await createPern({
+          year,
+          accNumber: accNumbers[year],
+          balance: tonnes(balances[year]),
+          tonnageWordings
+        })
+        balances[year] -= tonnageWordings.integer
+      } else {
+        await expectPernRefused(year)
+      }
+      await expectWasteBalances(balances)
+    }
   })
 })

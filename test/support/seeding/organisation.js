@@ -510,6 +510,64 @@ export async function seedExternalAccreditation(
 }
 
 /**
+ * Seeds an organisation with one registration, approved from 2026 and
+ * accredited in 2026 by its stored accreditation and in 2027 by an external
+ * one. Pinned to the years the suite has templates for, rather than to the
+ * clock, so a journey across both keeps its years as the clock moves on.
+ *
+ * @param {{
+ *   material: string,
+ *   wasteProcessingType: 'Reprocessor' | 'Exporter',
+ *   numbering: {wasteProcessingType: import('../reg-acc-number.js').ProcessingType, materialSuffix: string},
+ *   reprocessingType?: 'input' | 'output'
+ * }} registration
+ */
+export async function seedAccreditedIn2026And2027({
+  material,
+  wasteProcessingType,
+  numbering,
+  reprocessingType
+}) {
+  const { regNumber, accNumber } = generateNumbers({
+    ...numbering,
+    year: '26'
+  })
+  const organisationDetails = await createLinkedOrganisation([
+    { material, wasteProcessingType }
+  ])
+  const { email } = await updateMigratedOrganisation(
+    organisationDetails.refNo,
+    [
+      {
+        regNumber,
+        accNumber,
+        status: 'approved',
+        validTo: '2027-01-01',
+        createdOn: '2025-12-31',
+        ...(reprocessingType && { reprocessingType })
+      }
+    ],
+    undefined,
+    '2026-01-01'
+  )
+  const { accreditationNumber } = await seedExternalAccreditation(
+    {
+      organisationNumber: organisationDetails.orgId,
+      registrationNumber: regNumber
+    },
+    2027,
+    numbering
+  )
+
+  return {
+    organisationDetails,
+    email,
+    regNumber,
+    accNumbers: { 2026: accNumber, 2027: accreditationNumber }
+  }
+}
+
+/**
  * Moves a registration, its accreditation or both to a new status, as the
  * regulator would. The service dates the change today.
  *

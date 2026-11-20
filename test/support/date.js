@@ -23,3 +23,15 @@ export const MONTHS_OF_THE_YEAR = [
   'November',
   'December'
 ]
+
+/**
+ * Whether PRNs and PERNs can still be raised for an accreditation of
+ * `relevantYear`. As the backend does, in UTC, the year stays open until the
+ * end of 31 January after it.
+ *
+ * @param {number} relevantYear
+ * @param {Date} [now]
+ * @returns {boolean}
+ */
+export const isRelevantYearOpen = (relevantYear, now = new Date()) =>
+  now.getTime() < Date.UTC(relevantYear + 1, 1, 1)
