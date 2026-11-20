@@ -6,6 +6,12 @@ import { TonnageMonitoringPage } from 'page-objects/admin/tonnage.monitoring.pag
 import { checkAccessibility } from '../../support/accessibility.js'
 import { currentYear } from '../../support/date.js'
 import { availableWasteRecordYears } from '../../support/waste-record-years.js'
+import {
+  EXTERNAL_ACCREDITATION_MATERIAL,
+  EXTERNAL_ACCREDITATION_YEAR,
+  reportedAmount,
+  submitSummaryLogForExternalAccreditation
+} from '../../support/seeding/external-accreditation-summary-log.js'
 
 test.describe('Tonnage Monitoring page', () => {
   test('Should be able to view Tonnage Monitoring if logged in @tonnageMonitoring', async ({
@@ -111,5 +117,31 @@ test.describe('Tonnage Monitoring page', () => {
     )
     expect(csv.failure).toBeNull()
     expect(csv.filename).toBe(`tonnage-monitoring-${chosenYear}.csv`)
+  })
+
+  // Every organisation's tonnage is summed, so the figure is compared before
+  // and after rather than with an amount: other journeys only ever add to it.
+  test('The tonnage of an accreditation held outside re-ex counts towards its year @tonnageMonitoring', async ({
+    page,
+    browser
+  }) => {
+    test.setTimeout(3 * 60 * 1000)
+    const loginPage = new AdminLoginPage(page)
+    const tonnageMonitoringPage = new TonnageMonitoringPage(page)
+    const total = async () => {
+      await tonnageMonitoringPage.openYear(EXTERNAL_ACCREDITATION_YEAR)
+      return reportedAmount(
+        await tonnageMonitoringPage.totalFor(EXTERNAL_ACCREDITATION_MATERIAL)
+      )
+    }
+
+    await loginPage.open()
+    await loginPage.enterCredentials('ea@test.gov.uk', 'pass')
+    await loginPage.submitCredentials()
+    const before = await total()
+
+    await submitSummaryLogForExternalAccreditation(browser)
+
+    await expect.poll(total, { timeout: 60 * 1000 }).toBeGreaterThan(before)
   })
 })
