@@ -190,7 +190,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       organisationDetails.refNo,
       regId,
       user.userId,
-      2025,
+      FIXTURE_YEAR,
       'quarterly',
       1,
       1,
@@ -199,7 +199,6 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
 
     await loginViaHomePage(page, migrationResponse.email)
 
-    // 2025 has no template, so its closed loads go up in the fixture's year.
     await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.selectLink(1)
 
@@ -207,7 +206,10 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
 
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered(
-        'resources/reprocessor-output-regonly-cma-2025.xlsx',
+        await summaryLogDatedAt(
+          'resources/reprocessor-output-regonly-cma-2025.xlsx',
+          new Date(Date.UTC(FIXTURE_YEAR, 0, 1))
+        ),
         { regNumber }
       )
     )
