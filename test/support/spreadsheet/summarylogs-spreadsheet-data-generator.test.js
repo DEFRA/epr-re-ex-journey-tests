@@ -1,7 +1,10 @@
 import { describe, it, before } from 'node:test'
 import assert from 'node:assert/strict'
 import ExcelJS from 'exceljs'
-import { generateSpreadsheetData } from './summarylogs-spreadsheet-data-generator.js'
+import {
+  firstDataRowCell,
+  generateSpreadsheetData
+} from './summarylogs-spreadsheet-data-generator.js'
 
 const RECEIVED = 'Received (sections 1, 2 and 3)'
 const FIRST_DATA_ROW = 4
@@ -312,6 +315,26 @@ describe('summary log spreadsheet generator', () => {
       )
 
       assert.equal(valueOf(sheet.getCell('B4')), '1000')
+    })
+
+    it('names the first data row cell of a field in a generated workbook', async () => {
+      const path = await generateSpreadsheetData({
+        ...baseOptions,
+        wasteProcessingType: 'exporter',
+        materialSuffix: 'WO',
+        sheets: null,
+        numberOfRows: 1,
+        year: 2027
+      })
+
+      assert.equal(
+        await firstDataRowCell(
+          path,
+          'Exported (sections 1, 2 and 3)',
+          'DATE_OF_EXPORT'
+        ),
+        'U4'
+      )
     })
 
     it('writes each year to its own file', async () => {
