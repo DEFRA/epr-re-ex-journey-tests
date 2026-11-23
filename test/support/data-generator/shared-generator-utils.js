@@ -12,6 +12,7 @@ import {
   assertSuccessResponseWithoutBody
 } from '../response-assertions.js'
 import { generateRegNumber, generateAccNumber } from '../reg-acc-number.js'
+import { accreditationEndFor } from '../date.js'
 import {
   SEEDED_CREATED_ON,
   SEEDED_VALID_FROM
@@ -327,8 +328,7 @@ export async function updateOrganisationData(
 
       data.accreditations[index].status = updateData.status
       data.accreditations[index].validFrom = validFrom
-      data.accreditations[index].validTo =
-        `${new Date(validFrom).getUTCFullYear()}-12-31`
+      data.accreditations[index].validTo = accreditationEndFor(validFrom)
       if (updateData.reprocessingType) {
         data.accreditations[index].reprocessingType =
           updateData.reprocessingType

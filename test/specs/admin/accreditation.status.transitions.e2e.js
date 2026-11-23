@@ -17,13 +17,12 @@ import {
 const CURRENT_YEAR = new Date().getFullYear()
 // The dates typed into the approve confirm forms (PAE-1814). Registrations
 // don't expire (PAE-1904), so only the accreditation grant uses valid-to. It
-// is deliberately not the value updateMigratedOrganisation seeds
-// (SEEDED_VALID_TO), so asserting the granted value proves the grant wrote it.
+// differs from both the seeded valid-to and the form's 31 December default,
+// so finding it stored proves the grant wrote what was typed.
 const GRANTED_VALID_FROM = { day: '1', month: '1', year: `${CURRENT_YEAR}` }
 const GRANTED_VALID_TO = { day: '30', month: '6', year: `${CURRENT_YEAR}` }
 const GRANTED_VALID_FROM_ISO = `${CURRENT_YEAR}-01-01`
 const GRANTED_VALID_TO_ISO = `${CURRENT_YEAR}-06-30`
-const SEEDED_VALID_TO = `${CURRENT_YEAR}-12-31`
 
 // Walks the full accreditation lifecycle through the admin UI transition
 // actions below the organisation's JSON editor:
@@ -60,6 +59,8 @@ test.describe('Admin accreditation status transitions', () => {
     ])
     const orgId = organisationDetails.refNo
     await updateMigratedOrganisation(orgId, [{ status: 'created' }])
+    const seededValidTo = (await getOrganisation(orgId)).accreditations[0]
+      .validTo
 
     const companyName = organisationDetails.organisation.companyName
 
@@ -153,7 +154,7 @@ test.describe('Admin accreditation status transitions', () => {
       .accreditations[0]
     expect(grantedAccreditation.validFrom).toBe(GRANTED_VALID_FROM_ISO)
     expect(grantedAccreditation.validTo).toBe(GRANTED_VALID_TO_ISO)
-    expect(grantedAccreditation.validTo).not.toBe(SEEDED_VALID_TO)
+    expect(grantedAccreditation.validTo).not.toBe(seededValidTo)
 
     // An approved accreditation offers Suspend only — no direct cancel
     // (suspend first, PAE-1624)

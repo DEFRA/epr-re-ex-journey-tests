@@ -5,7 +5,7 @@ import { expect } from 'chai'
 import { BaseAPI } from '../../apis/base-api.js'
 import { AuthClient } from '../auth.js'
 import { trackCreatedOrgId } from '../cleanup-tracker.js'
-import { currentYear, latestOpenYear } from '../date.js'
+import { accreditationEndFor, currentYear, latestOpenYear } from '../date.js'
 import { MATERIALS } from '../materials.js'
 import { generateAccNumber, generateNumbers } from '../reg-acc-number.js'
 import { accreditationPath } from './natural-key-paths.js'
@@ -391,7 +391,7 @@ export async function seedOrganisationAcrossYears({
       ...numbers,
       reprocessingType,
       validFrom: `${thisYear}-01-01`,
-      validTo: `${thisYear}-12-31`,
+      validTo: accreditationEndFor(`${thisYear}-01-01`),
       submittedToRegulator: 'ea'
     }
   )
@@ -672,11 +672,8 @@ export async function updateMigratedOrganisation(
       data.registrations[i].accreditationId = data.accreditations[j].id
       data.accreditations[j].status = accStatus
       data.accreditations[j].validFrom = rowValidFrom
-      // To the end of the year it starts in, because an accreditation covers
-      // one year.
       data.accreditations[j].validTo =
-        orgUpdateData.validTo ??
-        `${new Date(rowValidFrom).getUTCFullYear()}-12-31`
+        orgUpdateData.validTo ?? accreditationEndFor(rowValidFrom)
       data.accreditations[j].statusHistory =
         accStatus === 'created'
           ? data.accreditations[j].statusHistory || []

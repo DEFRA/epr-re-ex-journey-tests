@@ -19,6 +19,8 @@ import { DockerLogParser } from '../support/docker.log.parser.js'
 import config from '../config/config.js'
 import logger from '../support/logger.js'
 
+const VALID_FROM = '2026-02-02'
+
 // Ported from epr-backend-journey-tests' localonly/automated-scaling.feature.
 // That version's two `While` steps (2000 rows up to a max of 6000, then 2000
 // rows up to a max of 12000) share one accumulating spreadsheet across both
@@ -53,14 +55,14 @@ test.describe('Automated scaling - Summary Logs Reprocessor on Input @automatedS
         regNumber,
         accNumber,
         status: 'approved',
-        validFrom: '2025-02-02'
+        validFrom: VALID_FROM
       }
     ])
     const user = await createAndRegisterDefraIdUser(migrated.email)
     await linkDefraIdUser(org.refNo, user.userId, migrated.email)
     const authHeader = defraIdStub.authHeader(user.userId)
     const registrationId = migrated.registrationIds[0]
-    const year = registrationStartYear('2025-02-02')
+    const year = registrationStartYear(VALID_FROM)
 
     const dockerLogParser = new DockerLogParser(
       config.dockerLogParser.containerName
