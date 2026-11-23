@@ -39,6 +39,7 @@ jobs:
           npm run format:check
           npm run lint
           npm run test:unit
+          npm run check:playwright-image
 
   type-check:
     name: Lint Types - Tests
@@ -64,15 +65,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Check Dockerfile image matches @playwright/test
-        run: |
-          package_version=$(jq -r '.devDependencies["@playwright/test"] // .dependencies["@playwright/test"]' package.json)
-          image_version=$(sed -nE 's#^FROM mcr\.microsoft\.com/playwright:v([0-9.]+)-.*#\1#p' Dockerfile)
-          if [ "$package_version" != "$image_version" ]; then
-            echo "::error file=Dockerfile::playwright image is $image_version but @playwright/test is $package_version"
-            exit 1
-          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
