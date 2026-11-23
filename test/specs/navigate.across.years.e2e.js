@@ -8,10 +8,13 @@ import { TonnesRecycledPage } from 'page-objects/reports/tonnes.recycled.page.js
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import {
+  createLinkedOrganisation,
   reportsLandingHasNoClosedPeriod,
   seedAccreditedInConsecutiveYears,
-  seedOrganisationAcrossYears
+  seedOrganisationAcrossYears,
+  updateMigratedOrganisation
 } from '~/test/support/seeding/organisation.js'
+import { generateRegNumber } from '~/test/support/reg-acc-number.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
 import { currentYear } from '~/test/support/date.js'
 import { defraIdStub } from '~/test/support/defra-id-stub.js'
@@ -210,8 +213,33 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
     test('A 2025 summary log is refused, since 2025 has no templates', async ({
       page
     }) => {
-      const { refNo, email, registrationId, registrationNumber } =
-        await seedOrganisationAcrossYears()
+      const { refNo } = await createLinkedOrganisation([
+        {
+          material: 'Paper or board (R3)',
+          wasteProcessingType: 'Reprocessor',
+          withoutAccreditation: true
+        }
+      ])
+      const regNumber = generateRegNumber({
+        wasteProcessingType: 'reprocessor',
+        materialSuffix: 'PA'
+      })
+      const {
+        email,
+        registrationIds: [registrationId]
+      } = await updateMigratedOrganisation(
+        refNo,
+        [
+          {
+            reprocessingType: 'output',
+            regNumber,
+            status: 'approved',
+            withoutAccreditation: true
+          }
+        ],
+        undefined,
+        '2025-01-01'
+      )
       const user = await createLinkAndLogin(page, refNo, email)
 
       await expect(
@@ -221,7 +249,7 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
           defraIdStub.authHeader(user.userId),
           await summaryLogContentNumbered(
             'resources/reprocessor-output-regonly.xlsx',
-            { regNumber: registrationNumber }
+            { regNumber }
           ),
           2025
         )
