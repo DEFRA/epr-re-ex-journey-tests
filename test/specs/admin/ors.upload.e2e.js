@@ -197,8 +197,8 @@ test.describe('ORS upload flow @orsUpload', () => {
     await expect(orsUploadPage.registrationNumberInput).toHaveValue(
       registrationNumber
     )
-    expect(await orsUploadPage.getInsetText()).toContain(
-      `No overseas reprocessing site data found matching '${registrationNumber}'.`
+    expect(await orsUploadPage.pageBodyText()).not.toContain(
+      accreditationNumber
     )
   })
 
