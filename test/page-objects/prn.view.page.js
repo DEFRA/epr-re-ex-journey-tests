@@ -21,6 +21,19 @@ class PRNViewPage extends Page {
     })
   }
 
+  /**
+   * The note's number sits in the inset under the heading, and is absent
+   * until the note is issued.
+   *
+   * @returns {Promise<string | null>}
+   */
+  async numberText() {
+    const line = this.page
+      .locator('.govuk-inset-text')
+      .getByText(/^(PRN|PERN) number: /)
+    return (await line.count()) > 0 ? line.innerText() : null
+  }
+
   cancelPRNButton() {
     return this.page.getByRole('button', { name: /^Cancel (PRN|PERN)$/ })
   }
