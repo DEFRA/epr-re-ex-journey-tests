@@ -6,6 +6,16 @@ export const todayddMMMMyyyy = new Date().toLocaleDateString('en-GB', {
 
 export const currentYear = () => new Date().getUTCFullYear()
 
+/**
+ * The last day of the year an accreditation starts in, because an
+ * accreditation covers one year.
+ *
+ * @param {string} validFrom - ISO date
+ * @returns {string} ISO date
+ */
+export const accreditationEndFor = (validFrom) =>
+  `${new Date(validFrom).getUTCFullYear()}-12-31`
+
 // The backend runs with OPEN_NEXT_YEAR in this stack and the lower envs.
 export const latestOpenYear = () => currentYear() + 1
 
