@@ -20,10 +20,10 @@ const CURRENT_YEAR = new Date().getFullYear()
 // is deliberately not the value updateMigratedOrganisation seeds
 // (SEEDED_VALID_TO), so asserting the granted value proves the grant wrote it.
 const GRANTED_VALID_FROM = { day: '1', month: '1', year: `${CURRENT_YEAR}` }
-const GRANTED_VALID_TO = { day: '31', month: '12', year: `${CURRENT_YEAR}` }
+const GRANTED_VALID_TO = { day: '30', month: '6', year: `${CURRENT_YEAR}` }
 const GRANTED_VALID_FROM_ISO = `${CURRENT_YEAR}-01-01`
-const GRANTED_VALID_TO_ISO = `${CURRENT_YEAR}-12-31`
-const SEEDED_VALID_TO = `${CURRENT_YEAR + 1}-01-01`
+const GRANTED_VALID_TO_ISO = `${CURRENT_YEAR}-06-30`
+const SEEDED_VALID_TO = `${CURRENT_YEAR}-12-31`
 
 // Walks the full accreditation lifecycle through the admin UI transition
 // actions below the organisation's JSON editor:

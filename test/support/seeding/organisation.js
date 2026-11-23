@@ -390,8 +390,8 @@ export async function seedOrganisationAcrossYears({
     {
       ...numbers,
       reprocessingType,
-      validFrom: `${firstYear}-01-01`,
-      validTo: `${thisYear + 1}-01-01`,
+      validFrom: `${thisYear}-01-01`,
+      validTo: `${thisYear}-12-31`,
       submittedToRegulator: 'ea'
     }
   )
@@ -419,9 +419,9 @@ export async function seedOrganisationAcrossYears({
 
   await amendMigratedOrganisation(refNo, (data) => {
     data.registrations.forEach((registration) => {
+      registration.validFrom = `${firstYear}-01-01`
       registration.statusHistory = approvedSinceFirstYear
     })
-    data.accreditations[0].validFrom = `${thisYear}-01-01`
     data.accreditations[0].statusHistory = [
       { status: 'created', updatedAt: createdOn },
       { status: 'approved', updatedAt: `${thisYear}-01-01` }
@@ -672,11 +672,11 @@ export async function updateMigratedOrganisation(
       data.registrations[i].accreditationId = data.accreditations[j].id
       data.accreditations[j].status = accStatus
       data.accreditations[j].validFrom = rowValidFrom
-      // One scheme year from its start, so one seeded from an earlier year
-      // doesn't run on through this one.
+      // To the end of the year it starts in, because an accreditation covers
+      // one year.
       data.accreditations[j].validTo =
         orgUpdateData.validTo ??
-        `${new Date(rowValidFrom).getUTCFullYear() + 1}-01-01`
+        `${new Date(rowValidFrom).getUTCFullYear()}-12-31`
       data.accreditations[j].statusHistory =
         accStatus === 'created'
           ? data.accreditations[j].statusHistory || []
