@@ -21,6 +21,8 @@ import { OrganisationOverviewPage } from 'page-objects/admin/organisation.overvi
 import { RegistrationOverviewPage } from 'page-objects/admin/registration.overview.page'
 import { RegistrationYearPage } from 'page-objects/admin/registration.year.page'
 import { ORSOverviewPage } from 'page-objects/admin/ors.overview.page'
+import { currentYear } from '../../support/date.js'
+import { availableWasteRecordYears } from '../../support/waste-record-years.js'
 
 async function uploadWorkbookAndWaitForCompletion(
   orsUploadPage,
@@ -96,21 +98,28 @@ test.describe('ORS upload flow @orsUpload', () => {
     await page.getByRole('link', { name: 'View ORS records' }).click()
     await expect(page).toHaveTitle(/Overseas reprocessing sites/)
     await checkAccessibility(page, 'Overseas sites')
+
+    const year = String(currentYear())
+    const years = await availableWasteRecordYears()
+    await expect(page).toHaveURL(new RegExp(`/overseas-sites\\?year=${year}$`))
+    expect(await orsUploadPage.availableYears()).toEqual(years)
+    await expect(orsUploadPage.yearDropdown()).toHaveValue(year)
+
     await orsUploadPage.expectDownloadCsvVisible()
 
-    const csvDownload = await orsUploadPage.fetchListCsv()
-    expect(csvDownload.status).toEqual(200)
-    expect(csvDownload.contentType).toContain('text/csv')
-    expect(csvDownload.contentDisposition).toEqual(
-      'attachment; filename="overseas-reprocessing-sites.csv"'
+    const csvDownload = await orsUploadPage.download(
+      orsUploadPage.downloadCsvButton()
     )
-    expect(csvDownload.body).toContain(
+    expect(csvDownload.failure).toBeNull()
+    expect(csvDownload.filename).toBe(`overseas-reprocessing-sites-${year}.csv`)
+    const csvText = csvDownload.body.toString()
+    expect(csvText).toContain(
       'Org ID,Registration Number,Accreditation Number,ORS ID'
     )
-    expect(csvDownload.body).toContain(String(orgId))
-    expect(csvDownload.body).toContain(registrationNumber)
-    expect(csvDownload.body).toContain(accreditationNumber)
-    expect(csvDownload.body).toContain('Fake Recycling Co')
+    expect(csvText).toContain(String(orgId))
+    expect(csvText).toContain(registrationNumber)
+    expect(csvText).toContain(accreditationNumber)
+    expect(csvText).toContain('Fake Recycling Co')
 
     const expectedHeaders = [
       'Org ID',
@@ -174,6 +183,23 @@ test.describe('ORS upload flow @orsUpload', () => {
     const pageTwoRows = await orsUploadPage.getListTableRows()
     expect(pageTwoRows.length).toBeGreaterThan(0)
     expect(pageTwoRows.length).toBeLessThanOrEqual(2)
+    await expect(page).toHaveURL(new RegExp(`[?&]year=${year}(&|$)`))
+
+    const otherYear = years.find((item) => item !== year)
+    if (!otherYear) {
+      throw new Error(`No year other than ${year} to show`)
+    }
+    await orsUploadPage.openList(`registrationNumber=${registrationNumber}`)
+    await orsUploadPage.showYear(otherYear)
+
+    await expect(page).toHaveURL(new RegExp(`[?&]year=${otherYear}(&|$)`))
+    await expect(orsUploadPage.yearDropdown()).toHaveValue(otherYear)
+    await expect(orsUploadPage.registrationNumberInput).toHaveValue(
+      registrationNumber
+    )
+    expect(await orsUploadPage.getInsetText()).toContain(
+      `No overseas reprocessing site data found matching '${registrationNumber}'.`
+    )
   })
 
   // .serial: later tests consume registration numbers and the org name
