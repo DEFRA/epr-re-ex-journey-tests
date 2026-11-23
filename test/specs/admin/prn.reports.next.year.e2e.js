@@ -20,15 +20,16 @@ import { generateSpreadsheetData } from '../../support/spreadsheet/summarylogs-s
 import { createLinkAndLogin } from '../../support/login-helper.js'
 import { createPrnDetails } from '../../support/fixtures.js'
 import { PrnHelper } from '../../support/prn.helper.js'
-import { generateNumbers } from '../../support/reg-acc-number.js'
+import { generateRegNumber } from '../../support/reg-acc-number.js'
 import { checkWasteBalanceForWindow } from '../../support/waste-balance-mode.js'
 import { isDecemberWasteWindowOpenFor } from '../../support/december-waste-window.js'
 import { checkOnUploadPage } from '../../support/summary-log-checks.js'
+import { latestOpenYear } from '../../support/date.js'
 
-// The 2027 accreditation is held outside re-ex, and is open early in this
+// Next year's accreditation is held outside re-ex, and is open early in this
 // stack. The PERN raised against it is found in each report by its own
 // numbers, so other journeys running alongside do not disturb it.
-const YEAR = 2027
+const YEAR = latestOpenYear()
 const EXPORTED_TONNES = 400
 const PERN_TONNES = 40
 
@@ -36,7 +37,7 @@ test.describe('PRN reports for an accreditation held outside re-ex @prnActivity 
   test.describe.configure({ mode: 'serial', timeout: 4 * 60 * 1000 })
 
   /** @type {string} */
-  let accNumber2027
+  let accNumber
   /** @type {string} */
   let pernNumber
 
@@ -51,29 +52,16 @@ test.describe('PRN reports for an accreditation held outside re-ex @prnActivity 
       wasteProcessingType: 'exporter',
       materialSuffix: 'WO'
     })
-    const { regNumber, accNumber: accNumber2026 } = generateNumbers({
-      ...numbering,
-      year: '26'
-    })
+    const regNumber = generateRegNumber(numbering)
     const organisationDetails = await createLinkedOrganisation([
       { material: 'Wood (R3)', wasteProcessingType: 'Exporter' }
     ])
     const { email } = await updateMigratedOrganisation(
       organisationDetails.refNo,
-      [
-        {
-          regNumber,
-          accNumber: accNumber2026,
-          status: 'approved',
-          validTo: '2027-01-01',
-          createdOn: '2025-12-31'
-        }
-      ],
-      undefined,
-      '2026-01-01'
+      [{ regNumber, status: 'approved', withoutAccreditation: true }]
     )
     await seedOverseasSites(organisationDetails.refNo)
-    ;({ accreditationNumber: accNumber2027 } = await seedExternalAccreditation(
+    ;({ accreditationNumber: accNumber } = await seedExternalAccreditation(
       {
         organisationNumber: organisationDetails.orgId,
         registrationNumber: regNumber
@@ -85,7 +73,7 @@ test.describe('PRN reports for an accreditation held outside re-ex @prnActivity 
     const summaryLog = await generateSpreadsheetData({
       ...numbering,
       regNumber,
-      accNumber: accNumber2027,
+      accNumber,
       rows: {
         'Exported (sections 1, 2 and 3)': [
           {
@@ -96,10 +84,10 @@ test.describe('PRN reports for an accreditation held outside re-ex @prnActivity 
               WAS_THE_WASTE_STOPPED: 'No',
               OSR_ID: 100,
               TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED: EXPORTED_TONNES,
-              DATE_RECEIVED_FOR_EXPORT: '01/01/2027',
-              DATE_OF_EXPORT: '01/01/2027',
-              DATE_RECEIVED_BY_OSR: '01/01/2027',
-              DATE_THE_REFUSED_STOPPED_WASTE_REPATRIATED: '01/01/2027'
+              DATE_RECEIVED_FOR_EXPORT: `01/01/${YEAR}`,
+              DATE_OF_EXPORT: `01/01/${YEAR}`,
+              DATE_RECEIVED_BY_OSR: `01/01/${YEAR}`,
+              DATE_THE_REFUSED_STOPPED_WASTE_REPATRIATED: `01/01/${YEAR}`
             }
           }
         ]
@@ -133,13 +121,13 @@ test.describe('PRN reports for an accreditation held outside re-ex @prnActivity 
       await wasteRecordsPage.createNewPERNLink().click()
       const pernDetails = createPrnDetails({
         materialDesc: 'Wood',
-        accNumber: accNumber2027,
+        accNumber,
         organisationDetails,
         tonnageWordings: { integer: PERN_TONNES, word: 'Forty' },
         wasteBalancePool: await checkWasteBalanceForWindow(
           new CreatePRNPage(page),
           isDecemberWasteWindowOpenFor(YEAR),
-          '400.00',
+          EXPORTED_TONNES.toFixed(2),
           'PERNs'
         )
       })
@@ -156,7 +144,7 @@ test.describe('PRN reports for an accreditation held outside re-ex @prnActivity 
     }
   })
 
-  test('PRN activity lists the PERN under its 2027 accreditation', async ({
+  test("PRN activity lists the PERN under next year's accreditation", async ({
     page
   }) => {
     await new AdminLoginPage(page).loginAsServiceMaintainer()
@@ -167,14 +155,14 @@ test.describe('PRN reports for an accreditation held outside re-ex @prnActivity 
     expect(row['Accreditation Year']).toBe(String(YEAR))
   })
 
-  test("PRN tonnage reports the PERN's tonnage against its 2027 accreditation", async ({
+  test("PRN tonnage reports the PERN's tonnage against next year's accreditation", async ({
     page
   }) => {
     await new AdminLoginPage(page).loginAsServiceMaintainer()
     const prnTonnagePage = new PrnTonnagePage(page)
     await prnTonnagePage.openResults()
 
-    const row = await prnTonnagePage.rowFor(accNumber2027)
+    const row = await prnTonnagePage.rowFor(accNumber)
     expect(Number.parseFloat(row['Awaiting acceptance'])).toBe(PERN_TONNES)
   })
 })
