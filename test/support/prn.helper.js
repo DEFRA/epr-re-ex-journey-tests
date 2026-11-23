@@ -70,10 +70,8 @@ export class PrnHelper {
     } else {
       expect(headingText).toBe('Packaging Waste Export Recycling Note')
     }
-    expect(await this.prnViewPage.numberText()).toBe(
+    expect(await this.prnViewPage.prnNumber()).toBe(
       expectedPrnDetails.prnNumber
-        ? `${this.prnWording} number: ${expectedPrnDetails.prnNumber}`
-        : null
     )
     const prnViewDetails = await this.prnViewPage.prnDetails()
     expect(prnViewDetails['Packaging producer or compliance scheme']).toBe(
