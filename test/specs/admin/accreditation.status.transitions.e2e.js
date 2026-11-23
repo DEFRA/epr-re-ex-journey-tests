@@ -14,7 +14,9 @@ import {
   issuedAccreditationNumber,
   issuedRegistrationNumber
 } from '../../support/issued-numbers.js'
-const CURRENT_YEAR = new Date().getFullYear()
+import { currentYear } from '../../support/date.js'
+
+const CURRENT_YEAR = currentYear()
 // The dates typed into the approve confirm forms (PAE-1814). Registrations
 // don't expire (PAE-1904), so only the accreditation grant uses valid-to. It
 // differs from both the seeded valid-to and the form's 31 December default,
@@ -61,6 +63,7 @@ test.describe('Admin accreditation status transitions', () => {
     await updateMigratedOrganisation(orgId, [{ status: 'created' }])
     const seededValidTo = (await getOrganisation(orgId)).accreditations[0]
       .validTo
+    expect(seededValidTo).not.toBe(GRANTED_VALID_TO_ISO)
 
     const companyName = organisationDetails.organisation.companyName
 
@@ -149,12 +152,11 @@ test.describe('Admin accreditation status transitions', () => {
     )
 
     // The accreditation's granted validity window is persisted exactly as
-    // entered, and the valid-to has replaced the seeded one
+    // entered
     const grantedAccreditation = (await getOrganisation(orgId))
       .accreditations[0]
     expect(grantedAccreditation.validFrom).toBe(GRANTED_VALID_FROM_ISO)
     expect(grantedAccreditation.validTo).toBe(GRANTED_VALID_TO_ISO)
-    expect(grantedAccreditation.validTo).not.toBe(seededValidTo)
 
     // An approved accreditation offers Suspend only — no direct cancel
     // (suspend first, PAE-1624)

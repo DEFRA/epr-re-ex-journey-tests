@@ -9,6 +9,7 @@
  * Shapes and settings are documented in `README.md` beside this file.
  */
 
+import { accreditationEndFor } from '../../date.js'
 import { MATERIALS } from '../../materials.js'
 import { DEFAULT_CALIBRATION } from './calibration.js'
 import { PROFILE_MIXES, buildArchetypes, buildProfile } from './profiles.js'
@@ -70,8 +71,6 @@ const dayCount = (from, to) =>
 
 const addDays = (from, days) =>
   new Date(Date.parse(from) + days * 86400000).toISOString().slice(0, 10)
-
-const endOfYear = (date) => `${date.slice(0, 4)}-12-31`
 
 const addMonth = (date) => {
   const [year, month] = date.split('-').map(Number)
@@ -658,7 +657,7 @@ export function planPopulation({
                 status: accreditationStatus,
                 tonnageBand: tonnageBands[nextBand++],
                 validFrom: activeFrom,
-                validTo: endOfYear(activeFrom)
+                validTo: accreditationEndFor(activeFrom)
               }
       }
     })
