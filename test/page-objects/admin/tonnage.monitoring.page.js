@@ -5,8 +5,48 @@ class TonnageMonitoringPage extends AdminPage {
     return super.open('/tonnage-monitoring')
   }
 
+  /** @param {number} year */
+  openYear(year) {
+    return super.open(`/tonnage-monitoring?year=${year}`)
+  }
+
+  /**
+   * The total the table shows for a material and operator type.
+   *
+   * @param {{ material: string, type: string }} row
+   * @returns {Promise<string>}
+   */
+  async totalFor({ material, type }) {
+    const tableData = await this.tonnageMaterialTableData()
+    const row = tableData.find(
+      (candidate) => candidate.Material === material && candidate.Type === type
+    )
+    if (!row) {
+      throw new Error(`No ${type} row for ${material}`)
+    }
+    return row.Total
+  }
+
   downloadCsvButton() {
     return this.page.getByRole('button', { name: 'Download CSV', exact: true })
+  }
+
+  /** @returns {import('@playwright/test').Locator} */
+  yearDropdown() {
+    return this.page.getByLabel('Year', { exact: true })
+  }
+
+  /** @returns {Promise<string[]>} */
+  async availableYears() {
+    return this.yearDropdown().locator('option').allInnerTexts()
+  }
+
+  /** @param {string} year */
+  async showYear(year) {
+    await this.yearDropdown().selectOption(year)
+    await this.page
+      .getByRole('button', { name: 'Show year', exact: true })
+      .click()
   }
 
   async tonnageMaterialTableData() {
