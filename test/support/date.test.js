@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path'
 import { describe, it } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
-import { isRelevantYearOpen } from './date.js'
+import { accreditationEndFor, isRelevantYearOpen } from './date.js'
 import { evaluateUnderClock } from './simulator/clock/under-clock.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -61,6 +61,20 @@ describe('whether a relevant year is open for PRNs', () => {
   for (const { now, year, open } of cases) {
     it(`should be ${open ? 'open' : 'closed'} for ${year} at ${now}`, () => {
       assert.equal(isRelevantYearOpen(year, new Date(now)), open)
+    })
+  }
+})
+
+describe('the end of an accreditation', () => {
+  const cases = [
+    { validFrom: '2026-01-01', validTo: '2026-12-31' },
+    { validFrom: '2026-02-02', validTo: '2026-12-31' },
+    { validFrom: '2026-12-31', validTo: '2026-12-31' }
+  ]
+
+  for (const { validFrom, validTo } of cases) {
+    it(`should be ${validTo} for one valid from ${validFrom}`, () => {
+      assert.equal(accreditationEndFor(validFrom), validTo)
     })
   }
 })
