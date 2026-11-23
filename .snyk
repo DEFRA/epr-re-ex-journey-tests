@@ -34,7 +34,7 @@ ignore:
   # only in mergeHtmlReport, to merge the HTML report files its own run wrote.
   # The fix is parse5 8.1.1; no 7.x release is patched.
   'SNYK-JS-PARSE5-22742152':
-    - '*':
+    - 'browserstack-node-sdk > *':
         reason: >-
           Uncaught exception in parse5 7.x on two consecutive low surrogates,
           reached only through browserstack-node-sdk > cheerio 1.0.0-rc.11,
