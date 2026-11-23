@@ -30,6 +30,10 @@ import {
   loginViaHomePage
 } from '../support/login-helper.js'
 
+// The year the fixtures' templates are for, so the journeys upload into it.
+// A period is closed by its submitted report, not by the calendar.
+const FIXTURE_YEAR = 2026
+
 // Split from summarylogs.check.cma.e2e.js (PAE-1405 CI runtime work): this
 // group covers which sections render at all - open vs closed, present vs
 // absent. See reports.requires.resubmission.e2e.js for adjusted-load
@@ -68,7 +72,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
           reprocessingType: 'output',
           ...numbers,
           status: 'approved',
-          validFrom: '2026-01-01'
+          validFrom: `${FIXTURE_YEAR}-01-01`
         }
       ]
     )
@@ -85,6 +89,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       organisationDetails.organisation.companyName
     )
 
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.selectLink(1)
 
     // Single-registration orgs skip the selection list, so the reg number
@@ -96,7 +101,10 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       numbers
     )
     await wasteRecordsPage.submitSummaryLogLink().click()
-    await uploadSummaryLogPage.performUploadAndReturnToHomepage(summaryLog)
+    await uploadSummaryLogPage.performUploadAndReturnToHomepage(
+      summaryLog,
+      FIXTURE_YEAR
+    )
 
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
@@ -104,7 +112,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkOnCheckPage(page)
+    await checkOnCheckPage(page, FIXTURE_YEAR)
 
     await checkBodyText(
       page,
@@ -166,7 +174,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
           regNumber,
           status: 'approved',
           withoutAccreditation: true,
-          validFrom: '2025-01-01'
+          validFrom: `${FIXTURE_YEAR}-01-01`
         }
       ]
     )
@@ -182,7 +190,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       organisationDetails.refNo,
       regId,
       user.userId,
-      2025,
+      FIXTURE_YEAR,
       'quarterly',
       1,
       1,
@@ -191,20 +199,21 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
 
     await loginViaHomePage(page, migrationResponse.email)
 
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.selectLink(1)
 
     await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered(
-        'resources/reprocessor-output-regonly-cma-2025.xlsx',
+        'resources/reprocessor-output-regonly-cma.xlsx',
         { regNumber }
       )
     )
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkOnCheckPage(page)
+    await checkOnCheckPage(page, FIXTURE_YEAR)
 
     await checkBodyText(page, 'Closed periods:', 30)
     const subStates = (await checkSummaryLogPage.allSubStateHeadings()).join(
@@ -237,8 +246,8 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       wasteProcessingType: 'exporter',
       materialSuffix: 'PA'
     })
-    // Inside January 2026, the month the seeded report closes
-    const closedMonthDay = new Date('2026-01-15')
+    // Inside the fixture year's January, the month the seeded report closes
+    const closedMonthDay = new Date(Date.UTC(FIXTURE_YEAR, 0, 15))
 
     const migrationResponse = await updateMigratedOrganisation(
       organisationDetails.refNo,
@@ -250,10 +259,12 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
         },
         {
           ...exporterNumbers,
-          status: 'approved',
-          validFrom: '2026-01-01'
+          status: 'approved'
         }
-      ]
+      ],
+      undefined,
+      // Both registrations start in the fixture's year, so its home has both tabs
+      `${FIXTURE_YEAR}-01-01`
     )
     await seedOverseasSites(
       organisationDetails.refNo,
@@ -267,6 +278,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       migrationResponse.email
     )
 
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.exportingTabLink().click()
     await dashboardPage.selectLink(1)
 
@@ -275,7 +287,8 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       await summaryLogNumbered(
         await summaryLogDatedAt('resources/exporter-2025.xlsx', closedMonthDay),
         exporterNumbers
-      )
+      ),
+      FIXTURE_YEAR
     )
 
     const exporterRegId = migrationResponse.registrationIds[1]
@@ -283,7 +296,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
       organisationDetails.refNo,
       exporterRegId,
       user.userId,
-      2026,
+      FIXTURE_YEAR,
       'monthly',
       1,
       1,
@@ -305,7 +318,7 @@ test.describe('Summary Logs - Check Page with CMA Detection - Section Visibility
     await uploadSummaryLogPage.continue()
 
     await checkBodyText(page, 'Your summary log is being checked', 30)
-    await checkOnCheckPage(page)
+    await checkOnCheckPage(page, FIXTURE_YEAR)
 
     await checkBodyText(page, 'Closed periods:', 30)
     const subStates = (await checkSummaryLogPage.allSubStateHeadings()).join(

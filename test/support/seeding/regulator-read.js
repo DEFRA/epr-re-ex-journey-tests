@@ -61,8 +61,9 @@ const REPORT_FIGURES = {
  *   cancellationPrnNumber: string,
  *   cancellationPrnTonnage: number,
  *   summaryLogCredit: number,
- *   reportPeriod: {year: number, cadence: string, period: number}
- * }>}
+ *   reportPeriod: {year: number, cadence: string, period: number},
+ *   startYear: number
+ * }>} startYear is the year the registration and accreditation start in
  */
 export async function seedAwaitingPrnAndSubmittedReport() {
   const organisation = await createLinkedOrganisation([
@@ -73,14 +74,27 @@ export async function seedAwaitingPrnAndSubmittedReport() {
     wasteProcessingType: 'reprocessor',
     materialSuffix: 'PA'
   })
-  const migrated = await updateMigratedOrganisation(organisation.refNo, [
-    {
-      reprocessingType: 'input',
-      regNumber,
-      accNumber,
-      status: 'approved'
-    }
-  ])
+
+  // An approved accreditation carrying a number puts the registration on the
+  // monthly cadence, which is what the reports calendar is built from.
+  const { year, period } = lastCompletedPeriod('monthly')
+  const reportPeriod = { year, cadence: 'monthly', period }
+
+  // The accreditation's year is its validFrom's, so in January, when the last
+  // completed month is last December, it has to start last year.
+  const migrated = await updateMigratedOrganisation(
+    organisation.refNo,
+    [
+      {
+        reprocessingType: 'input',
+        regNumber,
+        accNumber,
+        status: 'approved'
+      }
+    ],
+    undefined,
+    `${year}-01-01`
+  )
   const registrationId = migrated.registrationIds[0]
   const accreditationId = migrated.accreditationIds[0]
 
@@ -88,17 +102,14 @@ export async function seedAwaitingPrnAndSubmittedReport() {
   await linkDefraIdUser(organisation.refNo, user.userId, migrated.email)
   const defraAuthHeader = defraIdStub.authHeader(user.userId)
 
-  // An approved accreditation carrying a number puts the registration on the
-  // monthly cadence, which is what the reports calendar is built from.
-  const { year, period } = lastCompletedPeriod('monthly')
-  const reportPeriod = { year, cadence: 'monthly', period }
-
   // The load is dated into that same month rather than "today". A page showing
   // one reporting period at a time only holds this tonnage while the service is
   // still reporting on that period, so a fixed date is a failure waiting for a
   // particular new year. Pinned fields take UK dates (DD/MM/YYYY), as a
-  // template cell would.
-  const periodDate = new Date(Date.UTC(year, period - 1, 1))
+  // template cell would. A December load is December waste, which the notes
+  // below cannot draw on, so in January it goes in November instead.
+  const loadMonth = period === 12 ? 11 : period
+  const periodDate = new Date(Date.UTC(year, loadMonth - 1, 1))
   const ukPeriodDate = periodDate.toLocaleDateString('en-GB', {
     timeZone: 'UTC'
   })
@@ -111,6 +122,7 @@ export async function seedAwaitingPrnAndSubmittedReport() {
     materialSuffix: 'PA',
     regNumber,
     accNumber,
+    year,
     rows: {
       'Received (sections 1, 2 and 3)': [
         {
@@ -195,7 +207,8 @@ export async function seedAwaitingPrnAndSubmittedReport() {
     cancellationPrnNumber: issued.prnNumber,
     cancellationPrnTonnage: CANCELLATION_PRN_TONNAGE,
     summaryLogCredit: SUMMARY_LOG_CREDIT,
-    reportPeriod
+    reportPeriod,
+    startYear: year
   }
 }
 

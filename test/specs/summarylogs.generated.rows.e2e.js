@@ -195,13 +195,15 @@ function planStableRows(count, date, prnIssued, omitRowId) {
   )
 }
 
-function renderWorkbook(wasteProcessingType, numbers, rows, extra = {}) {
+// Filled from the upload year's template, which the backend requires.
+function renderWorkbook(wasteProcessingType, numbers, year, rows, extra = {}) {
   return generateSpreadsheetData({
     wasteProcessingType,
     materialSuffix: MATERIAL_SUFFIX,
     regNumber: numbers.regNumber,
     accNumber: numbers.accNumber,
     rows,
+    year,
     silentLogging: true,
     ...extra
   })
@@ -215,7 +217,12 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
       const { refNo, registrationId, year, authHeader, numbers } =
         await seedRegistration(stream)
       const { rows, rowIds } = planRows(wasteProcessingType, 3)
-      const workbook = await renderWorkbook(wasteProcessingType, numbers, rows)
+      const workbook = await renderWorkbook(
+        wasteProcessingType,
+        numbers,
+        year,
+        rows
+      )
 
       const { summaryLogPath, baseAPI } = await uploadAndValidateSummaryLog(
         refNo,
@@ -249,7 +256,12 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     const rows = pinFields(planned, RECEIVED_SHEET, 1001, { EWC_CODE: '' })
     const stillValid = rowIds.split(',').filter((rowId) => rowId !== '1001')
 
-    const workbook = await renderWorkbook('reprocessorInput', numbers, rows)
+    const workbook = await renderWorkbook(
+      'reprocessorInput',
+      numbers,
+      year,
+      rows
+    )
     const { summaryLogPath, baseAPI } = await uploadAndValidateSummaryLog(
       refNo,
       registrationId,
@@ -300,7 +312,12 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
       { DATE_RECEIVED_FOR_REPROCESSING: 'TBC' }
     )
 
-    const workbook = await renderWorkbook('reprocessorInput', numbers, rows)
+    const workbook = await renderWorkbook(
+      'reprocessorInput',
+      numbers,
+      year,
+      rows
+    )
     const { summaryLogPath, baseAPI } = await uploadSummaryLog(
       refNo,
       registrationId,
@@ -341,6 +358,7 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     const firstWorkbook = await renderWorkbook(
       'reprocessorInput',
       numbers,
+      year,
       first
     )
     const firstUpload = await uploadAndValidateSummaryLog(
@@ -369,6 +387,7 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     const amendedWorkbook = await renderWorkbook(
       'reprocessorInput',
       numbers,
+      year,
       amended
     )
     const amendedUpload = await uploadAndValidateSummaryLog(
@@ -407,6 +426,7 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
     const shortenedWorkbook = await renderWorkbook(
       'reprocessorInput',
       numbers,
+      year,
       shortened
     )
     const shortenedUpload = await uploadSummaryLog(
@@ -440,9 +460,15 @@ test.describe('Summary Logs - workbooks rendered from a planned row list @summar
       await seedRegistration(stream)
     const { rows } = planRows('reprocessorInput', 3)
 
-    const workbook = await renderWorkbook('reprocessorInput', numbers, rows, {
-      unreadable: true
-    })
+    const workbook = await renderWorkbook(
+      'reprocessorInput',
+      numbers,
+      year,
+      rows,
+      {
+        unreadable: true
+      }
+    )
     const { summaryLogPath, baseAPI } = await uploadSummaryLog(
       refNo,
       registrationId,

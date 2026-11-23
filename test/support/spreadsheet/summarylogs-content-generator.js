@@ -115,7 +115,7 @@ function parsedValue(value) {
  * @param {string} options.regNumber
  * @param {string} [options.accNumber] - absent for a registered-only template
  * @param {Record<string, PlannedRow[]>} options.rows - by worksheet name; a worksheet given none is left out
- * @param {number} [options.year] - the year whose template lays the content out
+ * @param {number} [options.year] - the year whose template lays the content out, and which its drawn dates stay in
  * @returns {Promise<SummaryLogContent>}
  */
 export async function generateSummaryLogContent({
@@ -124,7 +124,7 @@ export async function generateSummaryLogContent({
   regNumber,
   accNumber,
   rows,
-  year
+  year = 2026
 }) {
   const config = PROCESSING_TYPE_CONFIG[wasteProcessingType]
   if (!config) {
@@ -156,7 +156,8 @@ export async function generateSummaryLogContent({
       worksheet,
       worksheetConfig: WORKSHEET_CONFIG[wasteProcessingType][worksheetName],
       columns,
-      material
+      material,
+      year
     })
     data[table] = {
       headers,
