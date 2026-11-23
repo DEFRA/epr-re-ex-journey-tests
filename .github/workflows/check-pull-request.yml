@@ -74,8 +74,15 @@ jobs:
         with:
           context: .
           push: false
+          load: true
+          tags: journey-tests:pr
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # The PR journey tests install their own browsers on the runner, so only
+      # this step runs the browsers the Dockerfile image ships, as CDP does.
+      - name: Launch a browser in the Docker image
+        run: docker run --rm --entrypoint npm journey-tests:pr run smoke:browser
 
   tests:
     name: Run Journey Tests (${{ matrix.name }}${{ matrix.shard && format(' {0}', matrix.shard) || '' }})
