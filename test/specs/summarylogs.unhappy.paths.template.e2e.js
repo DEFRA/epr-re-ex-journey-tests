@@ -8,7 +8,7 @@ import { checkOnUploadPage } from '../support/summary-log-checks.js'
 import {
   createLinkedOrganisation,
   fillerNumbers,
-  seedExternalAccreditation,
+  seedAccreditedInConsecutiveYears,
   updateMigratedOrganisation
 } from '../support/seeding/organisation.js'
 import {
@@ -18,6 +18,9 @@ import {
 import { summaryLogNumbered } from '../support/seeding/summary-logs.js'
 import { generateNumbers } from '../support/reg-acc-number.js'
 import { createLinkAndLogin } from '../support/login-helper.js'
+
+// The year the fixtures' templates are for, so the journeys upload into it.
+const FIXTURE_YEAR = 2026
 
 // Split from summarylogs.unhappy.paths.e2e.js (PAE-1405 CI runtime work) so
 // per-file worker scheduling can run these in parallel with
@@ -111,7 +114,9 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
           ...fillerNumbers(),
           status: 'approved'
         }
-      ]
+      ],
+      undefined,
+      `${FIXTURE_YEAR}-01-01`
     )
 
     await createLinkAndLogin(
@@ -120,11 +125,12 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
       migrationResponse.email
     )
 
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
 
     await uploadSummaryLogPage.continue()
-    await checkOnUploadPage(page)
+    await checkOnUploadPage(page, FIXTURE_YEAR)
 
     // GOV.UK's Button component debounces preventDoubleClick for 1s from any
     // click on the button — including this one, blocked from submitting by
@@ -172,7 +178,9 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
           ...numbers,
           status: 'approved'
         }
-      ]
+      ],
+      undefined,
+      `${FIXTURE_YEAR}-01-01`
     )
 
     await createLinkAndLogin(
@@ -181,10 +189,11 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
       migrationResponse.email
     )
 
+    await dashboardPage.chooseYearIfOffered(FIXTURE_YEAR)
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.submitSummaryLogLink().click()
 
-    await checkOnUploadPage(page)
+    await checkOnUploadPage(page, FIXTURE_YEAR)
 
     await uploadSummaryLogPage.uploadFile(
       await summaryLogNumbered('resources/exporter-invalid.xlsx', numbers)
@@ -409,31 +418,17 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
       wasteProcessingType: 'exporter',
       materialSuffix: 'WO'
     })
-    const { regNumber, accNumber } = generateNumbers({
-      ...numbering,
-      year: '26'
-    })
-    const organisationDetails = await createLinkedOrganisation([
-      { material: 'Wood (R3)', wasteProcessingType: 'Exporter' }
-    ])
-    const { email } = await updateMigratedOrganisation(
-      organisationDetails.refNo,
-      [{ regNumber, accNumber, status: 'approved' }]
-    )
-    const { accreditationNumber: accNumber2027 } =
-      await seedExternalAccreditation(
-        {
-          organisationNumber: organisationDetails.orgId,
-          registrationNumber: regNumber
-        },
-        2027,
+    const { organisationDetails, email, regNumber, accNumbers } =
+      await seedAccreditedInConsecutiveYears(2026, {
+        material: 'Wood (R3)',
+        wasteProcessingType: 'Exporter',
         numbering
-      )
+      })
 
     const log2027 = await generateSpreadsheetData({
       ...numbering,
       regNumber,
-      accNumber: accNumber2027,
+      accNumber: accNumbers[2027],
       year: 2027,
       silentLogging: true,
       rows: {

@@ -23,6 +23,11 @@ import {
 import { seedSubmittedReport } from '../support/seeding/reports.js'
 import { generateRegNumber } from '../support/reg-acc-number.js'
 
+// The year whose Q1 report is seeded. A quarter is closed by its submitted
+// report, not by the calendar, and this year has summary log templates for the
+// upload the journey opens.
+const REPORT_YEAR = 2026
+
 async function seedSubmittedRegisteredReprocessor() {
   const organisationDetails = await createLinkedOrganisation([
     {
@@ -44,7 +49,9 @@ async function seedSubmittedRegisteredReprocessor() {
         status: 'approved',
         withoutAccreditation: true
       }
-    ]
+    ],
+    undefined,
+    `${REPORT_YEAR}-01-01`
   )
 
   const user = await createAndRegisterDefraIdUser(migrationResponse.email)
@@ -60,7 +67,7 @@ async function seedSubmittedRegisteredReprocessor() {
     organisationDetails.refNo,
     regId,
     user.userId,
-    2026,
+    REPORT_YEAR,
     'quarterly',
     1,
     1,
@@ -94,6 +101,7 @@ test.describe('Reports - make changes to a submitted report @makeChanges @operat
     await defraIdStubPage.loginViaEmail(migrationResponse.email)
 
     // --- Make changes, then back out without triggering resubmission ---
+    await dashboardPage.chooseYearIfOffered(REPORT_YEAR)
     await dashboardPage.selectLink(1)
     await wasteRecordsPage.manageReportsLink().click()
 
@@ -107,7 +115,7 @@ test.describe('Reports - make changes to a submitted report @makeChanges @operat
       'need to resubmit this report'
     )
     await makeChangesPage.uploadNewSummaryLog()
-    await checkOnUploadPage(page)
+    await checkOnUploadPage(page, REPORT_YEAR)
 
     await page.goBack()
     await makeChangesPage.cancel()
@@ -167,7 +175,7 @@ test.describe('Reports - make changes to a submitted report @makeChanges @operat
     await reportViewPage.open(
       organisationDetails.refNo,
       regId,
-      2026,
+      REPORT_YEAR,
       'quarterly',
       1,
       1

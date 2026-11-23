@@ -509,6 +509,69 @@ export async function seedExternalAccreditation(
   return { accreditationNumber }
 }
 
+const FIRST_EXTERNAL_ACCREDITATION_YEAR = 2027
+
+/**
+ * Seeds an organisation with one registration, approved from `firstYear` and
+ * accredited in it and the year after. A year before 2027 is accredited by the
+ * registration's stored accreditation, and a later one by the registration
+ * service. Pinned to the years given, rather than to the clock, so a journey
+ * across both keeps its years as the clock moves on.
+ *
+ * @param {number} firstYear
+ * @param {{
+ *   material: string,
+ *   wasteProcessingType: 'Reprocessor' | 'Exporter',
+ *   numbering: {wasteProcessingType: import('../reg-acc-number.js').ProcessingType, materialSuffix: string},
+ *   reprocessingType?: 'input' | 'output'
+ * }} registration
+ */
+export async function seedAccreditedInConsecutiveYears(
+  firstYear,
+  { material, wasteProcessingType, numbering, reprocessingType }
+) {
+  const years = [firstYear, firstYear + 1]
+  const storedYear =
+    firstYear < FIRST_EXTERNAL_ACCREDITATION_YEAR ? firstYear : undefined
+  const { regNumber, accNumber } = generateNumbers({
+    ...numbering,
+    year: String(firstYear).slice(-2)
+  })
+  const organisationDetails = await createLinkedOrganisation([
+    { material, wasteProcessingType }
+  ])
+  const { email } = await updateMigratedOrganisation(
+    organisationDetails.refNo,
+    [
+      {
+        regNumber,
+        accNumber,
+        status: 'approved',
+        withoutAccreditation: storedYear === undefined,
+        ...(reprocessingType && { reprocessingType })
+      }
+    ],
+    undefined,
+    `${firstYear}-01-01`
+  )
+
+  /** @type {Record<number, string>} */
+  const accNumbers = storedYear === undefined ? {} : { [storedYear]: accNumber }
+  for (const year of years.filter((y) => y !== storedYear)) {
+    const { accreditationNumber } = await seedExternalAccreditation(
+      {
+        organisationNumber: organisationDetails.orgId,
+        registrationNumber: regNumber
+      },
+      year,
+      numbering
+    )
+    accNumbers[year] = accreditationNumber
+  }
+
+  return { organisationDetails, email, regNumber, years, accNumbers }
+}
+
 /**
  * Moves a registration, its accreditation or both to a new status, as the
  * regulator would. The service dates the change today.
@@ -609,8 +672,11 @@ export async function updateMigratedOrganisation(
       data.registrations[i].accreditationId = data.accreditations[j].id
       data.accreditations[j].status = accStatus
       data.accreditations[j].validFrom = rowValidFrom
+      // One scheme year from its start, so one seeded from an earlier year
+      // doesn't run on through this one.
       data.accreditations[j].validTo =
-        orgUpdateData.validTo ?? `${currentYear() + 1}-01-01`
+        orgUpdateData.validTo ??
+        `${new Date(rowValidFrom).getUTCFullYear() + 1}-01-01`
       data.accreditations[j].statusHistory =
         accStatus === 'created'
           ? data.accreditations[j].statusHistory || []

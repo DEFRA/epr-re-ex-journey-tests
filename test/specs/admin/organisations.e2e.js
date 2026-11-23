@@ -10,7 +10,8 @@ import { JsonEditor } from 'page-objects/admin/jsoneditor.page'
 import {
   createLinkedOrganisation,
   fillerNumbers,
-  updateMigratedOrganisation
+  updateMigratedOrganisation,
+  validFromWithClosedPeriod
 } from '../../support/seeding/organisation.js'
 import { generateNumbers } from '../../support/reg-acc-number.js'
 import { createSubmittedReport } from '../../support/seeding/reports.js'
@@ -143,9 +144,17 @@ test.describe('Organisations page', () => {
     })
 
     // The exporter stays created and unnumbered, so the overview leaves it out.
-    await updateMigratedOrganisation(linkedOrganisation.refNo, [
-      { ...reprocessorNumbers, status: 'approved', reprocessingType: 'input' }
-    ])
+    // The registration starts in a year with an ended month, last year in
+    // January, so its year page has reports to show.
+    const validFrom = validFromWithClosedPeriod('monthly')
+    await updateMigratedOrganisation(
+      linkedOrganisation.refNo,
+      [
+        { ...reprocessorNumbers, status: 'approved', reprocessingType: 'input' }
+      ],
+      undefined,
+      validFrom
+    )
 
     const { organisation, registrations } = linkedOrganisation
 
@@ -196,7 +205,7 @@ test.describe('Organisations page', () => {
       `${organisation.companyName} - ${reprocessorNumbers.regNumber}`
     )
 
-    await registrationOverviewPage.viewYear(registrationStartYear())
+    await registrationOverviewPage.viewYear(registrationStartYear(validFrom))
 
     await expect(registrationYearPage.reportsTable()).toBeVisible()
 
