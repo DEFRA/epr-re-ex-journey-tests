@@ -24,12 +24,12 @@ import { generateRegNumber } from '../../support/reg-acc-number.js'
 import { checkWasteBalanceForWindow } from '../../support/waste-balance-mode.js'
 import { isDecemberWasteWindowOpenFor } from '../../support/december-waste-window.js'
 import { checkOnUploadPage } from '../../support/summary-log-checks.js'
-import { latestOpenYear } from '../../support/date.js'
+import { isRelevantYearOpen } from '../../support/date.js'
 
-// Next year's accreditation is held outside re-ex, and is open early in this
+// The 2027 accreditation is held outside re-ex, and is open early in this
 // stack. The PERN raised against it is found in each report by its own
 // numbers, so other journeys running alongside do not disturb it.
-const YEAR = latestOpenYear()
+const YEAR = 2027
 const EXPORTED_TONNES = 400
 const PERN_TONNES = 40
 
@@ -42,6 +42,11 @@ test.describe('PRN reports for an accreditation held outside re-ex @prnActivity 
   let pernNumber
 
   test.beforeAll(async ({ browser }) => {
+    expect(
+      isRelevantYearOpen(YEAR),
+      `PERNs can no longer be raised for ${YEAR}: move YEAR on, to a year with summary log templates`
+    ).toBe(true)
+
     const page = await browser.newPage()
     const dashboardPage = new DashboardPage(page)
     const chooseYearPage = new ChooseYearPage(page)
@@ -144,7 +149,7 @@ test.describe('PRN reports for an accreditation held outside re-ex @prnActivity 
     }
   })
 
-  test("PRN activity lists the PERN under next year's accreditation", async ({
+  test('PRN activity lists the PERN under its 2027 accreditation', async ({
     page
   }) => {
     await new AdminLoginPage(page).loginAsServiceMaintainer()
@@ -155,7 +160,7 @@ test.describe('PRN reports for an accreditation held outside re-ex @prnActivity 
     expect(row['Accreditation Year']).toBe(String(YEAR))
   })
 
-  test("PRN tonnage reports the PERN's tonnage against next year's accreditation", async ({
+  test("PRN tonnage reports the PERN's tonnage against its 2027 accreditation", async ({
     page
   }) => {
     await new AdminLoginPage(page).loginAsServiceMaintainer()
