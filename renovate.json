@@ -6,6 +6,23 @@
     "docker-compose",
     "nvm",
     "custom.regex",
-    "mise"
+    "mise",
+    "npm"
+  ],
+  "packageRules": [
+    {
+      "description": "Dependabot owns npm. Renovate takes only @playwright/test, so it can move in one PR with the Dockerfile image whose browsers must match it",
+      "matchManagers": ["npm"],
+      "enabled": false
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["@playwright/test"],
+      "enabled": true
+    },
+    {
+      "matchPackageNames": ["@playwright/test", "mcr.microsoft.com/playwright"],
+      "groupName": "playwright"
+    }
   ]
 }

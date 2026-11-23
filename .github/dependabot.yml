@@ -52,6 +52,10 @@ updates:
       # Include direct package.json updates
       - dependency-type: direct
 
+    ignore:
+      # Renovate bumps this with the Dockerfile playwright image, in one PR
+      - dependency-name: '@playwright/test'
+
   # Update GitHub Actions
   - package-ecosystem: github-actions
     directory: /
