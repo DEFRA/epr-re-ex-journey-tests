@@ -2,6 +2,7 @@ import { BaseAPI } from '../../apis/base-api.js'
 import { AuthClient } from '../auth.js'
 import { defraIdStub } from '../defra-id-stub.js'
 import { generateRegNumber } from '../reg-acc-number.js'
+import { accreditationEndFor } from '../date.js'
 import {
   assertSuccessResponse,
   assertSuccessResponseWithoutBody
@@ -166,7 +167,7 @@ export async function createSubmittedReport(refNo, registrationIndex = 0) {
     new Date(linkedAccreditation.validFrom).getUTCFullYear() !== year
   ) {
     linkedAccreditation.validFrom = `${year}-01-01`
-    linkedAccreditation.validTo = `${year + 1}-01-01`
+    linkedAccreditation.validTo = accreditationEndFor(`${year}-01-01`)
   }
 
   // When the accreditation isn't approved the CSV generator treats this as quarterly,
