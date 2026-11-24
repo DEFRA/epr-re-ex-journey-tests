@@ -2,7 +2,6 @@ import { BaseAPI } from '../../apis/base-api.js'
 import { AuthClient } from '../auth.js'
 import { defraIdStub } from '../defra-id-stub.js'
 import { generateRegNumber } from '../reg-acc-number.js'
-import { accreditationEndFor } from '../date.js'
 import {
   assertSuccessResponse,
   assertSuccessResponseWithoutBody
@@ -125,8 +124,6 @@ export async function seedSubmittedReport(
   await assertSuccessResponse(submitResponse, `POST ${statusPath} (submitted)`)
 }
 
-// Creates and submits a report for a registration, transitioning it through
-// in_progress → ready_to_submit → submitted.
 /**
  * The last ended period the registration reports in: the last ended month of
  * this year or the year before, whichever it last holds an accreditation for,
@@ -157,10 +154,10 @@ async function lastReportablePeriod(refNo, registrationId) {
   }
 }
 
-// Cadence is determined by matching the CSV generator's logic: monthly only
-// when the linked accreditation is approved/suspended with an accreditationNumber.
-// validFrom is set to the period start so the CSV generates exactly one row for
-// this registration regardless of when the test runs.
+// Creates and submits a report for a registration, transitioning it through
+// in_progress → ready_to_submit → submitted. validFrom is set to the period
+// start so the CSV generates exactly one row for this registration regardless
+// of when the test runs.
 export async function createSubmittedReport(refNo, registrationIndex = 0) {
   const baseAPI = new BaseAPI()
   const authClient = new AuthClient()
@@ -183,25 +180,9 @@ export async function createSubmittedReport(refNo, registrationIndex = 0) {
     refNo,
     registrationId
   )
-  const linkedAccreditation = orgData.accreditations.find(
-    (a) =>
-      a.id === registration.accreditationId &&
-      (a.status === 'approved' || a.status === 'suspended')
-  )
-
   const periodStartMonth = cadence === 'monthly' ? period : (period - 1) * 3 + 1
   orgData.registrations[registrationIndex].validFrom =
     `${year}-${String(periodStartMonth).padStart(2, '0')}-01`
-  // An accreditation's year is its validFrom's, so in January, when the period
-  // is last December, the accreditation has to be last year's too. Any other
-  // month it already is the period's, and keeps the dates it was seeded with.
-  if (
-    linkedAccreditation &&
-    new Date(linkedAccreditation.validFrom).getUTCFullYear() !== year
-  ) {
-    linkedAccreditation.validFrom = `${year}-01-01`
-    linkedAccreditation.validTo = accreditationEndFor(`${year}-01-01`)
-  }
 
   // When the accreditation isn't approved the CSV generator treats this as quarterly,
   // but the backend uses accreditationId presence to enforce monthly cadence.

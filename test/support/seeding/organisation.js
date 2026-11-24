@@ -523,6 +523,9 @@ export async function seedExternalAccreditation(
 }
 
 /**
+ * Puts a year's accreditation in the registration service, replacing its whole
+ * status timeline with the one status given.
+ *
  * @param {{
  *   organisationNumber: number | string,
  *   registrationNumber: string,
