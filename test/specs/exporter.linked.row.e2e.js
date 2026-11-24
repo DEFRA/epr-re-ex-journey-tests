@@ -31,6 +31,7 @@ const EXPORTED = 'Exported (sections 1, 2 and 3)'
 
 const DECEMBER_LOAD_ROW_ID = 1000
 const DECEMBER_LOAD_TONNAGE = 250
+const LINKED_ROW_ID = 1001
 
 const tonnes = (amount) =>
   amount.toLocaleString('en-GB', {
@@ -68,7 +69,7 @@ const exportedTemplateMarkers = async (year) => {
 
 // Every other cell left blank, as an operator linking a load would leave it.
 const linkedToDecemberLoad = async () => ({
-  rowId: DECEMBER_LOAD_ROW_ID,
+  rowId: LINKED_ROW_ID,
   fields: {
     ...Object.fromEntries(
       (await exportedTemplateMarkers(LATER))
