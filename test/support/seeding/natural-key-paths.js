@@ -117,22 +117,35 @@ export async function wasteBalancePath(refNo, accreditationId) {
 }
 
 /**
+ * The status the backend serves for the registration's accreditation in the
+ * year, wherever that accreditation is held, or `undefined` when it serves
+ * none.
+ *
+ * @param {string} refNo
+ * @param {string} registrationId
+ * @param {number} year
+ * @returns {Promise<string | undefined>}
+ */
+export async function accreditationStatus(refNo, registrationId, year) {
+  const { orgId, registrations } = await getOrganisation(refNo)
+  const { registrationNumber } = registrations.find(
+    (/** @type {{ id: string }} */ { id }) => id === registrationId
+  )
+  const accreditations = await servedAccreditations(orgId, registrationNumber)
+  return accreditations[year]?.status?.current
+}
+
+/**
  * Whether the backend serves the registration an approved or suspended
- * accreditation for the year, wherever that accreditation is held.
+ * accreditation for the year.
  *
  * @param {string} refNo
  * @param {string} registrationId
  * @param {number} year
  */
 export async function holdsAccreditation(refNo, registrationId, year) {
-  const { orgId, registrations } = await getOrganisation(refNo)
-  const { registrationNumber } = registrations.find(
-    (/** @type {{ id: string }} */ { id }) => id === registrationId
-  )
-  const accreditations = await servedAccreditations(orgId, registrationNumber)
-  return ['approved', 'suspended'].includes(
-    accreditations[year]?.status?.current
-  )
+  const status = await accreditationStatus(refNo, registrationId, year)
+  return status === 'approved' || status === 'suspended'
 }
 
 /**

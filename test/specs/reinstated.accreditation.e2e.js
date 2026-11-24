@@ -1,9 +1,10 @@
 import {
   createLinkedOrganisation,
-  getOrganisation,
   updateMigratedOrganisation,
   updateStatus
 } from '~/test/support/seeding/organisation.js'
+import { accreditationStatus } from '~/test/support/seeding/natural-key-paths.js'
+import { currentYear } from '~/test/support/date.js'
 import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { test, expect } from '@playwright/test'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
@@ -70,8 +71,13 @@ test.describe('Reinstated accreditation @reinstatedAccreditation', () => {
     accStatus = await dashboardPage.getAccreditationStatus(1, 1)
     expect(accStatus).toBe('Approved')
 
-    const orgData = await getOrganisation(orgId)
-    expect(orgData.accreditations[0].status).toBe('approved')
+    expect(
+      await accreditationStatus(
+        orgId,
+        migrationResponse.registrationIds[0],
+        currentYear()
+      )
+    ).toBe('approved')
 
     await dashboardPage.selectTableLink(1, 1)
     expect(
