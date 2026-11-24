@@ -128,28 +128,33 @@ export async function seedSubmittedReport(
 // Creates and submits a report for a registration, transitioning it through
 // in_progress → ready_to_submit → submitted.
 /**
- * The last ended period the registration reports in: the last ended month of a
- * year it holds an accreditation for, otherwise the last ended quarter, which
- * it reports registered-only.
+ * The last ended period the registration reports in: the last ended month of
+ * this year or the year before, whichever it last holds an accreditation for,
+ * otherwise the last ended quarter, which it reports registered-only.
  *
  * @param {string} refNo
  * @param {string} registrationId
+ * @returns {Promise<{ accredited: boolean, cadence: 'monthly' | 'quarterly', year: number, period: number }>}
  */
 async function lastReportablePeriod(refNo, registrationId) {
   const month = lastCompletedPeriod('monthly')
   if (await holdsAccreditation(refNo, registrationId, month.year)) {
     return { accredited: true, cadence: 'monthly', ...month }
   }
-  const quarter = lastCompletedPeriod('quarterly')
-  if (await holdsAccreditation(refNo, registrationId, quarter.year)) {
+  const yearBefore = month.year - 1
+  if (await holdsAccreditation(refNo, registrationId, yearBefore)) {
     return {
       accredited: true,
       cadence: 'monthly',
-      year: quarter.year,
-      period: quarter.period * 3
+      year: yearBefore,
+      period: 12
     }
   }
-  return { accredited: false, cadence: 'quarterly', ...quarter }
+  return {
+    accredited: false,
+    cadence: 'quarterly',
+    ...lastCompletedPeriod('quarterly')
+  }
 }
 
 // Cadence is determined by matching the CSV generator's logic: monthly only
