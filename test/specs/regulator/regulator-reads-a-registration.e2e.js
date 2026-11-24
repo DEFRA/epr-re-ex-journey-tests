@@ -327,17 +327,19 @@ test.describe('A regulator reading a registration @regulator', () => {
       periodLabel
     )
 
-    // Earlier periods ended with nothing submitted against them, so the last
-    // row is the other kind: a period that is owed rather than answered.
-    expect(reports.length).toBeGreaterThan(1)
+    // The summary shows the accreditation's ended periods, the most recent
+    // three of them. In February only January has ended.
+    expect(reports).toHaveLength(Math.min(period, 3))
 
-    const unreported = reports[reports.length - 1]
-
-    expect(unreported.get('Submission date')).toBe('')
-    expect(unreported.get('Status')).not.toBe('Submitted')
-    expect(
-      await accreditationPage.reportActionLink(reports.length).count()
-    ).toBe(0)
+    // Every earlier period ended with nothing submitted against it, so each
+    // is owed rather than answered.
+    for (const [index, unreported] of reports.slice(1).entries()) {
+      expect(unreported.get('Submission date')).toBe('')
+      expect(unreported.get('Status')).not.toBe('Submitted')
+      expect(await accreditationPage.reportActionLink(index + 2).count()).toBe(
+        0
+      )
+    }
 
     await accreditationPage.reportActionLink(1).click()
 
@@ -350,7 +352,6 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     // The summary shows the most recent reports only, so the full list is
     // reached through the link beside it.
-    expect(reports.length).toBeLessThanOrEqual(3)
     expect(await accreditationPage.reportsSubheadingText()).toContain(
       `(${reports.length} items)`
     )
@@ -535,9 +536,9 @@ test.describe('A regulator reading a registration @regulator', () => {
     // only row the Submitted section holds.
     await operatorReportsPage.expectSubmittedActionLink(1, 'View')
 
-    // Every remaining period still needs a report, so each row's action is a
-    // write one. The rows are there and none of them is a link.
-    expect(await operatorReportsPage.getActiveNumberOfRows()).toBeGreaterThan(0)
+    // Every earlier ended period still needs a report, so each row's action is
+    // a write one. The rows are there and none of them is a link.
+    expect(await operatorReportsPage.getActiveNumberOfRows()).toBe(period - 1)
     expect(await operatorReportsPage.getActiveNumberOfActionLinks()).toBe(0)
 
     await operatorReportsPage.selectSubmittedActionLink(1)
