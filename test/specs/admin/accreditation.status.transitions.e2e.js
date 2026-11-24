@@ -15,8 +15,6 @@ import {
   issuedRegistrationNumber
 } from '../../support/issued-numbers.js'
 
-// The admin UI changes the accreditation the organisation stores, which only
-// 2026 has. From 2027 the registration service grants accreditations.
 const STORED_ACCREDITATION_YEAR = 2026
 // The dates typed into the approve confirm forms (PAE-1814). Registrations
 // don't expire (PAE-1904), so only the accreditation grant uses valid-to. It
@@ -45,7 +43,7 @@ const GRANTED_VALID_TO_ISO = `${STORED_ACCREDITATION_YEAR}-06-30`
 // approved accreditation offers no Cancel action. The accreditation also
 // cannot be approved until its own registration is approved (PAE-1800) —
 // asserted before granting the registration through the admin UI.
-test.describe('Admin accreditation status transitions', () => {
+test.describe(`Admin status transitions of a ${STORED_ACCREDITATION_YEAR} accreditation, the last year whose accreditations Re-ex stores and changes`, () => {
   test.describe.configure({ timeout: 3 * 60 * 1000 })
 
   test.beforeEach(async ({ page }) => {
