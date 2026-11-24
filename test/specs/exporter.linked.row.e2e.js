@@ -33,6 +33,10 @@ const EXPORTED = 'Exported (sections 1, 2 and 3)'
 const DECEMBER_LOAD_ROW_ID = 1000
 const DECEMBER_LOAD_TONNAGE = 250
 const LINKED_ROW_ID = 1001
+const EXPORTED_IN_DECEMBER_ROW_ID = 1002
+const EXPORTED_IN_DECEMBER_TONNAGE = 50
+const LINKED_TO_EXPORTED_ROW_ID = 1003
+const CREDITED_TO_LATER = DECEMBER_LOAD_TONNAGE + EXPORTED_IN_DECEMBER_TONNAGE
 
 const DECEMBER_LOAD_WEIGHTS = {
   GROSS_WEIGHT: 400,
@@ -57,6 +61,15 @@ const receivedInDecemberNotYetExported = {
     WAS_THE_WASTE_REFUSED: 'No',
     WAS_THE_WASTE_STOPPED: 'No',
     DATE_THE_REFUSED_STOPPED_WASTE_REPATRIATED: ''
+  }
+}
+
+const exportedInDecemberNotYetReceivedOverseas = {
+  rowId: EXPORTED_IN_DECEMBER_ROW_ID,
+  fields: {
+    ...receivedInDecemberNotYetExported.fields,
+    TONNAGE_OF_UK_PACKAGING_WASTE_EXPORTED: EXPORTED_IN_DECEMBER_TONNAGE,
+    DATE_OF_EXPORT: `28/12/${EARLIER}`
   }
 }
 
@@ -89,8 +102,17 @@ const linkedToDecemberLoad = async () => ({
   }
 })
 
+const linkedToDecemberExport = async () => ({
+  rowId: LINKED_TO_EXPORTED_ROW_ID,
+  fields: {
+    ...(await untouchedTemplateRow(LATER)),
+    PREVIOUS_YEAR_ROW_ID: EXPORTED_IN_DECEMBER_ROW_ID,
+    DATE_RECEIVED_BY_OSR: `06/01/${LATER}`
+  }
+})
+
 test.describe('Accredited exporter load linked across years @multiYearWasteBalance', () => {
-  test('A 2027 row linked to a December 2026 load credits its tonnage to 2027 and leaves 2026 unchanged', async ({
+  test('2027 rows linked to December 2026 loads, received or already exported, credit their tonnage to 2027 and leave 2026 unchanged', async ({
     page
   }) => {
     test.setTimeout(JOURNEY_TIMEOUT_MS)
@@ -111,12 +133,12 @@ test.describe('Accredited exporter load linked across years @multiYearWasteBalan
       })
     await seedOverseasSites(organisationDetails.refNo)
 
-    const summaryLogFor = (year, row) =>
+    const summaryLogFor = (year, rows) =>
       generateSpreadsheetData({
         ...numbering,
         regNumber,
         accNumber: accNumbers[year],
-        rows: { [EXPORTED]: [row] },
+        rows: { [EXPORTED]: rows },
         year,
         silentLogging: true
       })
@@ -138,7 +160,10 @@ test.describe('Accredited exporter load linked across years @multiYearWasteBalan
     await wasteRecordsPage.submitSummaryLogLink().click()
     await checkOnUploadPage(page, EARLIER)
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
-      await summaryLogFor(EARLIER, receivedInDecemberNotYetExported),
+      await summaryLogFor(EARLIER, [
+        receivedInDecemberNotYetExported,
+        exportedInDecemberNotYetReceivedOverseas
+      ]),
       EARLIER
     )
     await expectWasteBalance(EARLIER, 0)
@@ -147,7 +172,10 @@ test.describe('Accredited exporter load linked across years @multiYearWasteBalan
     await wasteRecordsPage.submitSummaryLogLink().click()
     await checkOnUploadPage(page, LATER)
     await uploadSummaryLogPage.uploadFile(
-      await summaryLogFor(LATER, await linkedToDecemberLoad())
+      await summaryLogFor(LATER, [
+        await linkedToDecemberLoad(),
+        await linkedToDecemberExport()
+      ])
     )
     await uploadSummaryLogPage.continue()
 
@@ -157,11 +185,11 @@ test.describe('Accredited exporter load linked across years @multiYearWasteBalan
     expect(
       (await checkSummaryLogPage.allSubStateHeadings()).join(' | ')
     ).toContain(
-      '1 new load will be recorded (and will add to your waste balance)'
+      '2 new loads will be recorded (and will add to your waste balance)'
     )
     await checkBodyText(
       page,
-      `The new loads will add ${formatTonnage(DECEMBER_LOAD_TONNAGE)} tonnes to your waste balance.`,
+      `The new loads will add ${formatTonnage(CREDITED_TO_LATER)} tonnes to your waste balance.`,
       10
     )
 
@@ -170,7 +198,7 @@ test.describe('Accredited exporter load linked across years @multiYearWasteBalan
     await uploadSummaryLogPage.checkUploaded(LATER)
     await uploadSummaryLogPage.returnToHomePageLink().click()
 
-    await expectWasteBalance(LATER, DECEMBER_LOAD_TONNAGE)
+    await expectWasteBalance(LATER, CREDITED_TO_LATER)
     await expectWasteBalance(EARLIER, 0)
   })
 })
