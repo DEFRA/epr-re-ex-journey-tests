@@ -144,10 +144,6 @@ class OrsUploadPage extends AdminPage {
     await this.page.locator('form.app-filters button[type="submit"]').click()
   }
 
-  pageBodyText() {
-    return this.page.locator('[data-testid="app-page-body"]').innerText()
-  }
-
   async expectPaginationVisible() {
     await expect(this.paginationNav).toBeVisible()
   }

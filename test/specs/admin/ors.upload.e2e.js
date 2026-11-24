@@ -197,9 +197,16 @@ test.describe('ORS upload flow @orsUpload', () => {
     await expect(orsUploadPage.registrationNumberInput).toHaveValue(
       registrationNumber
     )
-    expect(await orsUploadPage.pageBodyText()).not.toContain(
-      accreditationNumber
-    )
+    const otherYearRows = await orsUploadPage.getListTableRows()
+    expect(
+      otherYearRows
+        .filter((row) => row[0] === String(orgId))
+        .map((row) => [row[1], row[2], row[3]])
+    ).toEqual([
+      [registrationNumber, '-', '001'],
+      [registrationNumber, '-', '002'],
+      [registrationNumber, '-', '003']
+    ])
   })
 
   // .serial: later tests consume registration numbers and the org name
