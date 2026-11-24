@@ -557,11 +557,11 @@ async function putExternalAccreditation({
   await assertSuccessResponse(response, `PUT ${path}`)
 }
 
-const FIRST_EXTERNAL_ACCREDITATION_YEAR = 2027
+/** The first year whose accreditations are held outside re-ex. */
+export const EXTERNAL_ACCREDITATION_YEAR = 2027
 
 /** The last year whose accreditations the organisation stores. */
-export const LAST_STORED_ACCREDITATION_YEAR =
-  FIRST_EXTERNAL_ACCREDITATION_YEAR - 1
+export const LAST_STORED_ACCREDITATION_YEAR = EXTERNAL_ACCREDITATION_YEAR - 1
 
 // The registration service holds an accreditation only once it is granted.
 const REGISTRATION_SERVICE_STATUSES = ['approved', 'suspended', 'cancelled']
@@ -574,7 +574,7 @@ const REGISTRATION_SERVICE_STATUSES = ['approved', 'suspended', 'cancelled']
  * @param {string} validFrom - ISO date the accreditation runs from
  */
 export const isAccreditedByRegistrationService = (validFrom) =>
-  new Date(validFrom).getUTCFullYear() >= FIRST_EXTERNAL_ACCREDITATION_YEAR
+  new Date(validFrom).getUTCFullYear() >= EXTERNAL_ACCREDITATION_YEAR
 
 /**
  * Seeds an organisation with one registration, approved from `firstYear` and
