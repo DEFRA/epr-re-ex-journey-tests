@@ -8,6 +8,7 @@ import { OrsUploadPage } from 'page-objects/admin/ors.upload.page'
 import {
   amendMigratedOrganisation,
   createLinkedOrganisation,
+  seededCreatedOn,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
 import {
@@ -32,12 +33,12 @@ import { availableWasteRecordYears } from '../../support/waste-record-years.js'
  * @param {string} refNo
  */
 async function registerSinceLastYear(refNo) {
-  const lastYear = currentYear() - 1
+  const validFrom = `${currentYear() - 1}-01-01`
   await amendMigratedOrganisation(refNo, (data) => {
-    data.registrations[0].validFrom = `${lastYear}-01-01`
+    data.registrations[0].validFrom = validFrom
     data.registrations[0].statusHistory = [
-      { status: 'created', updatedAt: `${lastYear - 1}-12-31` },
-      { status: 'approved', updatedAt: `${lastYear}-01-01` }
+      { status: 'created', updatedAt: seededCreatedOn(validFrom) },
+      { status: 'approved', updatedAt: validFrom }
     ]
   })
 }
