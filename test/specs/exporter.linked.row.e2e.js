@@ -59,7 +59,11 @@ const exportedTemplateMarkers = async (year) => {
   await workbook.xlsx.readFile(
     templateFileFor(PROCESSING_TYPE_CONFIG.exporter.templateFile, year)
   )
-  return Object.keys(fieldColumns(workbook.getWorksheet(EXPORTED)))
+  const sheet = workbook.getWorksheet(EXPORTED)
+  if (!sheet) {
+    throw new Error(`No worksheet named '${EXPORTED}' in the ${year} template`)
+  }
+  return Object.keys(fieldColumns(sheet))
 }
 
 // Every other cell left blank, as an operator linking a load would leave it.
