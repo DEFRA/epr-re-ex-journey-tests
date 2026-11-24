@@ -2,6 +2,7 @@ import path from 'node:path'
 
 import { expect } from '@playwright/test'
 import { AdminPage } from 'page-objects/admin/page'
+import { currentYear } from '~/test/support/date.js'
 
 class OrsUploadPage extends AdminPage {
   get listTable() {
@@ -21,8 +22,8 @@ class OrsUploadPage extends AdminPage {
   }
 
   openList(query = '') {
-    const suffix = query ? `?${query}` : ''
-    return super.open(`/overseas-sites${suffix}`)
+    const suffix = query ? `&${query}` : ''
+    return super.open(`/overseas-sites?year=${currentYear()}${suffix}`)
   }
 
   open() {
@@ -122,46 +123,25 @@ class OrsUploadPage extends AdminPage {
     await expect(button).toHaveText('Download CSV')
   }
 
-  /**
-   * @returns {Promise<{status: number, contentDisposition: string|null, contentType: string|null, body: string}>}
-   */
-  async fetchListCsv() {
-    // page.evaluate reads the DOM as-is with no auto-wait, so without this
-    // the form can be read before the page has finished rendering it - same
-    // class of intermittent "form not found" failure as fetchCsv() below.
-    await this.downloadCsvForm.waitFor({ state: 'visible', timeout: 10000 })
+  /** @returns {import('@playwright/test').Locator} */
+  downloadCsvButton() {
+    return this.page.getByRole('button', { name: 'Download CSV', exact: true })
+  }
 
-    return this.page.evaluate(async () => {
-      const form = document.querySelector('form[method="POST"]')
+  /** @returns {import('@playwright/test').Locator} */
+  yearDropdown() {
+    return this.page.getByLabel('Year', { exact: true })
+  }
 
-      if (!form) {
-        throw new Error('ORS download form not found')
-      }
+  /** @returns {Promise<string[]>} */
+  async availableYears() {
+    return this.yearDropdown().locator('option').allInnerTexts()
+  }
 
-      const formData = new URLSearchParams()
-
-      for (const input of /** @type {NodeListOf<HTMLInputElement>} */ (
-        form.querySelectorAll('input[name]')
-      )) {
-        formData.set(input.name, input.value)
-      }
-
-      const response = await fetch('/overseas-sites', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          'content-type': 'application/x-www-form-urlencoded;charset=UTF-8'
-        },
-        body: formData.toString()
-      })
-
-      return {
-        status: response.status,
-        contentDisposition: response.headers.get('content-disposition'),
-        contentType: response.headers.get('content-type'),
-        body: await response.text()
-      }
-    })
+  /** @param {string} year */
+  async showYear(year) {
+    await this.yearDropdown().selectOption(year)
+    await this.page.locator('form.app-filters button[type="submit"]').click()
   }
 
   async expectPaginationVisible() {
