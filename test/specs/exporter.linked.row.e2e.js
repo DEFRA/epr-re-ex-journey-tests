@@ -10,6 +10,7 @@ import {
   seedOverseasSites
 } from '~/test/support/seeding/organisation.js'
 import {
+  FIRST_DATA_ROW,
   fieldColumns,
   generateSpreadsheetData
 } from '~/test/support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
@@ -55,7 +56,7 @@ const receivedInDecemberNotYetExported = {
   }
 }
 
-const exportedTemplateMarkers = async (year) => {
+const untouchedTemplateRow = async (year) => {
   const workbook = new ExcelJS.Workbook()
   await workbook.xlsx.readFile(
     templateFileFor(PROCESSING_TYPE_CONFIG.exporter.templateFile, year)
@@ -64,18 +65,20 @@ const exportedTemplateMarkers = async (year) => {
   if (!sheet) {
     throw new Error(`No worksheet named '${EXPORTED}' in the ${year} template`)
   }
-  return Object.keys(fieldColumns(sheet))
+  return Object.fromEntries(
+    Object.entries(fieldColumns(sheet))
+      .filter(([marker]) => marker !== 'ROW_ID')
+      .map(([marker, column]) => {
+        const { value } = sheet.getCell(`${column}${FIRST_DATA_ROW}`)
+        return [marker, typeof value === 'string' ? value : '']
+      })
+  )
 }
 
-// Every other cell left blank, as an operator linking a load would leave it.
 const linkedToDecemberLoad = async () => ({
   rowId: LINKED_ROW_ID,
   fields: {
-    ...Object.fromEntries(
-      (await exportedTemplateMarkers(LATER))
-        .filter((marker) => marker !== 'ROW_ID')
-        .map((marker) => [marker, ''])
-    ),
+    ...(await untouchedTemplateRow(LATER)),
     PREVIOUS_YEAR_ROW_ID: DECEMBER_LOAD_ROW_ID,
     DATE_OF_EXPORT: `05/01/${LATER}`,
     DATE_RECEIVED_BY_OSR: `20/01/${LATER}`
