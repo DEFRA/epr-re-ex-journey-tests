@@ -7,6 +7,8 @@ import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { OrsUploadPage } from 'page-objects/admin/ors.upload.page'
 import {
   createLinkedOrganisation,
+  seedAccreditedInConsecutiveYears,
+  seedExternalAccreditation,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
 import {
@@ -14,7 +16,6 @@ import {
   validOrsSites
 } from '../../support/ors-spreadsheet.js'
 import { checkAccessibility } from '../../support/accessibility.js'
-import { registrationStartYear } from '../../support/seeding/summary-logs.js'
 import { generateNumbers } from '../../support/reg-acc-number.js'
 import { OrganisationsPage } from 'page-objects/admin/organisations.page'
 import { OrganisationOverviewPage } from 'page-objects/admin/organisation.overview.page'
@@ -23,6 +24,9 @@ import { RegistrationYearPage } from 'page-objects/admin/registration.year.page'
 import { ORSOverviewPage } from 'page-objects/admin/ors.overview.page'
 import { currentYear } from '../../support/date.js'
 import { availableWasteRecordYears } from '../../support/waste-record-years.js'
+
+const FIRST_YEAR = 2026
+const YEARS = [FIRST_YEAR, FIRST_YEAR + 1]
 
 async function uploadWorkbookAndWaitForCompletion(
   orsUploadPage,
@@ -48,20 +52,16 @@ test.describe('ORS upload flow @orsUpload', () => {
     const loginPage = new AdminLoginPage(page)
     const orsUploadPage = new OrsUploadPage(page)
 
-    const { orgId, refNo } = await createLinkedOrganisation([
-      { material: 'Paper or board (R3)', wasteProcessingType: 'Exporter' }
-    ])
-
-    const { regNumber: registrationNumber, accNumber: accreditationNumber } =
-      generateNumbers({ wasteProcessingType: 'exporter', materialSuffix: 'PA' })
-
-    await updateMigratedOrganisation(refNo, [
-      {
-        regNumber: registrationNumber,
-        accNumber: accreditationNumber,
-        status: 'approved'
-      }
-    ])
+    const {
+      organisationDetails: { orgId },
+      regNumber: registrationNumber,
+      accNumbers
+    } = await seedAccreditedInConsecutiveYears(FIRST_YEAR, {
+      material: 'Paper or board (R3)',
+      wasteProcessingType: 'Exporter',
+      numbering: { wasteProcessingType: 'exporter', materialSuffix: 'PA' }
+    })
+    const accreditationNumber = accNumbers[FIRST_YEAR]
 
     const workbookPath = path.join(os.tmpdir(), `ors-test-${orgId}.xlsx`)
 
@@ -99,27 +99,16 @@ test.describe('ORS upload flow @orsUpload', () => {
     await expect(page).toHaveTitle(/Overseas reprocessing sites/)
     await checkAccessibility(page, 'Overseas sites')
 
-    const year = String(currentYear())
-    const years = await availableWasteRecordYears()
-    await expect(page).toHaveURL(new RegExp(`/overseas-sites\\?year=${year}$`))
-    expect(await orsUploadPage.availableYears()).toEqual(years)
-    await expect(orsUploadPage.yearDropdown()).toHaveValue(year)
+    const defaultYear = String(currentYear())
+    await expect(page).toHaveURL(
+      new RegExp(`/overseas-sites\\?year=${defaultYear}$`)
+    )
+    expect(await orsUploadPage.availableYears()).toEqual(
+      await availableWasteRecordYears()
+    )
+    await expect(orsUploadPage.yearDropdown()).toHaveValue(defaultYear)
 
     await orsUploadPage.expectDownloadCsvVisible()
-
-    const csvDownload = await orsUploadPage.download(
-      orsUploadPage.downloadCsvButton()
-    )
-    expect(csvDownload.failure).toBeNull()
-    expect(csvDownload.filename).toBe(`overseas-reprocessing-sites-${year}.csv`)
-    const csvText = csvDownload.body.toString()
-    expect(csvText).toContain(
-      'Org ID,Registration Number,Accreditation Number,ORS ID'
-    )
-    expect(csvText).toContain(String(orgId))
-    expect(csvText).toContain(registrationNumber)
-    expect(csvText).toContain(accreditationNumber)
-    expect(csvText).toContain('Fake Recycling Co')
 
     const expectedHeaders = [
       'Org ID',
@@ -141,34 +130,6 @@ test.describe('ORS upload flow @orsUpload', () => {
     const actualHeaders = await orsUploadPage.getListTableHeaders()
     expect(actualHeaders).toEqual(expectedHeaders)
 
-    const rows = await orsUploadPage.getListTableRows()
-    expect(rows.length).toBeGreaterThan(0)
-
-    const uploadedRow = rows.find(
-      (row) =>
-        row[0] === String(orgId) &&
-        row[1] === registrationNumber &&
-        row[2] === accreditationNumber &&
-        row[3] === '001'
-    )
-    expect(uploadedRow).toBeDefined()
-    if (!uploadedRow) {
-      throw new Error('uploadedRow not found')
-    }
-    expect(uploadedRow).toHaveLength(14)
-    expect(uploadedRow[4]).not.toEqual('-')
-    expect(uploadedRow.slice(5)).toEqual([
-      'Testland',
-      'Fake Recycling Co',
-      '1 Test Street',
-      'Unit 99',
-      'Testville',
-      'Testshire',
-      'TEST 001',
-      '0.0000,0.0000',
-      '1 January 2025'
-    ])
-
     await orsUploadPage.openList('page=1&pageSize=2')
     await orsUploadPage.expectPaginationVisible()
 
@@ -183,30 +144,58 @@ test.describe('ORS upload flow @orsUpload', () => {
     const pageTwoRows = await orsUploadPage.getListTableRows()
     expect(pageTwoRows.length).toBeGreaterThan(0)
     expect(pageTwoRows.length).toBeLessThanOrEqual(2)
-    await expect(page).toHaveURL(new RegExp(`[?&]year=${year}(&|$)`))
+    await expect(page).toHaveURL(new RegExp(`[?&]year=${defaultYear}(&|$)`))
 
-    const otherYear = years.find((item) => item !== year)
-    if (!otherYear) {
-      throw new Error(`No year other than ${year} to show`)
-    }
     await orsUploadPage.openList(`registrationNumber=${registrationNumber}`)
-    await orsUploadPage.showYear(otherYear)
 
-    await expect(page).toHaveURL(new RegExp(`[?&]year=${otherYear}(&|$)`))
-    await expect(orsUploadPage.yearDropdown()).toHaveValue(otherYear)
-    await expect(orsUploadPage.registrationNumberInput).toHaveValue(
-      registrationNumber
-    )
-    const otherYearRows = await orsUploadPage.getListTableRows()
-    expect(
-      otherYearRows
-        .filter((row) => row[0] === String(orgId))
-        .map((row) => [row[1], row[2], row[3]])
-    ).toEqual([
-      [registrationNumber, '-', '001'],
-      [registrationNumber, '-', '002'],
-      [registrationNumber, '-', '003']
-    ])
+    for (const pinnedYear of YEARS) {
+      const year = String(pinnedYear)
+      const yearAccreditationNumber = accNumbers[pinnedYear]
+      await orsUploadPage.showYear(year)
+
+      await expect(page).toHaveURL(new RegExp(`[?&]year=${year}(&|$)`))
+      await expect(orsUploadPage.yearDropdown()).toHaveValue(year)
+      await expect(orsUploadPage.registrationNumberInput).toHaveValue(
+        registrationNumber
+      )
+
+      const rows = (await orsUploadPage.getListTableRows()).filter(
+        (row) => row[0] === String(orgId)
+      )
+      expect(rows.map((row) => [row[1], row[2], row[3]])).toEqual([
+        [registrationNumber, yearAccreditationNumber, '001'],
+        [registrationNumber, yearAccreditationNumber, '002'],
+        [registrationNumber, yearAccreditationNumber, '003']
+      ])
+      expect(rows[0]).toHaveLength(14)
+      expect(rows[0][4]).not.toEqual('-')
+      expect(rows[0].slice(5)).toEqual([
+        'Testland',
+        'Fake Recycling Co',
+        '1 Test Street',
+        'Unit 99',
+        'Testville',
+        'Testshire',
+        'TEST 001',
+        '0.0000,0.0000',
+        '1 January 2025'
+      ])
+
+      const csvDownload = await orsUploadPage.download(
+        orsUploadPage.downloadCsvButton()
+      )
+      expect(csvDownload.failure).toBeNull()
+      expect(csvDownload.filename).toBe(
+        `overseas-reprocessing-sites-${year}.csv`
+      )
+      const csvText = csvDownload.body.toString()
+      expect(csvText).toContain(
+        'Org ID,Registration Number,Accreditation Number,ORS ID'
+      )
+      expect(csvText).toContain(
+        `${orgId},${registrationNumber},${yearAccreditationNumber},001`
+      )
+    }
   })
 
   // .serial: later tests consume registration numbers and the org name
@@ -216,6 +205,7 @@ test.describe('ORS upload flow @orsUpload', () => {
   test.describe.serial('Registration number filter @orsUpload', () => {
     let alphaRegistrationNumber
     let alphaAccreditationNumber
+    let alphaNextYearAccreditationNumber
     let betaRegistrationNumber
     let betaAccreditationNumber
     let organisationName
@@ -241,35 +231,55 @@ test.describe('ORS upload flow @orsUpload', () => {
 
       // Same org id, ascending serials: the overview lists registrations by
       // number, and later tests open the first row expecting alpha.
-      const alpha = generateNumbers({
+      const firstYearDigits = String(FIRST_YEAR).slice(-2)
+      const alphaNumbering = /** @type {const} */ ({
         wasteProcessingType: 'exporter',
-        materialSuffix: 'PA',
+        materialSuffix: 'PA'
+      })
+      const alpha = generateNumbers({
+        ...alphaNumbering,
         orgId: String(orgId),
-        serial: '0001'
+        serial: '0001',
+        year: firstYearDigits
       })
       const beta = generateNumbers({
         wasteProcessingType: 'exporter',
         materialSuffix: 'ST',
         orgId: String(orgId),
-        serial: '0002'
+        serial: '0002',
+        year: firstYearDigits
       })
       alphaRegistrationNumber = alpha.regNumber
       alphaAccreditationNumber = alpha.accNumber
       betaRegistrationNumber = beta.regNumber
       betaAccreditationNumber = beta.accNumber
 
-      await updateMigratedOrganisation(refNo, [
+      await updateMigratedOrganisation(
+        refNo,
+        [
+          {
+            regNumber: alphaRegistrationNumber,
+            accNumber: alphaAccreditationNumber,
+            status: 'approved'
+          },
+          {
+            regNumber: betaRegistrationNumber,
+            accNumber: betaAccreditationNumber,
+            status: 'approved'
+          }
+        ],
+        undefined,
+        `${FIRST_YEAR}-01-01`
+      )
+      const alphaNextYear = await seedExternalAccreditation(
         {
-          regNumber: alphaRegistrationNumber,
-          accNumber: alphaAccreditationNumber,
-          status: 'approved'
+          organisationNumber: orgId,
+          registrationNumber: alphaRegistrationNumber
         },
-        {
-          regNumber: betaRegistrationNumber,
-          accNumber: betaAccreditationNumber,
-          status: 'approved'
-        }
-      ])
+        FIRST_YEAR + 1,
+        alphaNumbering
+      )
+      alphaNextYearAccreditationNumber = alphaNextYear.accreditationNumber
 
       const alphaWorkbookPath = path.join(
         os.tmpdir(),
@@ -349,7 +359,7 @@ test.describe('ORS upload flow @orsUpload', () => {
       await organisationsPage.searchFor(organisationName)
       await organisationsPage.viewLink(1)
       await organisationOverviewPage.viewRegistrationLink(1)
-      await registrationOverviewPage.viewYear(registrationStartYear())
+      await registrationOverviewPage.viewYear(FIRST_YEAR)
       await registrationYearPage.viewORSLink().click()
       let orsOverviewHeader = await orsOverviewPage.getHeaderText()
       expect(orsOverviewHeader).toContain(
@@ -399,10 +409,21 @@ test.describe('ORS upload flow @orsUpload', () => {
       ]
       expect(actualOrsTableData).toEqual(expectedOrsTableData)
 
+      // Return to Registration Overview Page
+      await orsOverviewPage.clickOnBreadcrumbLink(3)
+      await registrationOverviewPage.viewYear(FIRST_YEAR + 1)
+      await registrationYearPage.viewORSLink().click()
+      orsOverviewHeader = await orsOverviewPage.getHeaderText()
+      expect(orsOverviewHeader).toContain(
+        organisationName + ' - ' + alphaNextYearAccreditationNumber
+      )
+      actualOrsTableData = await orsOverviewPage.getORSTableData()
+      expect(actualOrsTableData).toEqual(expectedOrsTableData)
+
       // Return to Organisation Overview Page
       await orsOverviewPage.clickOnBreadcrumbLink(2)
       await organisationOverviewPage.viewRegistrationLink(2)
-      await registrationOverviewPage.viewYear(registrationStartYear())
+      await registrationOverviewPage.viewYear(FIRST_YEAR)
 
       await registrationYearPage.viewORSLink().click()
       orsOverviewHeader = await orsOverviewPage.getHeaderText()
