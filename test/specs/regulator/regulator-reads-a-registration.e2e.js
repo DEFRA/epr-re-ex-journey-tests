@@ -536,8 +536,8 @@ test.describe('A regulator reading a registration @regulator', () => {
     // only row the Submitted section holds.
     await operatorReportsPage.expectSubmittedActionLink(1, 'View')
 
-    // Every earlier ended period still needs a report, so each row's action is
-    // a write one. The rows are there and none of them is a link.
+    // Every earlier ended period of the year still needs a report, so the
+    // section holds one row for each, and none of their actions is a link.
     expect(await operatorReportsPage.getActiveNumberOfRows()).toBe(period - 1)
     expect(await operatorReportsPage.getActiveNumberOfActionLinks()).toBe(0)
 

@@ -223,9 +223,9 @@ test.describe('Registration overview years', () => {
     const defraAuthHeader = defraIdStub.authHeader(user.userId)
 
     const rowIdByYear = { [thisYear]: '1001', [nextYear]: '1002' }
-    const yearsWithTemplates = [thisYear, nextYear].filter(
-      hasSummaryLogTemplate
-    )
+    const yearsWithTemplates = hasSummaryLogTemplate(nextYear)
+      ? [thisYear, nextYear]
+      : [thisYear]
     for (const year of yearsWithTemplates) {
       const submitted = await submitSummaryLogContent(
         seeded.refNo,
