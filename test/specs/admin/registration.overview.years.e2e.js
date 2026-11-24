@@ -14,6 +14,7 @@ import { defraIdStub } from '../../support/defra-id-stub.js'
 import { generateSummaryLogContent } from '../../support/spreadsheet/summarylogs-content-generator.js'
 import { checkAccessibility } from '../../support/accessibility.js'
 import { availableWasteRecordYears } from '../../support/waste-record-years.js'
+import { hasSummaryLogTemplate } from '../../support/spreadsheet/spreadsheet-config.js'
 
 // The registration is registered-only for the two years before this one and
 // accredited this year. Last year holds a submitted Quarter 1 report, in a
@@ -222,7 +223,10 @@ test.describe('Registration overview years', () => {
     const defraAuthHeader = defraIdStub.authHeader(user.userId)
 
     const rowIdByYear = { [thisYear]: '1001', [nextYear]: '1002' }
-    for (const year of [thisYear, nextYear]) {
+    const yearsWithTemplates = [thisYear, nextYear].filter(
+      hasSummaryLogTemplate
+    )
+    for (const year of yearsWithTemplates) {
       const submitted = await submitSummaryLogContent(
         seeded.refNo,
         registrationId,
@@ -248,7 +252,7 @@ test.describe('Registration overview years', () => {
 
     await new AdminLoginPage(page).loginAsServiceMaintainer()
 
-    for (const year of [thisYear, nextYear]) {
+    for (const year of yearsWithTemplates) {
       await registrationYearPage.open(
         `/organisations/${seeded.organisationNumber}/registrations/${encodeURIComponent(registrationNumber)}/years/${year}`
       )
