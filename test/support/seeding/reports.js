@@ -127,6 +127,31 @@ export async function seedSubmittedReport(
 
 // Creates and submits a report for a registration, transitioning it through
 // in_progress → ready_to_submit → submitted.
+/**
+ * The last ended period the registration reports in: the last ended month of a
+ * year it holds an accreditation for, otherwise the last ended quarter, which
+ * it reports registered-only.
+ *
+ * @param {string} refNo
+ * @param {string} registrationId
+ */
+async function lastReportablePeriod(refNo, registrationId) {
+  const month = lastCompletedPeriod('monthly')
+  if (await holdsAccreditation(refNo, registrationId, month.year)) {
+    return { accredited: true, cadence: 'monthly', ...month }
+  }
+  const quarter = lastCompletedPeriod('quarterly')
+  if (await holdsAccreditation(refNo, registrationId, quarter.year)) {
+    return {
+      accredited: true,
+      cadence: 'monthly',
+      year: quarter.year,
+      period: quarter.period * 3
+    }
+  }
+  return { accredited: false, cadence: 'quarterly', ...quarter }
+}
+
 // Cadence is determined by matching the CSV generator's logic: monthly only
 // when the linked accreditation is approved/suspended with an accreditationNumber.
 // validFrom is set to the period start so the CSV generates exactly one row for
@@ -149,13 +174,10 @@ export async function createSubmittedReport(refNo, registrationIndex = 0) {
   const registration = orgData.registrations[registrationIndex]
   const registrationId = registration.id
 
-  const accredited = await holdsAccreditation(
+  const { accredited, cadence, year, period } = await lastReportablePeriod(
     refNo,
-    registrationId,
-    lastCompletedPeriod('monthly').year
+    registrationId
   )
-  const cadence = accredited ? 'monthly' : 'quarterly'
-  const { year, period } = lastCompletedPeriod(cadence)
   const linkedAccreditation = orgData.accreditations.find(
     (a) =>
       a.id === registration.accreditationId &&
