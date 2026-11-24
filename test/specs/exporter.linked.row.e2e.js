@@ -1,8 +1,6 @@
 import { test, expect } from '@playwright/test'
 import ExcelJS from 'exceljs'
-import { ChooseYearPage } from 'page-objects/choose.year.page.js'
 import { CheckSummaryLogPage } from 'page-objects/check.summary.log.page.js'
-import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import {
@@ -19,6 +17,8 @@ import {
   templateFileFor
 } from '~/test/support/spreadsheet/spreadsheet-config.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
+import { openAccreditationFor } from '~/test/support/accreditation-navigation.js'
+import { formatTonnage } from '~/test/support/tonnage.js'
 import { checkBodyText } from '~/test/support/checks.js'
 import {
   checkOnCheckPage,
@@ -44,12 +44,6 @@ const DECEMBER_LOAD_WEIGHTS = {
   RECYCLABLE_PROPORTION_PERCENTAGE: 0.37,
   BAILING_WIRE_PROTOCOL: 'No'
 }
-
-const tonnes = (amount) =>
-  amount.toLocaleString('en-GB', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })
 
 const receivedInDecemberNotYetExported = {
   rowId: DECEMBER_LOAD_ROW_ID,
@@ -103,8 +97,6 @@ test.describe('Accredited exporter load linked across years @multiYearWasteBalan
   }) => {
     test.setTimeout(JOURNEY_TIMEOUT_MS)
 
-    const dashboardPage = new DashboardPage(page)
-    const chooseYearPage = new ChooseYearPage(page)
     const wasteRecordsPage = new WasteRecordsPage(page)
     const uploadSummaryLogPage = new UploadSummaryLogPage(page)
     const checkSummaryLogPage = new CheckSummaryLogPage(page)
@@ -123,8 +115,7 @@ test.describe('Accredited exporter load linked across years @multiYearWasteBalan
 
     const summaryLogFor = (year, row) =>
       generateSpreadsheetData({
-        wasteProcessingType: 'exporter',
-        materialSuffix: 'WO',
+        ...numbering,
         regNumber,
         accNumber: accNumbers[year],
         rows: { [EXPORTED]: [row] },
@@ -132,27 +123,20 @@ test.describe('Accredited exporter load linked across years @multiYearWasteBalan
         silentLogging: true
       })
 
-    const openAccreditationFor = async (year) => {
-      await dashboardPage.open(organisationDetails.refNo)
-      await dashboardPage.chooseDifferentYearLink().click()
-      await chooseYearPage.yearOption(year).check()
-      await chooseYearPage.continueButton().click()
-      await dashboardPage.expectYear(year)
-      await dashboardPage.selectTableLink(1, 1)
-      await wasteRecordsPage.expectYear(year)
-    }
+    const openAccreditation = (year) =>
+      openAccreditationFor(page, organisationDetails.refNo, year)
 
     const expectWasteBalance = async (year, balance) => {
-      await openAccreditationFor(year)
+      await openAccreditation(year)
       expect(
         await wasteRecordsPage.wasteBalanceAmount(),
         `${year} waste balance`
-      ).toBe(tonnes(balance))
+      ).toBe(formatTonnage(balance))
     }
 
     await createLinkAndLogin(page, organisationDetails.refNo, email)
 
-    await openAccreditationFor(EARLIER)
+    await openAccreditation(EARLIER)
     await wasteRecordsPage.submitSummaryLogLink().click()
     await checkOnUploadPage(page, EARLIER)
     await uploadSummaryLogPage.performUploadAndReturnToHomepage(
@@ -161,7 +145,7 @@ test.describe('Accredited exporter load linked across years @multiYearWasteBalan
     )
     await expectWasteBalance(EARLIER, 0)
 
-    await openAccreditationFor(LATER)
+    await openAccreditation(LATER)
     await wasteRecordsPage.submitSummaryLogLink().click()
     await checkOnUploadPage(page, LATER)
     await uploadSummaryLogPage.uploadFile(
@@ -179,7 +163,7 @@ test.describe('Accredited exporter load linked across years @multiYearWasteBalan
     )
     await checkBodyText(
       page,
-      `The new loads will add ${tonnes(DECEMBER_LOAD_TONNAGE)} tonnes to your waste balance.`,
+      `The new loads will add ${formatTonnage(DECEMBER_LOAD_TONNAGE)} tonnes to your waste balance.`,
       10
     )
 

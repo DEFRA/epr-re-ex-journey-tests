@@ -14,3 +14,14 @@ export function parseTonnage(text) {
     .trim()
   return Number.parseFloat(cleaned)
 }
+
+/**
+ * @param {number} amount - tonnes
+ * @returns {string}
+ */
+export function formatTonnage(amount) {
+  return amount.toLocaleString('en-GB', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
