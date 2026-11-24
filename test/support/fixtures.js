@@ -61,7 +61,7 @@ export const createPrnDetails = ({
     status: '',
     materialDesc,
     accNumber,
-    prnNumber: '',
+    prnNumber: null,
     issuedDate: '',
     process,
     createdDate: todayddMMMMyyyy,

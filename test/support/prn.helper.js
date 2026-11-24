@@ -70,7 +70,7 @@ export class PrnHelper {
     } else {
       expect(headingText).toBe('Packaging Export Recycling Note')
     }
-    expect(await this.prnViewPage.prnNumber()).toBe(
+    expect(await this.prnViewPage.prnNumber(this.prnWording)).toBe(
       expectedPrnDetails.prnNumber
     )
     const prnViewDetails = await this.prnViewPage.prnDetails()
