@@ -559,6 +559,10 @@ async function putExternalAccreditation({
 
 const FIRST_EXTERNAL_ACCREDITATION_YEAR = 2027
 
+/** The last year whose accreditations the organisation stores. */
+export const LAST_STORED_ACCREDITATION_YEAR =
+  FIRST_EXTERNAL_ACCREDITATION_YEAR - 1
+
 // The registration service holds an accreditation only once it is granted.
 const REGISTRATION_SERVICE_STATUSES = ['approved', 'suspended', 'cancelled']
 
