@@ -17,6 +17,7 @@ export class PrnHelper {
    */
   constructor(page, isPern = false) {
     this.page = page
+    /** @type {'PRN' | 'PERN'} */
     this.prnWording = isPern ? 'PERN' : 'PRN'
     this.isPern = isPern
     this.checkBeforeCreatingPrnPage = new CheckBeforeCreatingPRNPage(page)
@@ -71,7 +72,7 @@ export class PrnHelper {
       expect(headingText).toBe('Packaging Export Recycling Note')
     }
     expect(await this.prnViewPage.prnNumber(this.prnWording)).toBe(
-      expectedPrnDetails.prnNumber
+      expectedPrnDetails.prnNumber || null
     )
     const prnViewDetails = await this.prnViewPage.prnDetails()
     expect(prnViewDetails['Packaging producer or compliance scheme']).toBe(
