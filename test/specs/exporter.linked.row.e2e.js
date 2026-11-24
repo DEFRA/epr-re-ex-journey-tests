@@ -34,10 +34,10 @@ const DECEMBER_LOAD_ROW_ID = 1000
 const DECEMBER_LOAD_TONNAGE = 250
 const LINKED_ROW_ID = 1001
 
-// Received for export works out at 370.0444 t but is stored as 370.04, so the
+// Received for export works out at 296.0444 t but is stored as 296.04, so the
 // linked row's tonnage check passes only within the stored-rounding allowance.
 const DECEMBER_LOAD_WEIGHTS = {
-  GROSS_WEIGHT: 1020.12,
+  GROSS_WEIGHT: 820.12,
   TARE_WEIGHT: 5,
   PALLET_WEIGHT: 5,
   WEIGHT_OF_NON_TARGET_MATERIALS: 10,
