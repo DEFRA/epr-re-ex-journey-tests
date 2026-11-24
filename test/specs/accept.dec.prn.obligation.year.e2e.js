@@ -154,10 +154,26 @@ test.describe('Accepting a PRN into an obligation year (RPD) @decWaste @prnOblig
     expect(stored.obligationYear).toBe(accreditationYear)
   })
 
-  test("moves a December PRN to the following obligation year when RPD accepts it into Y+1, and the operator's PRN page says so (AC2) @prnObligationYearDecNext", async ({
+  test("offers a December PRN for either obligation year, then moves it to the following year when RPD accepts it into Y+1, and the operator's PRN page says so (AC2) @prnObligationYearDecNext", async ({
     page
   }) => {
     const { prnId, prnNumber, issuedFrom } = await issuePrnOrSkip(true)
+
+    await loginViaHomePage(page, ctx.email)
+    const prnViewPage = new PRNViewPage(page)
+    const openView = () =>
+      prnViewPage.open(
+        ctx.orgId,
+        ctx.registrationNumber,
+        accreditationYear,
+        prnId
+      )
+    await openView()
+    await checkBodyText(
+      page,
+      `Can be accepted towards ${accreditationYear} or ${accreditationYear + 1}`,
+      10
+    )
 
     await externalAPIAcceptPrn(
       { prnNumber },
@@ -169,14 +185,7 @@ test.describe('Accepting a PRN into an obligation year (RPD) @decWaste @prnOblig
     expect(stored.accreditationYear).toBe(accreditationYear)
     expect(stored.obligationYear).toBe(accreditationYear + 1)
 
-    await loginViaHomePage(page, ctx.email)
-    const prnViewPage = new PRNViewPage(page)
-    await prnViewPage.open(
-      ctx.orgId,
-      ctx.registrationNumber,
-      accreditationYear,
-      prnId
-    )
+    await openView()
     await checkBodyText(
       page,
       `Accepted towards ${accreditationYear + 1} recycling obligations`,
