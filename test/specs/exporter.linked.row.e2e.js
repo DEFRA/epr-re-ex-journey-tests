@@ -98,7 +98,7 @@ const linkedToDecemberLoad = async () => ({
 })
 
 test.describe('Accredited exporter load linked across years @multiYearWasteBalance', () => {
-  test("A 2027 row linked to a 2026 load received for export takes the 2026 load's details and credits 2027", async ({
+  test('A 2027 row linked to a December 2026 load credits its tonnage to 2027 and leaves 2026 unchanged', async ({
     page
   }) => {
     test.setTimeout(JOURNEY_TIMEOUT_MS)
