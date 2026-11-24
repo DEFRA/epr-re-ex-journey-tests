@@ -306,7 +306,7 @@ export async function approveMigratedRegistration(
   const approved = await amendMigratedOrganisation(refNo, (data) => {
     const registration = data.registrations[registrationIndex]
     const accreditation =
-      accreditationIndex === undefined || external
+      accreditationIndex === undefined
         ? null
         : data.accreditations[accreditationIndex]
     if (external) {
@@ -316,8 +316,7 @@ export async function approveMigratedRegistration(
         year: new Date(granted.validFrom).getUTCFullYear(),
         accreditationNumber: granted.accNumber,
         from: granted.validFrom,
-        tonnageBand:
-          data.accreditations[accreditationIndex].prnIssuance?.tonnageBand
+        tonnageBand: accreditation.prnIssuance?.tonnageBand
       }
     }
 
@@ -331,14 +330,16 @@ export async function approveMigratedRegistration(
 
     if (accreditation) {
       registration.accreditationId = accreditation.id
-      accreditation.status = 'approved'
-      accreditation.validFrom = granted.validFrom
-      accreditation.validTo = granted.validTo
       accreditation.accreditationNumber = granted.accNumber
       accreditation.submittedToRegulator = granted.submittedToRegulator
       if (granted.reprocessingType) {
         accreditation.reprocessingType = granted.reprocessingType
       }
+    }
+    if (accreditation && !external) {
+      accreditation.status = 'approved'
+      accreditation.validFrom = granted.validFrom
+      accreditation.validTo = granted.validTo
     }
 
     // Linking a Defra ID user moves an approved organisation on to active, so
@@ -731,6 +732,20 @@ export async function updateMigratedOrganisation(
       // status (e.g. approved registration with a still-created accreditation,
       // ready for the admin grant journey). Defaults to the shared status.
       const accStatus = orgUpdateData.accStatus ?? orgUpdateData.status
+      if (orgUpdateData.reprocessingType?.trim()) {
+        data.accreditations[j].reprocessingType = orgUpdateData.reprocessingType
+      }
+      if (orgUpdateData.glassRecyclingProcess?.trim()) {
+        data.accreditations[j].glassRecyclingProcess = [
+          orgUpdateData.glassRecyclingProcess
+        ]
+      }
+      if (submittedToRegulator) {
+        data.accreditations[j].submittedToRegulator = submittedToRegulator
+      }
+      data.registrations[i].accreditationId = data.accreditations[j].id
+      data.accreditations[j].accreditationNumber = orgUpdateData.accNumber
+      accreditationIds.push(data.accreditations[j].id)
       if (isAccreditedByRegistrationService(rowValidFrom)) {
         if (REGISTRATION_SERVICE_STATUSES.includes(accStatus)) {
           externalAccreditations.push({
@@ -745,7 +760,6 @@ export async function updateMigratedOrganisation(
         accreditationIndex++
         continue
       }
-      data.registrations[i].accreditationId = data.accreditations[j].id
       data.accreditations[j].status = accStatus
       data.accreditations[j].validFrom = rowValidFrom
       data.accreditations[j].validTo =
@@ -771,19 +785,6 @@ export async function updateMigratedOrganisation(
         }
         return entry
       })
-      if (orgUpdateData.reprocessingType?.trim()) {
-        data.accreditations[j].reprocessingType = orgUpdateData.reprocessingType
-      }
-      if (orgUpdateData.glassRecyclingProcess?.trim()) {
-        data.accreditations[j].glassRecyclingProcess = [
-          orgUpdateData.glassRecyclingProcess
-        ]
-      }
-      data.accreditations[j].accreditationNumber = orgUpdateData.accNumber
-      if (submittedToRegulator) {
-        data.accreditations[j].submittedToRegulator = submittedToRegulator
-      }
-      accreditationIds.push(data.accreditations[j].id)
       accreditationIndex++
     }
   }

@@ -12,7 +12,11 @@ import {
   registerAndLinkDefraIdUser
 } from '../defra-id-linking.js'
 import { waitForReportingPeriodStatus } from './waiters.js'
-import { organisationPath, reportSubmissionPath } from './natural-key-paths.js'
+import {
+  holdsAccreditation,
+  organisationPath,
+  reportSubmissionPath
+} from './natural-key-paths.js'
 import {
   createLinkedOrganisation,
   getOrganisation,
@@ -145,16 +149,18 @@ export async function createSubmittedReport(refNo, registrationIndex = 0) {
   const registration = orgData.registrations[registrationIndex]
   const registrationId = registration.id
 
-  const linkedAccreditation = registration.accreditationId
-    ? orgData.accreditations.find(
-        (a) =>
-          a.id === registration.accreditationId &&
-          (a.status === 'approved' || a.status === 'suspended') &&
-          a.accreditationNumber
-      )
-    : null
-  const cadence = linkedAccreditation ? 'monthly' : 'quarterly'
+  const accredited = await holdsAccreditation(
+    refNo,
+    registrationId,
+    lastCompletedPeriod('monthly').year
+  )
+  const cadence = accredited ? 'monthly' : 'quarterly'
   const { year, period } = lastCompletedPeriod(cadence)
+  const linkedAccreditation = orgData.accreditations.find(
+    (a) =>
+      a.id === registration.accreditationId &&
+      (a.status === 'approved' || a.status === 'suspended')
+  )
 
   const periodStartMonth = cadence === 'monthly' ? period : (period - 1) * 3 + 1
   orgData.registrations[registrationIndex].validFrom =
@@ -173,7 +179,7 @@ export async function createSubmittedReport(refNo, registrationIndex = 0) {
   // When the accreditation isn't approved the CSV generator treats this as quarterly,
   // but the backend uses accreditationId presence to enforce monthly cadence.
   // Delete the key (not null) so JSON omits it — schema only allows absent, not explicit null.
-  if (!linkedAccreditation) {
+  if (!accredited) {
     delete orgData.registrations[registrationIndex].accreditationId
   }
 
