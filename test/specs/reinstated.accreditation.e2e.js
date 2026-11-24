@@ -33,7 +33,7 @@ test.describe('Reinstated accreditation @reinstatedAccreditation', () => {
       }
     ])
 
-    await updateStatus(orgId, 'suspended')
+    await updateStatus(orgId, 'suspended', { regNumber, accNumber })
 
     await createLinkAndLogin(page, orgId, migrationResponse.email)
 
@@ -41,7 +41,7 @@ test.describe('Reinstated accreditation @reinstatedAccreditation', () => {
     expect(accStatus).toBe('Suspended')
 
     // suspended -> approved: reapproving lifts the suspension
-    await updateStatus(orgId, 'approved')
+    await updateStatus(orgId, 'approved', { regNumber, accNumber })
     await page.reload()
 
     accStatus = await dashboardPage.getAccreditationStatus(1, 1)
@@ -55,8 +55,8 @@ test.describe('Reinstated accreditation @reinstatedAccreditation', () => {
 
     // approved -> suspended -> cancelled: cancellation is only reachable via
     // suspended, after which the operator is no longer accredited
-    await updateStatus(orgId, 'suspended')
-    await updateStatus(orgId, 'cancelled')
+    await updateStatus(orgId, 'suspended', { regNumber, accNumber })
+    await updateStatus(orgId, 'cancelled', { regNumber, accNumber })
     await page.reload()
 
     accStatus = await dashboardPage.getAccreditationStatus(1, 1)
@@ -64,7 +64,7 @@ test.describe('Reinstated accreditation @reinstatedAccreditation', () => {
 
     // cancelled -> approved: reinstatement after a successful appeal,
     // effective on the day it is actioned
-    await updateStatus(orgId, 'approved')
+    await updateStatus(orgId, 'approved', { regNumber, accNumber })
     await page.reload()
 
     accStatus = await dashboardPage.getAccreditationStatus(1, 1)

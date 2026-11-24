@@ -14,17 +14,26 @@ import {
   issuedAccreditationNumber,
   issuedRegistrationNumber
 } from '../../support/issued-numbers.js'
-import { currentYear } from '../../support/date.js'
 
-const CURRENT_YEAR = currentYear()
+// The admin UI changes the accreditation the organisation stores, which only
+// 2026 has. From 2027 the registration service grants accreditations.
+const STORED_ACCREDITATION_YEAR = 2026
 // The dates typed into the approve confirm forms (PAE-1814). Registrations
 // don't expire (PAE-1904), so only the accreditation grant uses valid-to. It
 // differs from both the seeded valid-to and the form's 31 December default,
 // so finding it stored proves the grant wrote what was typed.
-const GRANTED_VALID_FROM = { day: '1', month: '1', year: `${CURRENT_YEAR}` }
-const GRANTED_VALID_TO = { day: '30', month: '6', year: `${CURRENT_YEAR}` }
-const GRANTED_VALID_FROM_ISO = `${CURRENT_YEAR}-01-01`
-const GRANTED_VALID_TO_ISO = `${CURRENT_YEAR}-06-30`
+const GRANTED_VALID_FROM = {
+  day: '1',
+  month: '1',
+  year: `${STORED_ACCREDITATION_YEAR}`
+}
+const GRANTED_VALID_TO = {
+  day: '30',
+  month: '6',
+  year: `${STORED_ACCREDITATION_YEAR}`
+}
+const GRANTED_VALID_FROM_ISO = `${STORED_ACCREDITATION_YEAR}-01-01`
+const GRANTED_VALID_TO_ISO = `${STORED_ACCREDITATION_YEAR}-06-30`
 
 // Walks the full accreditation lifecycle through the admin UI transition
 // actions below the organisation's JSON editor:
@@ -60,7 +69,12 @@ test.describe('Admin accreditation status transitions', () => {
       { material: 'Aluminium (R4)', wasteProcessingType: 'Exporter' }
     ])
     const orgId = organisationDetails.refNo
-    await updateMigratedOrganisation(orgId, [{ status: 'created' }])
+    await updateMigratedOrganisation(
+      orgId,
+      [{ status: 'created' }],
+      undefined,
+      `${STORED_ACCREDITATION_YEAR}-01-01`
+    )
     const seededValidTo = (await getOrganisation(orgId)).accreditations[0]
       .validTo
     expect(seededValidTo).not.toBe(GRANTED_VALID_TO_ISO)
