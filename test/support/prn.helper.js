@@ -66,9 +66,9 @@ export class PrnHelper {
   async checkViewPrnDetails(expectedPrnDetails) {
     const headingText = await this.prnViewPage.headingText()
     if (!this.isPern) {
-      expect(headingText).toBe('Packaging Waste Recycling Note')
+      expect(headingText).toBe('Packaging Recycling Note')
     } else {
-      expect(headingText).toBe('Packaging Waste Export Recycling Note')
+      expect(headingText).toBe('Packaging Export Recycling Note')
     }
     expect(await this.prnViewPage.prnNumber()).toBe(
       expectedPrnDetails.prnNumber
