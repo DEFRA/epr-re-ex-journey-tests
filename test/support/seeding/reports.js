@@ -224,8 +224,7 @@ export async function createSubmittedReport(refNo, registrationIndex = 0) {
     JSON.stringify({
       tonnageRecycled: 10,
       tonnageNotRecycled: 0,
-      prnRevenue: 0,
-      freeTonnage: 0
+      ...(accredited && { prnRevenue: 0, freeTonnage: 0 })
     }),
     jsonHeaders
   )
