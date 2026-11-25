@@ -34,10 +34,6 @@ export function lastCompletedPeriod(cadence) {
 }
 
 /** @param {'monthly' | 'quarterly'} cadence */
-export const validFromWithClosedPeriod = (cadence) =>
-  `${lastCompletedPeriod(cadence).year}-01-01`
-
-/** @param {'monthly' | 'quarterly'} cadence */
 export const reportsLandingHasNoClosedPeriod = (cadence) =>
   lastCompletedPeriod(cadence).year !== currentYear()
 
