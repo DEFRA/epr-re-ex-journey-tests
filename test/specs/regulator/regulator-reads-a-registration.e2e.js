@@ -431,9 +431,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     // the full list below cannot cover.
     await accreditationPage.prnActionLink(1).click()
 
-    await expect(prnViewPage.heading()).toHaveText(
-      'Packaging Waste Recycling Note'
-    )
+    await expect(prnViewPage.heading()).toHaveText('Packaging Recycling Note')
 
     await prnViewPage.crumbLink('Accreditation details').click()
 
@@ -492,9 +490,7 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     await awaitingLink.click()
 
-    await expect(prnViewPage.heading()).toHaveText(
-      'Packaging Waste Recycling Note'
-    )
+    await expect(prnViewPage.heading()).toHaveText('Packaging Recycling Note')
 
     // The accreditation the note was drawn against. The note's own page is the
     // only page in this journey that renders it, so it says the note rendered
