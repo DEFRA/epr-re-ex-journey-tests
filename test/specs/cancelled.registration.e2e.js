@@ -8,6 +8,8 @@ import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { test, expect } from '@playwright/test'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
 import { generateNumbers } from '~/test/support/reg-acc-number.js'
+import { accreditationStatus } from '~/test/support/seeding/natural-key-paths.js'
+import { currentYear } from '~/test/support/date.js'
 
 test.describe('Cancelled registration @cancelledRegistration', () => {
   test('Cancelling a registration also cancels the linked accreditation @cancelledRegistrationCascade', async ({
@@ -48,7 +50,13 @@ test.describe('Cancelled registration @cancelledRegistration', () => {
     // The cascade is a backend behaviour: assert it at the API before the UI
     const orgData = await getOrganisation(orgId)
     expect(orgData.registrations[0].status).toBe('cancelled')
-    expect(orgData.accreditations[0].status).toBe('cancelled')
+    expect(
+      await accreditationStatus(
+        orgId,
+        orgData.registrations[0].id,
+        currentYear()
+      )
+    ).toBe('cancelled')
 
     // The dashboard reflects both: cancelled registration tag, and the
     // cancelled accreditation no longer resolves as accredited

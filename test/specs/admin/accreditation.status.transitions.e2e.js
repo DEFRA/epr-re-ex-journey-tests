@@ -8,23 +8,30 @@ import { AccreditationTransitionPage } from 'page-objects/admin/accreditation.tr
 import {
   createLinkedOrganisation,
   getOrganisation,
+  LAST_STORED_ACCREDITATION_YEAR,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
 import {
   issuedAccreditationNumber,
   issuedRegistrationNumber
 } from '../../support/issued-numbers.js'
-import { currentYear } from '../../support/date.js'
 
-const CURRENT_YEAR = currentYear()
 // The dates typed into the approve confirm forms (PAE-1814). Registrations
 // don't expire (PAE-1904), so only the accreditation grant uses valid-to. It
 // differs from both the seeded valid-to and the form's 31 December default,
 // so finding it stored proves the grant wrote what was typed.
-const GRANTED_VALID_FROM = { day: '1', month: '1', year: `${CURRENT_YEAR}` }
-const GRANTED_VALID_TO = { day: '30', month: '6', year: `${CURRENT_YEAR}` }
-const GRANTED_VALID_FROM_ISO = `${CURRENT_YEAR}-01-01`
-const GRANTED_VALID_TO_ISO = `${CURRENT_YEAR}-06-30`
+const GRANTED_VALID_FROM = {
+  day: '1',
+  month: '1',
+  year: `${LAST_STORED_ACCREDITATION_YEAR}`
+}
+const GRANTED_VALID_TO = {
+  day: '30',
+  month: '6',
+  year: `${LAST_STORED_ACCREDITATION_YEAR}`
+}
+const GRANTED_VALID_FROM_ISO = `${LAST_STORED_ACCREDITATION_YEAR}-01-01`
+const GRANTED_VALID_TO_ISO = `${LAST_STORED_ACCREDITATION_YEAR}-06-30`
 
 // Walks the full accreditation lifecycle through the admin UI transition
 // actions below the organisation's JSON editor:
@@ -36,7 +43,7 @@ const GRANTED_VALID_TO_ISO = `${CURRENT_YEAR}-06-30`
 // approved accreditation offers no Cancel action. The accreditation also
 // cannot be approved until its own registration is approved (PAE-1800) —
 // asserted before granting the registration through the admin UI.
-test.describe('Admin accreditation status transitions', () => {
+test.describe(`Admin status transitions of a ${LAST_STORED_ACCREDITATION_YEAR} accreditation, the last year whose accreditations Re-ex stores and changes`, () => {
   test.describe.configure({ timeout: 3 * 60 * 1000 })
 
   test.beforeEach(async ({ page }) => {
@@ -60,7 +67,12 @@ test.describe('Admin accreditation status transitions', () => {
       { material: 'Aluminium (R4)', wasteProcessingType: 'Exporter' }
     ])
     const orgId = organisationDetails.refNo
-    await updateMigratedOrganisation(orgId, [{ status: 'created' }])
+    await updateMigratedOrganisation(
+      orgId,
+      [{ status: 'created' }],
+      undefined,
+      `${LAST_STORED_ACCREDITATION_YEAR}-01-01`
+    )
     const seededValidTo = (await getOrganisation(orgId)).accreditations[0]
       .validTo
     expect(seededValidTo).not.toBe(GRANTED_VALID_TO_ISO)

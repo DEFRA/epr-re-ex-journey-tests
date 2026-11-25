@@ -34,10 +34,6 @@ export function lastCompletedPeriod(cadence) {
 }
 
 /** @param {'monthly' | 'quarterly'} cadence */
-export const validFromWithClosedPeriod = (cadence) =>
-  `${lastCompletedPeriod(cadence).year}-01-01`
-
-/** @param {'monthly' | 'quarterly'} cadence */
 export const reportsLandingHasNoClosedPeriod = (cadence) =>
   lastCompletedPeriod(cadence).year !== currentYear()
 
@@ -294,17 +290,31 @@ export async function amendMigratedOrganisation(refNo, amend) {
  * @returns {Promise<{registrationId: string, accreditationId: string | null, email: string}>}
  *   the ids the service gave, and the initial user's email a Defra ID link needs
  */
-export function approveMigratedRegistration(
+export async function approveMigratedRegistration(
   refNo,
   { registrationIndex, accreditationIndex },
   granted
 ) {
-  return amendMigratedOrganisation(refNo, (data) => {
+  const external =
+    accreditationIndex !== undefined &&
+    isAccreditedByRegistrationService(granted.validFrom)
+  let externalAccreditation
+  const approved = await amendMigratedOrganisation(refNo, (data) => {
     const registration = data.registrations[registrationIndex]
     const accreditation =
       accreditationIndex === undefined
         ? null
         : data.accreditations[accreditationIndex]
+    if (external) {
+      externalAccreditation = {
+        organisationNumber: data.orgId,
+        registrationNumber: granted.regNumber,
+        year: new Date(granted.validFrom).getUTCFullYear(),
+        accreditationNumber: granted.accNumber,
+        from: granted.validFrom,
+        tonnageBand: accreditation.prnIssuance?.tonnageBand
+      }
+    }
 
     registration.status = 'approved'
     registration.validFrom = granted.validFrom
@@ -316,14 +326,16 @@ export function approveMigratedRegistration(
 
     if (accreditation) {
       registration.accreditationId = accreditation.id
-      accreditation.status = 'approved'
-      accreditation.validFrom = granted.validFrom
-      accreditation.validTo = granted.validTo
       accreditation.accreditationNumber = granted.accNumber
       accreditation.submittedToRegulator = granted.submittedToRegulator
       if (granted.reprocessingType) {
         accreditation.reprocessingType = granted.reprocessingType
       }
+    }
+    if (accreditation && !external) {
+      accreditation.status = 'approved'
+      accreditation.validFrom = granted.validFrom
+      accreditation.validTo = granted.validTo
     }
 
     // Linking a Defra ID user moves an approved organisation on to active, so
@@ -339,6 +351,11 @@ export function approveMigratedRegistration(
       email: data.submitterContactDetails.email
     }
   })
+
+  if (externalAccreditation) {
+    await putExternalAccreditation(externalAccreditation)
+  }
+  return approved
 }
 
 /**
@@ -422,10 +439,12 @@ export async function seedOrganisationAcrossYears({
       registration.validFrom = `${firstYear}-01-01`
       registration.statusHistory = approvedSinceFirstYear
     })
-    data.accreditations[0].statusHistory = [
-      { status: 'created', updatedAt: createdOn },
-      { status: 'approved', updatedAt: `${thisYear}-01-01` }
-    ]
+    if (!isAccreditedByRegistrationService(`${thisYear}-01-01`)) {
+      data.accreditations[0].statusHistory = [
+        { status: 'created', updatedAt: createdOn },
+        { status: 'approved', updatedAt: `${thisYear}-01-01` }
+      ]
+    }
   })
 
   const years = [latestOpenYear(), thisYear, thisYear - 1, firstYear]
@@ -489,7 +508,40 @@ export async function seedExternalAccreditation(
     materialSuffix,
     year: String(year).slice(-2)
   })
-  const approvedAt = `${year}-01-01T00:00:00.000Z`
+  await putExternalAccreditation({
+    organisationNumber,
+    registrationNumber,
+    year,
+    accreditationNumber
+  })
+
+  return { accreditationNumber }
+}
+
+/**
+ * Puts a year's accreditation in the registration service, replacing its whole
+ * status timeline with the one status given.
+ *
+ * @param {{
+ *   organisationNumber: number | string,
+ *   registrationNumber: string,
+ *   year: number,
+ *   accreditationNumber: string,
+ *   status?: string,
+ *   from?: string,
+ *   tonnageBand?: string
+ * }} accreditation - `from` is the ISO date the status took effect
+ */
+async function putExternalAccreditation({
+  organisationNumber,
+  registrationNumber,
+  year,
+  accreditationNumber,
+  status = 'approved',
+  from = `${year}-01-01`,
+  tonnageBand = 'up_to_500'
+}) {
+  const at = new Date(from).toISOString()
   const path = `/v1/dev/external-accreditations/${registrationNumber}/${year}`
 
   const response = await new BaseAPI().put(
@@ -497,19 +549,31 @@ export async function seedExternalAccreditation(
     JSON.stringify({
       organisationNumber: String(organisationNumber),
       accreditationNumber,
-      prnIssuance: { tonnageBand: 'up_to_500' },
-      status: {
-        lastUpdatedAt: approvedAt,
-        timeline: [{ status: 'approved', at: approvedAt }]
-      }
+      prnIssuance: { tonnageBand },
+      status: { lastUpdatedAt: at, timeline: [{ status, at }] }
     })
   )
   await assertSuccessResponse(response, `PUT ${path}`)
-
-  return { accreditationNumber }
 }
 
-const FIRST_EXTERNAL_ACCREDITATION_YEAR = 2027
+/** The first year whose accreditations are held outside re-ex. */
+export const EXTERNAL_ACCREDITATION_YEAR = 2027
+
+/** The last year whose accreditations the organisation stores. */
+export const LAST_STORED_ACCREDITATION_YEAR = EXTERNAL_ACCREDITATION_YEAR - 1
+
+// The registration service holds an accreditation only once it is granted.
+const REGISTRATION_SERVICE_STATUSES = ['approved', 'suspended', 'cancelled']
+
+/**
+ * Whether the registration service, rather than the registration's stored
+ * accreditation, accredits a year. The backend refuses a stored accreditation
+ * dated outside 2026.
+ *
+ * @param {string} validFrom - ISO date the accreditation runs from
+ */
+export const isAccreditedByRegistrationService = (validFrom) =>
+  new Date(validFrom).getUTCFullYear() >= EXTERNAL_ACCREDITATION_YEAR
 
 /**
  * Seeds an organisation with one registration, approved from `firstYear` and
@@ -531,8 +595,9 @@ export async function seedAccreditedInConsecutiveYears(
   { material, wasteProcessingType, numbering, reprocessingType }
 ) {
   const years = [firstYear, firstYear + 1]
-  const storedYear =
-    firstYear < FIRST_EXTERNAL_ACCREDITATION_YEAR ? firstYear : undefined
+  const storedYear = isAccreditedByRegistrationService(`${firstYear}-01-01`)
+    ? undefined
+    : firstYear
   const { regNumber, accNumber } = generateNumbers({
     ...numbering,
     year: String(firstYear).slice(-2)
@@ -621,6 +686,7 @@ export async function updateMigratedOrganisation(
 
   const accreditationIds = []
   const registrationIds = []
+  const externalAccreditations = []
 
   for (let i = 0; i < updateDataRows.length; i++) {
     const orgUpdateData = updateDataRows[i]
@@ -669,7 +735,34 @@ export async function updateMigratedOrganisation(
       // status (e.g. approved registration with a still-created accreditation,
       // ready for the admin grant journey). Defaults to the shared status.
       const accStatus = orgUpdateData.accStatus ?? orgUpdateData.status
+      if (orgUpdateData.reprocessingType?.trim()) {
+        data.accreditations[j].reprocessingType = orgUpdateData.reprocessingType
+      }
+      if (orgUpdateData.glassRecyclingProcess?.trim()) {
+        data.accreditations[j].glassRecyclingProcess = [
+          orgUpdateData.glassRecyclingProcess
+        ]
+      }
+      if (submittedToRegulator) {
+        data.accreditations[j].submittedToRegulator = submittedToRegulator
+      }
       data.registrations[i].accreditationId = data.accreditations[j].id
+      data.accreditations[j].accreditationNumber = orgUpdateData.accNumber
+      accreditationIds.push(data.accreditations[j].id)
+      if (isAccreditedByRegistrationService(rowValidFrom)) {
+        if (REGISTRATION_SERVICE_STATUSES.includes(accStatus)) {
+          externalAccreditations.push({
+            registrationNumber: orgUpdateData.regNumber,
+            year: new Date(rowValidFrom).getUTCFullYear(),
+            accreditationNumber: orgUpdateData.accNumber,
+            status: accStatus,
+            from: rowValidFrom,
+            tonnageBand: data.accreditations[j].prnIssuance?.tonnageBand
+          })
+        }
+        accreditationIndex++
+        continue
+      }
       data.accreditations[j].status = accStatus
       data.accreditations[j].validFrom = rowValidFrom
       data.accreditations[j].validTo =
@@ -695,19 +788,6 @@ export async function updateMigratedOrganisation(
         }
         return entry
       })
-      if (orgUpdateData.reprocessingType?.trim()) {
-        data.accreditations[j].reprocessingType = orgUpdateData.reprocessingType
-      }
-      if (orgUpdateData.glassRecyclingProcess?.trim()) {
-        data.accreditations[j].glassRecyclingProcess = [
-          orgUpdateData.glassRecyclingProcess
-        ]
-      }
-      data.accreditations[j].accreditationNumber = orgUpdateData.accNumber
-      if (submittedToRegulator) {
-        data.accreditations[j].submittedToRegulator = submittedToRegulator
-      }
-      accreditationIds.push(data.accreditations[j].id)
       accreditationIndex++
     }
   }
@@ -746,10 +826,26 @@ export async function updateMigratedOrganisation(
   )
   await assertSuccessResponse(response, `PUT /v1/dev/organisations/${orgId}`)
 
+  for (const accreditation of externalAccreditations) {
+    await putExternalAccreditation({
+      organisationNumber: data.orgId,
+      ...accreditation
+    })
+  }
+
   return { email, registrationIds, accreditationIds }
 }
 
-export async function updateStatus(orgId, newStatus) {
+/**
+ * Moves the first registration's accreditation to a new status, dated the day
+ * after it started.
+ *
+ * @param {string} orgId - the organisation's reference number
+ * @param {string} newStatus
+ * @param {{regNumber: string, accNumber: string}} numbers - the registration's
+ *   and its accreditation's, which the registration service keys a year by
+ */
+export async function updateStatus(orgId, newStatus, { regNumber, accNumber }) {
   const authClient = new AuthClient()
   const baseAPI = new BaseAPI()
 
@@ -765,9 +861,23 @@ export async function updateStatus(orgId, newStatus) {
     `GET /v1/organisations/${orgId}`
   )
 
-  data.accreditations[0].status = newStatus
-  const statusChangeDate = new Date(data.accreditations[0].validFrom)
+  const { validFrom } = data.registrations[0]
+  const statusChangeDate = new Date(validFrom)
   statusChangeDate.setDate(statusChangeDate.getDate() + 1)
+
+  if (isAccreditedByRegistrationService(validFrom)) {
+    await putExternalAccreditation({
+      organisationNumber: data.orgId,
+      registrationNumber: regNumber,
+      year: new Date(validFrom).getUTCFullYear(),
+      accreditationNumber: accNumber,
+      status: newStatus,
+      from: statusChangeDate.toISOString()
+    })
+    return
+  }
+
+  data.accreditations[0].status = newStatus
   data.accreditations[0].statusHistory = [
     ...(data.accreditations[0].statusHistory || []),
     {
