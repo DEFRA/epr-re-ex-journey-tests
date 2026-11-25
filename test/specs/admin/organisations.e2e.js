@@ -11,7 +11,7 @@ import {
   createLinkedOrganisation,
   fillerNumbers,
   updateMigratedOrganisation,
-  validFromWithClosedPeriod
+  LAST_STORED_ACCREDITATION_YEAR
 } from '../../support/seeding/organisation.js'
 import { generateNumbers } from '../../support/reg-acc-number.js'
 import { createSubmittedReport } from '../../support/seeding/reports.js'
@@ -144,9 +144,7 @@ test.describe('Organisations page', () => {
     })
 
     // The exporter stays created and unnumbered, so the overview leaves it out.
-    // The registration starts in a year with an ended month, last year in
-    // January, so its year page has reports to show.
-    const validFrom = validFromWithClosedPeriod('monthly')
+    const validFrom = `${LAST_STORED_ACCREDITATION_YEAR}-01-01`
     await updateMigratedOrganisation(
       linkedOrganisation.refNo,
       [
@@ -230,14 +228,19 @@ test.describe('Organisations page', () => {
 
     const { regNumber, accNumber } = fillerNumbers()
 
-    await updateMigratedOrganisation(linkedOrganisation.refNo, [
-      {
-        regNumber,
-        accNumber,
-        status: 'approved',
-        reprocessingType: 'input'
-      }
-    ])
+    await updateMigratedOrganisation(
+      linkedOrganisation.refNo,
+      [
+        {
+          regNumber,
+          accNumber,
+          status: 'approved',
+          reprocessingType: 'input'
+        }
+      ],
+      undefined,
+      `${LAST_STORED_ACCREDITATION_YEAR}-01-01`
+    )
 
     const { organisation } = linkedOrganisation
 

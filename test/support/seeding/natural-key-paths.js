@@ -30,6 +30,25 @@ export async function registrationPath(refNo, registrationId) {
 }
 
 /**
+ * A registration's accreditations, by year, as the backend serves them, which
+ * includes those the registration service holds.
+ *
+ * @param {number} orgId
+ * @param {string} registrationNumber
+ * @returns {Promise<Record<string, {accreditationNumber: string, status: {current: string}}>>}
+ */
+async function servedAccreditations(orgId, registrationNumber) {
+  const authClient = new AuthClient()
+  await authClient.authenticate()
+  const path = `/organisations/${encodeURIComponent(orgId)}`
+  const { registrations } = await assertSuccessResponse(
+    await new BaseAPI().get(path, authClient.authHeader()),
+    `GET ${path}`
+  )
+  return registrations[registrationNumber]?.accreditations ?? {}
+}
+
+/**
  * The year the backend files an accreditation under, read from the
  * organisation as the backend serves it, or `null` when it serves none.
  *
@@ -43,14 +62,7 @@ async function accreditationYear(
   registrationNumber,
   accreditationNumber
 ) {
-  const authClient = new AuthClient()
-  await authClient.authenticate()
-  const path = `/organisations/${encodeURIComponent(orgId)}`
-  const { registrations } = await assertSuccessResponse(
-    await new BaseAPI().get(path, authClient.authHeader()),
-    `GET ${path}`
-  )
-  const accreditations = registrations[registrationNumber]?.accreditations ?? {}
+  const accreditations = await servedAccreditations(orgId, registrationNumber)
   const [year] =
     Object.entries(accreditations).find(
       ([, accreditation]) =>
@@ -105,31 +117,51 @@ export async function wasteBalancePath(refNo, accreditationId) {
 }
 
 /**
+ * The status the backend serves for the registration's accreditation in the
+ * year, wherever that accreditation is held, or `undefined` when it serves
+ * none.
+ *
+ * @param {string} refNo
+ * @param {string} registrationId
+ * @param {number} year
+ * @returns {Promise<string | undefined>}
+ */
+export async function accreditationStatus(refNo, registrationId, year) {
+  const { orgId, registrations } = await getOrganisation(refNo)
+  const { registrationNumber } = registrations.find(
+    (/** @type {{ id: string }} */ { id }) => id === registrationId
+  )
+  const accreditations = await servedAccreditations(orgId, registrationNumber)
+  return accreditations[year]?.status?.current
+}
+
+/**
+ * Whether the backend serves the registration an approved or suspended
+ * accreditation for the year.
+ *
+ * @param {string} refNo
+ * @param {string} registrationId
+ * @param {number} year
+ */
+export async function holdsAccreditation(refNo, registrationId, year) {
+  const status = await accreditationStatus(refNo, registrationId, year)
+  return status === 'approved' || status === 'suspended'
+}
+
+/**
  * Where a summary log upload starts, and its upload-completed callback sits
- * under: the registration's accreditation when it holds a live one, as the id
- * route stamped it, otherwise the registration for the year.
+ * under: the registration's accreditation for the year when it holds one,
+ * otherwise the registration for the year.
  *
  * @param {string} refNo
  * @param {string} registrationId
  * @param {number} year
  */
 export async function summaryLogUploadPath(refNo, registrationId, year) {
-  const { registrations, accreditations } = await getOrganisation(refNo)
-  const { accreditationId } = registrations.find(
-    (/** @type {{ id: string }} */ { id }) => id === registrationId
-  )
-  const live = accreditations.find(
-    (
-      /** @type {{ id: string, status: string, accreditationNumber?: string }} */ accreditation
-    ) =>
-      accreditation.id === accreditationId &&
-      (accreditation.status === 'approved' ||
-        accreditation.status === 'suspended') &&
-      accreditation.accreditationNumber
-  )
-  return live
-    ? `${await accreditationPath(refNo, registrationId, live.id)}/summary-log`
-    : `${await registrationPath(refNo, registrationId)}/summary-logs/${year}`
+  const registration = await registrationPath(refNo, registrationId)
+  return (await holdsAccreditation(refNo, registrationId, year))
+    ? `${registration}/accreditations/${year}/summary-log`
+    : `${registration}/summary-logs/${year}`
 }
 
 /**

@@ -44,7 +44,9 @@ class RegulatorHomePage extends Page {
    * @returns {Locator}
    */
   marketInsightsLink() {
-    return this.page.getByRole('link', { name: 'Market insights' })
+    return this.page.getByRole('link', {
+      name: 'View reported reprocessor and exporter packaging waste data'
+    })
   }
 
   /**
