@@ -63,7 +63,15 @@ class MarketInsightsPage extends Page {
     })
   }
 
-  /** @param {number | string} year */
+  /**
+   * The year the address names, which the page's figures are for.
+   * @returns {number}
+   */
+  yearInAddress() {
+    return Number(new URL(this.page.url()).pathname.split('/').pop())
+  }
+
+  /** @param {number} year */
   async expectYear(year) {
     await this.expectYearShown(
       this.yearHeading(),

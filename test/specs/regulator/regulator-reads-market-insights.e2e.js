@@ -121,7 +121,7 @@ test.describe('A regulator reading market insights @regulator', () => {
 
       // The link has no year, so it lands on the current reporting year.
       await expect(page).toHaveURL(LANDING_ADDRESS)
-      const shownYear = new URL(page.url()).pathname.split('/').at(-1)
+      const shownYear = marketInsightsPage.yearInAddress()
       await marketInsightsPage.expectYear(shownYear)
 
       // Each set of figures the publication carries gets its own page, and
@@ -375,7 +375,7 @@ test.describe('A regulator reading market insights @regulator', () => {
     await homePage.marketInsightsLink().click()
 
     await expect(page).toHaveURL(LANDING_ADDRESS)
-    const latestYear = Number(new URL(page.url()).pathname.split('/').at(-1))
+    const latestYear = marketInsightsPage.yearInAddress()
 
     await marketInsightsPage.chooseDifferentYearLink().click()
     await expect(chooseYearPage.yearOption(latestYear)).not.toBeChecked()
