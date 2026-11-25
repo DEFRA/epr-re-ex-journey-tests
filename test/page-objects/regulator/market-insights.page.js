@@ -51,4 +51,7 @@ class MarketInsightsPage extends Page {
   }
 }
 
-export { MarketInsightsPage }
+// The page's heading, which every page of figures names in its trail back here.
+const LANDING_HEADING = 'Reported reprocessor and exporter packaging waste data'
+
+export { LANDING_HEADING, MarketInsightsPage }

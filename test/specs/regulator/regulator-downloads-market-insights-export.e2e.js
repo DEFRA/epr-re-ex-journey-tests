@@ -2,7 +2,10 @@ import { readFile } from 'node:fs/promises'
 
 import { test, expect } from '@playwright/test'
 
-import { MarketInsightsPage } from 'page-objects/regulator/market-insights.page'
+import {
+  LANDING_HEADING,
+  MarketInsightsPage
+} from 'page-objects/regulator/market-insights.page'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { seedAwaitingPrnAndSubmittedReport } from '../../support/seeding/regulator-read.js'
@@ -67,7 +70,7 @@ test.describe('A regulator downloading the market insights export @regulator', (
     // link is the only way a regulator finds the page at all.
     await homePage.marketInsightsLink().click()
 
-    expect(await marketInsightsPage.headingText()).toContain('Market insights')
+    expect(await marketInsightsPage.headingText()).toContain(LANDING_HEADING)
 
     // The listener is armed before the click: the response carries
     // Content-Disposition, so the browser starts a download rather than
