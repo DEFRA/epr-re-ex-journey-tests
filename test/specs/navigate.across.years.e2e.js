@@ -270,7 +270,7 @@ test.describe('Navigate across years @navigateAcrossYears', () => {
       )
       const periods = reportingPeriodsOf(calendar)
       const removeTheSkips =
-        "This year's reports now show a period from another year: remove the reportsLandingHasNoClosedPeriod skips and seed those specs with validFromWithClosedPeriod"
+        "This year's reports now show a period from another year: remove the reportsLandingHasNoClosedPeriod skips and seed those specs from the year of the last ended period"
       expect(periods.length > 0, removeTheSkips).toBe(
         !reportsLandingHasNoClosedPeriod('monthly')
       )

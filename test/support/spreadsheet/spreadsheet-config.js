@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs'
+
 import { generateExportedRow, generateSentOnRow } from './exporter.js'
 import {
   generateOutputReprocessedRow,
@@ -148,14 +150,23 @@ export const PROCESSING_TYPE_CONFIG = {
  * @returns {string}
  */
 export function templateFileFor(templateFile, year = 2026) {
-  if (year === 2026) {
-    return templateFile
+  if (!hasSummaryLogTemplate(year)) {
+    throw new Error(`No summary log template for ${year}`)
   }
-  if (year === 2027) {
-    return templateFile.replace(
-      'resources/templates/',
-      'resources/templates/2027/'
-    )
-  }
-  throw new Error(`No summary log template for ${year}`)
+  return year === 2026
+    ? templateFile
+    : templateFile.replace(
+        'resources/templates/',
+        `resources/templates/${year}/`
+      )
+}
+
+/**
+ * Whether the suite holds summary log templates for the year: 2026's at the
+ * top of the templates folder, each later year's in a folder of its own.
+ *
+ * @param {number} year
+ */
+export function hasSummaryLogTemplate(year) {
+  return year === 2026 || existsSync(`resources/templates/${year}`)
 }
