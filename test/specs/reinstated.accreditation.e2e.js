@@ -63,8 +63,7 @@ test.describe('Reinstated accreditation @reinstatedAccreditation', () => {
     accStatus = await dashboardPage.getAccreditationStatus(1, 1)
     expect(accStatus).toBe('Not accredited')
 
-    // cancelled -> approved: reinstatement after a successful appeal,
-    // effective on the day it is actioned
+    // cancelled -> approved: reinstatement after a successful appeal
     await updateStatus(orgId, 'approved', { regNumber, accNumber })
     await page.reload()
 
