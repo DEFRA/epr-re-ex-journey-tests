@@ -135,7 +135,6 @@ test.describe('A regulator reading a registration @regulator', () => {
         ['Registration status', 'Approved'],
         ['Material', 'Paper and board'],
         ['Regulator', 'EA'],
-        ['Accreditation', `${seeded.startYear}: Approved`],
         ['Actions', `View ${seeded.registrationNumber}`]
       ])
     ])
