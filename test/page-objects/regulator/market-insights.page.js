@@ -49,6 +49,28 @@ class MarketInsightsPage extends Page {
       exact: true
     })
   }
+
+  /** @returns {Locator} */
+  yearHeading() {
+    return this.page.getByRole('heading', { name: /^This is \d{4} data$/ })
+  }
+
+  /** @returns {Locator} */
+  chooseDifferentYearLink() {
+    return this.page.getByRole('link', {
+      name: 'Choose a different year',
+      exact: true
+    })
+  }
+
+  /** @param {number | string} year */
+  async expectYear(year) {
+    await this.expectYearShown(
+      this.yearHeading(),
+      `This is ${year} data`,
+      new RegExp(`/regulators/market-insights/${year}$`)
+    )
+  }
 }
 
 // The page's heading, which every page of figures names in its trail back here.
