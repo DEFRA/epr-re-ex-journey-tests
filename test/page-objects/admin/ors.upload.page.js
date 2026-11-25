@@ -18,7 +18,9 @@ class OrsUploadPage extends AdminPage {
   }
 
   get downloadCsvForm() {
-    return this.page.locator('form[method="POST"]')
+    return this.page.locator('form[method="POST"]', {
+      has: this.downloadCsvButton()
+    })
   }
 
   openList(query = '') {
