@@ -51,8 +51,8 @@ class MarketInsightsPage extends Page {
   }
 
   /** @returns {Locator} */
-  yearHeading() {
-    return this.page.getByRole('heading', { name: /^This is \d{4} data$/ })
+  yearLine() {
+    return this.page.getByText(/^This is \d{4} data$/)
   }
 
   /** @returns {Locator} */
@@ -74,7 +74,7 @@ class MarketInsightsPage extends Page {
   /** @param {number} year */
   async expectYear(year) {
     await this.expectYearShown(
-      this.yearHeading(),
+      this.yearLine(),
       `This is ${year} data`,
       new RegExp(`/regulators/market-insights/${year}$`)
     )
