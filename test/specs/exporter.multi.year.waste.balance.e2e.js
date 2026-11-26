@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { ChooseYearPage } from 'page-objects/choose.year.page.js'
 import { CreatePRNPage } from 'page-objects/create.prn.page.js'
-import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { PRNCreatedPage } from 'page-objects/prn.created.page.js'
 import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
@@ -17,6 +15,8 @@ import { isRelevantYearOpen } from '~/test/support/date.js'
 import { checkWasteBalanceForWindow } from '~/test/support/waste-balance-mode.js'
 import { isDecemberWasteWindowOpenFor } from '~/test/support/december-waste-window.js'
 import { checkOnUploadPage } from '~/test/support/summary-log-checks.js'
+import { openAccreditationFor } from '~/test/support/accreditation-navigation.js'
+import { formatTonnage } from '~/test/support/tonnage.js'
 
 const JOURNEY_TIMEOUT_MS = 4 * 60 * 1000
 const FIRST_YEAR = 2026
@@ -37,12 +37,6 @@ const EXPORTS = [
     pern: { integer: 40, word: 'Forty' }
   }
 ]
-
-const tonnes = (amount) =>
-  amount.toLocaleString('en-GB', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })
 
 const exportedTonnes = (tonnage, datedOn) => ({
   'Exported (sections 1, 2 and 3)': [
@@ -75,8 +69,6 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
       `PERNs can no longer be raised for ${EARLIER} or ${LATER}: move FIRST_YEAR on, to a year with summary log templates for it and the next`
     ).toBe(true)
 
-    const dashboardPage = new DashboardPage(page)
-    const chooseYearPage = new ChooseYearPage(page)
     const wasteRecordsPage = new WasteRecordsPage(page)
     const uploadSummaryLogPage = new UploadSummaryLogPage(page)
     const createPRNPage = new CreatePRNPage(page)
@@ -97,8 +89,7 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
 
     const summaryLogFor = ({ year, tonnage, datedOn }) =>
       generateSpreadsheetData({
-        wasteProcessingType: 'exporter',
-        materialSuffix: 'WO',
+        ...numbering,
         regNumber,
         accNumber: accNumbers[year],
         rows: exportedTonnes(tonnage, datedOn),
@@ -106,28 +97,21 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
         silentLogging: true
       })
 
-    const openAccreditationFor = async (year) => {
-      await dashboardPage.open(organisationDetails.refNo)
-      await dashboardPage.chooseDifferentYearLink().click()
-      await chooseYearPage.yearOption(year).check()
-      await chooseYearPage.continueButton().click()
-      await dashboardPage.expectYear(year)
-      await dashboardPage.selectTableLink(1, 1)
-      await wasteRecordsPage.expectYear(year)
-    }
+    const openAccreditation = (year) =>
+      openAccreditationFor(page, organisationDetails.refNo, year)
 
     const expectWasteBalances = async (balances) => {
       for (const [year, balance] of Object.entries(balances)) {
-        await openAccreditationFor(Number(year))
+        await openAccreditation(Number(year))
         expect(
           await wasteRecordsPage.wasteBalanceAmount(),
           `${year} waste balance`
-        ).toBe(tonnes(balance))
+        ).toBe(formatTonnage(balance))
       }
     }
 
     const expectPernRefused = async (year) => {
-      await openAccreditationFor(year)
+      await openAccreditation(year)
       await wasteRecordsPage.createNewPERNLink().click()
       await expect(page).toHaveURL(
         new RegExp(`/accreditations/${year}/packaging-recycling-notes$`)
@@ -140,7 +124,7 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
       balance,
       tonnageWordings
     }) => {
-      await openAccreditationFor(year)
+      await openAccreditation(year)
       await wasteRecordsPage.createNewPERNLink().click()
       const wasteBalancePool = await checkWasteBalanceForWindow(
         createPRNPage,
@@ -164,7 +148,7 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
 
     for (const exported of EXPORTS) {
       const log = await summaryLogFor(exported)
-      await openAccreditationFor(exported.year)
+      await openAccreditation(exported.year)
       await wasteRecordsPage.submitSummaryLogLink().click()
       await checkOnUploadPage(page, exported.year)
       await uploadSummaryLogPage.performUploadAndReturnToHomepage(
@@ -183,7 +167,7 @@ test.describe('Accredited exporter waste balance across years @multiYearWasteBal
         await createPern({
           year,
           accNumber: accNumbers[year],
-          balance: tonnes(balances[year]),
+          balance: formatTonnage(balances[year]),
           tonnageWordings: pern
         })
         balances[year] -= pern.integer
