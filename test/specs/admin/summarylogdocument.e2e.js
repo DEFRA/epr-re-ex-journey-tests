@@ -47,9 +47,10 @@ test.describe('Admin summary log document view', () => {
 
     // The Actions column offers View data alongside Download.
     const actionLinks = await registrationYearPage.getSummaryLogActionLinks(1)
+    const uploadedAt = await registrationYearPage.getSummaryLogUploadedAt(1)
     expect(actionLinks.map((link) => link.text)).toEqual([
-      'View data',
-      'Download'
+      `View data ${uploadedAt}`,
+      `Download ${uploadedAt}`
     ])
 
     await registrationYearPage.clickViewSummaryLogData(1)

@@ -180,11 +180,12 @@ test.describe('Registration overview years', () => {
       )
       await expect(registrationYearPage.prnActivityDownloadLink()).toBeVisible()
       await expect(registrationYearPage.wasteBalanceEventsLink()).toBeVisible()
+      const uploadedAt = await registrationYearPage.getSummaryLogUploadedAt(1)
       expect(
         (await registrationYearPage.getSummaryLogActionLinks(1)).map(
           (link) => link.text
         )
-      ).toEqual(['View data', 'Download'])
+      ).toEqual([`View data ${uploadedAt}`, `Download ${uploadedAt}`])
 
       const csv = await registrationYearPage.downloadWasteRecords()
       expect(csv.failure).toBeNull()

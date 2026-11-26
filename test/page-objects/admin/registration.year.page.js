@@ -1,6 +1,11 @@
 import { AdminPage } from 'page-objects/admin/page'
 import { parseCsvRows } from '../../support/csv.js'
 
+// A link's visually hidden text lays out on its own line, so innerText
+// breaks the name in two; a screen reader reads it as one line.
+const linkName = async (link) =>
+  (await link.innerText()).replace(/\s+/g, ' ').trim()
+
 class RegistrationYearPage extends AdminPage {
   reportsTable() {
     return this.page.locator('#reports table')
@@ -25,7 +30,7 @@ class RegistrationYearPage extends AdminPage {
       const links = []
       for (let j = 0; j < linkCount; j++) {
         const link = linkLocators.nth(j)
-        links.push({ text: await link.innerText() })
+        links.push({ text: await linkName(link) })
       }
 
       data.push({
@@ -107,9 +112,9 @@ class RegistrationYearPage extends AdminPage {
     return this.page.locator('#summary-logs').innerText()
   }
 
-  // The summary-logs table Actions cell (3rd column) renders
-  // <a>View data</a><br><a>Download</a>; return both links so a test can
-  // assert on the entry points offered for a log.
+  // The summary-logs table Actions cell (3rd column) renders a View data and
+  // a Download link; return both so a test can assert on the entry points
+  // offered for a log.
   async getSummaryLogActionLinks(row) {
     const cell = this.page.locator(
       `#summary-logs table tbody tr:nth-child(${row}) td:nth-child(3)`
@@ -121,9 +126,15 @@ class RegistrationYearPage extends AdminPage {
     const data = []
     for (let i = 0; i < count; i++) {
       const link = links.nth(i)
-      data.push({ text: await link.innerText() })
+      data.push({ text: await linkName(link) })
     }
     return data
+  }
+
+  async getSummaryLogUploadedAt(row) {
+    return this.page
+      .locator(`#summary-logs table tbody tr:nth-child(${row}) td:nth-child(1)`)
+      .innerText()
   }
 
   async clickViewSummaryLogData(row) {
