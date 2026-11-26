@@ -1,6 +1,11 @@
 import { AdminPage } from 'page-objects/admin/page'
 import { parseCsvRows } from '../../support/csv.js'
 
+// A link's visually hidden text lays out on its own line, so innerText
+// breaks the name in two; a screen reader reads it as one line.
+const linkName = async (link) =>
+  (await link.innerText()).replace(/\s+/g, ' ').trim()
+
 class RegistrationYearPage extends AdminPage {
   reportsTable() {
     return this.page.locator('#reports table')
@@ -25,7 +30,7 @@ class RegistrationYearPage extends AdminPage {
       const links = []
       for (let j = 0; j < linkCount; j++) {
         const link = linkLocators.nth(j)
-        links.push({ text: await link.innerText() })
+        links.push({ text: await linkName(link) })
       }
 
       data.push({
@@ -121,7 +126,7 @@ class RegistrationYearPage extends AdminPage {
     const data = []
     for (let i = 0; i < count; i++) {
       const link = links.nth(i)
-      data.push({ text: await link.innerText() })
+      data.push({ text: await linkName(link) })
     }
     return data
   }
