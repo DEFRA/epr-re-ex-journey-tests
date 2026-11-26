@@ -252,8 +252,12 @@ test.describe('A regulator reading a registration @regulator', () => {
     )
 
     // The seed's summary log and the registration's records, offered as files.
-    expect(accreditationSummary['Latest summary log']).toBe('Download')
-    expect(accreditationSummary['Latest waste record CSV']).toBe('Download')
+    await expect(
+      page.getByRole('link', { name: 'Download Latest summary log' })
+    ).toBeVisible()
+    await expect(
+      page.getByRole('link', { name: 'Download Latest waste record CSV' })
+    ).toBeVisible()
 
     // Comparing the whole set is what says "and nothing else". The total the
     // accreditation has ever held is deliberately not shown beside the
@@ -468,7 +472,7 @@ test.describe('A regulator reading a registration @regulator', () => {
 
     // A regulator gets the read link the operator's write-scoped session does
     // not, which is the whole of what the fork changes about the tables.
-    expect(await awaitingLink.innerText()).toBe('View')
+    await expect(awaitingLink).toHaveAccessibleName(/^View /)
 
     const cancellationRow = await prnsPage.getAwaitingRow(1, 2)
 
@@ -482,7 +486,7 @@ test.describe('A regulator reading a registration @regulator', () => {
     // A note awaiting cancellation appears nowhere else, so an empty cell here
     // would strand it.
     const cancellationLink = prnsPage.awaitingLink(1, 2)
-    expect(await cancellationLink.innerText()).toBe('View')
+    await expect(cancellationLink).toHaveAccessibleName(/^View /)
 
     await cancellationLink.click()
     await checkBodyText(page, seeded.cancellationPrnNumber, 10)
