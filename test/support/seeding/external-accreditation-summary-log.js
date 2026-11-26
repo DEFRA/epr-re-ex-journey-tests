@@ -2,6 +2,7 @@ import { DashboardPage } from 'page-objects/dashboard.page.js'
 import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
 import {
+  EXTERNAL_ACCREDITATION_YEAR,
   seedExternalAccreditation,
   seedOrganisationAcrossYears
 } from './organisation.js'
@@ -10,8 +11,7 @@ import { createLinkAndLogin } from '../login-helper.js'
 import { checkOnUploadPage } from '../summary-log-checks.js'
 import { generateSpreadsheetData } from '../spreadsheet/summarylogs-spreadsheet-data-generator.js'
 
-/** The first year whose accreditations are held outside re-ex. */
-export const EXTERNAL_ACCREDITATION_YEAR = 2027
+export { EXTERNAL_ACCREDITATION_YEAR }
 
 /** The material and operator type the submitted summary log reports. */
 export const EXTERNAL_ACCREDITATION_MATERIAL = {

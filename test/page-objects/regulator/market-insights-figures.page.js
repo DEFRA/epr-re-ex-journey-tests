@@ -11,8 +11,10 @@ import { Page } from 'page-objects/page'
 // half of it that ends in a year.
 const STATES_A_YEAR = /\d{4}$/
 
-// How a page of figures stamps the moment they were taken.
-const DATA_TAKEN_AT = /^Data taken at /
+// How a page of figures stamps the moment they were taken. Unanchored,
+// because some pages put the stamp in an inset text, which opens with
+// whitespace that a regular expression sees.
+const DATA_TAKEN_AT = /Data (taken|aggregated) at /
 
 /**
  * The figure a cell states. A figure few operators contributed to is followed
@@ -38,10 +40,10 @@ class MarketInsightsFiguresPage extends Page {
   /**
    * When the figures were taken, which a regulator holding the page beside the
    * workbook reads to tell whether the two were cut over the same span.
-   * @returns {Promise<string>}
+   * @returns {import('@playwright/test').Locator}
    */
-  async dataTakenAtText() {
-    return this.page.getByText(DATA_TAKEN_AT).innerText()
+  dataTakenAt() {
+    return this.page.getByText(DATA_TAKEN_AT)
   }
 }
 
