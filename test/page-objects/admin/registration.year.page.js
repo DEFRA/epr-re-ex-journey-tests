@@ -107,9 +107,9 @@ class RegistrationYearPage extends AdminPage {
     return this.page.locator('#summary-logs').innerText()
   }
 
-  // The summary-logs table Actions cell (3rd column) renders
-  // <a>View data</a><br><a>Download</a>; return both links so a test can
-  // assert on the entry points offered for a log.
+  // The summary-logs table Actions cell (3rd column) renders a View data and
+  // a Download link; return both so a test can assert on the entry points
+  // offered for a log.
   async getSummaryLogActionLinks(row) {
     const cell = this.page.locator(
       `#summary-logs table tbody tr:nth-child(${row}) td:nth-child(3)`
@@ -124,6 +124,12 @@ class RegistrationYearPage extends AdminPage {
       data.push({ text: await link.innerText() })
     }
     return data
+  }
+
+  async getSummaryLogUploadedAt(row) {
+    return this.page
+      .locator(`#summary-logs table tbody tr:nth-child(${row}) td:nth-child(1)`)
+      .innerText()
   }
 
   async clickViewSummaryLogData(row) {

@@ -16,6 +16,9 @@ const isQuarterOne2026 = (row) =>
   row.period === 'Quarter 1' && row.due.startsWith('2026')
 
 // .find() with a not-found guard, so assertions on the result type-check.
+const linkName = (action, row) =>
+  `${action} ${row.period}, submission ${row.submission}`
+
 const findOrThrow = (items, predicate, description) => {
   const item = items.find(predicate)
   if (!item) {
@@ -70,7 +73,9 @@ test.describe('Registration overview - multiple submissions per period', () => {
     // unsubmit a report requiring resubmission, so offering the action would
     // only ever fail (PAE-1775).
     expect(submittedRow.status).toEqual('Submitted')
-    expect(submittedRow.links.map((link) => link.text)).toEqual(['View'])
+    expect(submittedRow.links.map((link) => link.text)).toEqual([
+      linkName('View', submittedRow)
+    ])
 
     const skeletonRow = findOrThrow(
       quarterOneRows,
@@ -120,7 +125,9 @@ test.describe('Registration overview - multiple submissions per period', () => {
       (row) => row.submission === '1',
       'Quarter 1 superseded submission 1 row'
     )
-    expect(supersededRow.links.map((link) => link.text)).toEqual(['View'])
+    expect(supersededRow.links.map((link) => link.text)).toEqual([
+      linkName('View', supersededRow)
+    ])
 
     const currentRow = findOrThrow(
       quarterOneRows,
@@ -128,8 +135,8 @@ test.describe('Registration overview - multiple submissions per period', () => {
       'Quarter 1 current submission 2 row'
     )
     expect(currentRow.links.map((link) => link.text)).toEqual([
-      'View',
-      'Unsubmit'
+      linkName('View', currentRow),
+      linkName('Unsubmit', currentRow)
     ])
 
     // Opening each submission resolves that submission: the report view
