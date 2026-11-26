@@ -44,8 +44,7 @@ class PRNDashboardPage extends Page {
   // Index changes depending on whether PRN cancellation / PRN awaiting authorisation exists
   async getTableHeading(index = 1) {
     return this.page
-      .locator('#awaiting-action table > caption')
-      .nth(index - 1)
+      .locator(`#awaiting-action > h2.govuk-heading-m:nth-of-type(${index})`)
       .innerText()
   }
 
