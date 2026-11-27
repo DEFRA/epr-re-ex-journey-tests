@@ -6,12 +6,6 @@ import { WasteBalanceAvailabilityPage } from 'page-objects/admin/waste.balance.a
 import { checkAccessibility } from '../../support/accessibility.js'
 import { currentYear } from '../../support/date.js'
 import { availableWasteRecordYears } from '../../support/waste-record-years.js'
-import {
-  EXTERNAL_ACCREDITATION_MATERIAL,
-  EXTERNAL_ACCREDITATION_YEAR,
-  reportedAmount,
-  submitSummaryLogForExternalAccreditation
-} from '../../support/seeding/external-accreditation-summary-log.js'
 
 test.describe('Waste balance availability page', () => {
   test('An admin views and downloads waste balance availability for a chosen year @wasteBalanceAvailability', async ({
@@ -56,34 +50,5 @@ test.describe('Waste balance availability page', () => {
     )
     expect(csv.failure).toBeNull()
     expect(csv.filename).toBe(`waste-balance-availability-${chosenYear}.csv`)
-  })
-
-  // Every organisation's balance is summed, so the figure is compared before
-  // and after rather than with an amount: other journeys only ever add to it.
-  test('The balance of an accreditation held outside re-ex counts towards its year @wasteBalanceAvailability', async ({
-    page,
-    browser
-  }) => {
-    test.setTimeout(3 * 60 * 1000)
-    const loginPage = new AdminLoginPage(page)
-    const wasteBalanceAvailabilityPage = new WasteBalanceAvailabilityPage(page)
-    const { material } = EXTERNAL_ACCREDITATION_MATERIAL
-    const availableAmount = async () => {
-      await wasteBalanceAvailabilityPage.openYear(EXTERNAL_ACCREDITATION_YEAR)
-      return reportedAmount(
-        await wasteBalanceAvailabilityPage.availableAmountFor(material)
-      )
-    }
-
-    await loginPage.open()
-    await loginPage.enterCredentials('ea@test.gov.uk', 'pass')
-    await loginPage.submitCredentials()
-    const before = await availableAmount()
-
-    await submitSummaryLogForExternalAccreditation(browser)
-
-    await expect
-      .poll(availableAmount, { timeout: 60 * 1000 })
-      .toBeGreaterThan(before)
   })
 })

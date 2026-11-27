@@ -5,28 +5,6 @@ class WasteBalanceAvailabilityPage extends AdminPage {
     return super.open('/waste-balance-availability')
   }
 
-  /** @param {number} year */
-  openYear(year) {
-    return super.open(`/waste-balance-availability?year=${year}`)
-  }
-
-  /**
-   * The available amount the table shows for a material.
-   *
-   * @param {string} material
-   * @returns {Promise<string>}
-   */
-  async availableAmountFor(material) {
-    return this.balanceTable()
-      .getByRole('row')
-      .filter({
-        has: this.page.getByRole('rowheader', { name: material, exact: true })
-      })
-      .getByRole('cell')
-      .last()
-      .innerText()
-  }
-
   /** @returns {import('@playwright/test').Locator} */
   yearDropdown() {
     return this.page.getByLabel('Year', { exact: true })
