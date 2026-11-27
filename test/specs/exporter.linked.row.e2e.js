@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test'
-import ExcelJS from 'exceljs'
 import { CheckSummaryLogPage } from 'page-objects/check.summary.log.page.js'
 import { UploadSummaryLogPage } from 'page-objects/upload.summary.log.page.js'
 import { WasteRecordsPage } from 'page-objects/waste.records.page.js'
@@ -8,14 +7,9 @@ import {
   seedOverseasSites
 } from '~/test/support/seeding/organisation.js'
 import {
-  FIRST_DATA_ROW,
-  fieldColumns,
-  generateSpreadsheetData
+  generateSpreadsheetData,
+  untouchedTemplateRow
 } from '~/test/support/spreadsheet/summarylogs-spreadsheet-data-generator.js'
-import {
-  PROCESSING_TYPE_CONFIG,
-  templateFileFor
-} from '~/test/support/spreadsheet/spreadsheet-config.js'
 import { createLinkAndLogin } from '~/test/support/login-helper.js'
 import { openAccreditationFor } from '~/test/support/accreditation-navigation.js'
 import { formatTonnage } from '~/test/support/tonnage.js'
@@ -73,29 +67,13 @@ const exportedInDecemberNotYetReceivedOverseas = {
   }
 }
 
-const untouchedTemplateRow = async (year) => {
-  const workbook = new ExcelJS.Workbook()
-  await workbook.xlsx.readFile(
-    templateFileFor(PROCESSING_TYPE_CONFIG.exporter.templateFile, year)
-  )
-  const sheet = workbook.getWorksheet(EXPORTED)
-  if (!sheet) {
-    throw new Error(`No worksheet named '${EXPORTED}' in the ${year} template`)
-  }
-  return Object.fromEntries(
-    Object.entries(fieldColumns(sheet))
-      .filter(([marker]) => marker !== 'ROW_ID')
-      .map(([marker, column]) => {
-        const { value } = sheet.getCell(`${column}${FIRST_DATA_ROW}`)
-        return [marker, typeof value === 'string' ? value : '']
-      })
-  )
-}
+const untouchedExportedRow = () =>
+  untouchedTemplateRow('exporter', EXPORTED, LATER)
 
 const linkedToDecemberLoad = async () => ({
   rowId: LINKED_ROW_ID,
   fields: {
-    ...(await untouchedTemplateRow(LATER)),
+    ...(await untouchedExportedRow()),
     PREVIOUS_YEAR_ROW_ID: DECEMBER_LOAD_ROW_ID,
     DATE_OF_EXPORT: `05/01/${LATER}`,
     DATE_RECEIVED_BY_OSR: `20/01/${LATER}`
@@ -105,7 +83,7 @@ const linkedToDecemberLoad = async () => ({
 const linkedToDecemberExport = async () => ({
   rowId: LINKED_TO_EXPORTED_ROW_ID,
   fields: {
-    ...(await untouchedTemplateRow(LATER)),
+    ...(await untouchedExportedRow()),
     PREVIOUS_YEAR_ROW_ID: EXPORTED_IN_DECEMBER_ROW_ID,
     DATE_RECEIVED_BY_OSR: `06/01/${LATER}`
   }
