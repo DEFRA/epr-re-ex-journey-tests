@@ -133,6 +133,44 @@ export function fieldColumns(sheet) {
 }
 
 /**
+ * A worksheet's first data row as the template ships it, keyed by template
+ * marker: every field the operator has not filled in, so a planned row built
+ * on it supplies only the fields it pins.
+ *
+ * @param {keyof typeof PROCESSING_TYPE_CONFIG} wasteProcessingType
+ * @param {string} worksheetName
+ * @param {number} year
+ * @returns {Promise<Record<string, string>>}
+ */
+export async function untouchedTemplateRow(
+  wasteProcessingType,
+  worksheetName,
+  year
+) {
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.readFile(
+    templateFileFor(
+      PROCESSING_TYPE_CONFIG[wasteProcessingType].templateFile,
+      year
+    )
+  )
+  const sheet = workbook.getWorksheet(worksheetName)
+  if (!sheet) {
+    throw new Error(
+      `No worksheet named '${worksheetName}' in the ${year} template`
+    )
+  }
+  return Object.fromEntries(
+    Object.entries(fieldColumns(sheet))
+      .filter(([marker]) => marker !== 'ROW_ID')
+      .map(([marker, column]) => {
+        const { value } = sheet.getCell(`${column}${FIRST_DATA_ROW}`)
+        return [marker, typeof value === 'string' ? value : '']
+      })
+  )
+}
+
+/**
  * Re-keys a planned row's fields from template markers to column letters.
  *
  * @param {Record<string, string | number>} fields
