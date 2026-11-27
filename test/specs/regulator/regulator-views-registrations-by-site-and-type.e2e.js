@@ -3,11 +3,10 @@ import { test, expect } from '@playwright/test'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import { RegulatorOrganisationPage } from 'page-objects/regulator/organisation.page'
-import { currentYear } from '../../support/date.js'
 import { seedMultiSiteMultiTypeOrganisation } from '../../support/seeding/regulator-read.js'
 
 test.describe('A regulator viewing registrations grouped by site and by type @regulator', () => {
-  test('sees reprocessor registrations grouped by site, exporter registrations on their own tab, and an accreditation only where the registration carries one @regulatorRegistrationsBySiteAndType', async ({
+  test('sees reprocessor registrations grouped by site and exporter registrations on their own tab @regulatorRegistrationsBySiteAndType', async ({
     page
   }) => {
     const loginPage = new RegulatorLoginPage(page)
@@ -44,30 +43,24 @@ test.describe('A regulator viewing registrations grouped by site and by type @re
       await organisationPage.siteTable(2).locator('caption').innerText()
     ).toBe(seeded.outputSite)
 
-    // The input registration carries an accreditation, and its whole row is
-    // compared so a renamed or reordered column names itself in the failure.
+    // Whole rows are compared so a renamed or reordered column names itself
+    // in the failure.
     expect(await organisationPage.registrations(1)).toEqual([
       new Map([
         ['Registration number', seeded.inputRegistrationNumber],
         ['Registration status', 'Approved'],
         ['Material', 'Paper and board'],
         ['Regulator', 'EA'],
-        ['Accreditation', `${currentYear()}: Approved`],
         ['Actions', `View ${seeded.inputRegistrationNumber}`]
       ])
     ])
 
-    // The output registration carries none, which is the case the rest of
-    // the regulator suite never seeds - so this is what proves the
-    // Accreditation column reads "Not applicable" rather than staying empty
-    // or repeating the registration's own status.
     expect(await organisationPage.registrations(2)).toEqual([
       new Map([
         ['Registration number', seeded.outputRegistrationNumber],
         ['Registration status', 'Approved'],
         ['Material', 'Steel'],
         ['Regulator', 'EA'],
-        ['Accreditation', 'Not applicable'],
         ['Actions', `View ${seeded.outputRegistrationNumber}`]
       ])
     ])
@@ -96,7 +89,6 @@ test.describe('A regulator viewing registrations grouped by site and by type @re
         ['Registration status', 'Approved'],
         ['Material', 'Plastic'],
         ['Regulator', 'EA'],
-        ['Accreditation', `${currentYear()}: Approved`],
         ['Actions', `View ${seeded.exporterRegistrationNumber}`]
       ])
     ])

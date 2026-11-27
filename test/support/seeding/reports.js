@@ -2,7 +2,6 @@ import { BaseAPI } from '../../apis/base-api.js'
 import { AuthClient } from '../auth.js'
 import { defraIdStub } from '../defra-id-stub.js'
 import { generateRegNumber } from '../reg-acc-number.js'
-import { accreditationEndFor } from '../date.js'
 import {
   assertSuccessResponse,
   assertSuccessResponseWithoutBody
@@ -12,7 +11,11 @@ import {
   registerAndLinkDefraIdUser
 } from '../defra-id-linking.js'
 import { waitForReportingPeriodStatus } from './waiters.js'
-import { organisationPath, reportSubmissionPath } from './natural-key-paths.js'
+import {
+  holdsAccreditation,
+  organisationPath,
+  reportSubmissionPath
+} from './natural-key-paths.js'
 import {
   createLinkedOrganisation,
   getOrganisation,
@@ -121,12 +124,40 @@ export async function seedSubmittedReport(
   await assertSuccessResponse(submitResponse, `POST ${statusPath} (submitted)`)
 }
 
+/**
+ * The last ended period the registration reports in: the last ended month of
+ * this year or the year before, whichever it last holds an accreditation for,
+ * otherwise the last ended quarter, which it reports registered-only.
+ *
+ * @param {string} refNo
+ * @param {string} registrationId
+ * @returns {Promise<{ accredited: boolean, cadence: 'monthly' | 'quarterly', year: number, period: number }>}
+ */
+async function lastReportablePeriod(refNo, registrationId) {
+  const month = lastCompletedPeriod('monthly')
+  if (await holdsAccreditation(refNo, registrationId, month.year)) {
+    return { accredited: true, cadence: 'monthly', ...month }
+  }
+  const yearBefore = month.year - 1
+  if (await holdsAccreditation(refNo, registrationId, yearBefore)) {
+    return {
+      accredited: true,
+      cadence: 'monthly',
+      year: yearBefore,
+      period: 12
+    }
+  }
+  return {
+    accredited: false,
+    cadence: 'quarterly',
+    ...lastCompletedPeriod('quarterly')
+  }
+}
+
 // Creates and submits a report for a registration, transitioning it through
-// in_progress → ready_to_submit → submitted.
-// Cadence is determined by matching the CSV generator's logic: monthly only
-// when the linked accreditation is approved/suspended with an accreditationNumber.
-// validFrom is set to the period start so the CSV generates exactly one row for
-// this registration regardless of when the test runs.
+// in_progress → ready_to_submit → submitted. validFrom is set to the period
+// start so the CSV generates exactly one row for this registration regardless
+// of when the test runs.
 export async function createSubmittedReport(refNo, registrationIndex = 0) {
   const baseAPI = new BaseAPI()
   const authClient = new AuthClient()
@@ -145,35 +176,18 @@ export async function createSubmittedReport(refNo, registrationIndex = 0) {
   const registration = orgData.registrations[registrationIndex]
   const registrationId = registration.id
 
-  const linkedAccreditation = registration.accreditationId
-    ? orgData.accreditations.find(
-        (a) =>
-          a.id === registration.accreditationId &&
-          (a.status === 'approved' || a.status === 'suspended') &&
-          a.accreditationNumber
-      )
-    : null
-  const cadence = linkedAccreditation ? 'monthly' : 'quarterly'
-  const { year, period } = lastCompletedPeriod(cadence)
-
+  const { accredited, cadence, year, period } = await lastReportablePeriod(
+    refNo,
+    registrationId
+  )
   const periodStartMonth = cadence === 'monthly' ? period : (period - 1) * 3 + 1
   orgData.registrations[registrationIndex].validFrom =
     `${year}-${String(periodStartMonth).padStart(2, '0')}-01`
-  // An accreditation's year is its validFrom's, so in January, when the period
-  // is last December, the accreditation has to be last year's too. Any other
-  // month it already is the period's, and keeps the dates it was seeded with.
-  if (
-    linkedAccreditation &&
-    new Date(linkedAccreditation.validFrom).getUTCFullYear() !== year
-  ) {
-    linkedAccreditation.validFrom = `${year}-01-01`
-    linkedAccreditation.validTo = accreditationEndFor(`${year}-01-01`)
-  }
 
   // When the accreditation isn't approved the CSV generator treats this as quarterly,
   // but the backend uses accreditationId presence to enforce monthly cadence.
   // Delete the key (not null) so JSON omits it — schema only allows absent, not explicit null.
-  if (!linkedAccreditation) {
+  if (!accredited) {
     delete orgData.registrations[registrationIndex].accreditationId
   }
 
@@ -218,8 +232,7 @@ export async function createSubmittedReport(refNo, registrationIndex = 0) {
     JSON.stringify({
       tonnageRecycled: 10,
       tonnageNotRecycled: 0,
-      prnRevenue: 0,
-      freeTonnage: 0
+      ...(accredited && { prnRevenue: 0, freeTonnage: 0 })
     }),
     jsonHeaders
   )

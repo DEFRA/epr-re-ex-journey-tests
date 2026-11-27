@@ -37,7 +37,7 @@ test.describe('Cancelled accreditation @cancelledAccreditation', () => {
       }
     ])
 
-    await updateStatus(orgId, 'suspended')
+    await updateStatus(orgId, 'suspended', { regNumber, accNumber })
 
     await createLinkAndLogin(page, orgId, migrationResponse.email)
 
@@ -62,7 +62,7 @@ test.describe('Cancelled accreditation @cancelledAccreditation', () => {
     await prnDashboardPage.backLink().click()
 
     // now we cancel the accreditation, PERN links should be gone
-    await updateStatus(orgId, 'cancelled')
+    await updateStatus(orgId, 'cancelled', { regNumber, accNumber })
 
     await dashboardPage.backLink().click()
 

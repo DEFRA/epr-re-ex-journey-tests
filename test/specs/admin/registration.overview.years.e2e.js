@@ -13,11 +13,13 @@ import { registerAndLinkDefraIdUser } from '../../support/defra-id-linking.js'
 import { defraIdStub } from '../../support/defra-id-stub.js'
 import { generateSummaryLogContent } from '../../support/spreadsheet/summarylogs-content-generator.js'
 import { checkAccessibility } from '../../support/accessibility.js'
+import { availableWasteRecordYears } from '../../support/waste-record-years.js'
+import { hasSummaryLogTemplate } from '../../support/spreadsheet/spreadsheet-config.js'
 
 // The registration is registered-only for the two years before this one and
 // accredited this year. Last year holds a submitted Quarter 1 report, in a
-// period that has ended whatever today's date, and no summary log: it has no
-// templates to submit against. This year holds a summary log.
+// period that has ended whatever today's date, and no summary log. This year
+// holds a summary log.
 test.describe('Registration overview years', () => {
   test.describe.configure({ timeout: 3 * 60 * 1000 })
 
@@ -46,6 +48,7 @@ test.describe('Registration overview years', () => {
         materialSuffix: 'PA',
         regNumber: seeded.registrationNumber,
         accNumber: seeded.accreditationNumber,
+        year: thisYear,
         rows: {
           'Reprocessed (sections 3 and 4)': [
             {
@@ -137,8 +140,11 @@ test.describe('Registration overview years', () => {
       expect(await registrationYearPage.getSummaryLogsContent()).toContain(
         'No summary logs'
       )
+      // The download is offered for every year the service holds waste records
+      // for, whether or not this registration has any.
+      const wasteRecordYears = await availableWasteRecordYears()
       await expect(registrationYearPage.wasteRecordsDownloadLink()).toHaveCount(
-        0
+        wasteRecordYears.includes(String(lastYear)) ? 1 : 0
       )
     })
 
@@ -217,7 +223,10 @@ test.describe('Registration overview years', () => {
     const defraAuthHeader = defraIdStub.authHeader(user.userId)
 
     const rowIdByYear = { [thisYear]: '1001', [nextYear]: '1002' }
-    for (const year of [thisYear, nextYear]) {
+    const yearsWithTemplates = hasSummaryLogTemplate(nextYear)
+      ? [thisYear, nextYear]
+      : [thisYear]
+    for (const year of yearsWithTemplates) {
       const submitted = await submitSummaryLogContent(
         seeded.refNo,
         registrationId,
@@ -243,7 +252,7 @@ test.describe('Registration overview years', () => {
 
     await new AdminLoginPage(page).loginAsServiceMaintainer()
 
-    for (const year of [thisYear, nextYear]) {
+    for (const year of yearsWithTemplates) {
       await registrationYearPage.open(
         `/organisations/${seeded.organisationNumber}/registrations/${encodeURIComponent(registrationNumber)}/years/${year}`
       )

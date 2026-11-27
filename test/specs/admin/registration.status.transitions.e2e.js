@@ -8,6 +8,7 @@ import {
   createLinkedOrganisation,
   fillerNumbers,
   getOrganisation,
+  LAST_STORED_ACCREDITATION_YEAR,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
 import { issuedRegistrationNumber } from '../../support/issued-numbers.js'
@@ -112,7 +113,7 @@ test.describe('Admin registration status transitions', () => {
     expect(await statusChangesPage.getRegistrationStatus()).toBe('approved')
   })
 
-  test('cancelling a registration cascades cancellation to its linked accreditation and gates its reinstatement @registrationTransitions', async ({
+  test(`cancelling a registration cascades cancellation to its linked ${LAST_STORED_ACCREDITATION_YEAR} accreditation, the last year whose accreditations Re-ex stores and changes, and gates its reinstatement @registrationTransitions`, async ({
     page
   }) => {
     const organisationsPage = new OrganisationsPage(page)
@@ -127,12 +128,17 @@ test.describe('Admin registration status transitions', () => {
       { material: 'Aluminium (R4)', wasteProcessingType: 'Exporter' }
     ])
     const orgId = organisationDetails.refNo
-    await updateMigratedOrganisation(orgId, [
-      {
-        ...fillerNumbers(),
-        status: 'approved'
-      }
-    ])
+    await updateMigratedOrganisation(
+      orgId,
+      [
+        {
+          ...fillerNumbers(),
+          status: 'approved'
+        }
+      ],
+      undefined,
+      `${LAST_STORED_ACCREDITATION_YEAR}-01-01`
+    )
 
     const companyName = organisationDetails.organisation.companyName
 

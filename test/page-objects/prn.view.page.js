@@ -21,6 +21,25 @@ class PRNViewPage extends Page {
     })
   }
 
+  /**
+   * The view page shows the number in the inset under the heading; the action
+   * page still lists it as a details row. Null until the note is issued.
+   *
+   * @param {'PRN' | 'PERN'} noteType
+   * @returns {Promise<string | null>}
+   */
+  async prnNumber(noteType) {
+    const label = `${noteType} number: `
+    const line = this.page.locator('.govuk-inset-text').getByText(label)
+
+    if ((await line.count()) > 0) {
+      return (await line.innerText()).replace(label, '')
+    }
+
+    const details = await this.prnDetails()
+    return details[`${noteType} number`] || null
+  }
+
   cancelPRNButton() {
     return this.page.getByRole('button', { name: /^Cancel (PRN|PERN)$/ })
   }

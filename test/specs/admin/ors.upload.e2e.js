@@ -6,7 +6,9 @@ import { test, expect } from '@playwright/test'
 import { AdminLoginPage } from 'page-objects/admin/login.page'
 import { OrsUploadPage } from 'page-objects/admin/ors.upload.page'
 import {
+  amendMigratedOrganisation,
   createLinkedOrganisation,
+  seededCreatedOn,
   updateMigratedOrganisation
 } from '../../support/seeding/organisation.js'
 import {
@@ -23,6 +25,23 @@ import { RegistrationYearPage } from 'page-objects/admin/registration.year.page'
 import { ORSOverviewPage } from 'page-objects/admin/ors.overview.page'
 import { currentYear } from '../../support/date.js'
 import { availableWasteRecordYears } from '../../support/waste-record-years.js'
+
+/**
+ * Starts the organisation's registration on 1 January last year, so that
+ * every year the list offers falls within it.
+ *
+ * @param {string} refNo
+ */
+async function registerSinceLastYear(refNo) {
+  const validFrom = `${currentYear() - 1}-01-01`
+  await amendMigratedOrganisation(refNo, (data) => {
+    data.registrations[0].validFrom = validFrom
+    data.registrations[0].statusHistory = [
+      { status: 'created', updatedAt: seededCreatedOn(validFrom) },
+      { status: 'approved', updatedAt: validFrom }
+    ]
+  })
+}
 
 async function uploadWorkbookAndWaitForCompletion(
   orsUploadPage,
@@ -62,6 +81,7 @@ test.describe('ORS upload flow @orsUpload', () => {
         status: 'approved'
       }
     ])
+    await registerSinceLastYear(refNo)
 
     const workbookPath = path.join(os.tmpdir(), `ors-test-${orgId}.xlsx`)
 

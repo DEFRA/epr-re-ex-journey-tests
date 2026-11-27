@@ -217,17 +217,14 @@ const OUTPUT_SITE = 'Regulator read - reprocessor output site'
 
 /**
  * Seeds one organisation holding three registrations, so a regulator journey
- * can prove the three things a single-registration organisation cannot: that
- * registrations group by site, that reprocessor and exporter registrations
- * are shown apart, and that a registration with no accreditation reads
- * differently from one that carries one.
+ * can prove the two things a single-registration organisation cannot: that
+ * registrations group by site, and that reprocessor and exporter
+ * registrations are shown apart.
  *
  * The reprocessor input and output registrations sit at two different sites,
- * so the Reprocessor tab renders two site tables rather than one. The output
- * registration carries no accreditation, so its row is the one that proves
- * the "Not applicable" case rather than the "Approved" one the input
- * registration already covers. The exporter registration lives on its own
- * tab and, unlike a reprocessor's, its table carries no site caption at all.
+ * so the Reprocessor tab renders two site tables rather than one. The exporter
+ * registration lives on its own tab and, unlike a reprocessor's, its table
+ * carries no site caption at all.
  *
  * All three registrations and the (two) accreditations are approved
  * over HTTP as the operator, exactly as seedAwaitingPrnAndSubmittedReport
