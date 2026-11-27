@@ -480,7 +480,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
         ),
         dataEntered: '03/01/2028',
         errorMessage:
-          'Year cannot be later than 2027. If it’s a 2028 load, record it in your 2028 summary log instead. If it was received for export in 2027, use the ‘Previous year Row ID’ to link your 2 summary logs.'
+          "Year cannot be later than 2027. If it's a 2028 load, record it in your 2028 summary log instead. If it was received for export in 2027, use the 'Previous year Row ID' to link your 2 summary logs."
       },
       {
         rowId: '4000',
@@ -493,7 +493,7 @@ test.describe('Summary Logs - Unhappy paths - Template and validation @unhappyPa
         ),
         dataEntered: '05/02/2029',
         errorMessage:
-          'Year cannot be later than 2027. If it’s a 2029 load, record it in your 2029 summary log instead.'
+          "Year cannot be later than 2027. If it's a 2029 load, record it in your 2029 summary log instead."
       }
     ])
   })
