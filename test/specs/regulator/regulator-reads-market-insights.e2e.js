@@ -10,6 +10,7 @@ import {
   MarketInsightsWasteBalancePage,
   WASTE_BALANCE_HEADINGS
 } from 'page-objects/regulator/market-insights-waste-balance.page'
+import { ChooseYearPage } from 'page-objects/choose.year.page.js'
 import { RegulatorHomePage } from 'page-objects/regulator/home.page'
 import { RegulatorLoginPage } from 'page-objects/regulator/login.page'
 import {
@@ -62,6 +63,13 @@ const NATIONS = ['England', 'Wales', 'Scotland', 'Northern Ireland']
 // name, with the reporting year on the end.
 const PERIOD = /^[A-Z][a-z]+( to [A-Z][a-z]+)? (\d{4})$/
 
+// The landing page's address, which carries the year its figures are for.
+const LANDING_ADDRESS = /\/regulators\/market-insights\/\d{4}$/
+
+// 2027 is offered once January 2027 is a complete month. Until then only 2026
+// is, and the page offers no other year.
+const SECOND_YEAR_OFFERED = Date.UTC(2027, 1, 1)
+
 /**
  * The value a stated tonnage carries. The grouping is there to be read rather
  * than parsed, so it comes out before the number does.
@@ -104,12 +112,17 @@ test.describe('A regulator reading market insights @regulator', () => {
     // page without hiding the pages after it. Arriving on a page stays a hard
     // check, since nothing on a page that did not arrive can be read, and so
     // does anything a later page is checked against.
-    await test.step('Market insights', async () => {
+    const shownYear = await test.step('Market insights', async () => {
       // Typing the address is not the journey. The regulator area offering the
       // link is the only way a regulator finds the pages at all.
       await homePage.marketInsightsLink().click()
 
       expect(await marketInsightsPage.headingText()).toContain(LANDING_HEADING)
+
+      // The link has no year, so it lands on the current reporting year.
+      await expect(page).toHaveURL(LANDING_ADDRESS)
+      const shownYear = marketInsightsPage.yearInAddress()
+      await marketInsightsPage.expectYear(shownYear)
 
       // Each set of figures the publication carries gets its own page, and
       // this one is how a regulator reaches any of them, so every page after
@@ -129,6 +142,8 @@ test.describe('A regulator reading market insights @regulator', () => {
           'Regulator market insights'
         ))
       )
+
+      return shownYear
     })
 
     const { period, months } = await test.step('UK waste balance', async () => {
@@ -146,6 +161,7 @@ test.describe('A regulator reading market insights @regulator', () => {
       const period = await wasteBalancePage.periodText()
 
       expect(period).toMatch(PERIOD)
+      expect.soft(period.endsWith(` ${shownYear}`)).toBe(true)
       await expect.soft(wasteBalancePage.dataTakenAt()).toBeVisible()
 
       const { material, accreditationType, total, publishedTotal } =
@@ -221,6 +237,9 @@ test.describe('A regulator reading market insights @regulator', () => {
 
       // The trail back is the only way on to the other sets of figures, so
       // the journey walks it rather than addressing the next page directly.
+      await expect
+        .soft(wasteBalancePage.crumbLink(LANDING_HEADING))
+        .toHaveAttribute('href', `/regulators/market-insights/${shownYear}`)
       await wasteBalancePage.crumbLink(LANDING_HEADING).click()
 
       return { period, months }
@@ -338,5 +357,37 @@ test.describe('A regulator reading market insights @regulator', () => {
     })
 
     await assertNoSeriousOrCriticalViolations(violations)
+  })
+
+  test('chooses an earlier year of figures @regulatorMarketInsights', async ({
+    page
+  }) => {
+    test.skip(
+      Date.now() < SECOND_YEAR_OFFERED,
+      'Only 2026 is offered until 1 February 2027'
+    )
+
+    const homePage = new RegulatorHomePage(page)
+    const marketInsightsPage = new MarketInsightsPage(page)
+    const chooseYearPage = new ChooseYearPage(page)
+
+    await new RegulatorLoginPage(page).loginAsRegulator()
+    await homePage.marketInsightsLink().click()
+
+    await expect(page).toHaveURL(LANDING_ADDRESS)
+    const latestYear = marketInsightsPage.yearInAddress()
+
+    await marketInsightsPage.chooseDifferentYearLink().click()
+    await expect(chooseYearPage.yearOption(latestYear)).not.toBeChecked()
+    await chooseYearPage.yearOption(latestYear - 1).check()
+    await chooseYearPage.continueButton().click()
+
+    await marketInsightsPage.expectYear(latestYear - 1)
+
+    // An earlier year is over, so its figures cover all of it.
+    await marketInsightsPage.figureSetLink('UK waste balance').click()
+    expect(await new MarketInsightsWasteBalancePage(page).periodText()).toBe(
+      `January to December ${latestYear - 1}`
+    )
   })
 })
