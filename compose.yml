@@ -148,7 +148,7 @@ services:
 
   # Simulates Defra ID sign-in for waste-operator users (epr-frontend journeys).
   defra-id-stub:
-    image: defradigital/epr-re-ex-defra-id-stub:0.47.0@sha256:220aaec714ab317eb667a95106fc4c79d3017e2178eda3ea08cc67244c33baba
+    image: defradigital/epr-re-ex-defra-id-stub:0.49.0@sha256:805379d6aa14edfc2a715ea5e29981a360e3a4a03603dc21e78a638c665cbb15
     networks:
       - cdp-tenant
     ports:
@@ -177,7 +177,7 @@ services:
   # Simulates Entra ID (Microsoft) sign-in: used for epr-backend's
   # service-to-service auth and for epr-re-ex-admin-frontend's browser login.
   entra-stub:
-    image: defradigital/epr-re-ex-entra-stub:0.193.0@sha256:61f53e963f49d578fa481a77c5153c9f9cec6f8da084957b836f338310a25e78
+    image: defradigital/epr-re-ex-entra-stub:0.195.0@sha256:0bfc0c72cca926aef8517380b21f825c47b19cbbd1fff51211f86d2d64fce1b1
     networks:
       - cdp-tenant
     ports:
