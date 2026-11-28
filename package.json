@@ -70,7 +70,7 @@
     "allure-commandline": "2.46.1",
     "allure-playwright": "3.15.0",
     "browserstack-local": "1.5.16",
-    "browserstack-node-sdk": "1.80.1",
+    "browserstack-node-sdk": "1.80.3",
     "chai": "6.3.0",
     "chrome-launcher": "1.2.3",
     "decimal.js": "10.6.0",
@@ -80,7 +80,7 @@
     "jszip": "3.10.2",
     "lighthouse": "13.6.0",
     "pino": "10.4.0",
-    "undici": "8.12.4"
+    "undici": "8.13.1"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
